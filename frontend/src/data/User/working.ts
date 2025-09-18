@@ -1,4 +1,3 @@
-// workingSteps.ts
 import {
   SearchOutlined,
   CalendarTodayOutlined,
