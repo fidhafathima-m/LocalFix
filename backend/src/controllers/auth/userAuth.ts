@@ -45,14 +45,19 @@ export const signup = async(req: Request, res: Response): Promise<void> => {
 export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
     try {
         const {phone, otp, fullName, password, email} = req.body;
-        const record = await OTPVerificationSchema.findOne({phone, purpose: 'signup'});
+        const record = await OTPVerificationSchema.findOne({ phone, purpose: "signup" }) .sort({ createdAt: -1 });;
+        console.log("Found record:", record);
+
         if(!record) {
             res.status(400).json({message: 'No OTP request found'});
             return;
         }
-        if(record.expiresAt < new Date()) {
-            res.status(400).json({message: "OTP expired!"});
-            return;
+        const expiry = new Date(record.expiresAt).getTime();
+        const now = Date.now();
+
+        if (expiry < now) {
+        res.status(400).json({ message: "OTP expired!" });
+        return;
         }
 
         const isMatch = await bcrypt.compare(otp, record.otpHash);
@@ -76,6 +81,32 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
         res.status(500).json({message: error.message});
     }
 }
+
+// verify-reset-otp.ts
+export const verifyResetOtp = async (req: Request, res: Response) => {
+    try {
+        const { phone, otp } = req.body;
+
+        const record = await OTPVerificationSchema.findOne({ phone, purpose: 'reset' }).sort({ createdAt: -1 });
+        if (!record) {
+            return res.status(400).json({ success: false, message: "No OTP request found" });
+        }
+
+        if (record.expiresAt < new Date()) {
+            return res.status(400).json({ success: false, message: "OTP expired!" });
+        }
+
+        const isMatch = await bcrypt.compare(otp, record.otpHash);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: "Invalid OTP" });
+        }
+
+        res.json({ success: true, message: "OTP verified" });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 
 // login
 export const login = async(req: Request, res: Response): Promise<void> => {
@@ -139,7 +170,7 @@ export const forgotPassword = async(req: Request, res: Response): Promise<void> 
 export const resetPassword = async(req: Request, res: Response): Promise<void> => {
     try {
         const {phone, otp, newPassword} = req.body;
-        const record = await OTPVerificationSchema.findOne({phone, purpose: 'reset'});
+        const record = await OTPVerificationSchema.findOne({phone, purpose: 'reset'}).sort({ createdAt: -1 });
         if(!record) {
             res.status(400).json({message: 'No OTP request found'});
             return;

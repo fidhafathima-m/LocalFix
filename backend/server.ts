@@ -1,15 +1,25 @@
 import express, {Application, Request, Response} from 'express'
 import dotenv from 'dotenv'
+import cors from 'cors'
 import connectDB from './src/config/db'
-import authRoutes from './src/routes/user/authRoutes'
+import userAuth from './src/routes/auth/userAuth'
+import technicianAuth from './src/routes/auth/technicianAuth'
+import technicianApplication from './src/routes/technician/technicianApplicationRouter'
 
 dotenv.config();
 connectDB();
 
 const app: Application = express();
 app.use(express.json());
+app.use(cors({ origin: "http://localhost:5173", methods: ["GET","POST","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"], credentials: true }));
 
-app.use('/api/auth', authRoutes);
+app.use("/uploads", express.static("uploads"));
+
+app.use('/api/auth', userAuth);
+app.use('/api/auth/technicians', technicianAuth);
+app.use("/api/technician-application", technicianApplication);
+app.use("/uploads", express.static("uploads"));
 app.get('/', (req: Request, res: Response) => {
     res.send("Localfix API running...")
 })
