@@ -109,31 +109,32 @@ export const verifyResetOtp = async (req: Request, res: Response) => {
 
 
 // login
-export const login = async(req: Request, res: Response): Promise<void> => {
-    try {
-        const {phone, password} = req.body;
-        const user = await User.findOne({phone})
-        if(!user) {
-            res.status(400).json({message: "User not found"});
-            return;
-        }
-        const isMatch = await bcrypt.compare(password, user.passwordHash || '');
-        if(!isMatch) {
-            res.status(400).json({message: "Invalid credentials"});
-            return;
-        }
-
-        //jwt token signing
-        const token = jwt.sign(
-            {_id: user._id, role: user.role},
-            process.env.JWT_SECRET as string,
-            {expiresIn: "7d"}
-        )
-        res.json({token, user});
-    } catch (error: any) {
-        res.status(500).json({message: error.message});
+export const login = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { phone, password, role } = req.body; 
+    const user = await User.findOne({ phone, role }); 
+    if (!user) {
+      res.status(400).json({ message: "User not found" });
+      return;
     }
-}
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash || "");
+    if (!isMatch) {
+      res.status(400).json({ message: "Invalid credentials" });
+      return;
+    }
+
+    const token = jwt.sign(
+      { _id: user._id, role: user.role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "7d" }
+    );
+
+    res.json({ token, user });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 //  forget password
 export const forgotPassword = async(req: Request, res: Response): Promise<void> => {
