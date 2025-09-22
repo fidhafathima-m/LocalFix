@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext';
 
-type UserType = 'user' | 'serviceProvider' | 'admin';
 
 interface HeaderProps {
-    userType: UserType;
     isApproved?: boolean,
-    isLoggedIn: boolean
+    userType?: 'user' | 'serviceProvider' | 'admin'
 }
 
-const Header: React.FC<HeaderProps> = ({userType, isApproved, isLoggedIn}) => {
+const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const {isLoggedIn, logout, user} = useAuth()
+    const userType = propUserType || user?.role || 'user';
 
     // Close mobile menu when window is resized to desktop size
     useEffect(() => {
@@ -66,7 +67,13 @@ const Header: React.FC<HeaderProps> = ({userType, isApproved, isLoggedIn}) => {
                         <a href="/technicians" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>For Technicians</a>
                         <a href="/my-orders" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>My Orders</a>
                         <a href="/my-profile" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Profile</a>
-                        <a href="/logout" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Logout</a>
+                        <button 
+                            onClick={logout} 
+                            className="px-3 text-red-500 hover:text-blue-600 transition-colors"
+                        >
+                            Logout
+                        </button>
+
                     </>
                     )
                 }
@@ -77,9 +84,9 @@ const Header: React.FC<HeaderProps> = ({userType, isApproved, isLoggedIn}) => {
                         <a href="/technicians/services" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Services</a>
                         <a href="/technicians/how-it-works" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>How it works</a>
                         <a href="/technicians/why-join" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Why Join</a>
-                        <a href="/users" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Users</a>
+                        <a href="/" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Users</a>
                         <a href="/technicians/login" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Login</a>
-                        <a href="/technicians/apply-now" className={`ml-2 ${signUpButtonStyles}`} onClick={closeMobileMenu}>Apply Now</a>
+                        <a href="/technicians/apply" className={`ml-2 ${signUpButtonStyles}`} onClick={closeMobileMenu}>Apply Now</a>
                     </>
                     )
                 } else {
@@ -148,7 +155,8 @@ const Header: React.FC<HeaderProps> = ({userType, isApproved, isLoggedIn}) => {
             {/* Main Header */}
             <div className='flex items-center justify-between mx-auto px-4'>
                 <h1 className='text-blue-600 text-xl py-5 font-bold'>
-                    Localfix
+                    {userType === 'serviceProvider' ? <a href="/technicians">Localfix</a> : <a href="/">Localfix</a>}
+                    
                 </h1>
 
                 {/* Desktop Navigation */}

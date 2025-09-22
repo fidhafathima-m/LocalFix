@@ -2,14 +2,14 @@ import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import ForgetPassword from '../../components/ForgetPassword/ForgetPassword'
 
-const UserOTP = () => {
+const ForgotPassword = () => {
   return (
     <div>
-        <Header userType='user' isLoggedIn={false}/>
+        <Header/>
         <ForgetPassword userType='user'/>
         <Footer/>
     </div>
   )
 }
 
-export default UserOTP
+export default ForgotPassword

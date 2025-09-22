@@ -5,7 +5,7 @@ import Login from '../../components/Login'
 const UserLogin = () => {
   return (
     <div>
-        <Header userType='user' isLoggedIn={false}/>
+        <Header/>
         <Login userType='user'/>
         <Footer/>
     </div>

@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { StepIndicator } from './StepIndicator'
 import { FormStep } from './FormStep'
-import { FileUpload } from './FileUpload'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import axios from 'axios';
+import { ImageUploadWithPreview } from './ImageUploadWithPreview';
 
 // Define all possible steps
 const STEPS = [
@@ -17,9 +18,22 @@ const STEPS = [
 ]
 export const ApplicationForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1)
-  const [completedSteps, setCompletedSteps] = useState<number[]>([])
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [submissionSuccess, setSubmissionSuccess] = useState(false)
+  const [completedSteps] = useState<number[]>([])
+  const [isSubmitted] = useState(false)
+  const [submissionSuccess] = useState(false)
+
+  // otp related
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [otpError, setOtpError] = useState('');
+
+  const [applicationId, setApplicationId] = useState<string | null>(null);
+
+
+  // File related
+  const [, setPreview] = useState<string | null>(null);
+
   // Form data state
   const [formData, setFormData] = useState({
     // Step 1: Personal Information
@@ -95,6 +109,129 @@ export const ApplicationForm: React.FC = () => {
     verificationConsent: false,
     marketingConsent: false,
   })
+
+  const startApplication = async () => {
+  if (!formData.phoneNumber) {
+    alert("Please enter your phone number first");
+    return;
+  }
+
+  try {
+    const resp = await axios.post(`${import.meta.env.VITE_BASE_URL}/technician-application/start`, {
+      phone: formData.phoneNumber,
+    });
+
+    setApplicationId(resp.data.applicationId);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to start application");
+  }
+};
+useEffect(() => {
+  const savedAppId = localStorage.getItem("applicationId");
+  if (savedAppId) setApplicationId(savedAppId);
+}, []);
+
+useEffect(() => {
+  if (applicationId) localStorage.setItem("applicationId", applicationId);
+}, [applicationId]);
+
+
+  const sendOtpForApplication = async () => {
+    if (!formData.phoneNumber) {
+      alert("Please enter phone number first");
+      return;
+    }
+    try {
+      const resp = await axios.post(`${import.meta.env.VITE_BASE_URL}/technician-application/send-otp`, {
+        phone: formData.phoneNumber
+      });
+      alert(resp.data.message || "OTP sent");
+      setOtpSent(true);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert("Failed to send OTP");
+      } 
+    }
+  };
+
+  const verifyOtpForApplication = async () => {
+    if (!otpInput || otpInput.length !== 6) {
+      setOtpError("Enter valid 6-digit OTP");
+      return;
+    }
+    try {
+      const resp = await axios.post(`${import.meta.env.VITE_BASE_URL}/technician-application/verify-otp`, {
+        phone: formData.phoneNumber,
+        otp: otpInput
+      });
+      alert(resp.data.message || "OTP verified");
+      setOtpVerified(true);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert("OTP Verification failed");
+      }
+    }
+  };
+
+useEffect(() => {
+  const fetchSavedApplication = async () => {
+    if (!applicationId) return;
+
+    try {
+      const resp = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`
+      );
+
+      const application = resp.data.application;
+
+      // Populate formData with saved values
+      setFormData((prev) => ({
+        ...prev,
+        ...application.personal,
+        ...application.identity,
+        ...application.skills,
+        ...application.workExperience,
+        ...application.availability,
+        ...application.bank,
+        ...application.agreement,
+      }));
+
+      // Set current step to next incomplete step
+      const completedSteps = application.stepsCompleted || [];
+      const nextStepIndex = STEPS.findIndex((s) => !completedSteps.includes(s));
+      setCurrentStep(nextStepIndex === -1 ? STEPS.length : nextStepIndex + 1);
+
+    } catch (error) {
+      console.error("Failed to load saved application:", error);
+    }
+  };
+
+  fetchSavedApplication();
+}, [applicationId]);
+
+// Save formData locally on every change
+useEffect(() => {
+  if (applicationId) {
+    localStorage.setItem(`techApp-${applicationId}`, JSON.stringify(formData));
+  }
+}, [formData, applicationId]);
+
+// On mount, load local backup if available
+useEffect(() => {
+  if (applicationId) {
+    const backup = localStorage.getItem(`techApp-${applicationId}`);
+    if (backup) {
+      setFormData(JSON.parse(backup));
+    }
+  }
+}, [applicationId]);
+
+
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -188,40 +325,172 @@ export const ApplicationForm: React.FC = () => {
       }
     }
   }
+
+  
   const handleFileChange = (field: string) => (file: File | null) => {
     setFormData((prev) => ({
       ...prev,
       [field]: file,
     }))
+    if (file) {
+    setPreview(URL.createObjectURL(file));
+  } else {
+    setPreview(null);
   }
-  const handleNext = () => {
-    // Mark current step as completed
-    if (!completedSteps.includes(currentStep)) {
-      setCompletedSteps((prev) => [...prev, currentStep])
-    }
-    // Move to next step
-    if (currentStep < STEPS.length) {
-      setCurrentStep((prev) => prev + 1)
-      window.scrollTo(0, 0)
-    }
   }
+
+  const validateStep = (step: number): boolean => {
+  switch (step) {
+    case 1:
+      return formData.currentAddress.trim() !== ''
+    case 2:
+      return formData.services.length > 0
+    case 3:
+      return (
+        formData.yearsOfExperience.trim() !== '' &&
+        formData.certifications !== null &&
+        formData.bio.trim() !== ''
+      )
+    case 4:
+      return (
+        formData.languages.length > 0 &&
+        formData.serviceAreas.length > 0 &&
+        formData.workRadius.trim() !== ''
+      )
+    case 5:
+      // Optional validation for availability
+      return true
+    case 6:
+      return (
+        formData.accountHolderName.trim() !== '' &&
+        formData.accountNumber.trim() !== '' &&
+        formData.ifscCode.trim() !== ''
+      )
+    case 7:
+      return (
+        formData.policeVerification !== null &&
+        formData.tradeLicense !== null &&
+        formData.passportPhoto !== null
+      )
+    case 8:
+      return (
+        formData.termsAgreed === true &&
+        formData.verificationConsent === true
+      )
+    default:
+      return true
+  }
+}
+
+const handleStart = async () => {
+  if (!formData.phoneNumber) {
+    alert("Please enter your phone number first");
+    return;
+  }
+  await startApplication(); // sets applicationId
+};
+
+
+const handleNext = async () => {
+  const stepName = STEPS[currentStep];
+  const stepForm = new FormData();
+
+  stepForm.append("step", stepName);
+  stepForm.append("applicationId", applicationId!);
+
+
+  // Define which fields belong to each step
+  const stepFields: Record<string, string[]> = {
+    "Personal Information": ["fullName", "phoneNumber", "email", "dateOfBirth", "gender", "profilePhoto"],
+    "Identity & Verification": ["idType", "idNumber", "idProof", "addressProof", "currentAddress"],
+    "Skills & Services": ["services", "yearsOfExperience", "certifications", "languages", "bio"],
+    "Work Experience": [], // extend if needed
+    "Availability": ["serviceAreas", "workRadius", "availability"],
+    "Banking Details": ["accountHolderName", "accountNumber", "ifscCode", "upiId"],
+    "Background Check": ["policeVerification", "tradeLicense", "passportPhoto"],
+    "Review & Submit": ["termsAgreed", "verificationConsent", "marketingConsent"],
+  };
+
+  stepFields[stepName].forEach((field) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const value = (formData as any)[field];
+    if (value !== null && value !== undefined) {
+      if (value instanceof File) {
+        stepForm.append(field, value);
+      } else if (typeof value === "object") {
+        stepForm.append(field, JSON.stringify(value));
+      } else {
+        stepForm.append(field, String(value));
+      }
+    }
+  });
+
+  try {
+    await axios.post(
+      `${import.meta.env.VITE_BASE_URL}/technician-application/save-step`,
+      stepForm,
+      { headers: { 
+        "Content-Type": "multipart/form-data",
+      } }
+    );
+    if (currentStep < STEPS.length - 1) {
+      setCurrentStep((prev) => prev + 1);
+    } else {
+      alert("All steps completed!");
+    }
+  } catch (err) {
+    console.error("Error saving step:", err);
+    alert("Failed to save this step");
+  }
+};
+
+
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1)
       window.scrollTo(0, 0)
     }
   }
-  const handleSubmit = () => {
-    // Add final step to completed steps
-    if (!completedSteps.includes(currentStep)) {
-      setCompletedSteps((prev) => [...prev, currentStep])
+  const handleSubmit = async () => {
+    if (!validateStep(currentStep)) {
+      alert('Please fill out all required fields before submitting.')
+      return
     }
-    setIsSubmitted(true)
-    // Simulate API call with a delay
-    setTimeout(() => {
-      setSubmissionSuccess(true)
-    }, 1500)
+
+    try {
+    const formDataToSend = new FormData()
+
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value instanceof File) {
+        formDataToSend.append(key, value)
+      } else if (typeof value === 'object') {
+        formDataToSend.append(key, JSON.stringify(value))
+      } else {
+        formDataToSend.append(key, String(value))
+      }
+    })
+
+    formDataToSend.append("applicationId", applicationId!);
+
+
+    const response = await axios.post(
+      '/api/technician-application', 
+      formDataToSend,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+
+    alert('Application submitted successfully!')
+    console.log('Server response:', response.data)
+    // Optionally: reset form or redirect
+  } catch (error) {
+    console.error('Submission error:', error)
+    alert('There was an error submitting the application.')
   }
+}
   // Show success message after form submission
   if (isSubmitted && submissionSuccess) {
     return (
@@ -374,14 +643,40 @@ export const ApplicationForm: React.FC = () => {
                     placeholder="Enter your phone number"
                     className="w-full px-3 py-2 border border-gray-300 rounded-l-md"
                     required
+                    disabled={otpVerified}
                   />
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-r-md">
-                    Verify
-                  </button>
+                  {!otpSent && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!applicationId) {
+                          await handleStart(); // calls startApplication and sets applicationId
+                        }
+                        await sendOtpForApplication(); // then send OTP
+                      }}
+                    >
+                      Send OTP
+                    </button>
+                  )}
+                  {otpSent && !otpVerified && (
+                    <>
+                      <input
+                        type="text"
+                        name="otpInput"
+                        value={otpInput}
+                        onChange={e => setOtpInput(e.target.value)}
+                        placeholder="Enter OTP"
+                      />
+                      <button type="button" onClick={verifyOtpForApplication}>Verify OTP</button>
+                      {otpError && <p className="text-red-500">{otpError}</p>}
+                    </>
+                  )}
                 </div>
+                {otpSent && otpVerified && (
                 <p className="text-xs text-gray-500 mt-1">
                   We'll send an OTP for verification
                 </p>
+                )}
               </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
@@ -428,13 +723,14 @@ export const ApplicationForm: React.FC = () => {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block mb-1 font-medium text-gray-700">
-                  Profile Photo <span className="text-red-500">*</span>
-                </label>
-                <FileUpload
-                  onFileChange={handleFileChange('profilePhoto')}
-                  required
-                />
+                 
+                  <ImageUploadWithPreview
+                    label="Profile Photo"
+                    field="profilePhoto"
+                    file={formData.profilePhoto}
+                    required
+                    onFileChange={handleFileChange}
+                  />
               </div>
             </div>
           </FormStep>
@@ -480,22 +776,21 @@ export const ApplicationForm: React.FC = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block mb-1 font-medium text-gray-700">
-                  Upload ID Proof <span className="text-red-500">*</span>
-                </label>
-                <FileUpload
-                  onFileChange={handleFileChange('idProof')}
-                  required
-                />
+                <ImageUploadWithPreview
+                    label="Id Proof"
+                    field="idProof"
+                    file={formData.idProof}
+                    required
+                    onFileChange={handleFileChange}
+                  />
               </div>
               <div className="md:col-span-2">
-                <label className="block mb-1 font-medium text-gray-700">
-                  Upload Address Proof{' '}
-                  <span className="text-gray-500">
-                    (Optional if included in ID)
-                  </span>
-                </label>
-                <FileUpload onFileChange={handleFileChange('addressProof')} />
+                <ImageUploadWithPreview
+                    label="Upload Address Proof (Optional if included in ID)"
+                    field="addressProof"
+                    file={formData.addressProof}
+                    onFileChange={handleFileChange}
+                  />
               </div>
               <div className="md:col-span-2">
                 <label className="block mb-1 font-medium text-gray-700">
@@ -578,13 +873,13 @@ export const ApplicationForm: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block mb-1 font-medium text-gray-700">
-                  Certifications <span className="text-gray-500">(If any)</span>
-                </label>
-                <FileUpload
-                  label="Upload files"
-                  onFileChange={handleFileChange('certifications')}
-                />
+                <ImageUploadWithPreview
+                    label="Certifications (If any)"
+                    field="certifications"
+                    file={formData.certifications}
+                    required
+                    onFileChange={handleFileChange}
+                  />
               </div>
               <div>
                 <label className="block mb-2 font-medium text-gray-700">
@@ -863,41 +1158,33 @@ export const ApplicationForm: React.FC = () => {
           >
             <div className="space-y-6">
               <div>
-                <label className="block mb-1 font-medium text-gray-700">
-                  Police Verification Certificate{' '}
-                  <span className="text-gray-500">
-                    (Optional but recommended)
-                  </span>
-                </label>
-                <FileUpload
-                  onFileChange={handleFileChange('policeVerification')}
-                  accept="image/png,image/jpeg,application/pdf"
-                />
+                <ImageUploadWithPreview
+                    label="Police Verification Certificate (Optional but recommended)"
+                    field="policeVerification"
+                    file={formData.policeVerification}
+                    onFileChange={handleFileChange}
+                  />
                 <p className="text-xs text-gray-500 mt-1">
                   A police verification certificate can help build trust with
                   customers.
                 </p>
               </div>
               <div>
-                <label className="block mb-1 font-medium text-gray-700">
-                  Trade License / Work Permit{' '}
-                  <span className="text-gray-500">(If available)</span>
-                </label>
-                <FileUpload
-                  onFileChange={handleFileChange('tradeLicense')}
-                  accept="image/png,image/jpeg,application/pdf"
-                />
+                <ImageUploadWithPreview
+                    label="Trade License / Work Permit (If available)"
+                    field="tradeLicense"
+                    file={formData.tradeLicense}
+                    onFileChange={handleFileChange}
+                  />
               </div>
               <div>
-                <label className="block mb-1 font-medium text-gray-700">
-                  Recent Passport Size Photo{' '}
-                  <span className="text-red-500">*</span>
-                </label>
-                <FileUpload
-                  onFileChange={handleFileChange('passportPhoto')}
-                  accept="image/png,image/jpeg"
-                  required
-                />
+                <ImageUploadWithPreview
+                    label=" Recent Passport Size Photo"
+                    field="passportPhoto"
+                    file={formData.passportPhoto}
+                    required
+                    onFileChange={handleFileChange}
+                  />
                 <p className="text-xs text-gray-500 mt-1">
                   This photo will be used for your profile and ID card.
                 </p>

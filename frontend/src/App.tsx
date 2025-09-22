@@ -1,34 +1,42 @@
 import './App.css'
-// import { AdminDashboard } from './pages/Admin/AdminDashboard'
-// import { TechnicianManagement } from './pages/Admin/TechnicianManagement'
-// import { UserManagement } from './pages/Admin/UserManagement'
-// import SignUp from './pages/User/SignUp'
-// import UserOTP from './pages/User/UserOTP'
-// import AdminLogin from './pages/Admin/AdminLogin'
-// import TechLogin from './pages/ServiceProvider/TechLogin'
-// import Home from './pages/User/Home'
-// import UserLogin from './pages/User/UserLogin'
-// import Login from './pages/User/Login'
-// import ForgetPassword from './pages/User/ForgotPassword' 
-// import TechHome from './pages/ServiceProvider/TechHome'
-// import { TechnicianApplication } from './pages/ServiceProvider/TechnicianApplication'
+import {BrowserRouter as Router, Routes, Route} from 'react-router-dom'
+import Home from './pages/User/Home'
+import UserLogin from './pages/User/UserLogin'
+import SignUp from './pages/User/SignUp'
+import TechHome from './pages/ServiceProvider/TechHome'
+import { TechnicianApplication } from './pages/ServiceProvider/TechnicianApplication'
+import TechLogin from './pages/ServiceProvider/TechLogin'
+import ForgetPassword from './pages/User/ForgotPassword'
+import UserOTP from './pages/User/UserOTP'
+import ForgetOTP from './pages/User/ForgrtOtp'
+import ResetPasswordPage from './pages/User/ResetPassword'
+import TechForgotPassword from './pages/ServiceProvider/TechForgotPassword'
+import OTP from './components/OTP'
 
 function App() {
 
   return (
     <>
-      {/* <Home/> */}
-      {/* <UserLogin/> */}
-      {/* <TechLogin/> */}
-      {/* <AdminLogin/> */}
-      {/* <SignUp/> */}
-      {/* <UserOTP/> */}
-      {/* <ForgetPassword/> */}
-      {/* <TechHome/> */}
-      {/* <TechnicianApplication/> */}
-      {/* <AdminDashboard/> */}
-      {/* <UserManagement/> */}
-      {/* <TechnicianManagement/> */}
+      <Router>
+        <Routes>
+          {/* user routes */}
+          <Route path='/' element={<Home/>}/>
+          <Route path='/login' element={<UserLogin/>}/>
+          <Route path='/signUp' element={<SignUp/>}/>
+          <Route path='/otp' element={<UserOTP/>} />
+          <Route path='/forgot-password' element={<ForgetPassword/>}/>
+          <Route path='/verify-otp' element={<ForgetOTP/>}/>
+          <Route path='/reset-password' element={<ResetPasswordPage/>}/>
+
+          {/* technicians routes */}
+
+          <Route path='/technicians' element={<TechHome/>}/>
+          <Route path='/technicians/apply' element={<TechnicianApplication/>}/>
+          <Route path='/technicians/login' element={<TechLogin/>}/>
+          <Route path='/technicians/forgot-password' element={<TechForgotPassword/>}/>
+          <Route path='/technicians/verify-otp' element={<OTP userType='serviceProvider' context='signup'/>}/>
+        </Routes>
+      </Router>
     </>
   )
 }

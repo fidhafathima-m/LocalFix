@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose'
 
 export interface ITechnicianApplication extends Document {
-  technicianId: mongoose.Types.ObjectId
+  technicianId?: mongoose.Types.ObjectId
   status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected'
   stepsCompleted: string[]
   personal: Record<string, any>
@@ -15,11 +15,13 @@ export interface ITechnicianApplication extends Document {
   rejectionReason?: string
   resubmittedCount: number
   lastSubmittedAt?: Date
+  phone?: string
 }
 
 const TechnicianApplicationSchema = new Schema<ITechnicianApplication>(
   {
-    technicianId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    technicianId: { type: Schema.Types.ObjectId, ref: 'User' },
+    phone: { type: String },
     status: {
       type: String,
       enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected'],

@@ -1,11 +1,13 @@
 import Header from '../../components/Header'
 import Footer from '../../components/Footer'
 import whyJoin from '../../data/ServiceProvider/whyJoin';
+import heroImage from '../../assets/images/hero.jpg'; 
+
 
 const TechHome = () => {
   return (
     <div>
-        <Header userType='serviceProvider' isLoggedIn={false}/>
+        <Header userType='serviceProvider'/>
         {/* main section */}
         <section>
             {/* banner */}
@@ -24,7 +26,10 @@ const TechHome = () => {
                             <button className='p-3 px-6 outline-1 outline-white border border-white rounded font-semibold hover:bg-white hover:text-blue-600 transition'>Learn More</button>
                         </div>
                     </div>
-                    
+                    <div className="flex-1 p-20 ">
+                        <img src={heroImage} alt="hero" className="w-full h-full object-cover rounded-lg" />
+                    </div>
+
                 </div>
                 
                 {/* Wave SVG - positioned absolutely at bottom */}

@@ -5,7 +5,7 @@ import Login from '../../components/Login'
 const TechLogin = () => {
   return (
     <div>
-        <Header userType='serviceProvider' isLoggedIn={false}/>
+        <Header userType='serviceProvider'/>
         <Login userType='serviceProvider'/>
         <Footer/>
     </div>

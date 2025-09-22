@@ -8,7 +8,7 @@ import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 const Home = () => {
   return (
     <div>
-        <Header userType='user' isLoggedIn={false}/>
+        <Header/>
         {/* main section */}
         <section>
             {/* banner */}

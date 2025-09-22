@@ -6,6 +6,8 @@ import {
   reviewApplication,
   sendApplicationOtp,
   verifyApplicationOtp,
+  startApplication,
+  getTechnicianApplication,
 } from "../../controllers/technicians/technicianApplicationController";
 
 const router = express.Router();
@@ -14,6 +16,7 @@ const router = express.Router();
 import multer from 'multer';
 const upload = multer({ dest: 'uploads/' });
 
+router.post("/start", startApplication);
 router.post(
   "/save-step",
   upload.fields([
@@ -28,6 +31,7 @@ router.post(
   saveStep
 );
 
+router.get("/:applicationId", getTechnicianApplication)
 
 // Submit final application
 router.post("/submit", submitApplication);

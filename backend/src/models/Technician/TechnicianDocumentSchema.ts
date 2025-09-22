@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose'
 
 export interface ITechnicianDocument extends Document {
-  technicianId: mongoose.Types.ObjectId
+  technicianId?: mongoose.Types.ObjectId
+  applicationId?: mongoose.Types.ObjectId
   type:
     | 'idProof'
     | 'addressProof'
@@ -18,7 +19,8 @@ export interface ITechnicianDocument extends Document {
 
 const TechnicianDocumentSchema = new Schema<ITechnicianDocument>(
   {
-    technicianId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    technicianId: { type: Schema.Types.ObjectId, ref: 'User' },
+    applicationId: { type: Schema.Types.ObjectId, ref: 'TechnicianApplication' },
     type: {
       type: String,
       enum: [

@@ -1,8 +1,12 @@
-import React from 'react'
+import React, { useState } from 'react'
+import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+
 import {
     Google,
     FacebookOutlined
 } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
 
 type UserType = 'user'| 'serviceProvider' | 'admin'
 
@@ -11,6 +15,62 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ userType }) => {
+
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const navigate = useNavigate();
+  const {login} = useAuth();
+
+  const validateForm = (): boolean => {
+  let valid = true;
+
+  const phoneRegex = /\d{10}$/;
+  if (!phone || !phoneRegex.test(phone)) {
+    setPhoneError("Please enter a valid phone number");
+    valid = false;
+  } else {
+    setPhoneError('');
+  }
+
+  if (!password || password.length < 6) {
+    setPasswordError("Password must be at least 6 characters");
+    valid = false;
+  } else {
+    setPasswordError('');
+  }
+
+  return valid;
+};
+
+
+  const handleSubmit = async(e: React.FormEvent) => {
+    e.preventDefault();
+    if(!validateForm()) return;
+    setLoading(true)
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/login`, {
+        phone, password
+      });
+      login(res.data.user, res.data.token);
+      alert("Login successful")
+      if(userType === 'serviceProvider') navigate('/technicians');
+      else navigate('/')
+      
+
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert("Login failed");
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getTitle = () => {
     switch (userType) {
       case 'admin':
@@ -31,15 +91,24 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
       </div>
 
       {/* Form */}
-      <form className="space-y-4">
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
           <label className="block text-sm mb-1">Phone Number</label>
-          <input
-            type="text"
-            placeholder="Eg: +91 9876543210"
-            className="w-full border p-2 rounded"
-          />
+          
+          <div className="flex items-center border rounded overflow-hidden">
+            <span className="px-4 py-2 bg-gray-200 text-sm border-r">+91</span>
+            <input
+              type="text"
+              placeholder="9876543210"
+              className="flex-1 p-2 text-sm outline-none"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+
+          {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
         </div>
+
 
         <div>
           <label className="block text-sm mb-1">Password</label>
@@ -47,24 +116,40 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
             type="password"
             placeholder="******"
             className="w-full border p-2 rounded"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
           />
-          <span className="text-xs text-blue-500 cursor-pointer">Forgot Password?</span>
+          {passwordError && <p className='text-sm text-red-500 mt-1'>{passwordError}</p>}
+          <Link 
+            to={
+              userType === 'serviceProvider' ? '/technicians/forgot-password' :
+              userType === 'admin' ? '/admin/forgot-password' :
+              '/forgot-password'
+            } 
+            className="text-xs text-blue-500 hover:underline"
+          >
+            Forgot Password?
+          </Link>
+
+
         </div>
 
-        <div className="flex items-center justify-between text-sm">
+        {/* <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2">
             <input type="checkbox" />
             Remember me
           </label>
           <span className="text-blue-500 cursor-pointer">Login with OTP</span>
-        </div>
+        </div> */}
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          disabled={loading}
+          className={`w-full bg-blue-600 text-white py-2 rounded ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
         >
-          Continue
+          {loading ? 'Logging in...' : 'Continue'}
         </button>
+
       </form>
 
       {/* Social login */}
@@ -80,7 +165,7 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
         </div>
       </div>
       <div className='text-center p-3'>
-        <p className='text-gray-500'>Don't have an account? <span className='text-[#1877F2]'>Sign Up</span></p>
+        {userType !== 'serviceProvider' && <p className='text-gray-500'>Don't have an account? <Link to='/signup' className='text-[#1877F2]'>Sign Up</Link></p>}
       </div>
     </div>
   );
