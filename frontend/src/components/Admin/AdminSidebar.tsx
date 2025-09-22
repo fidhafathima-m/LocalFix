@@ -67,11 +67,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
               label="Dashboard"
               active={activePage === 'Dashboard'}
             />
-            <SidebarItem
-              icon={<PeopleAltOutlined className="h-5 w-5" />}
-              label="Users"
-              active={activePage === 'Users'}
-            />
+              <SidebarItem
+                icon={<PeopleAltOutlined className="h-5 w-5" />}
+                label="Users"
+                active={activePage === 'Users'}
+                onClick={() => navigate("/admin/user-management")}
+              />
+            
             <SidebarItem
               icon={<ConstructionOutlined className="h-5 w-5" />}
               label="Technicians"

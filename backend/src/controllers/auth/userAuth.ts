@@ -72,7 +72,7 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
             phone, 
             email,
             passwordHash,
-            isVerified: false
+            isVerified: true
         })
 
         await OTPVerificationSchema.deleteMany({phone, purpose: 'signup'});

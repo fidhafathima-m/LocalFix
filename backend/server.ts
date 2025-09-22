@@ -5,6 +5,7 @@ import connectDB from './src/config/db'
 import userAuth from './src/routes/auth/userAuth'
 import technicianAuth from './src/routes/auth/technicianAuth'
 import technicianApplication from './src/routes/technician/technicianApplicationRouter'
+import userRoutes from './src/routes/admin/userRoutes'
 
 dotenv.config();
 connectDB();
@@ -20,6 +21,7 @@ app.use('/api/auth', userAuth);
 app.use('/api/auth/technicians', technicianAuth);
 app.use("/api/technician-application", technicianApplication);
 app.use("/uploads", express.static("uploads"));
+app.use("/api/users", userRoutes);
 app.get('/', (req: Request, res: Response) => {
     res.send("Localfix API running...")
 })

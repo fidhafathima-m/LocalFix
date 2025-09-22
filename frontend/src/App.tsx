@@ -16,6 +16,7 @@ import AdminLogin from './pages/Admin/AdminLogin'
 import { AdminDashboard } from './pages/Admin/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminForgotPassword from './pages/Admin/AdminForgotPassword'
+import { UserManagement } from './pages/Admin/UserManagement'
 
 function App() {
 
@@ -44,6 +45,7 @@ function App() {
           <Route path='/admin/login'element={<AdminLogin/>}/>
           <Route path='/admin/dashboard'element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard/></ProtectedRoute>}/>
           <Route path='/admin/forgot-password' element={<AdminForgotPassword/>}/>
+          <Route path='/admin/user-management' element={<UserManagement/>}/>
         </Routes>
       </Router>
     </>

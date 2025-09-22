@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { AdminSidebar } from '../../components/Admin/AdminSidebar'
 import { SearchOutlined, ExpandMoreOutlined, FileDownloadOutlined, RemoveRedEyeOutlined, EditOutlined, StarBorderOutlined } from '@mui/icons-material'
+import Search from '../../components/Admin/Search'
 interface Technician {
   id: string
   name: string
@@ -112,19 +113,7 @@ export const TechnicianManagement: React.FC = () => {
       {/* Main content - scrollable */}
       <div className="flex-1 overflow-y-auto ml-[240px]">
         {/* Header with search */}
-        <div className="bg-white p-4 sticky top-0 z-10 shadow-sm">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search"
-              className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <SearchOutlined className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            <button className="absolute right-2 top-2 bg-blue-500 text-white rounded-full p-1">
-              <SearchOutlined className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <Search/>
         {/* Dashboard content */}
         <div className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-start mb-6">

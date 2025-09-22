@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { AdminSidebar } from '../../components/Admin/AdminSidebar'
 import {
   PeopleAltOutlined,
@@ -11,64 +11,60 @@ import {
   EditOutlined,
   DeleteOutlineOutlined,
 } from '@mui/icons-material'
-interface User {
-  id: string
-  name: string
-  email: string
+import Search from '../../components/Admin/Search'
+import axios from 'axios'
+import { UserDetailsModal } from '../../components/modals/Admin/UserDetailsModal'
+export interface User {
+  _id: string
+  fullName: string
+  email?: string
   phone: string
-  status: 'active' | 'inactive'
-  registrationDate: string
-  bookings: number
-  location: string
+  isVerified: boolean
+  role: string
+  createdAt: string
+  wallet: {balance: number}
 }
 export const UserManagement: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All Status')
-  const users: User[] = [
-    {
-      id: '# 1',
-      name: 'Amit Sharma',
-      email: 'amit@example.com',
-      phone: '+91 9876543210',
-      status: 'active',
-      registrationDate: '15 Jan 2023',
-      bookings: 8,
-      location: 'Pune',
-    },
-    {
-      id: '# 2',
-      name: 'Priya Patel',
-      email: 'priya@example.com',
-      phone: '+91 9876543211',
-      status: 'active',
-      registrationDate: '22 Feb 2023',
-      bookings: 5,
-      location: 'Mumbai',
-    },
-    {
-      id: '# 3',
-      name: 'Rahul Verma',
-      email: 'rahul@example.com',
-      phone: '+91 9876543212',
-      status: 'inactive',
-      registrationDate: '10 Mar 2023',
-      bookings: 3,
-      location: 'Delhi',
-    },
-    {
-      id: '# 4',
-      name: 'Neha Singh',
-      email: 'neha@example.com',
-      phone: '+91 9876543213',
-      status: 'active',
-      registrationDate: '05 Apr 2023',
-      bookings: 6,
-      location: 'Bangalore',
-    },
-  ]
+
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+
+   useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get<{ users: User[] }>(`${import.meta.env.VITE_BASE_URL}/users`)
+      console.log('API response:', res.data)
+      setUsers(res.data?.users ?? []) // fallback to [] if undefined
+    } catch (err) {
+      console.error('Error fetching users:', err)
+      setUsers([]) // fallback on error
+    } finally {
+      setLoading(false)
+    }
+  }
+  fetchUsers()
+}, [])
+
+const handleOpenModal = (user: User) => {
+  setSelectedUser(user)
+  setIsModalOpen(true)
+}
+
+const handleCloseModal = () => {
+  setSelectedUser(null)
+  setIsModalOpen(false)
+}
+
+
+  
   // Stats calculations
   const totalUsers = users.length
-  const activeUsers = users.filter((user) => user.status === 'active').length
+  // const activeUsers = users.filter((user) => user.status === 'active').length
   const blockedUsers = 1 // Example hardcoded value
   const newUsers = 3 // Example hardcoded value for last 30 days
   return (
@@ -78,19 +74,7 @@ export const UserManagement: React.FC = () => {
       {/* Main content - scrollable */}
       <div className="flex-1 overflow-y-auto ml-[240px]">
         {/* Header with search */}
-        <div className="bg-white p-4 sticky top-0 z-10 shadow-sm">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search"
-              className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <SearchOutlined className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            <button className="absolute right-2 top-2 bg-blue-500 text-white rounded-full p-1">
-              <SearchOutlined className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <Search/>
         {/* Dashboard content */}
         <div className="p-6">
           <div className="mb-6">
@@ -116,7 +100,7 @@ export const UserManagement: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Active Users</p>
-                <p className="text-xl font-bold">{activeUsers}</p>
+                {/* <p className="text-xl font-bold">{activeUsers}</p> */}
               </div>
             </div>
             <div className="bg-red-50 p-4 rounded-lg flex items-start">
@@ -173,7 +157,10 @@ export const UserManagement: React.FC = () => {
             </div>
           </div>
           {/* Users table */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          {loading ? (
+            <div className="p-6 text-center text-gray-500">Loading users...</div>
+          ) : (
+              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -208,12 +195,12 @@ export const UserManagement: React.FC = () => {
                     >
                       Bookings
                     </th>
-                    <th
+                    {/* <th
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
                       Location
-                    </th>
+                    </th> */}
                     <th
                       scope="col"
                       className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -223,70 +210,94 @@ export const UserManagement: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="text-gray-600 text-sm font-medium">
-                              {user.name.charAt(0)}
-                            </span>
+                {users.length > 0 ? (
+                  users.map((user) => (
+                  <tr key={user._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 flex-shrink-0 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-gray-600 text-sm font-medium">
+                            {user.fullName.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.fullName}
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {user.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {user.id}
-                            </div>
-                          </div>
+                          <div className="text-sm text-gray-500">{user._id}</div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {user.email}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {user.phone}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{user.email || '—'}</div>
+                      <div className="text-sm text-gray-500">{user.phone}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          user.isVerified ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {user.isVerified ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.wallet.balance}
+                    </td>
+                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.role}
+                    </td> */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"> 
+                      <div className="flex justify-end space-x-2"> 
+                        <button
+                          className="p-1 rounded-full text-blue-600 hover:bg-blue-100"
+                          onClick={() => handleOpenModal(user)}
                         >
-                          {user.status === 'active' ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.registrationDate}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.bookings}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.location}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button className="p-1 rounded-full text-blue-600 hover:bg-blue-100">
-                            <RemoveRedEyeOutlined className="h-5 w-5" />
-                          </button>
-                          <button className="p-1 rounded-full text-green-600 hover:bg-green-100">
-                            <EditOutlined className="h-5 w-5" />
-                          </button>
-                          <button className="p-1 rounded-full text-red-600 hover:bg-red-100">
-                            <DeleteOutlineOutlined className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                          <RemoveRedEyeOutlined className="h-5 w-5" />
+                        </button>
+
+                        <button className="p-1 rounded-full text-green-600 hover:bg-green-100"> 
+                          <EditOutlined className="h-5 w-5" /> 
+                        </button> 
+                        <button className="p-1 rounded-full text-red-600 hover:bg-red-100"> 
+                          <DeleteOutlineOutlined className="h-5 w-5" /> 
+                        </button> 
+                      </div> 
+                    </td>
+                  </tr>
+                ))
+                ): (
+                  <tr>
+              <td
+                colSpan={7}
+                className="px-6 py-4 text-center text-sm text-gray-500"
+              >
+                No users found
+              </td>
+            </tr>
+                )}
+              </tbody>
+
               </table>
             </div>
           </div>
+          )}
+          
         </div>
       </div>
+      {selectedUser && (
+        <UserDetailsModal
+          user={selectedUser}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onEdit={() => console.log('Edit user', selectedUser._id)}
+        />
+      )}
+
     </div>
+    
   )
 }
