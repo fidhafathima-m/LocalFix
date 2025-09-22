@@ -52,11 +52,12 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
     setLoading(true)
     try {
       const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/login`, {
-        phone, password
+        phone, password, role: userType,
       });
       login(res.data.user, res.data.token);
       alert("Login successful")
       if(userType === 'serviceProvider') navigate('/technicians');
+      if(userType === 'admin') navigate('/admin/dashboard')
       else navigate('/')
       
 

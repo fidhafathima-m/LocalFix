@@ -21,6 +21,8 @@ export const ApplicationForm: React.FC = () => {
   const [completedSteps] = useState<number[]>([])
   const [isSubmitted] = useState(false)
   const [submissionSuccess] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
 
   // otp related
   const [otpSent, setOtpSent] = useState(false);
@@ -188,6 +190,35 @@ useEffect(() => {
       );
 
       const application = resp.data.application;
+      
+      // Ensure availability has the correct structure
+      const defaultAvailability = {
+        monday: { available: false, startTime: '09:00', endTime: '18:00' },
+        tuesday: { available: false, startTime: '09:00', endTime: '18:00' },
+        wednesday: { available: false, startTime: '09:00', endTime: '18:00' },
+        thursday: { available: false, startTime: '09:00', endTime: '18:00' },
+        friday: { available: false, startTime: '09:00', endTime: '18:00' },
+        saturday: { available: false, startTime: '09:00', endTime: '18:00' },
+        sunday: { available: false, startTime: '09:00', endTime: '18:00' },
+      };
+      
+      let availabilityData = application.availability || defaultAvailability;
+      
+      // If availability is a string (JSON), parse it
+      if (typeof availabilityData === 'string') {
+        try {
+          availabilityData = JSON.parse(availabilityData);
+        } catch (e) {
+          console.error("Error parsing availability:", e);
+          availabilityData = defaultAvailability;
+        }
+      }
+      
+      // Ensure all days are present
+      availabilityData = {
+        ...defaultAvailability,
+        ...availabilityData
+      };
 
       // Populate formData with saved values
       setFormData((prev) => ({
@@ -196,7 +227,7 @@ useEffect(() => {
         ...application.identity,
         ...application.skills,
         ...application.workExperience,
-        ...application.availability,
+        availability: availabilityData,
         ...application.bank,
         ...application.agreement,
       }));
@@ -226,7 +257,32 @@ useEffect(() => {
   if (applicationId) {
     const backup = localStorage.getItem(`techApp-${applicationId}`);
     if (backup) {
-      setFormData(JSON.parse(backup));
+      const parsedData = JSON.parse(backup);
+      
+      // Ensure availability object has the correct structure
+      const defaultAvailability = {
+        monday: { available: false, startTime: '09:00', endTime: '18:00' },
+        tuesday: { available: false, startTime: '09:00', endTime: '18:00' },
+        wednesday: { available: false, startTime: '09:00', endTime: '18:00' },
+        thursday: { available: false, startTime: '09:00', endTime: '18:00' },
+        friday: { available: false, startTime: '09:00', endTime: '18:00' },
+        saturday: { available: false, startTime: '09:00', endTime: '18:00' },
+        sunday: { available: false, startTime: '09:00', endTime: '18:00' },
+      };
+      
+      // If availability data is corrupted, restore it with default structure
+      if (!parsedData.availability || typeof parsedData.availability !== 'object') {
+        parsedData.availability = defaultAvailability;
+      } else {
+        // Merge saved availability with default structure to ensure all days are present
+        parsedData.availability = {
+          ...defaultAvailability,
+          ...parsedData.availability
+        };
+      }
+      
+      console.log("Loaded availability:", parsedData.availability);
+      setFormData(parsedData);
     }
   }
 }, [applicationId]);
@@ -339,48 +395,80 @@ useEffect(() => {
   }
   }
 
-  const validateStep = (step: number): boolean => {
+  const validateStepFields = (step: number): Record<string, string> => {
+  const stepErrors: Record<string, string> = {};
+
   switch (step) {
+    // Step 1: Personal Information
     case 1:
-      return formData.currentAddress.trim() !== ''
+      if (!formData.fullName.trim()) stepErrors.fullName = "Full name is required";
+      if (!formData.phoneNumber.trim()) stepErrors.phoneNumber = "Phone number is required";
+      if (!formData.email.trim()) stepErrors.email = "Email is required";
+      if (!formData.dateOfBirth.trim()) stepErrors.dateOfBirth = "Date of Birth is required";
+      if (!formData.gender.trim()) stepErrors.gender = "Gender is required";
+      if (!formData.profilePhoto) stepErrors.profilePhoto = "Profile photo is required";
+      break;
+
+    // Step 2: Identity & Verification
     case 2:
-      return formData.services.length > 0
+      if (!formData.currentAddress.trim()) stepErrors.currentAddress = "Current address is required";
+      if (!formData.idType.trim()) stepErrors.idType = "ID type is required";
+      if (!formData.idNumber.trim()) stepErrors.idNumber = "ID number is required";
+      if (!formData.idProof) stepErrors.idProof = "ID proof is required";
+      break;
+
+    // Step 3: Skills & Services
     case 3:
-      return (
-        formData.yearsOfExperience.trim() !== '' &&
-        formData.certifications !== null &&
-        formData.bio.trim() !== ''
-      )
-    case 4:
-      return (
-        formData.languages.length > 0 &&
-        formData.serviceAreas.length > 0 &&
-        formData.workRadius.trim() !== ''
-      )
+      if (formData.services.length === 0) stepErrors.services = "At least one service is required";
+      if (!formData.yearsOfExperience.trim()) stepErrors.yearsOfExperience = "Experience is required";
+      if (!formData.certifications) stepErrors.certifications = "Certifications file is required";
+      if (!formData.bio.trim()) stepErrors.bio = "Bio is required";
+      if (formData.languages.length === 0) stepErrors.languages = "At least one language is required";
+      break;
+
+    // Step 4: Availability & Work Preferences
+    case 4: {
+      if (formData.serviceAreas.length === 0) stepErrors.serviceAreas = "Select at least one service area";
+      if (!formData.workRadius.trim()) stepErrors.workRadius = "Select a preferred work radius";
+      const availableDays = Object.entries(formData.availability).filter(([, val]) => val.available);
+      if (availableDays.length === 0) stepErrors.availability = "Select at least one day of availability";
+      availableDays.forEach(([day, { startTime, endTime }]) => {
+        if (!startTime) stepErrors[`startTime-${day}`] = `Start time required for ${day}`;
+        if (!endTime) stepErrors[`endTime-${day}`] = `End time required for ${day}`;
+      });
+      break;
+    }
+
+    // Step 5: Banking Details
     case 5:
-      // Optional validation for availability
-      return true
+      if (!formData.accountHolderName.trim()) stepErrors.accountHolderName = "Account holder name is required";
+      if (!formData.accountNumber.trim()) stepErrors.accountNumber = "Account number is required";
+      if (!formData.ifscCode.trim()) stepErrors.ifscCode = "IFSC code is required";
+      break;
+
+    // Step 6: Documents
     case 6:
-      return (
-        formData.accountHolderName.trim() !== '' &&
-        formData.accountNumber.trim() !== '' &&
-        formData.ifscCode.trim() !== ''
-      )
+      // Only passport photo is mandatory
+      if (!formData.passportPhoto) stepErrors.passportPhoto = "Passport photo is required";
+      break;
+
+    // Step 7: Agreement & Consent
     case 7:
-      return (
-        formData.policeVerification !== null &&
-        formData.tradeLicense !== null &&
-        formData.passportPhoto !== null
-      )
+      if (!formData.termsAgreed) stepErrors.termsAgreed = "You must agree to the terms";
+      if (!formData.verificationConsent) stepErrors.verificationConsent = "Verification consent is required";
+      break;
+
+    // Step 8: Review & Submit
     case 8:
-      return (
-        formData.termsAgreed === true &&
-        formData.verificationConsent === true
-      )
+      break;
+
     default:
-      return true
+      break;
   }
-}
+
+  return stepErrors;
+};
+
 
 const handleStart = async () => {
   if (!formData.phoneNumber) {
@@ -391,20 +479,29 @@ const handleStart = async () => {
 };
 
 
+// Update your handleNext function to clean up the availability object before saving
 const handleNext = async () => {
+  const stepErrors = validateStepFields(currentStep);
+
+  if (Object.keys(stepErrors).length > 0) {
+    setErrors(stepErrors);
+    return;
+  } else {
+    setErrors({});
+  }
+
   const stepName = STEPS[currentStep];
   const stepForm = new FormData();
 
   stepForm.append("step", stepName);
   stepForm.append("applicationId", applicationId!);
 
-
   // Define which fields belong to each step
   const stepFields: Record<string, string[]> = {
     "Personal Information": ["fullName", "phoneNumber", "email", "dateOfBirth", "gender", "profilePhoto"],
     "Identity & Verification": ["idType", "idNumber", "idProof", "addressProof", "currentAddress"],
     "Skills & Services": ["services", "yearsOfExperience", "certifications", "languages", "bio"],
-    "Work Experience": [], // extend if needed
+    "Work Experience": [],
     "Availability": ["serviceAreas", "workRadius", "availability"],
     "Banking Details": ["accountHolderName", "accountNumber", "ifscCode", "upiId"],
     "Background Check": ["policeVerification", "tradeLicense", "passportPhoto"],
@@ -413,8 +510,24 @@ const handleNext = async () => {
 
   stepFields[stepName].forEach((field) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const value = (formData as any)[field];
+    let value = (formData as any)[field];
+    
     if (value !== null && value !== undefined) {
+      // Clean up availability object to only include the 7 days
+      if (field === "availability" && typeof value === "object") {
+        const daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cleanedAvailability: Record<string, any> = {};
+        
+        daysOfWeek.forEach(day => {
+          if (value[day]) {
+            cleanedAvailability[day] = value[day];
+          }
+        });
+        
+        value = cleanedAvailability;
+      }
+      
       if (value instanceof File) {
         stepForm.append(field, value);
       } else if (typeof value === "object") {
@@ -435,9 +548,7 @@ const handleNext = async () => {
     );
     if (currentStep < STEPS.length - 1) {
       setCurrentStep((prev) => prev + 1);
-    } else {
-      alert("All steps completed!");
-    }
+    } 
   } catch (err) {
     console.error("Error saving step:", err);
     alert("Failed to save this step");
@@ -452,7 +563,7 @@ const handleNext = async () => {
     }
   }
   const handleSubmit = async () => {
-    if (!validateStep(currentStep)) {
+    if (!validateStepFields(currentStep)) {
       alert('Please fill out all required fields before submitting.')
       return
     }
@@ -629,6 +740,9 @@ const handleNext = async () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
+                {errors.fullName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+                )}
               </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
@@ -645,6 +759,9 @@ const handleNext = async () => {
                     required
                     disabled={otpVerified}
                   />
+                  {errors.phoneNumber && (
+                  <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>
+                )}
                   {!otpSent && (
                     <button
                       type="button"
@@ -691,6 +808,9 @@ const handleNext = async () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                )}
               </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
@@ -704,6 +824,9 @@ const handleNext = async () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
+                {errors.dateOfBirth && (
+                  <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>
+                )}
               </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
@@ -721,6 +844,9 @@ const handleNext = async () => {
                   <option value="female">Female</option>
                   <option value="other">Other</option>
                 </select>
+                {errors.gender && (
+                  <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
+                )}
               </div>
               <div className="md:col-span-2">
                  
@@ -731,6 +857,9 @@ const handleNext = async () => {
                     required
                     onFileChange={handleFileChange}
                   />
+                  {errors.profilePhoto && (
+                  <p className="text-red-500 text-sm mt-1">{errors.profilePhoto}</p>
+                )}
               </div>
             </div>
           </FormStep>
@@ -760,6 +889,9 @@ const handleNext = async () => {
                   <option value="drivingLicense">Driving License</option>
                   <option value="nationalId">National ID</option>
                 </select>
+                {errors.idType && (
+                  <p className="text-red-500 text-sm mt-1">{errors.idType}</p>
+                )}
               </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
@@ -774,6 +906,9 @@ const handleNext = async () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
+                {errors.idNumber && (
+                  <p className="text-red-500 text-sm mt-1">{errors.idNumber}</p>
+                )}
               </div>
               <div className="md:col-span-2">
                 <ImageUploadWithPreview
@@ -784,6 +919,9 @@ const handleNext = async () => {
                     onFileChange={handleFileChange}
                   />
               </div>
+              {errors.idProof && (
+                  <p className="text-red-500 text-sm mt-1">{errors.idProof}</p>
+                )}
               <div className="md:col-span-2">
                 <ImageUploadWithPreview
                     label="Upload Address Proof (Optional if included in ID)"
@@ -805,6 +943,9 @@ const handleNext = async () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
+                {errors.currentAddress && (
+                  <p className="text-red-500 text-sm mt-1">{errors.currentAddress}</p>
+                )}
               </div>
             </div>
           </FormStep>
@@ -853,6 +994,9 @@ const handleNext = async () => {
                   ))}
                 </div>
               </div>
+              {errors.services && (
+                  <p className="text-red-500 text-sm mt-1">{errors.services}</p>
+                )}
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
                   Years of Experience <span className="text-red-500">*</span>
@@ -871,6 +1015,9 @@ const handleNext = async () => {
                   <option value="4">4 years</option>
                   <option value="5+">5+ years</option>
                 </select>
+                {errors.yearsOfExperience && (
+                  <p className="text-red-500 text-sm mt-1">{errors.yearsOfExperience}</p>
+                )}
               </div>
               <div>
                 <ImageUploadWithPreview
@@ -880,6 +1027,9 @@ const handleNext = async () => {
                     required
                     onFileChange={handleFileChange}
                   />
+                  {errors.certifications && (
+                  <p className="text-red-500 text-sm mt-1">{errors.certifications}</p>
+                )}
               </div>
               <div>
                 <label className="block mb-2 font-medium text-gray-700">
@@ -912,6 +1062,9 @@ const handleNext = async () => {
                     </div>
                   ))}
                 </div>
+                {errors.languages && (
+                  <p className="text-red-500 text-sm mt-1">{errors.languages}</p>
+                )}
               </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
@@ -925,6 +1078,9 @@ const handleNext = async () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md h-24"
                   required
                 ></textarea>
+                {errors.bio && (
+                  <p className="text-red-500 text-sm mt-1">{errors.bio}</p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   Briefly describe your experience and expertise (50-200 words)
                 </p>
@@ -975,6 +1131,9 @@ const handleNext = async () => {
                   ))}
                 </div>
               </div>
+              {errors.serviceAreas && (
+                  <p className="text-red-500 text-sm mt-1">{errors.serviceAreas}</p>
+                )}
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
                   Preferred Work Radius <span className="text-red-500">*</span>
@@ -993,6 +1152,9 @@ const handleNext = async () => {
                   <option value="20">20 km</option>
                   <option value="25+">25+ km</option>
                 </select>
+                {errors.workRadius && (
+                  <p className="text-red-500 text-sm mt-1">{errors.workRadius}</p>
+                )}
               </div>
               <div>
                 <label className="block mb-2 font-medium text-gray-700">
@@ -1017,8 +1179,13 @@ const handleNext = async () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {Object.entries(formData.availability).map(
-                        ([day, { available, startTime, endTime }]) => (
+                      {Object.entries(formData.availability)
+                        .filter(([day]) => {
+                          // Only include the 7 days of the week
+                          const validDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+                          return validDays.includes(day.toLowerCase());
+                        })
+                        .map(([day, { available, startTime, endTime }]) => (
                           <tr key={day}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize">
                               {day}
@@ -1054,14 +1221,16 @@ const handleNext = async () => {
                               />
                             </td>
                           </tr>
-                        ),
-                      )}
+                        ))}
                     </tbody>
                   </table>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
                   Select the days and times you are available to work
                 </p>
+                {errors.availability && (
+                  <p className="text-red-500 text-sm mt-1">{errors.availability}</p>
+                )}
               </div>
             </div>
           </FormStep>
@@ -1089,6 +1258,9 @@ const handleNext = async () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
+                {errors.accountHolderName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.accountHolderName}</p>
+                )}
               </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
@@ -1103,6 +1275,9 @@ const handleNext = async () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
+                {errors.accountNumber && (
+                  <p className="text-red-500 text-sm mt-1">{errors.accountNumber}</p>
+                )}
               </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
@@ -1117,6 +1292,9 @@ const handleNext = async () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
+                {errors.ifscCode && (
+                  <p className="text-red-500 text-sm mt-1">{errors.ifscCode}</p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   IFSC code is an 11-character code that identifies your bank
                   branch
@@ -1149,59 +1327,61 @@ const handleNext = async () => {
           </FormStep>
         )
       case 6:
-        return (
-          <FormStep
-            title="Step 6: Documents"
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            showPrevious={true}
-          >
-            <div className="space-y-6">
-              <div>
-                <ImageUploadWithPreview
-                    label="Police Verification Certificate (Optional but recommended)"
-                    field="policeVerification"
-                    file={formData.policeVerification}
-                    onFileChange={handleFileChange}
-                  />
-                <p className="text-xs text-gray-500 mt-1">
-                  A police verification certificate can help build trust with
-                  customers.
-                </p>
-              </div>
-              <div>
-                <ImageUploadWithPreview
-                    label="Trade License / Work Permit (If available)"
-                    field="tradeLicense"
-                    file={formData.tradeLicense}
-                    onFileChange={handleFileChange}
-                  />
-              </div>
-              <div>
-                <ImageUploadWithPreview
-                    label=" Recent Passport Size Photo"
-                    field="passportPhoto"
-                    file={formData.passportPhoto}
-                    required
-                    onFileChange={handleFileChange}
-                  />
-                <p className="text-xs text-gray-500 mt-1">
-                  This photo will be used for your profile and ID card.
-                </p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-md">
-                <h4 className="font-medium text-yellow-800 mb-2">
-                  Document Verification
-                </h4>
-                <p className="text-sm text-yellow-700">
-                  All documents will be verified by our team. Clear, legible
-                  scans or photos are required. Verification typically takes 1-3
-                  business days.
-                </p>
-              </div>
-            </div>
-          </FormStep>
-        )
+  return (
+    <FormStep
+      title="Step 6: Documents"
+      onNext={handleNext}
+      onPrevious={handlePrevious}
+      showPrevious={true}
+    >
+      <div className="space-y-6">
+        <div>
+          <ImageUploadWithPreview
+            label="Police Verification Certificate (Optional but recommended)"
+            field="policeVerification"
+            file={formData.policeVerification}
+            onFileChange={handleFileChange}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            A police verification certificate can help build trust with customers.
+          </p>
+        </div>
+        <div>
+          <ImageUploadWithPreview
+            label="Trade License / Work Permit (If available)"
+            field="tradeLicense"
+            file={formData.tradeLicense}
+            onFileChange={handleFileChange}
+          />
+        </div>
+        <div>
+          <ImageUploadWithPreview
+            label="Recent Passport Size Photo"
+            field="passportPhoto"
+            file={formData.passportPhoto}
+            required
+            onFileChange={handleFileChange}
+          />
+          {errors.passportPhoto && (
+            <p className="text-red-500 text-sm mt-1">{errors.passportPhoto}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            This photo will be used for your profile and ID card.
+          </p>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-md">
+          <h4 className="font-medium text-yellow-800 mb-2">
+            Document Verification
+          </h4>
+          <p className="text-sm text-yellow-700">
+            All documents will be verified by our team. Clear, legible
+            scans or photos are required. Verification typically takes 1-3
+            business days.
+          </p>
+        </div>
+      </div>
+    </FormStep>
+  )
       case 7:
         return (
           <FormStep
@@ -1260,6 +1440,9 @@ const handleNext = async () => {
                       Code of Conduct
                     </span>
                   </label>
+                  {errors.termsAgreed && (
+                  <p className="text-red-500 text-sm mt-1">{errors.termsAgreed}</p>
+                )}
                 </div>
                 <div className="flex items-start">
                   <input

@@ -5,7 +5,7 @@ import Login from '../../components/Login'
 const AdminLogin = () => {
   return (
     <div>
-        <Header userType='admin' isLoggedIn={false}/>
+        <Header userType='admin'/>
         <Login userType='admin'/>
         <Footer/>
     </div>

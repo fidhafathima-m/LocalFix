@@ -7,7 +7,6 @@ interface StepIndicatorProps {
 export const StepIndicator: React.FC<StepIndicatorProps> = ({
   steps,
   currentStep,
-  completedSteps,
 }) => {
   return (
     <div className="w-full mb-8">
@@ -15,7 +14,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
         {steps.map((_ , index) => {
           const isActive = currentStep === index + 1
           console.log(isActive)
-          const isCompleted = completedSteps.includes(index + 1)
+          const isCompleted = index + 1 < currentStep;
           // Create connector lines between steps
           if (index < steps.length - 1) {
             const lineClass =
@@ -44,7 +43,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
         })}
         {steps.map((_ , index) => {
           const isActive = currentStep === index + 1
-          const isCompleted = completedSteps.includes(index + 1)
+          const isCompleted = index + 1 < currentStep;
           let circleClasses =
             'w-10 h-10 rounded-full flex items-center justify-center z-10'
           if (isActive) {

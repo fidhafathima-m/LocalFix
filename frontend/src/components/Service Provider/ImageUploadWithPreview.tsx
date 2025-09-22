@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { FileUpload } from "./FileUpload";
 
 interface Props {
@@ -16,13 +16,21 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
   required = false,
   onFileChange,
 }) => {
+  // Create a memoized version of the file change handler for this specific field
+  const handleFileChange = useCallback(
+    (selectedFile: File | null) => {
+      onFileChange(field)(selectedFile);
+    },
+    [onFileChange, field]
+  );
+
   return (
     <div className="md:col-span-2">
       <label className="block mb-1 font-medium text-gray-700">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
 
-      {file ? (
+      {file instanceof File ? (
         <div className="flex flex-col items-start gap-2">
           {file.type === "application/pdf" ? (
             <embed
@@ -41,7 +49,7 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
           )}
           <button
             type="button"
-            onClick={() => onFileChange(field)(null)}
+            onClick={() => handleFileChange(null)}
             className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
           >
             Choose Again
@@ -49,11 +57,10 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
         </div>
       ) : (
         <FileUpload
-          onFileChange={onFileChange(field)}
+          onFileChange={handleFileChange}
           required={required}
         />
       )}
-
     </div>
   );
 };

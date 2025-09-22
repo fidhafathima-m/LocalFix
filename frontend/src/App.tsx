@@ -12,6 +12,10 @@ import ForgetOTP from './pages/User/ForgrtOtp'
 import ResetPasswordPage from './pages/User/ResetPassword'
 import TechForgotPassword from './pages/ServiceProvider/TechForgotPassword'
 import OTP from './components/OTP'
+import AdminLogin from './pages/Admin/AdminLogin'
+import { AdminDashboard } from './pages/Admin/AdminDashboard'
+import ProtectedRoute from './components/ProtectedRoute'
+import AdminForgotPassword from './pages/Admin/AdminForgotPassword'
 
 function App() {
 
@@ -35,6 +39,11 @@ function App() {
           <Route path='/technicians/login' element={<TechLogin/>}/>
           <Route path='/technicians/forgot-password' element={<TechForgotPassword/>}/>
           <Route path='/technicians/verify-otp' element={<OTP userType='serviceProvider' context='signup'/>}/>
+
+          {/* admin routes */}
+          <Route path='/admin/login'element={<AdminLogin/>}/>
+          <Route path='/admin/dashboard'element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard/></ProtectedRoute>}/>
+          <Route path='/admin/forgot-password' element={<AdminForgotPassword/>}/>
         </Routes>
       </Router>
     </>
