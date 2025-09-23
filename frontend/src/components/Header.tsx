@@ -169,9 +169,7 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
                 if(isLoggedIn) {
                     return (
                     <>
-                        <a href="/admin/dashboard" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Dashboard</a>
-                        <a href="/admin/profile" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Profile</a>
-                        <a href="/admin/logout" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Logout</a>
+                        
                     </>
                     )
                 } else {

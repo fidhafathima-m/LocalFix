@@ -144,7 +144,7 @@ export const UserModal: React.FC<UserModalProps> = ({
             ))}
 
             <DetailItem label="Registered On" value={new Date(user.createdAt).toLocaleDateString()} />
-            <DetailItem label="Wallet Balance" value={`$${user.wallet.balance.toFixed(2)}`} />
+            <DetailItem label="Wallet Balance" value={`₹${user.wallet.balance.toFixed(2)}`} />
           </div>
         </div>
 

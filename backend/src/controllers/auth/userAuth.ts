@@ -46,7 +46,6 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
     try {
         const {phone, otp, fullName, password, email} = req.body;
         const record = await OTPVerificationSchema.findOne({ phone, purpose: "signup" }).sort({ createdAt: -1 });
-        console.log("Found record:", record);
 
         if(!record) {
             res.status(400).json({message: 'No OTP request found'});
