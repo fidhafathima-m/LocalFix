@@ -8,7 +8,6 @@ import {
   VerifiedUserOutlined,
   PersonOffOutlined,
   PersonAddAltOutlined,
-  SearchOutlined,
   ExpandMoreOutlined,
   RemoveRedEyeOutlined,
   EditOutlined,
@@ -63,7 +62,6 @@ const filteredUsers = statusFilter === "All Status"
         )
       : filteredUsers
 
-    // Apply pagination AFTER filters
     const indexOfLastUser = currentPage * usersPerPage
     const indexOfFirstUser = indexOfLastUser - usersPerPage
     const currentUsers = searchedUsers.slice(indexOfFirstUser, indexOfLastUser)
@@ -83,7 +81,7 @@ const filteredUsers = statusFilter === "All Status"
       setUsers(res.data?.users ?? []) // fallback to [] if undefined
     } catch (err) {
       console.error('Error fetching users:', err)
-      setUsers([]) // fallback on error
+      setUsers([]) 
     } finally {
       setLoading(false)
     }
@@ -179,12 +177,11 @@ const handleDeleteUser = async (userId: string) => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar - fixed position */}
+      {/* Sidebar */}
       <AdminSidebar activePage='Users' />
-      {/* Main content - scrollable */}
+      {/* Main content*/}
       <div className="flex-1 overflow-y-auto ml-[240px]">
-        {/* Header with search */}
-        <Search/>
+        
         {/* Dashboard content */}
         <div className="p-6">
           <div className="mb-6">
@@ -239,14 +236,11 @@ const handleDeleteUser = async (userId: string) => {
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="w-full md:w-auto flex-1">
                 <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search users by name, email, or phone"
-                    className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  
+                  <Search
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(val) => setSearchQuery(val)}
                   />
-                  <SearchOutlined className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
               </div>
               <div className="w-full md:w-auto">

@@ -8,7 +8,6 @@ interface IGeoPoint {
   coordinates: [number, number] // [lng, lat]
 }
 
-// Service rate structure can vary – keeping it flexible
 type ServiceRates = Record<string, number>
 
 export interface ITechnician extends Document {
@@ -75,7 +74,6 @@ const TechnicianSchema = new Schema<ITechnician>(
   }
 )
 
-// 2dsphere index for geolocation queries
 TechnicianSchema.index({ currentLocation: '2dsphere' })
 
 export const Technician = mongoose.model<ITechnician>(

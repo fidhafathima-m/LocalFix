@@ -32,7 +32,7 @@ const TechHome = () => {
 
                 </div>
                 
-                {/* Wave SVG - positioned absolutely at bottom */}
+                {/* Wave SVG  */}
                 <div className="absolute bottom-0 left-0 w-full overflow-hidden">
                     <svg 
                         className="relative block w-full h-[60px] sm:h-[80px] lg:h-[130px]" 

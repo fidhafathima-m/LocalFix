@@ -72,8 +72,8 @@ export const TechnicianManagement: React.FC = () => {
   ]
   // Count calculations
   const allTechnicians = technicians.length
-  const pendingApplications = 3 // Example hardcoded value
-  const suspendedTechnicians = 1 // Example hardcoded value
+  const pendingApplications = 3 
+  const suspendedTechnicians = 1 
   // Render star ratings
   const renderStars = (rating: number) => {
     return (
@@ -108,9 +108,9 @@ export const TechnicianManagement: React.FC = () => {
   }
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar - fixed position */}
+      {/* Sidebar */}
       <AdminSidebar activePage="Technicians" />
-      {/* Main content - scrollable */}
+      {/* Main content */}
       <div className="flex-1 overflow-y-auto ml-[240px]">
         {/* Header with search */}
         <Search/>

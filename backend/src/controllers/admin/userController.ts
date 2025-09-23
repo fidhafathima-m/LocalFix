@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import User from "../../models/UserSchema";
-import mongoose from "mongoose";
 
 export const getUsers = async (req: Request, res: Response) => {
   try {

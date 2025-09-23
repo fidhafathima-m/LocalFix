@@ -17,12 +17,11 @@ import Search from '../../components/Admin/Search'
 export const AdminDashboard: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar - fixed position */}
       <AdminSidebar activePage='Dashboard'/>
-      {/* Main content - scrollable */}
+      {/* Main content  */}
       <div className="flex-1 overflow-y-auto ml-[240px]">
         {/* Header with search */}
-       <Search/>
+       <Search />
 
         {/* Dashboard content */}
         <div className="p-6">

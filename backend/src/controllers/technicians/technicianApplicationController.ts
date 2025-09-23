@@ -247,10 +247,8 @@
         res.status(400).json({ message: "Phone number is required" });
         return;
       }
-
-      // optionally check if phone number format is valid, or if already used in another technician application
-
-      const otp = generateOTP();   // reusing your existing generateOTP
+     
+      const otp = generateOTP();  
       const otpHash = await bcrypt.hash(otp, 10);
 
       await OTPVerificationSchema.create({
@@ -294,8 +292,6 @@
         return;
       }
 
-      // optionally mark phoneVerified in application record (if you keep a field for that)
-      // or return success so frontend knows
 
       // clean up old OTPs
       await OTPVerificationSchema.deleteMany({ phone, purpose: "application" });

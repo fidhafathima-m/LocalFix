@@ -1,8 +1,4 @@
 import React, { useState } from 'react'
-// import {
-//     VisibilityOutlined,
-//     VisibilityOffOutlined
-// } from '@mui/icons-material';
 
 type UserType = 'user' | 'serviceProvider' | 'admin';
 
@@ -16,8 +12,6 @@ const NewPassword: React.FC<NewPasswordProps> = ({userType, onSubmit}) => {
 
     const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  // const [showPassword, setShowPassword] = useState(false)
-  // const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,19 +63,8 @@ const NewPassword: React.FC<NewPasswordProps> = ({userType, onSubmit}) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          {/* <button
-            type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? (
-              <VisibilityOffOutlined className="h-5 w-5 text-gray-400" />
-            ) : (
-              <VisibilityOutlined className="h-5 w-5 text-gray-400" />
-            )}
-          </button> */}
-                <label htmlFor="">Confirm Password</label>
-                <input
+            <label htmlFor="">Confirm Password</label>
+            <input
             id="confirmPassword"
             name="confirmPassword"
             type='password'
@@ -92,17 +75,6 @@ const NewPassword: React.FC<NewPasswordProps> = ({userType, onSubmit}) => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
-          {/* <button
-            type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            {showConfirmPassword ? (
-              <VisibilityOffOutlined className="h-5 w-5 text-gray-400" />
-            ) : (
-              <VisibilityOutlined className="h-5 w-5 text-gray-400" />
-            )}
-          </button> */}
 
             </div>
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}

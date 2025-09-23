@@ -1,4 +1,4 @@
-import User, { IUser } from "../../models/UserSchema";
+import User from "../../models/UserSchema";
 import { Request, Response } from "express";
 import bcrypt from 'bcrypt' 
 import { generateOTP } from "../../utils/generateOTP";
@@ -98,6 +98,7 @@ export const technicianResetPassword = async (req: Request, res: Response): Prom
   }
 };
 
+// technician password reset otp
 export const verifyTechnicianResetOtp = async (req: Request, res: Response): Promise<void> => {
   try {
     const { phone, otp } = req.body;

@@ -14,7 +14,7 @@ export const uploadDocument = async (req: Request, res: Response): Promise<void>
     const newDoc = await TechnicianDocument.create({
       technicianId,
       type,
-      fileUrl: `/uploads/${req.file.filename}`, // store relative path
+      fileUrl: `/uploads/${req.file.filename}`, 
       metadata: {
         originalName: req.file.originalname,
         size: req.file.size,

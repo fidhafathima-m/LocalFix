@@ -16,7 +16,6 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
   required = false,
   onFileChange,
 }) => {
-  // Create a memoized version of the file change handler for this specific field
   const handleFileChange = useCallback(
     (selectedFile: File | null) => {
       onFileChange(field)(selectedFile);

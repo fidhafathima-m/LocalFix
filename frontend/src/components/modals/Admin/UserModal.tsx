@@ -21,10 +21,8 @@ export const UserModal: React.FC<UserModalProps> = ({
   onBlock,
   onUserUpdated
 }) => {
-  // Local state for toggling edit mode
   const [editingMode, setEditingMode] = useState(isEditing)
 
-  // Local state for form data
   const [formData, setFormData] = useState({
     fullName: user.fullName,
     email: user.email ?? '',
@@ -32,7 +30,6 @@ export const UserModal: React.FC<UserModalProps> = ({
     status: user.status
   })
 
-  // Sync editing mode and form data when user or modal opens
   useEffect(() => {
     setEditingMode(isEditing)
     setFormData({

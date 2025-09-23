@@ -188,7 +188,6 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
     const mobileLinks = () => {
         const desktopLinks = links();
         
-        // For mobile, we need to handle the sign up button differently
         return React.Children.map(desktopLinks, (link) => {
             if (link.props.className && link.props.className.includes(signUpButtonStyles)) {
                 return React.cloneElement(link, {

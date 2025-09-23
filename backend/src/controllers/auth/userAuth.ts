@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken'
 // signup
 export const signup = async(req: Request, res: Response): Promise<void> => {
     try {
-        const {fullName, email, phone, password} = req.body;
+        const { email, phone} = req.body;
 
         // Check if email or phone exists
         const existingEmail = await User.findOne({email});
@@ -42,7 +42,6 @@ export const signup = async(req: Request, res: Response): Promise<void> => {
 }
 
 //verofy otp
-// verofy otp
 export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
     try {
         const {phone, otp, fullName, password, email} = req.body;
@@ -83,9 +82,9 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
             { expiresIn: "7d" }
         );
 
+        // deleting otps after use
         await OTPVerificationSchema.deleteMany({phone, purpose: 'signup'});
         
-        // Send both user and token in response
         res.json({
             message: "Signup successful", 
             user: {
@@ -101,7 +100,7 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
         res.status(500).json({message: error.message});
     }
 }
-// verify-reset-otp.ts
+
 export const verifyResetOtp = async (req: Request, res: Response) => {
     try {
         const { phone, otp } = req.body;

@@ -214,7 +214,6 @@ useEffect(() => {
         }
       }
       
-      // Ensure all days are present
       availabilityData = {
         ...defaultAvailability,
         ...availabilityData
@@ -475,11 +474,10 @@ const handleStart = async () => {
     alert("Please enter your phone number first");
     return;
   }
-  await startApplication(); // sets applicationId
+  await startApplication(); 
 };
 
 
-// Update your handleNext function to clean up the availability object before saving
 const handleNext = async () => {
   const stepErrors = validateStepFields(currentStep);
 
@@ -513,7 +511,6 @@ const handleNext = async () => {
     let value = (formData as any)[field];
     
     if (value !== null && value !== undefined) {
-      // Clean up availability object to only include the 7 days
       if (field === "availability" && typeof value === "object") {
         const daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

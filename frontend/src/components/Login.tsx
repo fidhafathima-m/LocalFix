@@ -142,14 +142,6 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
 
         </div>
 
-        {/* <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" />
-            Remember me
-          </label>
-          <span className="text-blue-500 cursor-pointer">Login with OTP</span>
-        </div> */}
-
         <button
           type="submit"
           disabled={loading}

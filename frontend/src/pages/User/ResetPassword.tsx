@@ -11,7 +11,6 @@ const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const state = location.state as { phone: string; userType: 'user' | 'serviceProvider' | 'admin' };
 
-  // Handle missing state via useEffect
   useEffect(() => {
     if (!state?.phone || !state?.userType) {
       navigate('/login');
@@ -19,7 +18,7 @@ const ResetPasswordPage: React.FC = () => {
   }, [state, navigate]);
 
   if (!state?.phone || !state?.userType) {
-    return null; // render nothing while redirecting
+    return null; 
   }
 
   const handleResetPassword = async (newPassword: string) => {

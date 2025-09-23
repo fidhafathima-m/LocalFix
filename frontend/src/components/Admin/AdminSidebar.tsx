@@ -131,7 +131,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
         </nav>
       </div>
 
-      {/* Logout at the bottom */}
       <div className="p-3 border-t border-gray-200">
         <SidebarItem
           to=''

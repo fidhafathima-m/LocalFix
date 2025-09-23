@@ -40,28 +40,23 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     }, []);
 
     const login = (user: User, token: string) => {
-        // Update localStorage first
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("token", token);
         
-        // Then update state synchronously
         setUser(user);
         setToken(token);
     }
 
     const logout = () => {
-        // Remove from localStorage first
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         
-        // Then update state
         setUser(null)
         setToken(null)
     };
 
-    // Wait for auth to be initialized before rendering children
     if (!isInitialized) {
-        return <div>Loading...</div>; // Or a loading spinner
+        return <div>Loading...</div>; 
     }
 
     return (

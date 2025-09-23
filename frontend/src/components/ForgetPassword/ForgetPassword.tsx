@@ -38,13 +38,11 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
     setError('');
 
     try {
-      // 1. Request backend to send OTP
       await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/forgot-password`, {
         phone,
         userType,
       });
 
-      // 2. Store the phone number for OTP verification
       localStorage.setItem(
         'forgotData',
         JSON.stringify({
@@ -52,7 +50,6 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
         })
       );
 
-      // 3. Navigate to OTP page
       if(userType === 'admin') navigate('/admin/verify-otp', { state: { userType, context: 'forgot' } });
       else navigate('/verify-otp', { state: { userType, context: 'forgot' } });
     } catch (error: unknown) {
