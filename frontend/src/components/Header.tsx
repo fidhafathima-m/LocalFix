@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
+import toast from 'react-hot-toast';
+
 
 
 interface HeaderProps {
@@ -25,6 +29,22 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
             closeMobileMenu(); 
         }
     };
+
+    const handleLogout = async () => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'You will be logged out.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, logout!',
+            cancelButtonText: 'Cancel',
+        });
+
+        if (result.isConfirmed) {
+            logout();
+            toast.success('You have been logged out!');
+        }
+        };
 
 
     // Close mobile menu when window is resized to desktop size
@@ -96,11 +116,12 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
                         <a href="/my-orders" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>My Orders</a>
                         <a href="/my-profile" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Profile</a>
                         <button 
-                            onClick={logout} 
-                            className="px-3 text-red-500 hover:text-blue-600 transition-colors"
-                        >
+                            onClick={handleLogout}
+                            className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
+                            >
                             Logout
-                        </button>
+                            </button>
+
 
                     </>
                     )

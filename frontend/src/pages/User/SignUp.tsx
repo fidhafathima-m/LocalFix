@@ -7,6 +7,7 @@ import {
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const SignUp = () => {
 
@@ -95,13 +96,14 @@ const SignUp = () => {
                 phone: formData.phone, 
                 password: formData.password 
             }));
-            alert("Signup successful");
-            navigate('/otp')
+            toast.success("OTP Sent");
+            setTimeout(() => navigate('/otp'), 1000)
+            
         } catch (error: unknown) {
             if (axios.isAxiosError(error) && error.response?.data?.message) {
-                alert(error.response.data.message);
+                toast.error(error.response.data.message);
             } else {  
-                alert("Sign Up failed");
+                toast.error("Sign Up failed");
             } 
         } finally {
             setLoading(false);

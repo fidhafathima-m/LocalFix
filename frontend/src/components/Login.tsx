@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 
+import toast from 'react-hot-toast';
+
 import {
     Google,
     FacebookOutlined
@@ -55,17 +57,21 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
         phone, password, role: userType,
       });
       login(res.data.user, res.data.token);
-      alert("Login successful")
-      if(userType === 'serviceProvider') navigate('/technicians');
-      if(userType === 'admin') navigate('/admin/dashboard')
-      else navigate('/')
+      toast.success("Login successful!");
+
+      setTimeout(() => {
+        if(userType === 'serviceProvider') navigate('/technicians');
+        else if(userType === 'admin') navigate('/admin/dashboard');
+        else navigate('/');
+      }, 1000); 
+
       
 
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response?.data?.message) {
-        alert(error.response.data.message);
+        toast.error(error.response.data.message);
       } else {
-        alert("Login failed");
+        toast.error("Login failed");
       }
     } finally {
       setLoading(false)
@@ -85,6 +91,7 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
 
   return (
     <div className="max-w-md mx-auto p-6 shadow-md mt-10">
+
       {/* Header */}
       <div className="mb-4 text-center">
         <h1 className="text-2xl font-semibold">{getTitle()}</h1>
@@ -146,7 +153,7 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full bg-blue-600 text-white py-2 rounded ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+          className={`w-full bg-blue-600 text-white py-2 rounded cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
         >
           {loading ? 'Logging in...' : 'Continue'}
         </button>

@@ -12,29 +12,38 @@ import {
   LogoutOutlined, 
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext'; 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 interface SidebarItemProps {
   icon: React.ReactNode
   label: string
   active?: boolean
+  to?: string
   onClick?: () => void
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, onClick }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, to, onClick }) => {
+  const baseClasses = `flex items-center px-4 py-3 rounded-md transition-colors cursor-pointer ${
+    active ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
+  }`;
+
+  if (to) {
+    return (
+      <Link to={to} className={baseClasses}>
+        {icon}
+        <span className="ml-3">{label}</span>
+      </Link>
+    );
+  }
+
   return (
-    <a
-      href="#"
-      onClick={onClick}
-      className={`flex items-center px-4 py-3 rounded-md transition-colors cursor-pointer ${
-        active ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
-      }`}
-    >
+    <div onClick={onClick} className={baseClasses}>
       {icon}
       <span className="ml-3">{label}</span>
-    </a>
-  )
+    </div>
+  );
 }
+
 
 interface AdminSidebarProps {
   activePage: string
@@ -63,11 +72,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
         <nav className="p-3">
           <div className="space-y-1">
             <SidebarItem
+              to='/admin/dashboard'
               icon={<DashboardOutlined className="h-5 w-5" />}
               label="Dashboard"
               active={activePage === 'Dashboard'}
             />
               <SidebarItem
+                to='/admin/user-management'
                 icon={<PeopleAltOutlined className="h-5 w-5" />}
                 label="Users"
                 active={activePage === 'Users'}
@@ -75,36 +86,43 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
               />
             
             <SidebarItem
+              to='/admin/technician-management'
               icon={<ConstructionOutlined className="h-5 w-5" />}
               label="Technicians"
               active={activePage === 'Technicians'}
             />
             <SidebarItem
+              to='/admin/category-management'
               icon={<SellOutlined className="h-5 w-5" />}
               label="Category"
               active={activePage === 'Category'}
             />
             <SidebarItem
+              to='/admin/subscription-management'
               icon={<CreditCardOutlined className="h-5 w-5" />}
               label="Subscription Plans"
               active={activePage === 'Subscription Plans'}
             />
             <SidebarItem
+              to='/admin/bookings-management'
               icon={<EventAvailableOutlined className="h-5 w-5" />}
               label="Bookings"
               active={activePage === 'Bookings'}
             />
             <SidebarItem
+              to='/admin/payments-management'
               icon={<AccountBalanceWalletOutlined className="h-5 w-5" />}
               label="Payments"
               active={activePage === 'Payments'}
             />
             <SidebarItem
+              to='/admin/reviews-management'
               icon={<StarBorderOutlined className="h-5 w-5" />}
               label="Reviews"
               active={activePage === 'Reviews'}
             />
             <SidebarItem
+              to='/admin/reports-management'
               icon={<BarChartOutlined className="h-5 w-5" />}
               label="Reports"
               active={activePage === 'Reports'}
@@ -116,6 +134,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
       {/* Logout at the bottom */}
       <div className="p-3 border-t border-gray-200">
         <SidebarItem
+          to=''
           icon={<LogoutOutlined className="h-5 w-5 text-red-500" />}
           label="Logout"
           onClick={handleLogout}

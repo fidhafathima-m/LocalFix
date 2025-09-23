@@ -2,6 +2,7 @@ import axios from 'axios';
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 type UserType = 'user' | 'serviceProvider' | 'admin';
 type OTPContext = 'signup' | 'forgot'
@@ -58,12 +59,14 @@ const OTP: React.FC<OTPProps> = ({userType, context}) => {
                 // Update auth context first
                 login(res.data.user, res.data.token);
 
-                alert("OTP verified successfully");
+                toast.success("OTP verified successfully");
 
-                // Navigate immediately after state update
-                if(userType === 'user') navigate('/', { replace: true });
-                else if(userType === 'serviceProvider') navigate('/technicians', { replace: true });
-                else if(userType === 'admin') navigate('/admin/dashboard', { replace: true });
+                setTimeout(() => {
+                    if(userType === 'user') navigate('/', { replace: true });
+                    else if(userType === 'serviceProvider') navigate('/technicians', { replace: true });
+                    else if(userType === 'admin') navigate('/admin/dashboard', { replace: true });
+                }, 1000)
+                
 
             } else if (context === 'forgot') {
                 res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/verify-reset-otp`, {
@@ -71,23 +74,39 @@ const OTP: React.FC<OTPProps> = ({userType, context}) => {
                     otp,
                 });
 
-                localStorage.setItem(
-                    'forgotData',
-                    JSON.stringify({
-                        ...contextData,
-                        otp,
-                    })
-                );
-
-                alert("OTP verified successfully");
-                navigate('/reset-password', { state: { phone: contextData.phone, userType } });
+                if (userType === 'admin') {
+                    localStorage.setItem(
+                        'adminForgotData',
+                        JSON.stringify({
+                            phone: contextData.phone,
+                            otp,
+                        })
+                    );
+                    toast.success("OTP verified successfully");
+                    setTimeout(() => {
+                        navigate('/admin/reset-password', { state: { phone: contextData.phone, userType } });
+                    }, 1000)
+                } else {
+                    localStorage.setItem(
+                        'forgotData',
+                        JSON.stringify({
+                            ...contextData,
+                            otp,
+                        })
+                    );
+                    toast.success("OTP verified successfully");
+                    setTimeout(() => {
+                        navigate('/reset-password', { state: { phone: contextData.phone, userType } });
+                    }, 1000)
+                }
             }
+
 
         } catch (error: unknown) {
             if (axios.isAxiosError(error) && error.response?.data?.message) {
-                alert(error.response.data.message);
+                toast.error(error.response.data.message);
             } else {
-                alert("OTP Verification failed");
+                toast.error("OTP Verification failed");
             }
         } finally {
             setLoading(false)

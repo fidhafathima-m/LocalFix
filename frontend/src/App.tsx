@@ -17,11 +17,16 @@ import { AdminDashboard } from './pages/Admin/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminForgotPassword from './pages/Admin/AdminForgotPassword'
 import { UserManagement } from './pages/Admin/UserManagement'
+import AdminForgotOTP from './pages/Admin/AdminForgotOTP'
+import AdminResetPasswordPage from './pages/Admin/AdminResetPassword'
+import { TechnicianManagement } from './pages/Admin/TechnicianManagement'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
 
   return (
     <>
+    <Toaster position="top-center" reverseOrder={false} />
       <Router>
         <Routes>
           {/* user routes */}
@@ -45,7 +50,10 @@ function App() {
           <Route path='/admin/login'element={<AdminLogin/>}/>
           <Route path='/admin/dashboard'element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard/></ProtectedRoute>}/>
           <Route path='/admin/forgot-password' element={<AdminForgotPassword/>}/>
-          <Route path='/admin/user-management' element={<UserManagement/>}/>
+          <Route path='/admin/verify-otp' element={<AdminForgotOTP/>}/>
+          <Route path='/admin/reset-password' element={<AdminResetPasswordPage />} />
+          <Route path='/admin/user-management' element={<ProtectedRoute allowedRoles={['admin']}><UserManagement/></ProtectedRoute>}/>
+          <Route path='/admin/technician-management' element={<ProtectedRoute allowedRoles={['admin']}><TechnicianManagement/></ProtectedRoute>}/>
         </Routes>
       </Router>
     </>

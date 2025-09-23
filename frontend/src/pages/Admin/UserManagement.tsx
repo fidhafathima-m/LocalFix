@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { AdminSidebar } from '../../components/Admin/AdminSidebar'
+import toast from 'react-hot-toast';
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
 import {
   PeopleAltOutlined,
   VerifiedUserOutlined,
@@ -42,6 +45,18 @@ export const UserManagement: React.FC = () => {
 
   const [isEditing, setIsEditing] = useState(false)
 
+  // pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const usersPerPage = 5
+
+  // Calculate paginated users
+  const indexOfLastUser = currentPage * usersPerPage
+  const indexOfFirstUser = indexOfLastUser - usersPerPage
+  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser)
+
+  const totalPages = Math.ceil(users.length / usersPerPage)
+
+
 
    useEffect(() => {
   const fetchUsers = async () => {
@@ -78,10 +93,17 @@ const handleCloseModal = () => {
 
  // Block / Unblock user
 const handleBlockUser = async (userId: string, newStatus: "Active" | "Inactive" | "Blocked") => {
-  const confirmAction = window.confirm(
-    `Are you sure you want to ${newStatus === "Blocked" ? "block" : "unblock"} this user?`
-  )
-  if (!confirmAction) return
+  const result = await Swal.fire({
+    title: `Are you sure?`,
+    text: `Do you want to ${newStatus === "Blocked" ? "block" : "unblock"} this user?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: `Yes, ${newStatus === "Blocked" ? "block" : "unblock"}!`,
+  })
+
+  if (!result.isConfirmed) return
 
   try {
     await axios.patch(`${import.meta.env.VITE_BASE_URL}/users/${userId}/status`, {
@@ -90,24 +112,36 @@ const handleBlockUser = async (userId: string, newStatus: "Active" | "Inactive" 
 
     setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: newStatus } : u))
     setSelectedUser(prev => prev && prev._id === userId ? { ...prev, status: newStatus } : prev)
-    alert(`User status updated to ${newStatus}`)
+
+    toast.success(`User status changed to ${newStatus}`)
   } catch (err) {
-    console.error('Error updating user status:', err)
+    console.error("Error updating user status:", err)
+    toast.error("Failed to update user status")
   }
 }
 
 const handleDeleteUser = async (userId: string) => {
-  const confirmDelete = window.confirm('Are you sure you want to delete this user?')
-  if (!confirmDelete) return
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This action cannot be undone. The user will be permanently deleted.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!",
+  })
+
+  if (!result.isConfirmed) return
 
   try {
     await axios.patch(`${import.meta.env.VITE_BASE_URL}/users/${userId}/delete`)
-    setUsers(prev => prev.map(u => u._id === userId ? { ...u, isDeleted: true } : u))
+
     setUsers(prev => prev.filter(u => u._id !== userId))
-    alert('User deleted successfully')
+
+    toast.success("User has been deleted.",)
   } catch (err) {
     console.error(err)
-    alert('Failed to delete user')
+    toast.error("Failed to delete user")
   }
 }
 
@@ -247,8 +281,8 @@ const handleDeleteUser = async (userId: string) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {users.length > 0 ? (
-                    users.map((user) => (
+                  {currentUsers.length > 0 ? (
+                    currentUsers.map((user) => (
                       <tr key={user._id} className="hover:bg-gray-50">
                         {/* User Info */}
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -343,6 +377,55 @@ const handleDeleteUser = async (userId: string) => {
 
               </table>
             </div>
+
+            {/* pagination */}
+            <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <div className="flex space-x-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => prev - 1)}
+                  className={`px-3 py-1 rounded-md text-sm font-medium ${
+                    currentPage === 1
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-white border border-gray-300 hover:bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  Previous
+                </button>
+
+                {[...Array(totalPages)].map((_, index) => (
+                  <button
+                    key={index + 1}
+                    onClick={() => setCurrentPage(index + 1)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium ${
+                      currentPage === index + 1
+                        ? "bg-blue-600 text-white"
+                        : "bg-white border border-gray-300 hover:bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
+                  className={`px-3 py-1 rounded-md text-sm font-medium ${
+                    currentPage === totalPages
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-white border border-gray-300 hover:bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+
+
           </div>
           )}
           
@@ -361,6 +444,7 @@ const handleDeleteUser = async (userId: string) => {
             )
             setSelectedUser(updatedUser)
             setIsModalOpen(false)
+            toast.success("User updated successfully!")
           }}
         />
       )}

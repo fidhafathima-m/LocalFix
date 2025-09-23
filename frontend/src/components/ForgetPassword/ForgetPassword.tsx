@@ -53,7 +53,8 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
       );
 
       // 3. Navigate to OTP page
-      navigate('/verify-otp', { state: { userType, context: 'forgot' } });
+      if(userType === 'admin') navigate('/admin/verify-otp', { state: { userType, context: 'forgot' } });
+      else navigate('/verify-otp', { state: { userType, context: 'forgot' } });
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response?.data?.message) {
         setError(error.response.data.message);

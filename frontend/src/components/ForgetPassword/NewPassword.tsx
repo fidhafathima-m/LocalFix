@@ -108,7 +108,7 @@ const NewPassword: React.FC<NewPasswordProps> = ({userType, onSubmit}) => {
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
             <button 
                 type="submit" 
-                className='w-full bg-blue-700 text-white p-2 rounded'
+                className='w-full bg-blue-700 text-white p-2 rounded cursor-pointer'
             >Reset Password</button>
         </form>
         </div>

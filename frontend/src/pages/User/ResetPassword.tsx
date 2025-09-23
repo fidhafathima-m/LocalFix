@@ -4,6 +4,7 @@ import axios from 'axios';
 import NewPassword from '../../components/ForgetPassword/NewPassword';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import toast from 'react-hot-toast';
 
 const ResetPasswordPage: React.FC = () => {
   const location = useLocation();
@@ -30,13 +31,14 @@ const ResetPasswordPage: React.FC = () => {
         newPassword,
       });
 
-      alert('Password reset successful');
-      navigate('/login');
+      toast.success('Password reset successful');
+      setTimeout(() => navigate('/login'), 1000)
+      
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response?.data?.message) {
-        alert(error.response.data.message);
+        toast.error(error.response.data.message);
       } else {
-        alert("Reset password failed");
+        toast.error("Reset password failed");
       }
     }
   };
