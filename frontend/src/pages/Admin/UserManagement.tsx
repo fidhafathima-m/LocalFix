@@ -13,12 +13,19 @@ import {
 } from '@mui/icons-material'
 import Search from '../../components/Admin/Search'
 import axios from 'axios'
-import { UserDetailsModal } from '../../components/modals/Admin/UserDetailsModal'
+import { UserModal } from '../../components/modals/Admin/UserModal'
 export interface User {
   _id: string
   fullName: string
   email?: string
   phone: string
+  status: "Active" | "Inactive" | "Blocked"
+  defaultAddress?: {
+    city: string
+    state: string
+    pincode: string
+    location: { type: "Point"; coordinates: [number, number] }
+  }
   isVerified: boolean
   role: string
   createdAt: string
@@ -33,12 +40,13 @@ export const UserManagement: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
+  const [isEditing, setIsEditing] = useState(false)
+
 
    useEffect(() => {
   const fetchUsers = async () => {
     try {
       const res = await axios.get<{ users: User[] }>(`${import.meta.env.VITE_BASE_URL}/users`)
-      console.log('API response:', res.data)
       setUsers(res.data?.users ?? []) // fallback to [] if undefined
     } catch (err) {
       console.error('Error fetching users:', err)
@@ -50,8 +58,14 @@ export const UserManagement: React.FC = () => {
   fetchUsers()
 }, [])
 
-const handleOpenModal = (user: User) => {
+const handleOpenViewModal = (user: User) => {
   setSelectedUser(user)
+  setIsEditing(false)
+  setIsModalOpen(true)
+}
+const handleOpenEditModal = (user: User) => {
+  setSelectedUser(user)
+  setIsEditing(true)
   setIsModalOpen(true)
 }
 
@@ -61,12 +75,56 @@ const handleCloseModal = () => {
 }
 
 
+
+ // Block / Unblock user
+const handleBlockUser = async (userId: string, newStatus: "Active" | "Inactive" | "Blocked") => {
+  const confirmAction = window.confirm(
+    `Are you sure you want to ${newStatus === "Blocked" ? "block" : "unblock"} this user?`
+  )
+  if (!confirmAction) return
+
+  try {
+    await axios.patch(`${import.meta.env.VITE_BASE_URL}/users/${userId}/status`, {
+      status: newStatus,
+    })
+
+    setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: newStatus } : u))
+    setSelectedUser(prev => prev && prev._id === userId ? { ...prev, status: newStatus } : prev)
+    alert(`User status updated to ${newStatus}`)
+  } catch (err) {
+    console.error('Error updating user status:', err)
+  }
+}
+
+const handleDeleteUser = async (userId: string) => {
+  const confirmDelete = window.confirm('Are you sure you want to delete this user?')
+  if (!confirmDelete) return
+
+  try {
+    await axios.patch(`${import.meta.env.VITE_BASE_URL}/users/${userId}/delete`)
+    setUsers(prev => prev.map(u => u._id === userId ? { ...u, isDeleted: true } : u))
+    setUsers(prev => prev.filter(u => u._id !== userId))
+    alert('User deleted successfully')
+  } catch (err) {
+    console.error(err)
+    alert('Failed to delete user')
+  }
+}
+
   
   // Stats calculations
   const totalUsers = users.length
-  // const activeUsers = users.filter((user) => user.status === 'active').length
-  const blockedUsers = 1 // Example hardcoded value
-  const newUsers = 3 // Example hardcoded value for last 30 days
+  const activeUsers = users.filter((user) => user.status === 'Active').length
+  const blockedUsers = users.filter((user) => user.status === 'Blocked').length
+  const newUsers = users.filter((user) => {
+    const created = new Date(user.createdAt)
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    return created >= thirtyDaysAgo
+  }).length
+
+
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar - fixed position */}
@@ -100,7 +158,7 @@ const handleCloseModal = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Active Users</p>
-                {/* <p className="text-xl font-bold">{activeUsers}</p> */}
+                <p className="text-xl font-bold">{activeUsers}</p>
               </div>
             </div>
             <div className="bg-red-50 p-4 rounded-lg flex items-start">
@@ -165,121 +223,123 @@ const handleCloseModal = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       User
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Contact
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Registered On
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Bookings
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Wallet Balance
                     </th>
-                    {/* <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Location
-                    </th> */}
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                {users.length > 0 ? (
-                  users.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-gray-600 text-sm font-medium">
-                            {user.fullName.charAt(0)}
-                          </span>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.fullName}
+                  {users.length > 0 ? (
+                    users.map((user) => (
+                      <tr key={user._id} className="hover:bg-gray-50">
+                        {/* User Info */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0 bg-gray-200 rounded-full flex items-center justify-center">
+                              <span className="text-gray-600 text-sm font-medium">
+                                {user.fullName.charAt(0)}
+                              </span>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {user.fullName}
+                              </div>
+                              <div className="text-sm text-gray-500">{user._id}</div>
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500">{user._id}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{user.email || '—'}</div>
-                      <div className="text-sm text-gray-500">{user.phone}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          user.isVerified ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {user.isVerified ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.wallet.balance}
-                    </td>
-                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.role}
-                    </td> */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"> 
-                      <div className="flex justify-end space-x-2"> 
-                        <button
-                          className="p-1 rounded-full text-blue-600 hover:bg-blue-100"
-                          onClick={() => handleOpenModal(user)}
-                        >
-                          <RemoveRedEyeOutlined className="h-5 w-5" />
-                        </button>
+                        </td>
 
-                        <button className="p-1 rounded-full text-green-600 hover:bg-green-100"> 
-                          <EditOutlined className="h-5 w-5" /> 
-                        </button> 
-                        <button className="p-1 rounded-full text-red-600 hover:bg-red-100"> 
-                          <DeleteOutlineOutlined className="h-5 w-5" /> 
-                        </button> 
-                      </div> 
-                    </td>
-                  </tr>
-                ))
-                ): (
-                  <tr>
-              <td
-                colSpan={7}
-                className="px-6 py-4 text-center text-sm text-gray-500"
-              >
-                No users found
-              </td>
-            </tr>
-                )}
-              </tbody>
+                        {/* Contact */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{user.email || '—'}</div>
+                          <div className="text-sm text-gray-500">{user.phone}</div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                              ${user.status === 'Active'
+                                ? 'bg-green-100 text-green-800'
+                                : user.status === 'Blocked'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                              }`}
+                          >
+                            {user.status}
+                          </span>
+                        </td>
+
+                        {/* Location */}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {user.defaultAddress
+                            ? `${user.defaultAddress.city}, ${user.defaultAddress.state} (${user.defaultAddress.pincode})`
+                            : 'No address'}
+                        </td>
+
+                        {/* Registered */}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </td>
+
+                        {/* Wallet */}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          ₹{user.wallet.balance.toFixed(2)}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              className="p-1 rounded-full text-blue-600 hover:bg-blue-100 cursor-pointer"
+                              onClick={() => handleOpenViewModal(user)}
+                            >
+                              <RemoveRedEyeOutlined className="h-5 w-5" />
+                            </button>
+                            <button 
+                              className="p-1 rounded-full text-green-600 hover:bg-green-100 cursor-pointer"
+                              onClick={() => handleOpenEditModal(user)}
+                            >
+                              <EditOutlined className="h-5 w-5" />
+                            </button>
+                            <button
+                              className="p-1 rounded-full text-red-600 hover:bg-red-100 cursor-pointer"
+                              onClick={() => handleDeleteUser(user._id)}
+                            >
+                              <DeleteOutlineOutlined className="h-5 w-5" />
+                            </button>
+
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                        No users found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+
 
               </table>
             </div>
@@ -289,11 +349,19 @@ const handleCloseModal = () => {
         </div>
       </div>
       {selectedUser && (
-        <UserDetailsModal
+        <UserModal
           user={selectedUser}
           isOpen={isModalOpen}
+          isEditing={isEditing}
           onClose={handleCloseModal}
-          onEdit={() => console.log('Edit user', selectedUser._id)}
+          onBlock={(status) => selectedUser && handleBlockUser(selectedUser._id, status)}
+          onUserUpdated={(updatedUser) => {
+            setUsers((prev) =>
+              prev.map(u => u._id === updatedUser._id ? updatedUser : u)
+            )
+            setSelectedUser(updatedUser)
+            setIsModalOpen(false)
+          }}
         />
       )}
 

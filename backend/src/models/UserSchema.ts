@@ -16,10 +16,12 @@ export interface IUser extends Document {
   passwordHash?: string;
   isVerified: boolean;
   role: "user" | "technician" | "admin";
+  status: "Active" | "Inactive" | "Blocked"
   wallet: {
     balance: number;
     transactions: IWalletTransaction[];
   };
+  isDeleted: boolean
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +34,8 @@ const userSchema = new Schema<IUser>(
     passwordHash: { type: String },
     isVerified: { type: Boolean, default: false },
     role: { type: String, enum: ["user", "technician", "admin"], default: "user" },
+    status: { type: String, enum: ["Active", "Inactive", "Blocked"], default: "Active" },
+    isDeleted: { type: Boolean, default: false },
     wallet: {
       balance: { type: Number, default: 0 },
       transactions: [

@@ -12,10 +12,12 @@ connectDB();
 
 const app: Application = express();
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173", methods: ["GET","POST","OPTIONS"],
+app.use(cors({ origin: "http://localhost:5173", methods: ["GET","POST","OPTIONS", "PATCH"],
   allowedHeaders: ["Content-Type","Authorization"], credentials: true }));
 
 app.use("/uploads", express.static("uploads"));
+
+
 
 app.use('/api/auth', userAuth);
 app.use('/api/auth/technicians', technicianAuth);

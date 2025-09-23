@@ -61,9 +61,12 @@ const OTP: React.FC<OTPProps> = ({userType, context}) => {
 
             alert("OTP verified successfully");
 
-            if(userType === 'user') navigate('/')
-            else if(userType === 'serviceProvider') navigate('/technicians')
-            else if(userType === 'admin') navigate('/admin/dashboard');
+            // Force context update to propagate before navigation
+            setTimeout(() => {
+                if(userType === 'user') navigate('/', { replace: true });
+                else if(userType === 'serviceProvider') navigate('/technicians', { replace: true });
+                else if(userType === 'admin') navigate('/admin/dashboard', { replace: true });
+            }, 50);
 
         } else if (context === 'forgot') {
             res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/verify-reset-otp`, {
