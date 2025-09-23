@@ -23,28 +23,46 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
     const [user, setUser] = useState<User | null>(null)
     const [token, setToken] = useState<string | null>(null)
+    const [isInitialized, setIsInitialized] = useState(false);
+
     useEffect(() => {
-        const savedUser = localStorage.getItem("user");
-        const savedToken = localStorage.getItem("token");
-        if(savedUser && savedToken) {
-            setUser(JSON.parse(savedUser))
-            setToken(savedToken)
-        }
+        const initializeAuth = () => {
+            const savedUser = localStorage.getItem("user");
+            const savedToken = localStorage.getItem("token");
+            if(savedUser && savedToken) {
+                setUser(JSON.parse(savedUser))
+                setToken(savedToken)
+            }
+            setIsInitialized(true);
+        };
+
+        initializeAuth();
     }, []);
 
     const login = (user: User, token: string) => {
+        // Update localStorage first
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("token", token);
+        
+        // Then update state synchronously
         setUser(user);
         setToken(token);
     }
 
     const logout = () => {
+        // Remove from localStorage first
         localStorage.removeItem("user");
         localStorage.removeItem("token");
+        
+        // Then update state
         setUser(null)
         setToken(null)
     };
+
+    // Wait for auth to be initialized before rendering children
+    if (!isInitialized) {
+        return <div>Loading...</div>; // Or a loading spinner
+    }
 
     return (
         <AuthContext.Provider value={{user, token, isLoggedIn: !!token, login, logout}}>

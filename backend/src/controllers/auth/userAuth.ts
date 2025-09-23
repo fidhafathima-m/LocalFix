@@ -42,10 +42,11 @@ export const signup = async(req: Request, res: Response): Promise<void> => {
 }
 
 //verofy otp
+// verofy otp
 export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
     try {
         const {phone, otp, fullName, password, email} = req.body;
-        const record = await OTPVerificationSchema.findOne({ phone, purpose: "signup" }) .sort({ createdAt: -1 });;
+        const record = await OTPVerificationSchema.findOne({ phone, purpose: "signup" }).sort({ createdAt: -1 });
         console.log("Found record:", record);
 
         if(!record) {
@@ -75,13 +76,31 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
             isVerified: true
         })
 
+        // Generate JWT token for the new user
+        const token = jwt.sign(
+            { _id: user._id, role: user.role },
+            process.env.JWT_SECRET as string,
+            { expiresIn: "7d" }
+        );
+
         await OTPVerificationSchema.deleteMany({phone, purpose: 'signup'});
-        await res.json({message: "Signup successful", user});
+        
+        // Send both user and token in response
+        res.json({
+            message: "Signup successful", 
+            user: {
+                _id: user._id,
+                fullName: user.fullName,
+                phone: user.phone,
+                email: user.email,
+                role: user.role
+            },
+            token
+        });
     } catch (error: any) {
         res.status(500).json({message: error.message});
     }
 }
-
 // verify-reset-otp.ts
 export const verifyResetOtp = async (req: Request, res: Response) => {
     try {

@@ -11,7 +11,12 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const {isLoggedIn, logout, user} = useAuth()
-    const userType = propUserType || user?.role || 'user';
+    const [isClient, setIsClient] = useState(false);
+    const userType = user?.role || propUserType || 'user';
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     // Close mobile menu when window is resized to desktop size
     useEffect(() => {
@@ -47,6 +52,9 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
     const mobileSignUpButtonStyles = "bg-blue-600 text-white px-6 py-3.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-center mx-4 my-2";
 
     const links = () => {
+        if (!isClient) {
+            return <div className="h-6"></div>; 
+        }
         switch(userType) {
             case 'user':
                 if(!isLoggedIn) {
@@ -64,7 +72,6 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
                     <>
                         <a href="/services" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Services</a>
                         <a href="/how-it-works" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>How it works</a>
-                        <a href="/technicians" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>For Technicians</a>
                         <a href="/my-orders" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>My Orders</a>
                         <a href="/my-profile" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Profile</a>
                         <button 
