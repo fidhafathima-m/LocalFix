@@ -52,7 +52,7 @@ const TechHome = () => {
         </section>
 
         {/* services overview */}
-        <section>
+        <section id='why-join'>
             <div className='bg-gray-100'>
                 <div>
                     <div className='items-center justify-center text-center p-5 py-10'>

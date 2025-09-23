@@ -107,7 +107,7 @@ const Home = () => {
             
 
         {/* how it works */}
-        <section>
+        <section id='how-it-works'>
             <div>
                 <div className='p-6 lg:p-10 text-center'>
                     <h1 className='font-bold text-xl sm:text-2xl'>How LocalFix Works</h1>

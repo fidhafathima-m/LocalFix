@@ -18,6 +18,15 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
         setIsClient(true);
     }, []);
 
+    const scrollToSection = (id: string) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: "smooth" });
+            closeMobileMenu(); 
+        }
+    };
+
+
     // Close mobile menu when window is resized to desktop size
     useEffect(() => {
         const handleResize = () => {
@@ -61,7 +70,13 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
                     return (
                     <>
                         <a href="/services" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Services</a>
-                        <a href="/how-it-works" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>How it works</a>
+                        <button 
+                            className="px-3 hover:text-blue-600 transition-colors cursor-pointer"
+                            onClick={() => scrollToSection("how-it-works")}
+                            >
+                            How it works
+                            </button>
+
                         <a href="/technicians" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>For Technicians</a>
                         <a href="/login" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Login</a>
                         <a href="/signup" className={`ml-2 ${signUpButtonStyles}`} onClick={closeMobileMenu}>Sign up</a>
@@ -71,7 +86,13 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
                     return (
                     <>
                         <a href="/services" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Services</a>
-                        <a href="/how-it-works" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>How it works</a>
+                        <button 
+                            className="px-3 hover:text-blue-600 transition-colors cursor-pointer"
+                            onClick={() => scrollToSection("how-it-works")}
+                            >
+                            How it works
+                        </button>
+
                         <a href="/my-orders" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>My Orders</a>
                         <a href="/my-profile" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Profile</a>
                         <button 
@@ -90,7 +111,12 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
                     <>
                         <a href="/technicians/services" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Services</a>
                         <a href="/technicians/how-it-works" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>How it works</a>
-                        <a href="/technicians/why-join" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Why Join</a>
+                        <button 
+                            className="px-3 hover:text-blue-600 transition-colors cursor-pointer"
+                            onClick={() => scrollToSection("why-join")}
+                            >
+                            Why Join
+                        </button>
                         <a href="/" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Users</a>
                         <a href="/technicians/login" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Login</a>
                         <a href="/technicians/apply" className={`ml-2 ${signUpButtonStyles}`} onClick={closeMobileMenu}>Apply Now</a>
