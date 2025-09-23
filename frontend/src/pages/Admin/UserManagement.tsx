@@ -49,12 +49,30 @@ export const UserManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const usersPerPage = 5
 
-  // Calculate paginated users
-  const indexOfLastUser = currentPage * usersPerPage
-  const indexOfFirstUser = indexOfLastUser - usersPerPage
-  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser)
+  // Filter users based on statusFilter
+const filteredUsers = statusFilter === "All Status"
+      ? users
+      : users.filter((u) => u.status === statusFilter)
 
-  const totalPages = Math.ceil(users.length / usersPerPage)
+    // Apply search filter
+    const searchedUsers = searchQuery
+      ? filteredUsers.filter((u) =>
+          u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          u.phone.includes(searchQuery)
+        )
+      : filteredUsers
+
+    // Apply pagination AFTER filters
+    const indexOfLastUser = currentPage * usersPerPage
+    const indexOfFirstUser = indexOfLastUser - usersPerPage
+    const currentUsers = searchedUsers.slice(indexOfFirstUser, indexOfLastUser)
+
+    const totalPages = Math.ceil(searchedUsers.length / usersPerPage)
+
+    useEffect(() => {
+      setCurrentPage(1)
+    }, [statusFilter, searchQuery])
 
 
 
