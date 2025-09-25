@@ -1,10 +1,14 @@
 import React, { useState } from 'react'
 import axios from 'axios';
-import { Google, FacebookOutlined } from '@mui/icons-material';
+import { FacebookOutlined } from '@mui/icons-material';
 import Header from '../../../components/common/Header';
 import Footer from '../../../components/common/Footer';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../../context/AuthContext';
+
+import { GoogleLogin } from "@react-oauth/google";
+import type { CredentialResponse } from "@react-oauth/google";
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -22,6 +26,7 @@ const SignUp = () => {
     password: '',
     confirmPassword: ''
   });
+  const {login} = useAuth()
 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -111,6 +116,32 @@ const SignUp = () => {
       setLoading(false);
     }
   };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+  if (!credentialResponse.credential) return;
+  setLoading(true);
+
+  try {
+    const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/google`, {
+      token: credentialResponse.credential,
+    });
+
+    // Call login with BOTH user and token
+    login(res.data.user, res.data.token);
+
+    toast.success("Signed up with Google!");
+    navigate("/"); // Header will now show logged-in user
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.data?.message) {
+      toast.error(error.response.data.message);
+    } else {
+      toast.error("Google Sign Up failed");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <>
@@ -208,9 +239,11 @@ const SignUp = () => {
             <button className="flex items-center gap-2 border border-gray-300 p-2 px-10 rounded text-sm">
               <FacebookOutlined sx={{color: '#1877F2'}} /> Facebook
             </button>
-            <button className="flex items-center gap-2 border border-gray-300 p-2 px-10 rounded text-sm">
-              <Google sx={{color: '#1877F2'}} /> Google
-            </button>
+            <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => toast.error("Google Login Failed")}
+            />
+
           </div>
         </div>
 

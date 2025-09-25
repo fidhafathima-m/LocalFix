@@ -12,7 +12,7 @@ interface IWalletTransaction {
 export interface IUser extends Document {
   fullName: string;
   email?: string;
-  phone: string;
+  phone?: string;
   passwordHash?: string;
   isVerified: boolean;
   role: "user" | "technician" | "admin";
@@ -30,7 +30,7 @@ const userSchema = new Schema<IUser>(
   {
     fullName: { type: String, required: true },
     email: { type: String, unique: true, sparse: true },
-    phone: { type: String, required: true, unique: true },
+    phone: { type: String, unique: true },
     passwordHash: { type: String },
     isVerified: { type: Boolean, default: false },
     role: { type: String, enum: ["user", "technician", "admin"], default: "user" },

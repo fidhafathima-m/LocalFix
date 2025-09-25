@@ -6,6 +6,10 @@ import OTPVerificationSchema from "../../shared/OTPVerificationSchema";
 import jwt from 'jsonwebtoken'
 import { sendPhoneOTP } from "../../core/utils/sendPhoneOTP";
 import { sendEmailOTP } from "../../core/utils/sendEmailOTP";
+import { OAuth2Client } from "google-auth-library";
+import { SocialAccount } from "../../shared/SocialAccountSchema";
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // signup
 export const signup = async(req: Request, res: Response): Promise<void> => {
@@ -237,3 +241,61 @@ export const resetPassword = async(req: Request, res: Response): Promise<void> =
         res.status(500).json({message: error.message});
     }
 }
+
+
+export const googleAuth = async (req: Request, res: Response) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ message: "Token is required" });
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) return res.status(400).json({ message: "Invalid token" });
+
+    const { email, name, sub: googleId, picture } = payload;
+
+    // Check if a social account already exists
+    let socialAccount = await SocialAccount.findOne({ providerId: googleId });
+    let user;
+
+    if (socialAccount) {
+      // User exists
+      user = await User.findById(socialAccount.userId);
+    } else {
+      // Create new user
+      user = new User({
+        fullName: name,
+        email: email || undefined,     
+        phone: undefined,               
+        isVerified: true,  
+      });
+      await user.save();
+
+      // Create SocialAccount record
+      socialAccount = new SocialAccount({
+        userId: user._id,
+        provider: "google",
+        providerId: googleId,
+        email,
+        profilePictureUrl: picture,
+      });
+      await socialAccount.save();
+    }
+
+    // Generate app JWT
+    const appToken = jwt.sign(
+      { userId: user?._id, email: user?.email },
+      process.env.JWT_SECRET!,
+      { expiresIn: "7d" }
+    );
+
+    res.json({ token: appToken, user, message: "Google signup successful" });
+  } catch (error) {
+    console.error("Google Auth Error:", error);
+    res.status(500).json({ message: "Google signup failed" });
+  }
+};
