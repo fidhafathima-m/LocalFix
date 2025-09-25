@@ -3,49 +3,64 @@ import { Request, Response } from "express";
 import bcrypt from 'bcrypt' 
 import { generateOTP } from "../../core/utils/generateOTP";
 import OTPVerificationSchema from "../../shared/OTPVerificationSchema";
-import { sendOTP } from "../../core/utils/sendOTP";
 import jwt from 'jsonwebtoken'
+import { sendOTP } from "../../core/utils/sendOTP";
+import { sendEmailOTP } from "../../core/utils/sendEmailOTP";
 
 // signup
 export const signup = async(req: Request, res: Response): Promise<void> => {
     try {
-        const { email, phone} = req.body;
+        const { email, phone, fullName, password } = req.body;
 
-        // Check if email or phone exists
-        const existingEmail = await User.findOne({email});
-        if(existingEmail) {
-            res.status(400).json({message: 'Email already in use'});
-            return;
-        } 
-        const existingPhone = await User.findOne({phone});
-        if(existingPhone) {
-            res.status(400).json({message: 'Phone already in use'});
-            return;
-        } 
+        // Must provide at least email or phone
+        if (!email && !phone) {
+            res.status(400).json({ message: "Provide at least email or phone" });
+        }
 
+        // Check uniqueness
+        if (email && await User.findOne({ email })) {
+            res.status(400).json({ message: 'Email already in use' });
+        }
+        if (phone && await User.findOne({ phone })) {
+            res.status(400).json({ message: 'Phone already in use' });
+        }
+
+        // Generate OTP and hash
         const otp = generateOTP();
         const otpHash = await bcrypt.hash(otp, 10);
 
-        await OTPVerificationSchema.create({
-            phone,
-            otpHash,
-            purpose: 'signup',
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-        })
-        await sendOTP(phone, otp);
+        // Save OTP record
+        const otpData: any = { otpHash, purpose: "signup", expiresAt: new Date(Date.now() + 5 * 60 * 1000) };
+        if (phone) otpData.phone = phone;
+        if (email) otpData.email = email;
 
-        res.json({message: "OTP send to phone. Verify to complete signup."});
+        await OTPVerificationSchema.create(otpData);
+
+        // Send OTP to all provided channels
+        const sentChannels: string[] = [];
+        if (phone) { await sendOTP(phone, otp); sentChannels.push(`phone: ${phone}`); }
+        if (email) { await sendEmailOTP(email, otp); sentChannels.push(`email: ${email}`); }
+
+        res.json({
+            message: `OTP sent to ${sentChannels.join(", ")}. Verify to complete signup.`
+        });
 
     } catch (error: any) {
-        res.status(500).json({message: error.message});
+        res.status(500).json({ message: error.message });
     }
-}
+};
+
 
 //verofy otp
 export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
     try {
         const {phone, otp, fullName, password, email} = req.body;
-        const record = await OTPVerificationSchema.findOne({ phone, purpose: "signup" }).sort({ createdAt: -1 });
+
+        const query: any = { purpose: "signup" };
+        if (phone) query.phone = phone;
+        if (email) query.email = email;
+
+        const record = await OTPVerificationSchema.findOne(query).sort({ createdAt: -1 });
 
         if(!record) {
             res.status(400).json({message: 'No OTP request found'});
@@ -82,7 +97,7 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
         );
 
         // deleting otps after use
-        await OTPVerificationSchema.deleteMany({phone, purpose: 'signup'});
+        await OTPVerificationSchema.deleteMany(query);
         
         res.json({
             message: "Signup successful", 
@@ -102,9 +117,13 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
 
 export const verifyResetOtp = async (req: Request, res: Response) => {
     try {
-        const { phone, otp } = req.body;
+        const { phone, email, otp } = req.body;
 
-        const record = await OTPVerificationSchema.findOne({ phone, purpose: 'reset' }).sort({ createdAt: -1 });
+        const query: any = { purpose: "signup" };
+        if (phone) query.phone = phone;
+        if (email) query.email = email;
+
+        const record = await OTPVerificationSchema.findOne(query).sort({ createdAt: -1 });
         if (!record) {
             return res.status(400).json({ success: false, message: "No OTP request found" });
         }
@@ -154,41 +173,46 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 };
 
 //  forget password
-export const forgotPassword = async(req: Request, res: Response): Promise<void> => {
+export const forgotPassword = async(req: Request, res: Response) => {
     try {
-        const {phone} = req.body;
+        const { phone, email } = req.body;
+        if (!phone && !email) return res.status(400).json({ message: "Provide phone or email" });
 
-        // Check if phone exists
-        
-        const user = await User.findOne({phone});
-        if(!user) {
-            res.status(404).json({message: 'User not found'});
-            return;
-        } 
+        const user = await User.findOne(phone ? { phone } : { email });
+        if (!user) return res.status(404).json({ message: "User not found" });
 
         const otp = generateOTP();
         const otpHash = await bcrypt.hash(otp, 10);
 
-        await OTPVerificationSchema.create({
-            phone,
-            otpHash,
-            purpose: 'reset',
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-        })
-        await sendOTP(phone, otp);
+        const otpData: any = { otpHash, purpose: "reset", expiresAt: new Date(Date.now() + 5 * 60 * 1000) };
+        if (phone) otpData.phone = phone;
+        if (email) otpData.email = email;
 
-        res.json({message: "OTP send for password reset."});
+        await OTPVerificationSchema.create(otpData);
+
+        const sentChannels: string[] = [];
+        if (phone) { await sendOTP(phone, otp); sentChannels.push(`phone: ${phone}`); }
+        if (email) { await sendEmailOTP(email, otp); sentChannels.push(`email: ${email}`); }
+
+        res.json({ message: `OTP sent to ${sentChannels.join(", ")}.` });
 
     } catch (error: any) {
-        res.status(500).json({message: error.message});
+        res.status(500).json({ message: error.message });
     }
-}
+};
 
 // reset password
 export const resetPassword = async(req: Request, res: Response): Promise<void> => {
     try {
-        const {phone, otp, newPassword} = req.body;
-        const record = await OTPVerificationSchema.findOne({phone, purpose: 'reset'}).sort({ createdAt: -1 });
+        const {phone, otp, newPassword, email} = req.body;
+
+        const query: any = { purpose: "reset" };
+        if (phone) query.phone = phone;
+        if (email) query.email = email;
+
+        const record = await OTPVerificationSchema.findOne(query).sort({ createdAt: -1 });
+
+
         if(!record) {
             res.status(400).json({message: 'No OTP request found'});
             return;
@@ -205,9 +229,9 @@ export const resetPassword = async(req: Request, res: Response): Promise<void> =
         }
 
         const passwordHash = await bcrypt.hash(newPassword, 10);
-        await User.updateOne({phone}, {$set: {passwordHash}});
+        await User.updateOne(phone ? { phone } : { email }, { $set: { passwordHash } });
 
-        await OTPVerificationSchema.deleteMany({phone, purpose: 'reset'});
+        await OTPVerificationSchema.deleteMany(query);
         await res.json({message: "Password reset successfully"});
     } catch (error: any) {
         res.status(500).json({message: error.message});

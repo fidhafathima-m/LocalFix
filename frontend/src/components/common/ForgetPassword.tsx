@@ -10,6 +10,7 @@ interface ForgetPasswordProps {
 
 const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -29,8 +30,21 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
     e.preventDefault();
 
     const phoneRegex = /^\d{10}$/;
-    if (!phoneRegex.test(phone)) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // Validation: require at least one
+    if (!phone && !email) {
+      setError('Please enter either phone number or email');
+      return;
+    }
+
+    if (phone && !phoneRegex.test(phone)) {
       setError('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    if (email && !emailRegex.test(email)) {
+      setError('Please enter a valid email address');
       return;
     }
 
@@ -39,19 +53,24 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
 
     try {
       await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/forgot-password`, {
-        phone,
+        ...(phone ? { phone } : {}),
+        ...(email ? { email } : {}),
         userType,
       });
 
       localStorage.setItem(
         'forgotData',
         JSON.stringify({
-          phone,
+          ...(phone ? { phone } : {}),
+          ...(email ? { email } : {}),
         })
       );
 
-      if(userType === 'admin') navigate('/admin/verify-otp', { state: { userType, context: 'forgot' } });
-      else navigate('/verify-otp', { state: { userType, context: 'forgot' } });
+      if (userType === 'admin') {
+        navigate('/admin/verify-otp', { state: { userType, context: 'forgot' } });
+      } else {
+        navigate('/verify-otp', { state: { userType, context: 'forgot' } });
+      }
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response?.data?.message) {
         setError(error.response.data.message);
@@ -69,7 +88,7 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
       <div className="mb-4 text-center">
         <h1 className="text-2xl font-semibold p-5">{getTitle()}</h1>
         <p className="text-sm text-gray-500">
-          Enter your phone number to receive a verification code
+          Enter your phone number or email to receive a verification code
         </p>
       </div>
 
@@ -84,8 +103,20 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
-          {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
         </div>
+
+        <div className="p-5">
+          <label htmlFor="">Email</label>
+          <input
+            type="text"
+            className="w-full border border-gray-300 rounded px-4 py-2 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+
+        {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
         <button
           type="submit"
@@ -98,12 +129,14 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
         </button>
 
         <button className="w-full text-blue-600 p-2 rounded">
-          <Link 
+          <Link
             to={
-              userType === 'serviceProvider' ? '/technicians/login' :
-              userType === 'admin' ? '/admin/login' :
-              '/login'
-            } 
+              userType === 'serviceProvider'
+                ? '/technicians/login'
+                : userType === 'admin'
+                ? '/admin/login'
+                : '/login'
+            }
           >
             Back to login
           </Link>

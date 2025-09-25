@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IOtpVerification extends Document {
-  phone: string;
+  phone?: string;
+  email?: string;
   otpHash: string;
   purpose: "signup" | "login" | "reset" | "application";
   expiresAt: Date;
@@ -10,7 +11,8 @@ export interface IOtpVerification extends Document {
 
 const otpSchema = new Schema<IOtpVerification>(
   {
-    phone: { type: String, required: true },
+    phone: { type: String, required: false },
+    email: { type: String, required: false },
     otpHash: { type: String, required: true },
     purpose: { type: String, enum: ["signup", "login", "reset", "application"], required: true },
     expiresAt: { type: Date, required: true },
