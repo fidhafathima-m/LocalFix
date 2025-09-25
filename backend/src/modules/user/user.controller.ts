@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt'
 import { generateOTP } from "../../core/utils/generateOTP";
 import OTPVerificationSchema from "../../shared/OTPVerificationSchema";
 import jwt from 'jsonwebtoken'
-import { sendOTP } from "../../core/utils/sendOTP";
+import { sendPhoneOTP } from "../../core/utils/sendPhoneOTP";
 import { sendEmailOTP } from "../../core/utils/sendEmailOTP";
 
 // signup
@@ -38,7 +38,7 @@ export const signup = async(req: Request, res: Response): Promise<void> => {
 
         // Send OTP to all provided channels
         const sentChannels: string[] = [];
-        if (phone) { await sendOTP(phone, otp); sentChannels.push(`phone: ${phone}`); }
+        if (phone) { await sendPhoneOTP(phone, otp); sentChannels.push(`phone: ${phone}`); }
         if (email) { await sendEmailOTP(email, otp); sentChannels.push(`email: ${email}`); }
 
         res.json({
@@ -191,7 +191,7 @@ export const forgotPassword = async(req: Request, res: Response) => {
         await OTPVerificationSchema.create(otpData);
 
         const sentChannels: string[] = [];
-        if (phone) { await sendOTP(phone, otp); sentChannels.push(`phone: ${phone}`); }
+        if (phone) { await sendPhoneOTP(phone, otp); sentChannels.push(`phone: ${phone}`); }
         if (email) { await sendEmailOTP(email, otp); sentChannels.push(`email: ${email}`); }
 
         res.json({ message: `OTP sent to ${sentChannels.join(", ")}.` });

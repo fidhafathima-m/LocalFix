@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import bcrypt from 'bcrypt' 
 import { generateOTP } from "../../core/utils/generateOTP";
 import OTPVerificationSchema from "../../shared/OTPVerificationSchema";
-import { sendOTP } from "../../core/utils/sendOTP";
+import { sendPhoneOTP } from "../../core/utils/sendPhoneOTP";
 import jwt from 'jsonwebtoken'
 
 export const technicianLogin = async (req: Request, res: Response): Promise<void> => {
@@ -57,7 +57,7 @@ export const technicianForgotPassword = async (req: Request, res: Response): Pro
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    await sendOTP(phone, otp);
+    await sendPhoneOTP(phone, otp);
 
     res.json({ message: "OTP sent for technician password reset." });
   } catch (error: any) {
