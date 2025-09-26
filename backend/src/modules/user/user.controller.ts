@@ -175,6 +175,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (user.isDeleted) {
+      res.status(403).json({ message: "Your account has been deleted. Please contact support." });
+      return;
+    }
+
+    if (user.status === "Blocked") {
+      res.status(403).json({ message: "Your account is blocked by admin. Please contact support." });
+      return;
+    }
+
+    if (user.status !== "Active") {
+      res.status(403).json({ message: "Your account is not active. Please contact support." });
+      return;
+    }
+
     const isMatch = await bcrypt.compare(password, user.passwordHash || "");
     if (!isMatch) {
       res.status(400).json({ message: "Invalid credentials" });

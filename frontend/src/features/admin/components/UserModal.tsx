@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { CloseOutlined, CheckCircleOutlineOutlined } from '@mui/icons-material'
 import type { User } from '../pages/UserManagement'
+import { updateUser } from '../api/adminApi'
+import toast from 'react-hot-toast'
 
 type Status = "Active" | "Inactive" | "Blocked"
 
@@ -69,11 +71,26 @@ export const UserModal: React.FC<UserModalProps> = ({
     setFormData(prev => ({ ...prev, status }))
   }
 
-  const handleSave = () => {
-    const updatedUser = { ...user, ...formData }
-    onUserUpdated(updatedUser)
-    setEditingMode(false)
+  const handleSave = async () => {
+  try {
+    console.log('Updating user with data:', { 
+      userId: user._id, 
+      updates: formData,
+      endpoint: `${import.meta.env.VITE_BASE_URL}/users/${user._id}/edit`
+    });
+    
+    const updatedUser = await updateUser(user._id, formData);
+    
+    console.log('User updated successfully:', updatedUser);
+    
+    onUserUpdated(updatedUser);
+    toast.success("User updated successfully!");
+    setEditingMode(false);
+  } catch (err) {
+    console.error("Error updating user:", err);
+    toast.error(err instanceof Error ? err.message : "Failed to update user");
   }
+};
 
   return (
     <>

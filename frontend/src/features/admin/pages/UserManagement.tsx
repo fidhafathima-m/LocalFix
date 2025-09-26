@@ -108,6 +108,7 @@ const handleCloseModal = () => {
 
 
  // Block / Unblock user
+// Block / Unblock user
 const handleBlockUser = async (userId: string, newStatus: "Active" | "Inactive" | "Blocked") => {
   const result = await Swal.fire({
     title: `Are you sure?`,
@@ -117,22 +118,24 @@ const handleBlockUser = async (userId: string, newStatus: "Active" | "Inactive" 
     confirmButtonColor: "#d33",
     cancelButtonColor: "#3085d6",
     confirmButtonText: `Yes, ${newStatus === "Blocked" ? "block" : "unblock"}!`,
-  })
+  });
 
-  if (!result.isConfirmed) return
+  if (!result.isConfirmed) return;
 
   try {
-    await updateUserStatus(userId, newStatus)
+    // Use the status update endpoint for blocking/unblocking
+    const updatedUser = await updateUserStatus(userId, newStatus);
 
-    setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: newStatus } : u))
-    setSelectedUser(prev => prev && prev._id === userId ? { ...prev, status: newStatus } : prev)
+    setUsers(prev => prev.map(u => u._id === userId ? updatedUser : u));
+    setSelectedUser(prev => prev && prev._id === userId ? updatedUser : prev);
 
-    toast.success(`User status changed to ${newStatus}`)
+    toast.success(`User status changed to ${newStatus}`);
   } catch (err) {
-    console.error("Error updating user status:", err)
-    toast.error("Failed to update user status")
+    console.error("Error updating user status:", err);
+    toast.error("Failed to update user status");
   }
-}
+};
+
 
 const handleDeleteUser = async (userId: string) => {
   const result = await Swal.fire({
