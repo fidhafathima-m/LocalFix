@@ -4,11 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import toast from 'react-hot-toast';
 
-import {
-    Google,
-    FacebookOutlined
-} from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
+import GoogleAuth from '../../features/user/components/GoogleAuth';
 
 type UserType = 'user'| 'serviceProvider' | 'admin'
 
@@ -156,12 +153,7 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
       <div className="text-center mt-6">
         <p className="text-sm text-gray-500">Or continue with</p>
         <div className="flex justify-center gap-4 mt-2">
-          <button className="flex items-center gap-2 border border-gray-300 p-2 px-10 rounded text-sm">
-            <FacebookOutlined sx={{color: '#1877F2'}}/> Facebook
-          </button>
-          <button className="flex items-center gap-2 border border-gray-300 p-2 px-10 rounded text-sm">
-            <Google sx={{color: '#1877F2'}}/> Google
-          </button>
+          <GoogleAuth/>
         </div>
       </div>
       <div className='text-center p-3'>

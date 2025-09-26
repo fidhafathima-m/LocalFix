@@ -30,7 +30,7 @@ const userSchema = new Schema<IUser>(
   {
     fullName: { type: String, required: true },
     email: { type: String, unique: true, sparse: true },
-    phone: { type: String, unique: true },
+    phone: { type: String, unique: true, sparse: true, },
     passwordHash: { type: String },
     isVerified: { type: Boolean, default: false },
     role: { type: String, enum: ["user", "technician", "admin"], default: "user" },

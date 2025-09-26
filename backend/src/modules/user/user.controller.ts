@@ -8,6 +8,7 @@ import { sendPhoneOTP } from "../../core/utils/sendPhoneOTP";
 import { sendEmailOTP } from "../../core/utils/sendEmailOTP";
 import { OAuth2Client } from "google-auth-library";
 import { SocialAccount } from "../../shared/SocialAccountSchema";
+import axios from "axios";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -297,5 +298,57 @@ export const googleAuth = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Google Auth Error:", error);
     res.status(500).json({ message: "Google signup failed" });
+  }
+};
+
+export const facebookLogin = async (req: Request, res: Response) => {
+  try {
+    const { accessToken, userID } = req.body;
+
+    // Verify token with Facebook Graph API
+    const fbRes = await axios.get(
+      `https://graph.facebook.com/${userID}?fields=id,name,email,picture&access_token=${accessToken}`
+    );
+
+    const { id, name, email, picture } = fbRes.data;
+
+    // Check if social account already exists
+    let account = await SocialAccount.findOne({ provider: "facebook", providerId: id });
+
+    let user;
+    if (!account) {
+      // Create a new user if doesn’t exist
+      user = await User.findOne({ email });
+
+      if (!user) {
+        user = new User({ fullName: name, email, role: "user" });
+        await user.save();
+      }
+
+      account = new SocialAccount({
+        userId: user._id,
+        provider: "facebook",
+        providerId: id,
+        email,
+        profilePictureUrl: picture?.data?.url,
+      });
+      await account.save();
+    } else {
+      user = await User.findById(account.userId);
+    }
+
+    if (!user) return res.status(400).json({ message: "User not found" });
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: "7d" }
+    );
+
+    res.json({ token, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Facebook login failed" });
   }
 };
