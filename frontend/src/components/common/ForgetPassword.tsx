@@ -19,12 +19,9 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
 
   const getTitle = () => {
     switch (userType) {
-      case 'user':
-        return 'User Forgot Password';
-      case 'serviceProvider':
-        return 'Technician Forgot Password';
-      case 'admin':
-        return 'Admin Forgot Password';
+      case 'user': return 'User Forgot Password';
+      case 'serviceProvider': return 'Technician Forgot Password';
+      case 'admin': return 'Admin Forgot Password';
     }
   };
 
@@ -34,7 +31,6 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
     const phoneRegex = /^\d{10}$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    // Validation: require at least one
     if (!phone && !email) {
       setError('Please enter either phone number or email');
       return;
@@ -56,16 +52,30 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
     try {
       await sendOTP({ phone: phone || undefined, email: email || undefined, userType });
 
+      // Save to localStorage as fallback
       localStorage.setItem(
         'forgotData',
-        JSON.stringify({ phone: phone || undefined, email: email })
+        JSON.stringify({ phone: phone || undefined, email: email || undefined })
       );
 
+      // Determine the correct verify OTP route
+      let verifyPath = '/verify-otp';
       if (userType === 'admin') {
-        navigate('/admin/verify-otp', { state: { userType, context: 'forgot' } });
-      } else {
-        navigate('/verify-otp', { state: { userType, context: 'forgot' } });
+        verifyPath = '/admin/verify-otp';
+      } else if (userType === 'serviceProvider') {
+        verifyPath = '/technicians/verify-otp';
       }
+
+      // Navigate with state containing the data
+      navigate(verifyPath, { 
+        state: { 
+          phone: phone || undefined, 
+          email: email || undefined, 
+          userType, 
+          context: 'forgot' 
+        } 
+      });
+
     } catch (err: unknown) {
       const error = err as AxiosError<{ message: string }>;
       toast.error(error.response?.data?.message || 'Failed to send OTP');
@@ -76,7 +86,6 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
 
   return (
     <div className="max-w-md mx-auto p-6 shadow-md mt-10">
-      {/* Header */}
       <div className="mb-4 text-center">
         <h1 className="text-2xl font-semibold p-5">{getTitle()}</h1>
         <p className="text-sm text-gray-500">
@@ -84,7 +93,6 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
         </p>
       </div>
 
-      {/* Form */}
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="p-5">
           <label htmlFor="">Phone number</label>

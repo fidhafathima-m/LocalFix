@@ -19,20 +19,41 @@ interface ForgotPasswordData {
 
 export interface VerifyOTPData {
   otp: string;
-  userType: UserType;
   context: OTPContext;
-  fullName?: string;
-  password?: string;
+  userType: UserType;
   phone?: string;
   email?: string;
+  fullName?: string;
+  password?: string;
 }
 
-// Login
-export const loginUser = async (data: LoginData) => {
-  const response = await axios.post(`${BASE_URL}/auth/login`, data);
-  return response.data;
-};
+export interface ResetPasswordData {
+  phone?: string;
+  email?: string;
+  otp: string;
+  newPassword: string;
+  userType: UserType;
+}
 
+export interface ResendOTPData {
+  phone?: string;
+  email?: string;
+  purpose: 'signup' | 'reset';
+  userType: UserType;
+}
+// Login
+export const loginUser = async (credentials: LoginData) => {
+  try {
+    const response = await axios.post(`${BASE_URL}/auth/login`, credentials);
+    return response;
+  } catch (error) {
+    // Re-throw the error with more context
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Login failed');
+    }
+    throw error;
+  }
+};
 // Forgot password (send OTP)
 export const sendOTP = async (data: ForgotPasswordData) => {
   const response = await axios.post(`${BASE_URL}/auth/forgot-password`, data);
@@ -41,10 +62,24 @@ export const sendOTP = async (data: ForgotPasswordData) => {
 
 // Verify OTP (signup or forgot)
 export const verifyOTP = async (data: VerifyOTPData) => {
-  const url =
-    data.context === 'signup'
-      ? `${BASE_URL}/auth/verify-otp`
-      : `${BASE_URL}/auth/verify-reset-otp`;
-  const response = await axios.post(url, data);
+  
+  // Use different endpoints based on context
+  const endpoint = data.context === 'signup' ? '/verify-otp' : '/verify-reset-otp';
+  const response = await axios.post(`${BASE_URL}/auth${endpoint}`, data);
+  return response.data;
+};
+
+export const resetPassword = async (data: ResetPasswordData) => {
+  const response = await axios.post(`${BASE_URL}/auth/reset-password`, data);
+  return response.data;
+};
+
+export const resendOTP = async (data: {
+  phone?: string;
+  email?: string;
+  purpose: 'signup' | 'reset';
+  userType: UserType;
+}) => {
+  const response = await axios.post(`${BASE_URL}/auth/resend-otp`, data);
   return response.data;
 };

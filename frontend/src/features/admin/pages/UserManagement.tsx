@@ -14,8 +14,8 @@ import {
   DeleteOutlineOutlined,
 } from '@mui/icons-material'
 import Search from '../components/Search'
-import axios from 'axios'
 import { UserModal } from '../components/UserModal'
+import { deleteUser, fetchUsers, updateUserStatus } from '../api/adminApi';
 export interface User {
   _id: string
   fullName: string
@@ -75,10 +75,10 @@ const filteredUsers = statusFilter === "All Status"
 
 
    useEffect(() => {
-  const fetchUsers = async () => {
+  const loadUsers = async () => {
     try {
-      const res = await axios.get<{ users: User[] }>(`${import.meta.env.VITE_BASE_URL}/users`)
-      setUsers(res.data?.users ?? []) // fallback to [] if undefined
+      const data = await fetchUsers();
+      setUsers(data ?? []) // fallback to [] if undefined
     } catch (err) {
       console.error('Error fetching users:', err)
       setUsers([]) 
@@ -86,7 +86,7 @@ const filteredUsers = statusFilter === "All Status"
       setLoading(false)
     }
   }
-  fetchUsers()
+  loadUsers()
 }, [])
 
 const handleOpenViewModal = (user: User) => {
@@ -122,9 +122,7 @@ const handleBlockUser = async (userId: string, newStatus: "Active" | "Inactive" 
   if (!result.isConfirmed) return
 
   try {
-    await axios.patch(`${import.meta.env.VITE_BASE_URL}/users/${userId}/status`, {
-      status: newStatus,
-    })
+    await updateUserStatus(userId, newStatus)
 
     setUsers(prev => prev.map(u => u._id === userId ? { ...u, status: newStatus } : u))
     setSelectedUser(prev => prev && prev._id === userId ? { ...prev, status: newStatus } : prev)
@@ -150,7 +148,7 @@ const handleDeleteUser = async (userId: string) => {
   if (!result.isConfirmed) return
 
   try {
-    await axios.patch(`${import.meta.env.VITE_BASE_URL}/users/${userId}/delete`)
+    await deleteUser(userId)
 
     setUsers(prev => prev.filter(u => u._id !== userId))
 

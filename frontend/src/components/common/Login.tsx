@@ -53,7 +53,20 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
 
     setLoading(true);
     try {
+      
       const res = await loginUser({ identifier, password, role: userType });
+      
+      // Check if response data exists
+      if (!res || !res.data) {
+        throw new Error('No response received from server');
+      }
+      
+      
+      // Check if user and token exist in response
+      if (!res.data.user || !res.data.token) {
+        throw new Error('Invalid response format from server');
+      }
+      
       login(res.data.user, res.data.token);
       toast.success('Login successful!');
 
@@ -63,10 +76,36 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
         else navigate('/');
       }, 1000);
     } catch (error: unknown) {
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        toast.error(error.response.data.message);
+      console.error('Login error details:', error);
+      
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else if (axios.isAxiosError(error)) {
+        // Detailed Axios error logging
+        console.error('Axios error details:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message
+        });
+        
+        if (error.response?.data?.message) {
+          toast.error(error.response.data.message);
+        } else if (error.response?.status === 401) {
+          toast.error('Invalid credentials');
+        } else if (error.response?.status === 404) {
+          toast.error('User not found');
+        } else if (error.response?.status === 400) {
+          toast.error('Bad request - check your input');
+        } else if (error.response?.status === 500) {
+          toast.error('Server error - please try again later');
+        } else if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNREFUSED') {
+          toast.error('Cannot connect to server. Check your connection.');
+        } else {
+          toast.error(`Login failed: ${error.response?.status || 'Unknown error'}`);
+        }
       } else {
-        toast.error('Login failed');
+        toast.error('Login failed - unexpected error');
       }
     } finally {
       setLoading(false);
