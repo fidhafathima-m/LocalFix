@@ -1,79 +1,77 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-
+import { loginUser } from '../../api/auth';
 import toast from 'react-hot-toast';
-
 import { useAuth } from '../../context/AuthContext';
 import GoogleAuth from '../../features/user/components/GoogleAuth';
 
-type UserType = 'user'| 'serviceProvider' | 'admin'
+type UserType = 'user' | 'serviceProvider' | 'admin';
 
 interface LoginProps {
-    userType: UserType,
+  userType: UserType;
 }
 
 const Login: React.FC<LoginProps> = ({ userType }) => {
-
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState(''); // email or phone
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [phoneError, setPhoneError] = useState('');
+  const [identifierError, setIdentifierError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
-  const {login} = useAuth();
+  const { login } = useAuth();
 
   const validateForm = (): boolean => {
-  let valid = true;
+    let valid = true;
 
-  const phoneRegex = /\d{10}$/;
-  if (!phone || !phoneRegex.test(phone)) {
-    setPhoneError("Please enter a valid phone number");
-    valid = false;
-  } else {
-    setPhoneError('');
-  }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\d{10}$/;
 
-  if (!password || password.length < 6) {
-    setPasswordError("Password must be at least 6 characters");
-    valid = false;
-  } else {
-    setPasswordError('');
-  }
+    if (!identifier) {
+      setIdentifierError('Enter email or phone');
+      valid = false;
+    } else if (!emailRegex.test(identifier) && !phoneRegex.test(identifier)) {
+      setIdentifierError('Enter valid email or phone');
+      valid = false;
+    } else {
+      setIdentifierError('');
+    }
 
-  return valid;
-};
+    if (!password || password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      valid = false;
+    } else {
+      setPasswordError('');
+    }
 
+    return valid;
+  };
 
-  const handleSubmit = async(e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(!validateForm()) return;
-    setLoading(true)
+    if (!validateForm()) return;
+
+    setLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/login`, {
-        phone, password, role: userType,
-      });
+      const res = await loginUser({ identifier, password, role: userType });
       login(res.data.user, res.data.token);
-      toast.success("Login successful!");
+      toast.success('Login successful!');
 
       setTimeout(() => {
-        if(userType === 'serviceProvider') navigate('/technicians');
-        else if(userType === 'admin') navigate('/admin/dashboard');
+        if (userType === 'serviceProvider') navigate('/technicians');
+        else if (userType === 'admin') navigate('/admin/dashboard');
         else navigate('/');
-      }, 1000); 
-
-      
-
+      }, 1000);
     } catch (error: unknown) {
       if (axios.isAxiosError(error) && error.response?.data?.message) {
         toast.error(error.response.data.message);
       } else {
-        toast.error("Login failed");
+        toast.error('Login failed');
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const getTitle = () => {
     switch (userType) {
@@ -88,7 +86,6 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
 
   return (
     <div className="max-w-md mx-auto p-6 shadow-md mt-10">
-
       {/* Header */}
       <div className="mb-4 text-center">
         <h1 className="text-2xl font-semibold">{getTitle()}</h1>
@@ -98,22 +95,18 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
       {/* Form */}
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm mb-1">Phone Number</label>
-          
+          <label className="block text-sm mb-1">Email or Phone</label>
           <div className="flex items-center border rounded overflow-hidden">
-            <span className="px-4 py-2 bg-gray-200 text-sm border-r">+91</span>
             <input
               type="text"
-              placeholder="9876543210"
+              placeholder="Enter email or phone (with no country code)"
               className="flex-1 p-2 text-sm outline-none"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
           </div>
-
-          {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
+          {identifierError && <p className="text-sm text-red-500 mt-1">{identifierError}</p>}
         </div>
-
 
         <div>
           <label className="block text-sm mb-1">Password</label>
@@ -122,45 +115,51 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
             placeholder="******"
             className="w-full border p-2 rounded"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
           />
-          {passwordError && <p className='text-sm text-red-500 mt-1'>{passwordError}</p>}
-          <Link 
+          {passwordError && <p className="text-sm text-red-500 mt-1">{passwordError}</p>}
+          <Link
             to={
-              userType === 'serviceProvider' ? '/technicians/forgot-password' :
-              userType === 'admin' ? '/admin/forgot-password' :
-              '/forgot-password'
-            } 
+              userType === 'serviceProvider'
+                ? '/technicians/forgot-password'
+                : userType === 'admin'
+                ? '/admin/forgot-password'
+                : '/forgot-password'
+            }
             className="text-xs text-blue-500 hover:underline"
           >
             Forgot Password?
           </Link>
-
-
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className={`w-full bg-blue-600 text-white py-2 rounded cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+          className={`w-full bg-blue-600 text-white py-2 rounded cursor-pointer ${
+            loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
+          }`}
         >
           {loading ? 'Logging in...' : 'Continue'}
         </button>
-
       </form>
 
       {/* Social login */}
       <div className="text-center mt-6">
         <p className="text-sm text-gray-500">Or continue with</p>
         <div className="flex justify-center gap-4 mt-2">
-          <GoogleAuth/>
+          <GoogleAuth />
         </div>
       </div>
-      <div className='text-center p-3'>
-        {userType !== 'serviceProvider' && <p className='text-gray-500'>Don't have an account? <Link to='/signup' className='text-[#1877F2]'>Sign Up</Link></p>}
+
+      <div className="text-center p-3">
+        {userType !== 'serviceProvider' && (
+          <p className="text-gray-500">
+            Don't have an account? <Link to="/signup" className="text-[#1877F2]">Sign Up</Link>
+          </p>
+        )}
       </div>
     </div>
   );
 };
 
-export default Login
+export default Login;

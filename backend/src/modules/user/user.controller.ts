@@ -9,6 +9,7 @@ import { sendEmailOTP } from "../../core/utils/sendEmailOTP";
 import { OAuth2Client } from "google-auth-library";
 import { SocialAccount } from "../../shared/SocialAccountSchema";
 import axios from "axios";
+import { MongoServerError } from 'mongodb';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -152,8 +153,13 @@ export const verifyResetOtp = async (req: Request, res: Response) => {
 // login
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { phone, password, role } = req.body; 
-    const user = await User.findOne({ phone, role }); 
+    const { identifier, password, role } = req.body; 
+    let user;
+    if (/^\d{10}$/.test(identifier)) {
+      user = await User.findOne({ phone: identifier, role });
+    } else {
+      user = await User.findOne({ email: identifier, role });
+    }
     if (!user) {
       res.status(400).json({ message: "User not found" });
       return;
@@ -259,45 +265,72 @@ export const googleAuth = async (req: Request, res: Response) => {
 
     const { email, name, sub: googleId, picture } = payload;
 
+    if (!email) {
+      return res.status(400).json({ message: "Google account email is required" });
+    }
+
     // Check if a social account already exists
     let socialAccount = await SocialAccount.findOne({ providerId: googleId });
     let user;
 
     if (socialAccount) {
-      // User exists
       user = await User.findById(socialAccount.userId);
     } else {
-      // Create new user
-      user = new User({
-        fullName: name,
-        email: email || undefined,     
-        phone: undefined,               
-        isVerified: true,  
-      });
-      await user.save();
+      // Also check if user exists with this email
+      user = await User.findOne({ email });
+
+      if (!user) {
+        // Create new user - OMIT phone field entirely
+        user = new User({
+          fullName: name,
+          email: email,
+          isVerified: true,
+          // Don't include phone field at all
+        });
+        await user.save();
+      }
 
       // Create SocialAccount record
-      socialAccount = new SocialAccount({
-        userId: user._id,
-        provider: "google",
-        providerId: googleId,
-        email,
-        profilePictureUrl: picture,
-      });
-      await socialAccount.save();
+      socialAccount = await SocialAccount.findOne({ userId: user._id, provider: "google" });
+      
+      if (!socialAccount) {
+        socialAccount = new SocialAccount({
+          userId: user._id,
+          provider: "google",
+          providerId: googleId,
+          email,
+          profilePictureUrl: picture,
+        });
+        await socialAccount.save();
+      }
     }
 
-    // Generate app JWT
     const appToken = jwt.sign(
       { userId: user?._id, email: user?.email },
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
 
-    res.json({ token: appToken, user, message: "Google signup successful" });
+    res.json({ 
+      token: appToken, 
+      user: {
+        _id: user?._id,
+        fullName: user?.fullName,
+        email: user?.email,
+        isVerified: user?.isVerified
+      }, 
+      message: "Google authentication successful" 
+    });
   } catch (error) {
     console.error("Google Auth Error:", error);
-    res.status(500).json({ message: "Google signup failed" });
+    
+    if (error instanceof MongoServerError && error.code === 11000) {
+      return res.status(400).json({ 
+        message: "User with this email already exists. Please use regular login." 
+      });
+    }
+    
+    res.status(500).json({ message: "Google authentication failed" });
   }
 };
 

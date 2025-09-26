@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { AxiosError } from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import { sendOTP } from '../../api/auth';
+import toast from 'react-hot-toast';
 
 type UserType = 'user' | 'serviceProvider' | 'admin';
 
@@ -52,18 +54,11 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
     setError('');
 
     try {
-      await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/forgot-password`, {
-        ...(phone ? { phone } : {}),
-        ...(email ? { email } : {}),
-        userType,
-      });
+      await sendOTP({ phone: phone || undefined, email: email || undefined, userType });
 
       localStorage.setItem(
         'forgotData',
-        JSON.stringify({
-          ...(phone ? { phone } : {}),
-          ...(email ? { email } : {}),
-        })
+        JSON.stringify({ phone: phone || undefined, email: email })
       );
 
       if (userType === 'admin') {
@@ -71,12 +66,9 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
       } else {
         navigate('/verify-otp', { state: { userType, context: 'forgot' } });
       }
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else {
-        setError('Failed to send OTP. Try again.');
-      }
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      toast.error(error.response?.data?.message || 'Failed to send OTP');
     } finally {
       setLoading(false);
     }

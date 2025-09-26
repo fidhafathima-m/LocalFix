@@ -29,8 +29,16 @@ export interface IUser extends Document {
 const userSchema = new Schema<IUser>(
   {
     fullName: { type: String, required: true },
-    email: { type: String, unique: true, sparse: true },
-    phone: { type: String, unique: true, sparse: true, },
+    email: { 
+      type: String, 
+      // Remove unique: true from here since we're creating index separately
+      sparse: true 
+    },
+    phone: { 
+      type: String, 
+      // Remove unique: true from here since we're creating index separately
+      sparse: true 
+    },
     passwordHash: { type: String },
     isVerified: { type: Boolean, default: false },
     role: { type: String, enum: ["user", "technician", "admin"], default: "user" },
@@ -52,5 +60,18 @@ const userSchema = new Schema<IUser>(
   },
   { timestamps: true }
 );
+
+// Create indexes separately - remove the duplicate ones
+userSchema.index({ phone: 1 }, { 
+  sparse: true, 
+  unique: true,
+  partialFilterExpression: { phone: { $exists: true, $ne: null } } 
+});
+
+userSchema.index({ email: 1 }, { 
+  sparse: true, 
+  unique: true,
+  partialFilterExpression: { email: { $exists: true, $ne: null } } 
+});
 
 export default mongoose.model<IUser>("User", userSchema);

@@ -12,6 +12,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src", "src/server.ts"],
+  "include": ["src", "src/server.ts", "cleanup.js"],
   "exclude": ["node_modules"]
 }
