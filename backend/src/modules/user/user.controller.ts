@@ -62,6 +62,8 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
     try {
         const {phone, otp, fullName, password, email, userType} = req.body;
 
+        console.log('Backend - Received userType:', userType);
+
         const query: any = { purpose: "signup" };
         if (phone) query.phone = phone;
         if (email) query.email = email;
@@ -99,11 +101,22 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
             isVerified: true
         };
         
-        if (userType) {
-            userData.role = userType;
+         if (userType) {
+            if (userType === "serviceProvider" || userType === "technician") {
+                userData.role = "serviceProvider";
+            } else if (userType === "admin") {
+                userData.role = "admin";
+            } else {
+                userData.role = "user"; // default
+            }
+        } else {
+            userData.role = "user"; // default if no userType provided
         }
 
+        console.log('Backend - Setting role to:', userData.role);
+
         const user = await User.create(userData);
+        console.log('Created user with role:', user.role); // Verify the saved role
 
         // Generate JWT token for the new user
         const token = jwt.sign(

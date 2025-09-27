@@ -1,15 +1,15 @@
 import Header from '../../../components/common/Header'
 import Footer from '../../../components/common/Footer'
-import SignUp from '../../../components/common/Signup'
+import OTP from '../../../components/common/OTP'
 
-const SignUpForm = () => {
+const TechOTP = () => {
   return (
     <div>
         <Header/>
-        <SignUp userType='user'/>
+        <OTP userType='serviceProvider' context='signup'/>
         <Footer/>
     </div>
   )
 }
 
-export default SignUpForm
+export default TechOTP

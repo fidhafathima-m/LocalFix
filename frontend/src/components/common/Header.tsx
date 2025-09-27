@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -11,12 +12,15 @@ interface HeaderProps {
     userType?: 'user' | 'serviceProvider' | 'admin'
 }
 
-const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => {
+const Header: React.FC<HeaderProps> = ({ userType: propUserType}) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const {isLoggedIn, logout, user} = useAuth()
     const [isClient, setIsClient] = useState(false);
-    const userType = user?.role || propUserType || 'user';
+    const userType = propUserType ?? user?.role ?? 'user';
+
+    const navigate = useNavigate();
+
 
     useEffect(() => {
         setIsClient(true);
@@ -42,6 +46,11 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
 
         if (result.isConfirmed) {
             logout();
+            if (userType === "serviceProvider") {
+              navigate("/technicians", { replace: true });
+            } else {
+              navigate("/", { replace: true });
+            }
             toast.success('You have been logged out!');
         }
         };
@@ -124,39 +133,35 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
       }
 
     case "serviceProvider":
-      if (!isLoggedIn) {
-        return [
-          <a key="sp-services" href="/technicians/services" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Services</a>,
-          <a key="sp-how" href="/technicians/how-it-works" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>How it works</a>,
-          <button
-            key="why"
-            className="px-3 hover:text-blue-600 transition-colors cursor-pointer"
-            onClick={() => scrollToSection("why-join")}
-          >
-            Why Join
-          </button>,
-          <a key="users" href="/" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Users</a>,
-          <a key="sp-login" href="/technicians/login" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Login</a>,
-          <a key="apply" href="/technicians/apply" className={`ml-2 ${signUpButtonStyles}`} onClick={closeMobileMenu}>Apply Now</a>,
-        ];
-      } else {
-        if (!isApproved) {
-          return [
-            <a key="pending-dashboard" href="/pending-technician/dashboard" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Dashboard</a>,
-            <a key="pending-profile" href="/pending-technician/profile" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Profile</a>,
-            <a key="pending-logout" href="/pending-technician/logout" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Logout</a>,
-          ];
-        } else {
-          return [
-            <a key="approved-dashboard" href="/approved-technician/dashboard" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Dashboard</a>,
-            <a key="approved-bookings" href="/approved-technician/bookings" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Bookings</a>,
-            <a key="approved-messages" href="/approved-technician/messages" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Messages</a>,
-            <a key="approved-profile" href="/approved-technician/profile" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Profile</a>,
-            <a key="approved-logout" href="/approved-technician/logout" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Logout</a>,
-          ];
-        }
-      }
-
+  if (!isLoggedIn) {
+    return [
+      <a key="sp-services" href="/technicians/services" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Services</a>,
+      <a key="sp-how" href="/technicians/how-it-works" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>How it works</a>,
+      <button
+        key="why"
+        className="px-3 hover:text-blue-600 transition-colors cursor-pointer"
+        onClick={() => scrollToSection("why-join")}
+      >
+        Why Join
+      </button>,
+      <a key="users" href="/" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Users</a>,
+      <a key="sp-login" href="/technicians/login" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Login</a>,
+      <a key="signup" href="/technicians/signup" className={`ml-2 ${signUpButtonStyles}`} onClick={closeMobileMenu}>Sign Up</a>,
+    ];
+  } else {
+    // Simple menu for logged-in technicians (before application)
+    return [
+      <a key="home" href="/technicians" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Home</a>,
+      <a key="apply" href="/technicians/apply" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Apply Now</a>,
+      <button
+        key="logout"
+        onClick={handleLogout}
+        className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
+      >
+        Logout
+      </button>,
+    ];
+  }
     case "admin":
       if (isLoggedIn) {
         return []; 
@@ -168,31 +173,43 @@ const Header: React.FC<HeaderProps> = ({isApproved, userType: propUserType}) => 
 
 
     const mobileLinks = () => {
-        const desktopLinks = links();
+  const desktopLinks = links();
 
-        return React.Children.toArray(desktopLinks).map((child) => {
-            if (!React.isValidElement(child)) return child;
+  return React.Children.toArray(desktopLinks).map((child) => {
+    if (!React.isValidElement(child)) return child;
 
-            const element = child as React.ReactElement<{
-            className?: string;
-            onClick?: () => void;
-            }>;
+    const element = child as React.ReactElement<{
+      className?: string;
+      onClick?: () => void;
+      href?: string;
+    }>;
 
-            if (element.props.className?.includes(signUpButtonStyles)) {
-            return React.cloneElement(element, {
-                className: mobileSignUpButtonStyles,
-                onClick: closeMobileMenu,
-            });
-            }
+    // Handle signup buttons
+    if (element.props.className?.includes(signUpButtonStyles)) {
+      return React.cloneElement(element, {
+        className: mobileSignUpButtonStyles,
+        onClick: closeMobileMenu,
+      });
+    }
 
-            return React.cloneElement(element, {
-            className:
-                "block w-full px-6 py-4 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 font-medium border-b border-gray-100",
-            onClick: closeMobileMenu,
-            });
-        });
-        };
+    // Handle logout buttons (check if it's a button with onClick handler)
+    if (element.type === 'button' && element.props.onClick) {
+      return React.cloneElement(element, {
+        className: "block w-full px-6 py-4 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 font-medium border-b border-gray-100 text-left",
+        onClick: () => {
+          element.props.onClick?.();
+          closeMobileMenu();
+        },
+      });
+    }
 
+    // Handle regular links
+    return React.cloneElement(element, {
+      className: "block w-full px-6 py-4 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 font-medium border-b border-gray-100",
+      onClick: closeMobileMenu,
+    });
+  });
+};
     return (
         <header className={`sticky top-0 z-50 bg-white transition-shadow ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
             {/* Main Header */}

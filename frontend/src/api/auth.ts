@@ -41,6 +41,21 @@ export interface ResendOTPData {
   purpose: 'signup' | 'reset';
   userType: UserType;
 }
+
+// In your api/auth.ts file
+export const signupAPI = async (data: {
+  fullName: string;
+  email?: string;
+  phone?: string;
+  password: string;
+  userType: string;
+}) => {
+  console.log('Making signup API call with:', data);
+  const response = await axios.post(`${BASE_URL}/auth/signup`, data);
+  console.log('Signup API response received:', response);
+  return response.data;
+};
+
 // Login
 export const loginUser = async (credentials: LoginData) => {
   try {

@@ -2,14 +2,14 @@ import Header from '../../../components/common/Header'
 import Footer from '../../../components/common/Footer'
 import SignUp from '../../../components/common/Signup'
 
-const SignUpForm = () => {
+const TechSignUp = () => {
   return (
     <div>
-        <Header/>
-        <SignUp userType='user'/>
+        <Header userType='serviceProvider'/>
+        <SignUp userType='serviceProvider'/>
         <Footer/>
     </div>
   )
 }
 
-export default SignUpForm
+export default TechSignUp

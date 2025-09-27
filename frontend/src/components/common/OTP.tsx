@@ -69,14 +69,30 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
     try {
       if (context === 'signup') {
         // Signup OTP verification
+        console.log('Sending userType:', userType);
         const res = await verifyOTP({ otp, userType, context, ...finalData });
+        console.log('API Response user role:', res.user.role);
         login(res.user, res.token);
         toast.success('OTP verified successfully');
 
-        const redirect = userType === 'user' ? '/' : 
-                        userType === 'serviceProvider' ? '/technicians' : 
-                        '/admin/dashboard';
-        navigate(redirect, { replace: true });
+        // FIXED: Use the role from the response, not the userType prop
+        const userRole = res.user.role;
+        
+        let redirectPath = '/';
+        if (userRole === 'user') {
+          redirectPath = '/';
+        } else if (userRole === 'serviceProvider') {
+          redirectPath = '/technicians'; // Technician home
+        } else if (userRole === 'admin') {
+          redirectPath = '/admin/dashboard';
+        }
+
+        console.log('User Role from API:', userRole);
+        console.log('Redirecting to:', redirectPath);
+        console.log('OTP Component - Received userType prop:', userType);
+        console.log('OTP Component - Location state:', location.state);
+        console.log('OTP Component - Final data:', finalData);
+        navigate(redirectPath, { replace: true });
       } else {
         // Forgot password OTP verification - Use verifyResetOtp endpoint
         const data: VerifyOTPData = {

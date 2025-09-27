@@ -15,8 +15,12 @@ export interface IUser extends Document {
   phone?: string;
   passwordHash?: string;
   isVerified: boolean;
-  role: "user" | "technician" | "admin";
+  role: "user" | "serviceProvider" | "admin";
   status: "Active" | "Inactive" | "Blocked"
+  applicationStatus?: "not-applied" | "pending" | "approved" | "rejected";
+  applicationDate?: Date;
+  approvalDate?: Date;
+  rejectionReason?: string;
   wallet: {
     balance: number;
     transactions: IWalletTransaction[];
@@ -41,7 +45,7 @@ const userSchema = new Schema<IUser>(
     },
     passwordHash: { type: String },
     isVerified: { type: Boolean, default: false },
-    role: { type: String, enum: ["user", "technician", "admin"], default: "user" },
+    role: { type: String, enum: ["user", "serviceProvider", "admin"], default: "user" },
     status: { type: String, enum: ["Active", "Inactive", "Blocked"], default: "Active" },
     isDeleted: { type: Boolean, default: false },
     wallet: {
@@ -57,7 +61,16 @@ const userSchema = new Schema<IUser>(
         },
       ],
     },
+    applicationStatus: { 
+      type: String, 
+      enum: ["not-applied", "pending", "approved", "rejected"], 
+      default: "not-applied" 
+    },
+    applicationDate: { type: Date },
+    approvalDate: { type: Date },
+    rejectionReason: { type: String },
   },
+  
   { timestamps: true }
 );
 
