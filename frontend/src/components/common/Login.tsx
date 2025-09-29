@@ -186,7 +186,7 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
       <div className="text-center mt-6">
         <p className="text-sm text-gray-500">Or continue with</p>
         <div className="flex justify-center gap-4 mt-2">
-          <GoogleAuth />
+          <GoogleAuth userType={userType}/>
         </div>
       </div>
 

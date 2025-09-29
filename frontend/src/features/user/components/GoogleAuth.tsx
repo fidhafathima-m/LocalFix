@@ -5,7 +5,7 @@ import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 
 interface GoogleAuthProps {
-  userType?: 'user' | 'serviceProvider';
+  userType?: 'user' | 'serviceProvider' | 'admin';
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
