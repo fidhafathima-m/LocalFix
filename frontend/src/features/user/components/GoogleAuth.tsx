@@ -2,11 +2,20 @@ import { GoogleLogin, type CredentialResponse, GoogleOAuthProvider } from "@reac
 import { useAuth } from "../../../context/AuthContext";
 import toast from "react-hot-toast";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-const GoogleAuth: React.FC = () => {
+interface GoogleAuthProps {
+  userType?: 'user' | 'serviceProvider';
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const GoogleAuth: React.FC<GoogleAuthProps> = ({ userType = 'user' }) => {
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Determine userType based on current route
+    const currentUserType = location.pathname.includes('/technicians') ? 'serviceProvider' : 'user';
 
     const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
         if (!credentialResponse.credential) {
@@ -17,11 +26,18 @@ const GoogleAuth: React.FC = () => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/google`, {
                 token: credentialResponse.credential,
+                userType: currentUserType 
             });
 
             login(res.data.user, res.data.token);
             toast.success("Signed in with Google!");
-            navigate("/");
+            
+            // Redirect based on userType
+            if (res.data.user.role === 'serviceProvider') {
+                navigate("/technicians");
+            } else {
+                navigate("/");
+            }
         } catch (error: unknown) {
             console.error("Google auth error:", error);
             if (axios.isAxiosError(error) && error.response?.data?.message) {
@@ -52,7 +68,7 @@ const GoogleAuth: React.FC = () => {
     );
 };
 
-const GoogleAuthWrapper: React.FC = () => {
+const GoogleAuthWrapper: React.FC<GoogleAuthProps> = ({ userType = 'user' }) => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     
     if (!clientId) {
@@ -62,7 +78,7 @@ const GoogleAuthWrapper: React.FC = () => {
 
     return (
         <GoogleOAuthProvider clientId={clientId}>
-            <GoogleAuth />
+            <GoogleAuth userType={userType} />
         </GoogleOAuthProvider>
     );
 };

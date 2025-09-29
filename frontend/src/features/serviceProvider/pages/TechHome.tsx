@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 interface TechnicianUser {
   fullName: string;
   role: 'serviceProvider' | 'customer' | string; 
-  email?: string; // add other fields if needed
+  email?: string; 
 }
 
 

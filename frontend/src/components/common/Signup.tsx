@@ -248,7 +248,7 @@ const SignUp: React.FC<SignUpProps> = ({userType = 'user'}) => {
           <p className="text-sm text-gray-500">Or continue with</p>
           <div className="flex justify-center gap-4 mt-2">
             {/* <FacebookAuth/> */}
-            <GoogleAuth/>
+            <GoogleAuth userType={userType}/>
 
           </div>
         </div>

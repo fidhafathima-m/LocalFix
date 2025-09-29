@@ -356,7 +356,7 @@ export const resendOTP = async (req: Request, res: Response): Promise<void> => {
 
 
 export const googleAuth = async (req: Request, res: Response) => {
-  const { token } = req.body;
+  const { token, userType } = req.body; // Get userType from request body
   if (!token) return res.status(400).json({ message: "Token is required" });
 
   try {
@@ -385,14 +385,21 @@ export const googleAuth = async (req: Request, res: Response) => {
       user = await User.findOne({ email });
 
       if (!user) {
-        // Create new user - OMIT phone field entirely
+        // Create new user with appropriate role
         user = new User({
           fullName: name,
           email: email,
           isVerified: true,
+          role: userType === 'serviceProvider' ? 'serviceProvider' : 'user', // Set role based on userType
           // Don't include phone field at all
         });
         await user.save();
+      } else {
+        // If user exists but is logging in as technician, update role if needed
+        if (userType === 'serviceProvider' && user.role === 'user') {
+          user.role = 'serviceProvider';
+          await user.save();
+        }
       }
 
       // Create SocialAccount record
@@ -411,7 +418,7 @@ export const googleAuth = async (req: Request, res: Response) => {
     }
 
     const appToken = jwt.sign(
-      { userId: user?._id, email: user?.email },
+      { _id: user?._id, role: user?.role }, // Include role in JWT
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
@@ -422,6 +429,7 @@ export const googleAuth = async (req: Request, res: Response) => {
         _id: user?._id,
         fullName: user?.fullName,
         email: user?.email,
+        role: user?.role, // Include role in response
         isVerified: user?.isVerified
       }, 
       message: "Google authentication successful" 
