@@ -70,11 +70,39 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
       login(res.data.user, res.data.token);
       toast.success('Login successful!');
 
-      setTimeout(() => {
-        if (userType === 'serviceProvider') navigate('/technicians');
-        else if (userType === 'admin') navigate('/admin/dashboard');
-        else navigate('/');
-      }, 1000);
+       const userData = {
+      ...res.data.user,
+      applicationStatus: res.data.user.applicationStatus || 'not-applied'
+    };
+
+      // In your Login component - update the redirect logic
+setTimeout(() => {
+  console.log('Login successful - User data:', userData);
+  console.log('Application status:', userData.applicationStatus);
+  console.log('User role:', userData.role);
+
+  // Enhanced technician routing logic
+  if (userType === 'serviceProvider') {
+    // Check application status for routing
+    if (userData.applicationStatus === 'submitted' || userData.applicationStatus === 'under_review') {
+      console.log('Redirecting to pending technician dashboard - application submitted/under review');
+      navigate('/pending-technician/dashboard');
+    } else if (userData.applicationStatus === 'approved') {
+      console.log('Redirecting to approved technician dashboard');
+      navigate('/technician/dashboard');
+    } else if (userData.applicationStatus === 'draft') {
+      console.log('Redirecting to continue draft application');
+      navigate('/technician/apply');
+    } else {
+      console.log('Redirecting to application form - no application or not applied');
+      navigate('/technicians');
+    }
+  } else if (userType === 'admin') {
+    navigate('/admin/dashboard');
+  } else {
+    navigate('/');
+  }
+}, 1000);
     } catch (error: unknown) {
       console.error('Login error details:', error);
       

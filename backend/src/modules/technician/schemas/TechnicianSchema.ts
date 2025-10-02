@@ -15,14 +15,14 @@ export interface ITechnician extends Document {
   displayName: string
   bio: string
   experienceYears: number
-  services: typeof ObjectId[]
+  services: string[]
   serviceRates: ServiceRates
   workAreas: string[]
   serviceRadiusKm: number
   currentLocation?: IGeoPoint
   averageRating: number
   ratingCount: number
-  status: 'pending' | 'approved' | 'rejected' | 'suspended'
+  status: 'not-applied' | 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
   rejectionReason?: string
   resubmittedCount: number
   profilePictureUrl?: string
@@ -36,7 +36,7 @@ const TechnicianSchema = new Schema<ITechnician>(
     displayName: { type: String, required: true },
     bio: { type: String },
     experienceYears: { type: Number, default: 0 },
-    services: [{ type: Schema.Types.ObjectId, ref: 'Service' }],
+    services: [{ type: String }],
     serviceRates: { type: Schema.Types.Mixed },
     workAreas: { type: [String], default: [] },
     serviceRadiusKm: { type: Number, default: 10 },
@@ -59,8 +59,8 @@ const TechnicianSchema = new Schema<ITechnician>(
 
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'suspended'],
-      default: 'pending',
+      enum: ['not-applied' , 'draft' , 'submitted' , 'under_review' , 'approved' , 'rejected'],
+      default: 'not-applied',
     },
     rejectionReason: { type: String },
     resubmittedCount: { type: Number, default: 0 },

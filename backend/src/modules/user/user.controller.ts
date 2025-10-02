@@ -13,7 +13,7 @@ import { MongoServerError } from 'mongodb';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// signup
+// signup - FIXED VERSION (remove return statements)
 export const signup = async(req: Request, res: Response): Promise<void> => {
     try {
         const { email, phone, fullName, password } = req.body;
@@ -21,14 +21,17 @@ export const signup = async(req: Request, res: Response): Promise<void> => {
         // Must provide at least email or phone
         if (!email && !phone) {
             res.status(400).json({ message: "Provide at least email or phone" });
+            return; // Keep return to stop execution, but don't return the response
         }
 
         // Check uniqueness
         if (email && await User.findOne({ email })) {
             res.status(400).json({ message: 'Email already in use' });
+            return;
         }
         if (phone && await User.findOne({ phone })) {
             res.status(400).json({ message: 'Phone already in use' });
+            return;
         }
 
         // Generate OTP and hash
@@ -50,13 +53,15 @@ export const signup = async(req: Request, res: Response): Promise<void> => {
         res.json({
             message: `OTP sent to ${sentChannels.join(", ")}. Verify to complete signup.`
         });
+        return; // Optional: explicit return at the end
 
     } catch (error: any) {
         res.status(500).json({ message: error.message });
+        return;
     }
 };
 
-
+//verofy otp
 //verofy otp
 export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
     try {
@@ -98,7 +103,8 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
             phone, 
             email,
             passwordHash,
-            isVerified: true
+            isVerified: true,
+            applicationStatus: 'not-applied' // Set default application status
         };
         
          if (userType) {
@@ -128,15 +134,19 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
         // Delete used OTP
         await OTPVerificationSchema.deleteMany(query);
         
+        // Create clean user response
+        const userResponse = {
+            _id: user._id,
+            fullName: user.fullName,
+            phone: user.phone,
+            email: user.email,
+            role: user.role,
+            applicationStatus: user.applicationStatus || 'not-applied'
+        };
+        
         res.json({
             message: "Signup successful", 
-            user: {
-                _id: user._id,
-                fullName: user.fullName,
-                phone: user.phone,
-                email: user.email,
-                role: user.role
-            },
+            user: userResponse,
             token
         });
     } catch (error: any) {
@@ -146,11 +156,21 @@ export const verifyOtp = async(req: Request, res: Response): Promise<void> => {
 
 export const verifyResetOtp = async (req: Request, res: Response) => {
     try {
-        const { phone, email, otp } = req.body;
+        const { phone, email, otp, userType } = req.body; // Add userType
 
         const query: any = { purpose: "reset" };
         if (phone) query.phone = phone;
         if (email) query.email = email;
+
+        // For technicians, verify the user exists with correct role
+        if (userType === 'serviceProvider') {
+            const userQuery: any = phone ? { phone } : { email };
+            userQuery.role = 'serviceProvider';
+            const user = await User.findOne(userQuery);
+            if (!user) {
+                return res.status(404).json({ success: false, message: "Technician not found" });
+            }
+        }
 
         const record = await OTPVerificationSchema.findOne(query).sort({ createdAt: -1 });
         if (!record) {
@@ -173,6 +193,7 @@ export const verifyResetOtp = async (req: Request, res: Response) => {
 };
 
 
+// login
 // login
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -215,19 +236,40 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       { expiresIn: "7d" }
     );
 
-    res.json({ token, user });
+    // Create a clean user response with applicationStatus
+    const userResponse = {
+      _id: user._id,
+      fullName: user.fullName,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+      applicationStatus: user.applicationStatus || 'not-applied', // Ensure this is included
+      isVerified: user.isVerified,
+      status: user.status
+    };
+
+    res.json({ 
+      token, 
+      user: userResponse // Send the formatted response instead of raw user
+    });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
 };
-
+//  forget password
 //  forget password
 export const forgotPassword = async(req: Request, res: Response) => {
     try {
-        const { phone, email } = req.body;
+        const { phone, email, userType } = req.body; // Add userType
         if (!phone && !email) return res.status(400).json({ message: "Provide phone or email" });
 
-        const user = await User.findOne(phone ? { phone } : { email });
+        // Build query based on userType
+        const query: any = phone ? { phone } : { email };
+        if (userType) {
+            query.role = userType === 'serviceProvider' ? 'serviceProvider' : 'user';
+        }
+
+        const user = await User.findOne(query);
         if (!user) return res.status(404).json({ message: "User not found" });
 
         const otp = generateOTP();
@@ -253,14 +295,13 @@ export const forgotPassword = async(req: Request, res: Response) => {
 // reset password
 export const resetPassword = async(req: Request, res: Response): Promise<void> => {
     try {
-        const {phone, otp, newPassword, email} = req.body;
+        const {phone, otp, newPassword, email, userType} = req.body; // Add userType
 
         const query: any = { purpose: "reset" };
         if (phone) query.phone = phone;
         if (email) query.email = email;
 
         const record = await OTPVerificationSchema.findOne(query).sort({ createdAt: -1 });
-
 
         if(!record) {
             res.status(400).json({message: 'No OTP request found'});
@@ -277,11 +318,17 @@ export const resetPassword = async(req: Request, res: Response): Promise<void> =
             return;
         }
 
+        // Build user query based on userType
+        const userQuery: any = phone ? { phone } : { email };
+        if (userType === 'serviceProvider') {
+            userQuery.role = 'serviceProvider';
+        }
+
         const passwordHash = await bcrypt.hash(newPassword, 10);
-        await User.updateOne(phone ? { phone } : { email }, { $set: { passwordHash } });
+        await User.updateOne(userQuery, { $set: { passwordHash } });
 
         await OTPVerificationSchema.deleteMany(query);
-        await res.json({message: "Password reset successfully"});
+        res.json({message: "Password reset successfully"});
     } catch (error: any) {
         res.status(500).json({message: error.message});
     }
@@ -391,6 +438,7 @@ export const googleAuth = async (req: Request, res: Response) => {
           email: email,
           isVerified: true,
           role: userType === 'serviceProvider' ? 'serviceProvider' : 'user', // Set role based on userType
+          applicationStatus: 'not-applied' // Set default application status
           // Don't include phone field at all
         });
         await user.save();
@@ -423,15 +471,19 @@ export const googleAuth = async (req: Request, res: Response) => {
       { expiresIn: "7d" }
     );
 
+    // Create clean user response
+    const userResponse = {
+      _id: user?._id,
+      fullName: user?.fullName,
+      email: user?.email,
+      role: user?.role,
+      applicationStatus: user?.applicationStatus || 'not-applied',
+      isVerified: user?.isVerified
+    };
+
     res.json({ 
       token: appToken, 
-      user: {
-        _id: user?._id,
-        fullName: user?.fullName,
-        email: user?.email,
-        role: user?.role, // Include role in response
-        isVerified: user?.isVerified
-      }, 
+      user: userResponse,
       message: "Google authentication successful" 
     });
   } catch (error) {
@@ -463,11 +515,16 @@ export const facebookLogin = async (req: Request, res: Response) => {
 
     let user;
     if (!account) {
-      // Create a new user if doesn’t exist
+      // Create a new user if doesn't exist
       user = await User.findOne({ email });
 
       if (!user) {
-        user = new User({ fullName: name, email, role: "user" });
+        user = new User({ 
+          fullName: name, 
+          email, 
+          role: "user",
+          applicationStatus: 'not-applied' // Set default
+        });
         await user.save();
       }
 
@@ -492,7 +549,16 @@ export const facebookLogin = async (req: Request, res: Response) => {
       { expiresIn: "7d" }
     );
 
-    res.json({ token, user });
+    // Create clean user response
+    const userResponse = {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      applicationStatus: user.applicationStatus || 'not-applied'
+    };
+
+    res.json({ token, user: userResponse });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Facebook login failed" });

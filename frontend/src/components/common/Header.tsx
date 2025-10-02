@@ -12,7 +12,7 @@ interface HeaderProps {
     userType?: 'user' | 'serviceProvider' | 'admin'
 }
 
-const Header: React.FC<HeaderProps> = ({ userType: propUserType}) => {
+const Header: React.FC<HeaderProps> = ({ userType: propUserType, isApproved}) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const {isLoggedIn, logout, user} = useAuth()
@@ -149,8 +149,32 @@ const Header: React.FC<HeaderProps> = ({ userType: propUserType}) => {
       <a key="signup" href="/technicians/signup" className={`ml-2 ${signUpButtonStyles}`} onClick={closeMobileMenu}>Sign Up</a>,
     ];
   } else {
-    // Simple menu for logged-in technicians (before application)
-    return [
+    if(!isApproved) {
+      return [
+        <button
+        key="logout"
+        onClick={handleLogout}
+        className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
+      >
+        Logout
+      </button>
+      ]
+    } else if (isApproved) {
+      return [
+        <a key="dashboard" href="/technicians/dashboard" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Dashboard</a>,
+        <a key="bookings" href="/technicians/bookings" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Bookings</a>,
+        <a key="messages" href="/technicians/messages" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Messages</a>,
+        <a key="profile" href="/technicians/profile" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Profile</a>,
+      <button
+        key="logout"
+        onClick={handleLogout}
+        className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
+      >
+        Logout
+      </button>
+    ];
+    } else {
+      return [
       <a key="home" href="/technicians" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Home</a>,
       <a key="apply" href="/technicians/apply" className="px-3 hover:text-blue-600 transition-colors" onClick={closeMobileMenu}>Apply Now</a>,
       <button
@@ -159,8 +183,11 @@ const Header: React.FC<HeaderProps> = ({ userType: propUserType}) => {
         className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
       >
         Logout
-      </button>,
+      </button>
     ];
+    }
+    
+    
   }
     case "admin":
       if (isLoggedIn) {

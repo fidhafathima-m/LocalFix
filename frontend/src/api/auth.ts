@@ -75,10 +75,8 @@ export const sendOTP = async (data: ForgotPasswordData) => {
   return response.data;
 };
 
-// Verify OTP (signup or forgot)
+// Verify OTP (forgot password)
 export const verifyOTP = async (data: VerifyOTPData) => {
-  
-  // Use different endpoints based on context
   const endpoint = data.context === 'signup' ? '/verify-otp' : '/verify-reset-otp';
   const response = await axios.post(`${BASE_URL}/auth${endpoint}`, data);
   return response.data;

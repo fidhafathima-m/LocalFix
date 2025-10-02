@@ -72,6 +72,10 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
         console.log('Sending userType:', userType);
         const res = await verifyOTP({ otp, userType, context, ...finalData });
         console.log('API Response user role:', res.user.role);
+
+        localStorage.setItem('user', JSON.stringify(res.user));
+        localStorage.setItem('token', res.token);
+
         login(res.user, res.token);
         toast.success('OTP verified successfully');
 
@@ -82,7 +86,14 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
         if (userRole === 'user') {
           redirectPath = '/';
         } else if (userRole === 'serviceProvider') {
-          redirectPath = '/technicians'; // Technician home
+          // Check if they have an application status
+        if (res.user.applicationStatus === 'approved') {
+          redirectPath = '/technician/dashboard';
+        } else if (res.user.applicationStatus === 'submitted' || res.user.applicationStatus === 'under_review') {
+          redirectPath = '/pending-technician/dashboard';
+        } else {
+          redirectPath = '/technicians'; // New technician home
+        }
         } else if (userRole === 'admin') {
           redirectPath = '/admin/dashboard';
         }
@@ -92,6 +103,7 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
         console.log('OTP Component - Received userType prop:', userType);
         console.log('OTP Component - Location state:', location.state);
         console.log('OTP Component - Final data:', finalData);
+        localStorage.removeItem('signupData');
         navigate(redirectPath, { replace: true });
       } else {
         // Forgot password OTP verification - Use verifyResetOtp endpoint

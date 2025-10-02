@@ -9,6 +9,8 @@ interface IWalletTransaction {
   createdAt: Date;
 }
 
+type ApplicationStatus = 'not-applied' | 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+
 export interface IUser extends Document {
   fullName: string;
   email?: string;
@@ -17,7 +19,7 @@ export interface IUser extends Document {
   isVerified: boolean;
   role: "user" | "serviceProvider" | "admin";
   status: "Active" | "Inactive" | "Blocked"
-  applicationStatus?: "not-applied" | "pending" | "approved" | "rejected";
+  applicationStatus?: ApplicationStatus;
   applicationDate?: Date;
   approvalDate?: Date;
   rejectionReason?: string;
@@ -63,7 +65,7 @@ const userSchema = new Schema<IUser>(
     },
     applicationStatus: { 
       type: String, 
-      enum: ["not-applied", "pending", "approved", "rejected"], 
+      enum: ['not-applied' , 'draft' , 'submitted' , 'under_review' , 'approved' , 'rejected'], 
       default: "not-applied" 
     },
     applicationDate: { type: Date },

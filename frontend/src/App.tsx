@@ -22,6 +22,7 @@ import { Toaster } from 'react-hot-toast'
 import TechSignUp from './features/serviceProvider/pages/TechSignUp'
 import TechOTP from './features/serviceProvider/pages/TechOTP'
 import SignUpForm from './features/user/pages/SignUpForm'
+import { PendingTechnicianApplication } from './features/serviceProvider/pages/PendingTechnician'
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
           <Route path='/technicians/login' element={<TechLogin/>}/>
           <Route path='/technicians/forgot-password' element={<TechForgotPassword/>}/>
           <Route path='/technicians/verify-otp' element={<TechOTP/>}/>
+          <Route path='/pending-technician/dashboard' element={<PendingTechnicianApplication/>}/>
 
           {/* admin routes */}
           <Route path='/admin/login'element={<AdminLogin/>}/>
