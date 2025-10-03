@@ -5,6 +5,7 @@ import cors from 'cors'
 import connectDB from './config/db'
 import userAuth from './modules/user/user.routes'
 import userRoutes from './modules/admin/admin.routes'
+import adminTechnicianRoutes from './modules/admin/admin.technicianRoutes'
 import technicianRoutes from './modules/technician/technician.routes'
 
 
@@ -30,6 +31,7 @@ app.use("/uploads", express.static("uploads"));
 app.use('/api/auth', userAuth);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/users", userRoutes);
+app.use("/api/technicians", adminTechnicianRoutes);
 app.use('/api/technician-application', technicianRoutes);
 app.get('/', (req: Request, res: Response) => {
     res.send("Localfix API running...")

@@ -1,127 +1,293 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AdminSidebar } from '../components/AdminSidebar'
-import { SearchOutlined, ExpandMoreOutlined, FileDownloadOutlined, RemoveRedEyeOutlined, EditOutlined, StarBorderOutlined } from '@mui/icons-material'
+import { 
+  SearchOutlined, 
+  ExpandMoreOutlined, 
+  FileDownloadOutlined, 
+  RemoveRedEyeOutlined, 
+  EditOutlined, 
+  // AccessTimeOutlined,
+  BlockOutlined,
+  CheckCircleOutlined
+} from '@mui/icons-material'
 import Search from '../components/Search'
+import { useAuth } from '../../../context/AuthContext'
+import api from '../../../utils/axiosConfig'
+import { Link } from 'react-router-dom'
+
 interface Technician {
-  id: string
-  name: string
-  email: string
-  phone: string
+  _id: string
+  userId: string
+  displayName: string
+  email?: string
+  phone?: string
   services: string[]
-  rating: number
-  jobs: number
-  status: 'active' | 'inactive' | 'suspended'
-  subscription: string
-  location: string
+  experienceYears: number
+  workAreas: string[]
+  serviceRadiusKm: number
+  status: 'pending' | 'approved' | 'rejected' | 'suspended'
+  averageRating: number
+  ratingCount: number
+  totalJobs?: number
+  profilePictureUrl?: string
+  createdAt: string
+  updatedAt: string
+  user?: {
+    email: string
+    phone: string
+    fullName: string
+  }
 }
+
+interface TechnicianApplication {
+  _id: string
+  technicianId: string
+  email: string
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected'
+  personal: {
+    fullName?: string
+    phoneNumber?: string
+    email?: string
+  }
+  skills: {
+    services?: string[]
+    yearsOfExperience?: number
+  }
+  submittedAt?: string
+  createdAt: string
+}
+
 export const TechnicianManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [serviceFilter, setServiceFilter] = useState('All Services')
   const [ratingFilter, setRatingFilter] = useState('All Ratings')
   const [statusFilter, setStatusFilter] = useState('All Statuses')
   const [activeTab, setActiveTab] = useState('all')
-  const technicians: Technician[] = [
-    {
-      id: '# 1',
-      name: 'Rajesh Kumar',
-      email: 'rajesh@example.com',
-      phone: '+91 9876543220',
-      services: ['AC Repair', 'Refrigerator'],
-      rating: 4.8,
-      jobs: 45,
-      status: 'active',
-      subscription: 'Premium Plan',
-      location: 'Pune',
-    },
-    {
-      id: '# 2',
-      name: 'Suresh Patel',
-      email: 'suresh@example.com',
-      phone: '+91 9876543221',
-      services: ['Washing Machine', 'Fan Repair'],
-      rating: 4.5,
-      jobs: 38,
-      status: 'active',
-      subscription: 'Standard Plan',
-      location: 'Mumbai',
-    },
-    {
-      id: '# 3',
-      name: 'Ramesh Singh',
-      email: 'ramesh@example.com',
-      phone: '+91 9876543223',
-      services: ['Plumbing', 'Electrical'],
-      rating: 4.7,
-      jobs: 41,
-      status: 'active',
-      subscription: 'Basic Plan',
-      location: 'Bangalore',
-    },
-    {
-      id: '# 5',
-      name: 'Dinesh Gupta',
-      email: 'dinesh@example.com',
-      phone: '+91 9876543224',
-      services: ['Painting', 'Carpentry'],
-      rating: 4.5,
-      jobs: 32,
-      status: 'active',
-      subscription: 'Unsubscribed',
-      location: 'Chennai',
-    },
-  ]
-  // Count calculations
-  const allTechnicians = technicians.length
-  const pendingApplications = 3 
-  const suspendedTechnicians = 1 
-  // Render star ratings
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center">
-        <div className="flex">
-          {[...Array(5)].map((_, i) => (
-            <StarBorderOutlined
-              key={i}
-              className={`h-4 w-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
-            />
-          ))}
-        </div>
-        <span className="ml-1 text-yellow-500 font-medium">
-          {rating.toFixed(1)}
-        </span>
-      </div>
-    )
+  const [technicians, setTechnicians] = useState<Technician[]>([])
+  const [applications, setApplications] = useState<TechnicianApplication[]>([])
+  const [loading, setLoading] = useState(true)
+  const { token } = useAuth()
+
+  // Fetch technicians and applications
+  useEffect(() => {
+    const fetchData = async () => {
+  try {
+    setLoading(true)
+    
+    const [techResponse, appsResponse] = await Promise.all([
+      api.get(`${import.meta.env.VITE_BASE_URL}/technicians`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      api.get(`${import.meta.env.VITE_BASE_URL}/technicians/applications/pending`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    ])
+
+    // Handle different possible response structures
+    const techniciansData = techResponse.data.data?.technicians || techResponse.data.technicians || techResponse.data || []
+    const applicationsData = appsResponse.data.data?.applications || appsResponse.data.applications || appsResponse.data || []
+
+    setTechnicians(Array.isArray(techniciansData) ? techniciansData : [])
+    setApplications(Array.isArray(applicationsData) ? applicationsData : [])
+    
+  } catch (error) {
+    console.error('Error fetching data:', error)
+    // Set empty arrays on error
+    setTechnicians([])
+    setApplications([])
+  } finally {
+    setLoading(false)
   }
+}     
+
+    fetchData()
+  }, [token])
+
+  // Count calculations based on real data
+  const allTechnicians = technicians.length
+  const pendingApplications = applications.length
+  const suspendedTechnicians = technicians.filter(t => t.status === 'suspended').length
+  // const activeTechnicians = technicians.filter(t => t.status === 'approved').length
+
+  // Filter technicians based on active tab and filters
+  const filteredTechnicians = technicians.filter(tech => {
+    // Tab filter
+    if (activeTab === 'pending') {
+      return false // Pending applications are handled separately
+    } else if (activeTab === 'suspended') {
+      return tech.status === 'suspended'
+    } else if (activeTab === 'all') {
+      // For all tab, show approved and suspended
+      return tech.status === 'approved' || tech.status === 'suspended'
+    }
+    return true
+  })
+
+  // Filter applications for pending tab
+  const filteredApplications = applications.filter(app => {
+    const matchesSearch = app.personal?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         app.personal?.phoneNumber?.includes(searchQuery)
+    
+    const matchesService = serviceFilter === 'All Services' || 
+                          app.skills?.services?.includes(serviceFilter)
+    
+    return matchesSearch && matchesService
+  })
+
+  // Filter technicians for search and other filters
+  const filteredTechs = filteredTechnicians.filter(tech => {
+    const matchesSearch = tech.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         tech.user?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         tech.user?.phone?.includes(searchQuery) ||
+                         tech.workAreas.some(area => area.toLowerCase().includes(searchQuery.toLowerCase()))
+    
+    const matchesService = serviceFilter === 'All Services' || 
+                          tech.services.includes(serviceFilter)
+    
+    const matchesStatus = statusFilter === 'All Statuses' || 
+                         tech.status === statusFilter.toLowerCase()
+    
+    const matchesRating = ratingFilter === 'All Ratings' || 
+                         (ratingFilter === '5 Star' && tech.averageRating >= 4.8) ||
+                         (ratingFilter === '4+ Star' && tech.averageRating >= 4.0) ||
+                         (ratingFilter === '3+ Star' && tech.averageRating >= 3.0)
+
+    return matchesSearch && matchesService && matchesStatus && matchesRating
+  })
+
   // Service badge colors
   const getServiceColor = (service: string) => {
     const colors: Record<string, string> = {
       'AC Repair': 'bg-blue-100 text-blue-800',
-      Refrigerator: 'bg-blue-100 text-blue-800',
+      'AC Installation': 'bg-blue-100 text-blue-800',
+      'Refrigerator': 'bg-green-100 text-green-800',
       'Washing Machine': 'bg-indigo-100 text-indigo-800',
-      'Fan Repair': 'bg-indigo-100 text-indigo-800',
-      Plumbing: 'bg-purple-100 text-purple-800',
-      Electrical: 'bg-purple-100 text-purple-800',
-      Painting: 'bg-cyan-100 text-cyan-800',
-      Carpentry: 'bg-cyan-100 text-cyan-800',
+      'Fan Repair': 'bg-purple-100 text-purple-800',
+      'TV Repair': 'bg-pink-100 text-pink-800',
+      'Microwave Oven': 'bg-orange-100 text-orange-800',
+      'Water Purifier': 'bg-cyan-100 text-cyan-800',
+      'Geyser/Water Heater': 'bg-red-100 text-red-800',
+      'Plumbing': 'bg-teal-100 text-teal-800',
+      'Electrical': 'bg-amber-100 text-amber-800',
     }
     return colors[service] || 'bg-gray-100 text-gray-800'
   }
+
+  // Status badge colors
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      'approved': 'bg-green-100 text-green-800',
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'suspended': 'bg-red-100 text-red-800',
+      'rejected': 'bg-gray-100 text-gray-800',
+      'active': 'bg-green-100 text-green-800',
+      'inactive': 'bg-gray-100 text-gray-800'
+    }
+    
+    const labels: Record<string, string> = {
+      'approved': 'Active',
+      'pending': 'Pending',
+      'suspended': 'Suspended',
+      'rejected': 'Rejected',
+      'active': 'Active',
+      'inactive': 'Inactive'
+    }
+
+    return (
+      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+        {labels[status] || status}
+      </span>
+    )
+  }
+
+  // Handle application approval
+  const handleApproveApplication = async (applicationId: string) => {
+  try {
+    await api.patch(
+      `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/approve`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+    // Refresh data
+    window.location.reload()
+  } catch (error) {
+    console.error('Error approving application:', error)
+  }
+}
+
+  // Handle application rejection
+  const handleRejectApplication = async (applicationId: string) => {
+  try {
+    await api.patch(
+      `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/reject`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+    // Refresh data
+    window.location.reload()
+  } catch (error) {
+    console.error('Error rejecting application:', error)
+  }
+} 
+
+  // Handle technician status change
+  const handleStatusChange = async (technicianId: string, newStatus: string) => {
+  try {
+    await api.patch(
+      `${import.meta.env.VITE_BASE_URL}/technicians/${technicianId}/status`,
+      { status: newStatus },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+    // Refresh data
+    window.location.reload()
+  } catch (error) {
+    console.error('Error updating technician status:', error)
+  }
+}
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <AdminSidebar activePage="Technicians" />
+        <div className="flex-1 overflow-y-auto ml-[240px] flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading technician data...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <AdminSidebar activePage="Technicians" />
+      
       {/* Main content */}
       <div className="flex-1 overflow-y-auto ml-[240px]">
         {/* Header with search */}
         <Search/>
+        
         {/* Dashboard content */}
         <div className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-start mb-6">
             <div>
               <h1 className="text-2xl font-bold mb-1">Technician Management</h1>
               <p className="text-gray-600">
-                Manage technicians, review applications, and monitor
-                performance.
+                Manage technicians, review applications, and monitor performance.
               </p>
             </div>
             <button className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
@@ -129,6 +295,7 @@ export const TechnicianManagement: React.FC = () => {
               Export Technicians
             </button>
           </div>
+
           {/* Tabs */}
           <div className="mb-6 border-b border-gray-200">
             <div className="flex space-x-8">
@@ -161,6 +328,7 @@ export const TechnicianManagement: React.FC = () => {
               </button>
             </div>
           </div>
+
           {/* Search and filters */}
           <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -168,7 +336,7 @@ export const TechnicianManagement: React.FC = () => {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Search by name, email or phone"
+                    placeholder="Search by name, email, phone, or location"
                     className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -185,11 +353,14 @@ export const TechnicianManagement: React.FC = () => {
                   >
                     <option>All Services</option>
                     <option>AC Repair</option>
+                    <option>AC Installation</option>
                     <option>Refrigerator</option>
                     <option>Washing Machine</option>
                     <option>Fan Repair</option>
-                    <option>Plumbing</option>
-                    <option>Electrical</option>
+                    <option>TV Repair</option>
+                    <option>Microwave Oven</option>
+                    <option>Water Purifier</option>
+                    <option>Geyser/Water Heater</option>
                   </select>
                   <ExpandMoreOutlined className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
                 </div>
@@ -203,8 +374,9 @@ export const TechnicianManagement: React.FC = () => {
                   >
                     <option>All Statuses</option>
                     <option>Active</option>
-                    <option>Inactive</option>
+                    <option>Pending</option>
                     <option>Suspended</option>
+                    <option>Rejected</option>
                   </select>
                   <ExpandMoreOutlined className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
                 </div>
@@ -229,11 +401,14 @@ export const TechnicianManagement: React.FC = () => {
                   <div className="flex-1">
                     <div className="relative">
                       <select className="appearance-none w-full pl-4 pr-10 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option>All Subscriptions</option>
-                        <option>Premium Plan</option>
-                        <option>Standard Plan</option>
-                        <option>Basic Plan</option>
-                        <option>Unsubscribed</option>
+                        <option>All Locations</option>
+                        <option>Kannur</option>
+                        <option>Kochi</option>
+                        <option>Kollam</option>
+                        <option>Thiruvananthapuram</option>
+                        <option>Thrissur</option>
+                        <option>Malappuram</option>
+                        <option>Kozhikode</option>
                       </select>
                       <ExpandMoreOutlined className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
                     </div>
@@ -242,141 +417,212 @@ export const TechnicianManagement: React.FC = () => {
               </div>
             </div>
           </div>
-          {/* Technicians table */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Technician
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Contact
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Services
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Rating
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Jobs
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Status
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Subscription
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Location
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {technicians.map((technician) => (
-                    <tr key={technician.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0 bg-yellow-100 rounded-full flex items-center justify-center">
-                            <span className="text-yellow-600 text-sm font-medium">
-                              {technician.name.charAt(0)}
-                            </span>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {technician.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {technician.id}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {technician.phone}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {technician.email}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex flex-wrap gap-1">
-                          {technician.services.map((service) => (
-                            <span
-                              key={service}
-                              className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(service)}`}
-                            >
-                              {service}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {renderStars(technician.rating)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {technician.jobs}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Active
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {technician.subscription}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {technician.location}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button className="p-1 rounded-full text-blue-600 hover:bg-blue-100">
-                            <RemoveRedEyeOutlined className="h-5 w-5" />
-                          </button>
-                          <button className="p-1 rounded-full text-green-600 hover:bg-green-100">
-                            <EditOutlined className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
+
+          {/* Content based on active tab */}
+          {activeTab === 'pending' ? (
+            /* Pending Applications Table */
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applicant</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Services</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Experience</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applied On</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredApplications.map((app) => (
+                      <tr key={app._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-blue-600 text-sm font-medium">
+                                {app.personal?.fullName?.charAt(0) || 'A'}
+                              </span>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {app.personal?.fullName || 'N/A'}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                #{app._id.slice(-6)}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {app.personal?.phoneNumber || 'N/A'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {app.email}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-wrap gap-1">
+                            {app.skills?.services?.slice(0, 2).map((service) => (
+                              <span
+                                key={service}
+                                className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(service)}`}
+                              >
+                                {service}
+                              </span>
+                            ))}
+                            {app.skills?.services && app.skills.services.length > 2 && (
+                              <span className="px-2 py-1 text-xs text-gray-500">
+                                +{app.skills.services.length - 2} more
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {app.skills?.yearsOfExperience || 0} years
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(app.submittedAt || app.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(app.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button 
+                              onClick={() => handleApproveApplication(app._id)}
+                              className="p-1 rounded-full text-green-600 hover:bg-green-100"
+                              title="Approve"
+                            >
+                              <CheckCircleOutlined className="h-5 w-5" />
+                            </button>
+                            <button 
+                              onClick={() => handleRejectApplication(app._id)}
+                              className="p-1 rounded-full text-red-600 hover:bg-red-100"
+                              title="Reject"
+                            >
+                              <BlockOutlined className="h-5 w-5" />
+                            </button>
+                            <Link 
+                              to={`/admin/pending-applications/${app._id}`}
+                              className="p-1 rounded-full text-blue-600 hover:bg-blue-100"
+                            >
+                              <RemoveRedEyeOutlined className="h-5 w-5" />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Technicians Table */
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Technician</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Services</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Experience</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredTechs.map((tech) => (
+                      <tr key={tech._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0 bg-yellow-100 rounded-full flex items-center justify-center">
+                              <span className="text-yellow-600 text-sm font-medium">
+                                {tech.displayName.charAt(0)}
+                              </span>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {tech.displayName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                #{tech._id.slice(-6)}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {tech.user?.phone || 'N/A'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {tech.user?.email || tech.email}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-wrap gap-1">
+                            {tech.services.slice(0, 2).map((service) => (
+                              <span
+                                key={service}
+                                className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(service)}`}
+                              >
+                                {service}
+                              </span>
+                            ))}
+                            {tech.services.length > 2 && (
+                              <span className="px-2 py-1 text-xs text-gray-500">
+                                +{tech.services.length - 2} more
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {tech.experienceYears} years
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(tech.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <Link 
+                              to={`/admin/technicians/${tech._id}/personal-info`}
+                              className="p-1 rounded-full text-blue-600 hover:bg-blue-100"
+                            >
+                              <RemoveRedEyeOutlined className="h-5 w-5" />
+                            </Link>
+                            <button className="p-1 rounded-full text-green-600 hover:bg-green-100">
+                              <EditOutlined className="h-5 w-5" />
+                            </button>
+                            {tech.status === 'approved' && (
+                              <button 
+                                onClick={() => handleStatusChange(tech._id, 'suspended')}
+                                className="p-1 rounded-full text-red-600 hover:bg-red-100"
+                                title="Suspend"
+                              >
+                                <BlockOutlined className="h-5 w-5" />
+                              </button>
+                            )}
+                            {tech.status === 'suspended' && (
+                              <button 
+                                onClick={() => handleStatusChange(tech._id, 'approved')}
+                                className="p-1 rounded-full text-green-600 hover:bg-green-100"
+                                title="Activate"
+                              >
+                                <CheckCircleOutlined className="h-5 w-5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
