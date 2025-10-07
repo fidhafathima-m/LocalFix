@@ -15,6 +15,12 @@ import {
 
 const router = Router();
 
+// Add this at the top of your admin.technicianRoutes.ts
+router.get('/test', (req, res) => {
+  console.log('✅ /api/technicians/test route hit');
+  res.json({ message: 'Test route working', timestamp: new Date().toISOString() });
+});
+
 // TECHNICIAN MANAGEMENT ROUTES - Remove the duplicate '/technicians'
 router.get('/', protect, admin, getAllTechnicians); // Now: GET /api/technicians
 router.get('/stats', protect, admin, getTechnicianStats); // GET /api/technicians/stats

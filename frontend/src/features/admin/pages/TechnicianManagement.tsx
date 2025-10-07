@@ -70,37 +70,46 @@ export const TechnicianManagement: React.FC = () => {
   const { token } = useAuth()
 
   // Fetch technicians and applications
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        
-        const [techResponse, appsResponse] = await Promise.all([
-          api.get(`${import.meta.env.VITE_BASE_URL}/technicians`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          api.get(`${import.meta.env.VITE_BASE_URL}/technicians/applications/pending`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ])
+  // Fetch technicians and applications
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      
+      console.log('🔍 Fetching from:', {
+        technicians: `${import.meta.env.VITE_BASE_URL}/technicians`,
+        applications: `${import.meta.env.VITE_BASE_URL}/technicians/applications/pending`
+      })
+      
+      const [techResponse, appsResponse] = await Promise.all([
+        api.get(`${import.meta.env.VITE_BASE_URL}/technicians`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        api.get(`${import.meta.env.VITE_BASE_URL}/technicians/applications/pending`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ])
 
-        const techniciansData = techResponse.data.data?.technicians || techResponse.data.technicians || techResponse.data || []
-        const applicationsData = appsResponse.data.data?.applications || appsResponse.data.applications || appsResponse.data || []
+      console.log('✅ Technicians response:', techResponse.data)
+      console.log('✅ Applications response:', appsResponse.data)
 
-        setTechnicians(Array.isArray(techniciansData) ? techniciansData : [])
-        setApplications(Array.isArray(applicationsData) ? applicationsData : [])
-        
-      } catch (error) {
-        console.error('Error fetching data:', error)
-        setTechnicians([])
-        setApplications([])
-      } finally {
-        setLoading(false)
-      }
-    }     
+      const techniciansData = techResponse.data.data?.technicians || techResponse.data.technicians || techResponse.data || []
+      const applicationsData = appsResponse.data.data?.applications || appsResponse.data.applications || appsResponse.data || []
 
-    fetchData()
-  }, [token])
+      setTechnicians(Array.isArray(techniciansData) ? techniciansData : [])
+      setApplications(Array.isArray(applicationsData) ? applicationsData : [])
+      
+    } catch (error) {
+      console.error('❌ Error fetching data:', error)
+      setTechnicians([])
+      setApplications([])
+    } finally {
+      setLoading(false)
+    }
+  }     
+
+  fetchData()
+}, [token])
 
   // Count calculations based on real data
   const allTechnicians = technicians.length
