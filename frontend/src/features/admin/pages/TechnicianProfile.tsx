@@ -1,4 +1,3 @@
-// src/features/admin/pages/TechnicianProfile.tsx
 import React, { useState, useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { AdminSidebar } from '../components/AdminSidebar'
@@ -37,6 +36,7 @@ interface TechnicianDetails {
   personalInfo?: {
     fullName: string
     gender?: string
+    phoneNumber: string
     dateOfBirth?: string
     languages?: string[]
     address?: {
@@ -75,27 +75,38 @@ export const TechnicianProfile: React.FC = () => {
 
   const activeTab = getActiveTab()
 
-  useEffect(() => {
-    const fetchTechnicianDetails = async () => {
-      try {
-        setLoading(true)
-        const response = await api.get(
-          `${import.meta.env.VITE_BASE_URL}/technicians/${technicianId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        )
-        
-        setTechnician(response.data.data?.technician || response.data.technician)
-      } catch (error) {
-        console.error('Error fetching technician details:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Determine admin actions type and availability based on technician status
+ const getAdminActionsType = () => {
+  if (!technician) return 'approved'
+  
+  // Return the actual status for proper handling
+  return technician.status as 'approved' | 'pending' | 'suspended' | 'rejected'
+}
 
+  // Check if technician is currently suspended
+  const isSuspended = technician?.status === 'suspended'
+
+  const fetchTechnicianDetails = async () => {
+    try {
+      setLoading(true)
+      const response = await api.get(
+        `${import.meta.env.VITE_BASE_URL}/technicians/${technicianId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      
+      setTechnician(response.data.data?.technician || response.data.technician)
+    } catch (error) {
+      console.error('Error fetching technician details:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     if (technicianId) {
       fetchTechnicianDetails()
     }
@@ -139,6 +150,13 @@ export const TechnicianProfile: React.FC = () => {
           joinDate={new Date(technician.createdAt).toLocaleDateString()}
           isActive={technician.status === 'approved'}
           isApproved={technician.status === 'approved'}
+          isRejected={technician.status === 'rejected'}
+          isSuspended={technician.status === 'suspended'}
+          rating={technician.averageRating}
+          jobsCompleted={technician.completedJobs || 0}
+          totalEarnings={technician.totalEarnings || 0}
+          activeBookings={technician.ongoingJobs || 0}
+          profilePictureUrl={technician.profilePictureUrl}
         />
         
         <TechnicianProfileTabs 
@@ -147,43 +165,108 @@ export const TechnicianProfile: React.FC = () => {
         />
 
         <div className="p-6">
+          {/* Suspension Banner */}
+          {isSuspended && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-red-500 mr-3"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div>
+                  <h3 className="text-red-800 font-medium">Technician Suspended</h3>
+                  <p className="text-red-600 text-sm">
+                    This technician is currently suspended and cannot accept new bookings.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Tab Content */}
           {activeTab === 'personal-info' && (
-            <PersonalInfoTab technician={technician} />
+            <PersonalInfoTab technician={technician} isSuspended={isSuspended} />
           )}
           {activeTab === 'services-skills' && (
-            <ServicesSkillsTab technician={technician} />
+            <ServicesSkillsTab technician={technician} isSuspended={isSuspended} />
           )}
           {activeTab === 'verification-documents' && (
-            <VerificationDocumentsTab technician={technician} />
+            <VerificationDocumentsTab technician={technician} isSuspended={isSuspended} />
           )}
           {activeTab === 'availability' && (
-            <AvailabilityTab technician={technician} />
+            <AvailabilityTab technician={technician} isSuspended={isSuspended} />
           )}
           {activeTab === 'earnings-jobs' && (
-            <EarningsJobsTab technician={technician} />
+            <EarningsJobsTab technician={technician} isSuspended={isSuspended} />
           )}
           {activeTab === 'reviews-ratings' && (
             <ReviewsRatingsTab technician={technician} />
           )}
           {activeTab === 'active-bookings' && (
-            <ActiveBookingsTab technician={technician} />
+            <ActiveBookingsTab technician={technician}  />
           )}
 
-          {/* Admin Actions */}
-          <AdminActions />
+          {/* Admin Actions - Dynamic based on status */}
+          <AdminActions
+            type={getAdminActionsType()}
+            technicianId={technician?._id}
+            technicianName={technician?.displayName || 'Technician'}
+            onStatusUpdate={() => {
+              // Refresh technician data
+              fetchTechnicianDetails()
+            }}
+          />
         </div>
       </div>
     </div>
   )
 }
-
 // Personal Information Tab Component
-const PersonalInfoTab: React.FC<{ technician: TechnicianDetails }> = ({ technician }) => {
+const PersonalInfoTab: React.FC<{ technician: TechnicianDetails, isSuspended?: boolean }> = ({ technician, isSuspended }) => {
+
+   // Helper function to get phone number from multiple possible sources
+  const getPhoneNumber = () => {
+    return technician.personalInfo?.phoneNumber || 
+           technician.user?.phone || 
+           technician.phone || 
+           'Not provided';
+  };
+
+  // Helper function to format address
+  const getFormattedAddress = () => {
+    if (!technician.personalInfo?.address) {
+      return 'Not specified';
+    }
+    
+    const { street, city, state, pincode } = technician.personalInfo.address;
+    const addressParts = [street, city, state, pincode].filter(part => part && part.trim() !== '');
+    return addressParts.length > 0 ? addressParts.join(', ') : 'Not specified';
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      {isSuspended && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 text-sm">
+            <strong>Note:</strong> Personal information is view-only while technician is suspended.
+          </p>
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-medium">Personal Information</h2>
+         {!isSuspended && (
         <button className="flex items-center text-blue-600 hover:text-blue-800">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -202,6 +285,7 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails }> = ({ technici
           </svg>
           <span>Edit</span>
         </button>
+         )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
@@ -302,7 +386,7 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails }> = ({ technici
             </svg>
             <p className="text-sm text-gray-500">Phone Number</p>
           </div>
-          <p className="font-medium">{technician.user?.phone || technician.phone || 'Not provided'}</p>
+          <p className="font-medium">{getPhoneNumber()}</p>
         </div>
 
         {/* Email Address */}
@@ -349,10 +433,7 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails }> = ({ technici
             <p className="text-sm text-gray-500">Address</p>
           </div>
           <p className="font-medium">
-            {technician.personalInfo?.address 
-              ? `${technician.personalInfo.address.street}, ${technician.personalInfo.address.city}, ${technician.personalInfo.address.state} - ${technician.personalInfo.address.pincode}`
-              : 'Not specified'
-            }
+            {getFormattedAddress() }
           </p>
         </div>
       </div>
@@ -378,7 +459,7 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails }> = ({ technici
 }
 
 // Services & Skills Tab Component
-const ServicesSkillsTab: React.FC<{ technician: TechnicianDetails }> = ({ technician }) => {
+const ServicesSkillsTab: React.FC<{ technician: TechnicianDetails, isSuspended?: boolean }> = ({ technician, isSuspended }) => {
   const getServiceColor = (service: string) => {
     const colors: Record<string, string> = {
       'AC Repair': 'bg-blue-100 text-blue-800 border border-blue-200',
@@ -398,6 +479,13 @@ const ServicesSkillsTab: React.FC<{ technician: TechnicianDetails }> = ({ techni
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      {isSuspended && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 text-sm">
+            <strong>Note:</strong> Services are temporarily unavailable while technician is suspended.
+          </p>
+        </div>
+      )}
       <h2 className="text-lg font-medium mb-6">Services & Skills</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -474,9 +562,16 @@ const ServicesSkillsTab: React.FC<{ technician: TechnicianDetails }> = ({ techni
 }
 
 // Other Tab Components (Verification, Availability, Earnings, Reviews, Bookings)
-const VerificationDocumentsTab: React.FC<{ technician: TechnicianDetails }> = ({ technician }) => {
+const VerificationDocumentsTab: React.FC<{ technician: TechnicianDetails, isSuspended?: boolean }> = ({ technician, isSuspended }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+       {isSuspended && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 text-sm">
+            <strong>Note:</strong> Document verification status is view-only while technician is suspended.
+          </p>
+        </div>
+      )}
       <h2 className="text-lg font-medium mb-6">Verification & Documents</h2>
       <div className="space-y-6">
         {/* Document Status */}
@@ -551,7 +646,7 @@ const VerificationDocumentsTab: React.FC<{ technician: TechnicianDetails }> = ({
   )
 }
 
-const AvailabilityTab: React.FC<{ technician: TechnicianDetails }> = ({ technician }) => {
+const AvailabilityTab: React.FC<{ technician: TechnicianDetails, isSuspended?: boolean }> = ({ technician, isSuspended }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <h2 className="text-lg font-medium mb-6">Availability</h2>
@@ -561,7 +656,12 @@ const AvailabilityTab: React.FC<{ technician: TechnicianDetails }> = ({ technici
           <div>
             <p className="font-medium">Current Availability</p>
             <p className="text-sm text-gray-600">
-              {technician.availability?.isAvailable ? 'Available for bookings' : 'Not available'}
+              {isSuspended 
+                ? 'Not available due to suspension' 
+                : technician.availability?.isAvailable 
+                  ? 'Available for bookings' 
+                  : 'Not available'
+              }
             </p>
           </div>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -569,7 +669,7 @@ const AvailabilityTab: React.FC<{ technician: TechnicianDetails }> = ({ technici
               ? 'bg-green-100 text-green-800' 
               : 'bg-red-100 text-red-800'
           }`}>
-            {technician.availability?.isAvailable ? 'Available' : 'Unavailable'}
+            {isSuspended ? 'Suspended' : (technician.availability?.isAvailable ? 'Available' : 'Unavailable')}
           </span>
         </div>
 
@@ -597,9 +697,16 @@ const AvailabilityTab: React.FC<{ technician: TechnicianDetails }> = ({ technici
   )
 }
 
-const EarningsJobsTab: React.FC<{ technician: TechnicianDetails }> = ({ technician }) => {
+const EarningsJobsTab: React.FC<{ technician: TechnicianDetails, isSuspended?: boolean }> = ({ technician, isSuspended }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      {isSuspended && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 text-sm">
+            <strong>Note:</strong> No new earnings while technician is suspended.
+          </p>
+        </div>
+      )}
       <h2 className="text-lg font-medium mb-6">Earnings & Jobs</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-green-50 p-4 rounded-lg border border-green-200">

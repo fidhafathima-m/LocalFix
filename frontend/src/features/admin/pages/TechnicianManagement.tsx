@@ -6,7 +6,6 @@ import {
   FileDownloadOutlined, 
   RemoveRedEyeOutlined, 
   EditOutlined, 
-  // AccessTimeOutlined,
   BlockOutlined,
   CheckCircleOutlined
 } from '@mui/icons-material'
@@ -14,6 +13,8 @@ import Search from '../components/Search'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../utils/axiosConfig'
 import { Link } from 'react-router-dom'
+import Swal from 'sweetalert2'
+import toast from 'react-hot-toast'
 
 interface Technician {
   _id: string
@@ -71,34 +72,32 @@ export const TechnicianManagement: React.FC = () => {
   // Fetch technicians and applications
   useEffect(() => {
     const fetchData = async () => {
-  try {
-    setLoading(true)
-    
-    const [techResponse, appsResponse] = await Promise.all([
-      api.get(`${import.meta.env.VITE_BASE_URL}/technicians`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }),
-      api.get(`${import.meta.env.VITE_BASE_URL}/technicians/applications/pending`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-    ])
+      try {
+        setLoading(true)
+        
+        const [techResponse, appsResponse] = await Promise.all([
+          api.get(`${import.meta.env.VITE_BASE_URL}/technicians`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          api.get(`${import.meta.env.VITE_BASE_URL}/technicians/applications/pending`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ])
 
-    // Handle different possible response structures
-    const techniciansData = techResponse.data.data?.technicians || techResponse.data.technicians || techResponse.data || []
-    const applicationsData = appsResponse.data.data?.applications || appsResponse.data.applications || appsResponse.data || []
+        const techniciansData = techResponse.data.data?.technicians || techResponse.data.technicians || techResponse.data || []
+        const applicationsData = appsResponse.data.data?.applications || appsResponse.data.applications || appsResponse.data || []
 
-    setTechnicians(Array.isArray(techniciansData) ? techniciansData : [])
-    setApplications(Array.isArray(applicationsData) ? applicationsData : [])
-    
-  } catch (error) {
-    console.error('Error fetching data:', error)
-    // Set empty arrays on error
-    setTechnicians([])
-    setApplications([])
-  } finally {
-    setLoading(false)
-  }
-}     
+        setTechnicians(Array.isArray(techniciansData) ? techniciansData : [])
+        setApplications(Array.isArray(applicationsData) ? applicationsData : [])
+        
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        setTechnicians([])
+        setApplications([])
+      } finally {
+        setLoading(false)
+      }
+    }     
 
     fetchData()
   }, [token])
@@ -107,21 +106,20 @@ export const TechnicianManagement: React.FC = () => {
   const allTechnicians = technicians.length
   const pendingApplications = applications.length
   const suspendedTechnicians = technicians.filter(t => t.status === 'suspended').length
-  // const activeTechnicians = technicians.filter(t => t.status === 'approved').length
 
   // Filter technicians based on active tab and filters
-  const filteredTechnicians = technicians.filter(tech => {
-    // Tab filter
-    if (activeTab === 'pending') {
-      return false // Pending applications are handled separately
-    } else if (activeTab === 'suspended') {
-      return tech.status === 'suspended'
-    } else if (activeTab === 'all') {
-      // For all tab, show approved and suspended
-      return tech.status === 'approved' || tech.status === 'suspended'
-    }
-    return true
-  })
+  // Filter technicians based on active tab and filters
+const filteredTechnicians = technicians.filter(tech => {
+  if (activeTab === 'pending') {
+    return false // Pending applications are handled separately
+  } else if (activeTab === 'suspended') {
+    return tech.status === 'suspended'
+  } else if (activeTab === 'all') {
+    // Include all statuses except pending (since pending has its own tab)
+    return tech.status === 'approved' || tech.status === 'suspended' || tech.status === 'rejected'
+  }
+  return true
+})
 
   // Filter applications for pending tab
   const filteredApplications = applications.filter(app => {
@@ -201,62 +199,186 @@ export const TechnicianManagement: React.FC = () => {
     )
   }
 
-  // Handle application approval
-  const handleApproveApplication = async (applicationId: string) => {
-  try {
-    await api.patch(
-      `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/approve`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    )
-    // Refresh data
-    window.location.reload()
-  } catch (error) {
-    console.error('Error approving application:', error)
-  }
-}
+  // Handle application approval with confirmation
+  const handleApproveApplication = async (applicationId: string, applicantName: string) => {
+    const result = await Swal.fire({
+      title: 'Approve Application?',
+      html: `Are you sure you want to approve <strong>${applicantName}</strong>'s application?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10B981',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Yes, Approve!',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true,
+      background: '#ffffff',
+      iconColor: '#10B981'
+    })
 
-  // Handle application rejection
-  const handleRejectApplication = async (applicationId: string) => {
-  try {
-    await api.patch(
-      `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/reject`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
+    if (result.isConfirmed) {
+      const approvePromise = api.patch(
+        `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/approve`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
-      }
-    )
-    // Refresh data
-    window.location.reload()
-  } catch (error) {
-    console.error('Error rejecting application:', error)
-  }
-} 
+      )
 
-  // Handle technician status change
-  const handleStatusChange = async (technicianId: string, newStatus: string) => {
-  try {
-    await api.patch(
-      `${import.meta.env.VITE_BASE_URL}/technicians/${technicianId}/status`,
-      { status: newStatus },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
+      toast.promise(
+        approvePromise,
+        {
+          loading: `Approving ${applicantName}'s application...`,
+          success: () => {
+            // Refresh data after success
+            setTimeout(() => {
+              window.location.reload()
+            }, 1000)
+            return `Application approved! ${applicantName} is now an active technician.`
+          },
+          error: 'Failed to approve application. Please try again.'
+        },
+        {
+          success: {
+            duration: 4000,
+          },
+          error: {
+            duration: 4000,
+          }
+        }
+      )
+    }
+  }
+
+  // Handle application rejection with confirmation
+  const handleRejectApplication = async (applicationId: string, applicantName: string) => {
+    const { value: reason } = await Swal.fire({
+      title: 'Reject Application?',
+      html: `Please provide a reason for rejecting <strong>${applicantName}</strong>'s application:`,
+      icon: 'warning',
+      input: 'textarea',
+      inputLabel: 'Rejection Reason',
+      inputPlaceholder: 'Enter the reason for rejection...',
+      inputAttributes: {
+        'aria-label': 'Enter the reason for rejection'
+      },
+      showCancelButton: true,
+      confirmButtonColor: '#EF4444',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Reject Application',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true,
+      background: '#ffffff',
+      inputValidator: (value) => {
+        if (!value) {
+          return 'Please provide a rejection reason!'
+        }
+        if (value.length < 10) {
+          return 'Reason must be at least 10 characters long'
         }
       }
-    )
-    // Refresh data
-    window.location.reload()
-  } catch (error) {
-    console.error('Error updating technician status:', error)
+    })
+
+    if (reason) {
+      const rejectPromise = api.patch(
+        `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/reject`,
+        { rejectionReason: reason },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+
+      toast.promise(
+        rejectPromise,
+        {
+          loading: `Rejecting ${applicantName}'s application...`,
+          success: () => {
+            // Refresh data after success
+            setTimeout(() => {
+              window.location.reload()
+            }, 1000)
+            return `Application rejected. ${applicantName} has been notified.`
+          },
+          error: 'Failed to reject application. Please try again.'
+        },
+        {
+          success: {
+            duration: 4000,
+          },
+          error: {
+            duration: 4000,
+          }
+        }
+      )
+    }
   }
-}
+
+  // Handle technician status change with confirmation
+  const handleStatusChange = async (technicianId: string, newStatus: string, technicianName: string) => {
+    const action = newStatus === 'suspended' ? 'suspend' : 'activate'
+    const actionTitle = newStatus === 'suspended' ? 'Suspend Technician?' : 'Activate Technician?'
+    const actionText = newStatus === 'suspended' 
+      ? `Are you sure you want to suspend ${technicianName}? They will not be able to accept new jobs.`
+      : `Are you sure you want to activate ${technicianName}? They will be able to accept new jobs.`
+    const confirmColor = newStatus === 'suspended' ? '#EF4444' : '#10B981'
+    const confirmText = newStatus === 'suspended' ? 'Yes, Suspend!' : 'Yes, Activate!'
+
+    const result = await Swal.fire({
+      title: actionTitle,
+      html: actionText,
+      icon: newStatus === 'suspended' ? 'warning' : 'question',
+      showCancelButton: true,
+      confirmButtonColor: confirmColor,
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: confirmText,
+      cancelButtonText: 'Cancel',
+      reverseButtons: true,
+      background: '#ffffff'
+    })
+
+    if (result.isConfirmed) {
+      const statusPromise = api.patch(
+        `${import.meta.env.VITE_BASE_URL}/technicians/${technicianId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+
+      const successMessage = newStatus === 'suspended' 
+        ? `${technicianName} has been suspended successfully.`
+        : `${technicianName} has been activated successfully.`
+
+      toast.promise(
+        statusPromise,
+        {
+          loading: `${action === 'suspend' ? 'Suspending' : 'Activating'} ${technicianName}...`,
+          success: () => {
+            // Refresh data after success
+            setTimeout(() => {
+              window.location.reload()
+            }, 1000)
+            return successMessage
+          },
+          error: `Failed to ${action} technician. Please try again.`
+        },
+        {
+          success: {
+            duration: 3000,
+          },
+          error: {
+            duration: 3000,
+          }
+        }
+      )
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-50">
@@ -431,7 +553,6 @@ export const TechnicianManagement: React.FC = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Services</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Experience</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applied On</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
@@ -486,28 +607,26 @@ export const TechnicianManagement: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(app.submittedAt || app.createdAt).toLocaleDateString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(app.status)}
-                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end space-x-2">
                             <button 
-                              onClick={() => handleApproveApplication(app._id)}
-                              className="p-1 rounded-full text-green-600 hover:bg-green-100"
+                              onClick={() => handleApproveApplication(app._id, app.personal?.fullName || 'Applicant')}
+                              className="p-1 rounded-full text-green-600 hover:bg-green-100 transition-colors"
                               title="Approve"
                             >
                               <CheckCircleOutlined className="h-5 w-5" />
                             </button>
                             <button 
-                              onClick={() => handleRejectApplication(app._id)}
-                              className="p-1 rounded-full text-red-600 hover:bg-red-100"
+                              onClick={() => handleRejectApplication(app._id, app.personal?.fullName || 'Applicant')}
+                              className="p-1 rounded-full text-red-600 hover:bg-red-100 transition-colors"
                               title="Reject"
                             >
                               <BlockOutlined className="h-5 w-5" />
                             </button>
                             <Link 
                               to={`/admin/pending-applications/${app._id}`}
-                              className="p-1 rounded-full text-blue-600 hover:bg-blue-100"
+                              className="p-1 rounded-full text-blue-600 hover:bg-blue-100 transition-colors"
+                              title="View Details"
                             >
                               <RemoveRedEyeOutlined className="h-5 w-5" />
                             </Link>
@@ -589,17 +708,21 @@ export const TechnicianManagement: React.FC = () => {
                           <div className="flex justify-end space-x-2">
                             <Link 
                               to={`/admin/technicians/${tech._id}/personal-info`}
-                              className="p-1 rounded-full text-blue-600 hover:bg-blue-100"
+                              className="p-1 rounded-full text-blue-600 hover:bg-blue-100 transition-colors"
+                              title="View Details"
                             >
                               <RemoveRedEyeOutlined className="h-5 w-5" />
                             </Link>
-                            <button className="p-1 rounded-full text-green-600 hover:bg-green-100">
+                            <button 
+                              className="p-1 rounded-full text-green-600 hover:bg-green-100 transition-colors"
+                              title="Edit"
+                            >
                               <EditOutlined className="h-5 w-5" />
                             </button>
                             {tech.status === 'approved' && (
                               <button 
-                                onClick={() => handleStatusChange(tech._id, 'suspended')}
-                                className="p-1 rounded-full text-red-600 hover:bg-red-100"
+                                onClick={() => handleStatusChange(tech._id, 'suspended', tech.displayName)}
+                                className="p-1 rounded-full text-red-600 hover:bg-red-100 transition-colors"
                                 title="Suspend"
                               >
                                 <BlockOutlined className="h-5 w-5" />
@@ -607,8 +730,8 @@ export const TechnicianManagement: React.FC = () => {
                             )}
                             {tech.status === 'suspended' && (
                               <button 
-                                onClick={() => handleStatusChange(tech._id, 'approved')}
-                                className="p-1 rounded-full text-green-600 hover:bg-green-100"
+                                onClick={() => handleStatusChange(tech._id, 'approved', tech.displayName)}
+                                className="p-1 rounded-full text-green-600 hover:bg-green-100 transition-colors"
                                 title="Activate"
                               >
                                 <CheckCircleOutlined className="h-5 w-5" />

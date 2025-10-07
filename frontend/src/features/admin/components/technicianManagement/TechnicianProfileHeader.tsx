@@ -7,10 +7,13 @@ interface TechnicianProfileHeaderProps {
   joinDate: string
   isActive: boolean
   isApproved: boolean
+  isRejected?: boolean
+  isSuspended?: boolean
   rating?: number
   jobsCompleted?: number
   totalEarnings?: number
   activeBookings?: number
+  profilePictureUrl?: string
 }
 export const TechnicianProfileHeader: React.FC<
   TechnicianProfileHeaderProps
@@ -21,8 +24,43 @@ export const TechnicianProfileHeader: React.FC<
   rating = 0,
   jobsCompleted = 0,
   totalEarnings = 0,
-  activeBookings = 0
+  activeBookings = 0,
+  profilePictureUrl,
+  isRejected,
+  isApproved,
+  isActive,
+  isSuspended
 }) => {
+
+  const getStatusBadge = () => {
+    if (isRejected) {
+      return (
+        <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+          Rejected
+        </span>
+      )
+    }
+    if (isSuspended) {
+      return (
+        <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+          Suspended
+        </span>
+      )
+    }
+    if (isApproved) {
+      return (
+        <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+          {isActive ? 'Active' : 'InActive'}
+        </span>
+      )
+    }
+    return (
+      <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+        Pending
+      </span>
+    )
+  }
+
   return (
     <div className="bg-white p-6 border-b border-gray-200">
       <div className="mb-6">
@@ -35,35 +73,41 @@ export const TechnicianProfileHeader: React.FC<
         </Link>
       </div>
       <div className="flex items-center">
-        <div className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center mr-4">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-gray-600"
-          >
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-        </div>
+        {profilePictureUrl ? (
+          <img 
+            src={profilePictureUrl} 
+            alt={name}
+            className="h-16 w-16 rounded-full object-cover mr-4 border border-gray-300"
+          />
+        ) : (
+          <div className="h-16 w-16 bg-gray-200 rounded-full flex items-center justify-center mr-4 border border-gray-300">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-gray-600"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+        )}
         <div>
-          <h1 className="text-xl font-medium">{name}</h1>
+          <h1 className="text-xl font-medium">{name}{isSuspended && ' (Suspended)'}</h1>
           <div className="flex items-center text-sm text-gray-500 mt-1">
             <span>Technician ID: {technicianId}</span>
             <span className="mx-2">|</span>
             <span>Joined: {joinDate}</span>
-            <span className="ml-4 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Active
-            </span>
-            <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Approved
-            </span>
+            <div className="flex items-center space-x-2 mt-1">
+                <span className="text-gray-600">ID: {technicianId}</span>
+                {getStatusBadge()}
+              </div>
           </div>
         </div>
       </div>

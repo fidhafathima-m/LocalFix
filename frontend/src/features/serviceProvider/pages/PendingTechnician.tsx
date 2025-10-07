@@ -15,9 +15,16 @@ import Footer from '../../../components/common/Footer';
 import axios from 'axios';
 import { useAuth } from '../../../context/AuthContext';
 
-interface DocumentStatus {
-  verified: boolean;
-  submitted?: boolean; 
+interface DocumentInfo {
+  url: string;
+  verified?: boolean;
+  publicId?: string;
+  filename?: string;
+  mimetype?: string;
+  size?: number;
+  uploadedAt?: string;
+  uploadFailed?: boolean
+  // Add other fields that might be in your documents
 }
 
 interface ApplicationData {
@@ -37,12 +44,7 @@ interface ApplicationData {
     idNumber?: string,
     currentAddress?: string
   },
-  documents: {
-    idProof?: DocumentStatus,
-    addressProof?: DocumentStatus,
-    policeVerification?: DocumentStatus,
-    passportPhoto?: DocumentStatus,
-  },
+  documents?: Record<string, DocumentInfo>,
   submittedAt?: string,
   reviewNotes?: string,
   createdAt: string,
@@ -210,36 +212,56 @@ useEffect(() => {
     return name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U';
   };
 
-  const getDocumentStatus = (documentType: string): DocumentStatus => {
-  if (!applicationData?.documents) return { verified: false, submitted: false };
-  
-  // Check if we have the document status object
-  const docStatus = applicationData.documents[documentType as keyof typeof applicationData.documents];
-  
-  console.log(`📄 ${documentType} status:`, docStatus);
-  
-  if (!docStatus) {
-    return { verified: false, submitted: false };
+ const getDocumentStatus = (documentType: string): { verified: boolean; submitted: boolean; uploadFailed: boolean } => {
+  if (!applicationData || !applicationData.documents) {
+    return { verified: false, submitted: false, uploadFailed: false };
   }
   
-  // Return the status directly if it already has the structure
+  const doc = applicationData.documents[documentType];
+  
+  if (!doc) {
+    return { verified: false, submitted: false, uploadFailed: false };
+  }
+  
+  const hasDocument = !!doc.url && doc.url.trim().length > 0;
+  const isVerified = doc.verified || false;
+  const uploadFailed = doc.uploadFailed || false;
+  
   return {
-    verified: docStatus.verified || false,
-    submitted: docStatus.submitted !== undefined ? docStatus.submitted : (docStatus.verified || false)
+    verified: isVerified,
+    submitted: hasDocument && !uploadFailed,
+    uploadFailed: uploadFailed
   };
 };
-
 // Add this debug useEffect
+// Update your debug useEffect
 useEffect(() => {
   if (applicationData) {
-    console.log("🔍 DEBUG - Application Data:", applicationData);
+    console.log("🔍 DEBUG - Full Application Data:", applicationData);
     console.log("🔍 DEBUG - Documents Structure:", applicationData.documents);
+    console.log("🔍 DEBUG - Documents Type:", typeof applicationData.documents);
+    console.log("🔍 DEBUG - Is documents null/undefined?", !applicationData.documents);
     
-    // Check each document individually
-    ['idProof', 'addressProof', 'policeVerification', 'passportPhoto'].forEach(docType => {
-      const doc = applicationData.documents[docType as keyof typeof applicationData.documents];
-      console.log(`🔍 DEBUG - ${docType}:`, doc);
-    });
+    if (applicationData.documents) {
+      console.log("🔍 DEBUG - Documents keys:", Object.keys(applicationData.documents));
+      
+      // Check each document individually with more details
+      ['idProof', 'addressProof', 'policeVerification', 'passportPhoto'].forEach(docType => {
+        const doc = applicationData.documents?.[docType];
+        console.log(`🔍 DEBUG - ${docType}:`, doc);
+        console.log(`🔍 DEBUG - ${docType} type:`, typeof doc);
+        console.log(`🔍 DEBUG - ${docType} has URL:`, !!doc?.url);
+        console.log(`🔍 DEBUG - ${docType} URL value:`, doc?.url);
+        console.log(`🔍 DEBUG - ${docType} URL length:`, doc?.url?.length);
+        console.log(`🔍 DEBUG - ${docType} verified:`, doc?.verified);
+        
+        // Test the getDocumentStatus function
+        const status = getDocumentStatus(docType);
+        console.log(`🔍 DEBUG - ${docType} getDocumentStatus result:`, status);
+      });
+    } else {
+      console.log("🔍 DEBUG - No documents field found in application data");
+    }
   }
 }, [applicationData]);
 
@@ -474,15 +496,16 @@ useEffect(() => {
                 { key: 'passportPhoto', label: 'Passport Photo' }
               ].map((doc) => {
                 const status = getDocumentStatus(doc.key);
-                const isSubmitted = status.submitted !== undefined ? status.submitted : status.verified;
                 
                 return (
                   <div key={doc.key} className="flex items-center justify-between">
                     <div className="flex items-center">
                       {status.verified ? (
                         <CheckCircleOutlineOutlined className="w-5 h-5 text-green-500 mr-2" />
-                      ) : isSubmitted ? (
-                        <AccessTimeOutlined className="w-5 h-5 text-yellow-500 mr-2" />
+                      ) : status.uploadFailed ? (
+                        <ErrorOutlineOutlined className="w-5 h-5 text-red-500 mr-2" />
+                      ) : status.submitted ? (
+                        <CheckCircleOutlineOutlined className="w-5 h-5 text-blue-500 mr-2" />
                       ) : (
                         <CircleOutlined className="w-5 h-5 text-gray-400 mr-2" />
                       )}
@@ -490,11 +513,14 @@ useEffect(() => {
                     </div>
                     <span className={`text-xs ${
                       status.verified ? 'text-green-600' :
-                      isSubmitted ? 'text-yellow-600' :
+                      status.uploadFailed ? 'text-red-600' :
+                      status.submitted ? 'text-blue-600' :
                       'text-gray-500'
                     }`}>
                       {status.verified ? 'Verified' :
-                      isSubmitted ? 'Pending' : 'Not submitted'}
+                      status.uploadFailed ? 'Upload Failed' :
+                      status.submitted ? 'Submitted' :
+                      'Not submitted'}
                     </span>
                   </div>
                 );

@@ -1,60 +1,64 @@
+// src/core/utils/cloudinary.ts
 import { v2 as cloudinary } from 'cloudinary';
-import streamifier from 'streamifier';
 
-// Function to configure Cloudinary
-const configureCloudinary = () => {
-  const cloudinaryConfig = {
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  };
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-  console.log('🔑 Cloudinary Config Check:', {
-    cloud_name: cloudinaryConfig.cloud_name,
-    api_key: cloudinaryConfig.api_key ? '***' + cloudinaryConfig.api_key.slice(-4) : 'MISSING',
-    api_secret: cloudinaryConfig.api_secret ? '***' + cloudinaryConfig.api_secret.slice(-4) : 'MISSING'
-  });
+// src/core/utils/cloudinary.ts
+export const uploadToCloudinary = async (file: any): Promise<any> => {
+  try {
+    console.log("☁️ Starting Cloudinary upload...");
+    console.log("📁 File details:", {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+    });
 
-  // Validate configuration
-  if (!cloudinaryConfig.cloud_name || !cloudinaryConfig.api_key || !cloudinaryConfig.api_secret) {
-    console.error('❌ Cloudinary configuration incomplete. Please check your .env file');
-    return false;
-  } else {
-    cloudinary.config(cloudinaryConfig);
-    console.log('✅ Cloudinary configured successfully');
-    return true;
-  }
-};
+    // Determine resource type based on file type
+    const isPdf = file.mimetype === 'application/pdf';
+    const resourceType = isPdf ? 'raw' : 'image';
+    
+    // Extract file extension from original name
+    const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
+    
+    console.log(`📄 Resource type: ${resourceType} (PDF: ${isPdf}), Extension: ${fileExtension}`);
 
-const isCloudinaryConfigured = configureCloudinary();
-
-export const uploadToCloudinary = (file: Express.Multer.File): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    if (!isCloudinaryConfigured) {
-      const error = new Error('Cloudinary is not properly configured. Check your environment variables.');
-      console.error('❌ Cloudinary configuration error');
-      reject(error);
-      return;
-    }
-
-    console.log('☁️ Starting Cloudinary upload for file:', file.originalname);
-
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        resource_type: 'auto',
-        folder: 'technician-applications',
-      },
-      (error, result) => {
-        if (error) {
-          console.error('❌ Cloudinary upload failed:', error);
-          reject(error);
-        } else {
-          console.log('✅ Cloudinary upload successful:', result?.secure_url);
-          resolve(result);
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: resourceType,
+          folder: 'technician-documents',
+          upload_preset: 'image_preset',
+          access_mode: 'public',
+          // ADD THIS: Preserve the original filename with extension
+          use_filename: true,
+          unique_filename: true,
+          // For raw files, explicitly set the format to preserve extension
+          ...(isPdf && { format: fileExtension }), // This tells Cloudinary to keep the PDF extension
+        },
+        (error, result) => {
+          if (error) {
+            console.error('❌ Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            console.log('✅ Cloudinary upload successful:', {
+              url: result?.secure_url,
+              resource_type: result?.resource_type,
+              format: result?.format
+            });
+            resolve(result);
+          }
         }
-      }
-    );
+      );
 
-    streamifier.createReadStream(file.buffer).pipe(uploadStream);
-  });
+      uploadStream.end(file.buffer);
+    });
+
+  } catch (error) {
+    console.error('❌ Cloudinary upload failed:', error);
+    throw error;
+  }
 };

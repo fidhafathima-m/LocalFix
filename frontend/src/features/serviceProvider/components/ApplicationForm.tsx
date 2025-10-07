@@ -22,12 +22,12 @@ const STEPS = [
 
 // Define which fields belong to each step
 const stepFields: Record<string, string[]> = {
-  "Personal Information": ["fullName", "phoneNumber", "email", "dateOfBirth", "gender", "profilePhoto"],
-  "Identity & Verification": ["idType", "idNumber", "idProof", "addressProof", "currentAddress"],
-  "Skills & Services": ["services", "yearsOfExperience", "certifications", "languages", "bio"],
+  "Personal Information": ["fullName", "phoneNumber", "email", "dateOfBirth", "gender"],
+  "Identity & Verification": ["idType", "idNumber", "address"],
+  "Skills & Services": ["services", "yearsOfExperience", "languages", "bio"],
   "Availability & Work Preferences": ["serviceAreas", "workRadius", "availability"],
   "Banking Details": ["accountHolderName", "accountNumber", "ifscCode", "upiId"],
-  "Documents": ["policeVerification", "tradeLicense", "passportPhoto"],
+  "Documents": ["idProof", "addressProof","policeVerification", "tradeLicense","certifications", "passportPhoto"],
   "Agreement & Consent": ["agreement"],
   "Review & Submit": [] 
 };
@@ -54,13 +54,18 @@ export const ApplicationForm: React.FC = () => {
     email: '',
     dateOfBirth: '',
     gender: '',
-    profilePhoto: null as File | null,
     // Step 2: Identity & Verification
     idType: '',
     idNumber: '',
     idProof: null as File | null,
     addressProof: null as File | null,
-    currentAddress: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      pincode: '',
+      landmark: ''
+    },
     // Step 3: Skills & Services
     services: [] as string[],
     yearsOfExperience: '',
@@ -372,7 +377,7 @@ useEffect(() => {
 }, [applicationId]);
 
 
-  const handleInputChange = (
+const handleInputChange = (
   e: React.ChangeEvent<
     HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
   >,
@@ -431,7 +436,7 @@ useEffect(() => {
           },
         }
       }
-      // Agreement checkbox - ADD THIS SECTION
+      // Agreement checkbox
       if (name === 'agreement') {
         return {
           ...prev,
@@ -454,8 +459,20 @@ useEffect(() => {
           },
         },
       }))
-    } else {
-      // Handle all other text/select inputs
+    } 
+    // Handle nested address fields
+    else if (name.startsWith('address.')) {
+      const addressField = name.replace('address.', '') as keyof typeof formData.address;
+      setFormData((prev) => ({
+        ...prev,
+        address: {
+          ...prev.address,
+          [addressField]: value,
+        },
+      }))
+    }
+    // Handle all other text/select inputs
+    else {
       setFormData((prev) => ({
         ...prev,
         [name]: value,
@@ -490,22 +507,23 @@ useEffect(() => {
       if (!formData.email.trim()) stepErrors.email = "Email is required";
       if (!formData.dateOfBirth.trim()) stepErrors.dateOfBirth = "Date of Birth is required";
       if (!formData.gender.trim()) stepErrors.gender = "Gender is required";
-      if (!formData.profilePhoto) stepErrors.profilePhoto = "Profile photo is required";
       break;
 
     // Step 2: Identity & Verification
     case 2:
-      if (!formData.currentAddress.trim()) stepErrors.currentAddress = "Current address is required";
+      // if (!formData.currentAddress.trim()) stepErrors.currentAddress = "Current address is required";
       if (!formData.idType.trim()) stepErrors.idType = "ID type is required";
       if (!formData.idNumber.trim()) stepErrors.idNumber = "ID number is required";
-      if (!formData.idProof) stepErrors.idProof = "ID proof is required";
+      if (!formData.address.street.trim()) stepErrors["address.street"] = "Street address is required";
+      if (!formData.address.city.trim()) stepErrors["address.city"] = "City is required";
+      if (!formData.address.state.trim()) stepErrors["address.state"] = "State is required";
+      if (!formData.address.pincode.trim()) stepErrors["address.pincode"] = "PIN code is required";
       break;
 
     // Step 3: Skills & Services
     case 3:
       if (formData.services.length === 0) stepErrors.services = "At least one service is required";
       if (!formData.yearsOfExperience.trim()) stepErrors.yearsOfExperience = "Experience is required";
-      if (!formData.certifications) stepErrors.certifications = "Certifications file is required";
       if (!formData.bio.trim()) stepErrors.bio = "Bio is required";
       if (formData.languages.length === 0) stepErrors.languages = "At least one language is required";
       break;
@@ -534,6 +552,9 @@ useEffect(() => {
     case 6:
       // Only passport photo is mandatory
       if (!formData.passportPhoto) stepErrors.passportPhoto = "Passport photo is required";
+      if (!formData.idProof) stepErrors.idProof = "ID proof is required";
+
+
       break;
 
     // Step 7: Agreement & Consent
@@ -885,108 +906,133 @@ const handleSubmit = async () => {
                   <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
                 )}
               </div>
-              <div className="md:col-span-2">
-                 
-                  <ImageUploadWithPreview
-                    label="Profile Photo"
-                    field="profilePhoto"
-                    file={formData.profilePhoto}
-                    required
-                    onFileChange={handleFileChange}
-                  />
-                  {errors.profilePhoto && (
-                  <p className="text-red-500 text-sm mt-1">{errors.profilePhoto}</p>
-                )}
-              </div>
             </div>
           </FormStep>
         )
       case 2:
-        return (
-          <FormStep
-            title="Step 2: Identity & Verification"
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            showPrevious={true}
+  return (
+    <FormStep
+      title="Step 2: Identity & Verification"
+      onNext={handleNext}
+      onPrevious={handlePrevious}
+      showPrevious={true}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
+            Government ID Type <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="idType"
+            value={formData.idType}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            required
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block mb-1 font-medium text-gray-700">
-                  Government ID Type <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="idType"
-                  value={formData.idType}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                >
-                  <option value="">Select ID type</option>
-                  <option value="passport">Passport</option>
-                  <option value="drivingLicense">Driving License</option>
-                  <option value="nationalId">National ID</option>
-                </select>
-                {errors.idType && (
-                  <p className="text-red-500 text-sm mt-1">{errors.idType}</p>
-                )}
-              </div>
-              <div>
-                <label className="block mb-1 font-medium text-gray-700">
-                  Government ID Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="idNumber"
-                  value={formData.idNumber}
-                  onChange={handleInputChange}
-                  placeholder="Enter your ID number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                />
-                {errors.idNumber && (
-                  <p className="text-red-500 text-sm mt-1">{errors.idNumber}</p>
-                )}
-              </div>
-              <div className="md:col-span-2">
-                <ImageUploadWithPreview
-                    label="Id Proof"
-                    field="idProof"
-                    file={formData.idProof}
-                    required
-                    onFileChange={handleFileChange}
-                  />
-              </div>
-              {errors.idProof && (
-                  <p className="text-red-500 text-sm mt-1">{errors.idProof}</p>
-                )}
-              <div className="md:col-span-2">
-                <ImageUploadWithPreview
-                    label="Upload Address Proof (Optional if included in ID)"
-                    field="addressProof"
-                    file={formData.addressProof}
-                    onFileChange={handleFileChange}
-                  />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block mb-1 font-medium text-gray-700">
-                  Current Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="currentAddress"
-                  value={formData.currentAddress}
-                  onChange={handleInputChange}
-                  placeholder="House no, street, city, pin code"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                />
-                {errors.currentAddress && (
-                  <p className="text-red-500 text-sm mt-1">{errors.currentAddress}</p>
-                )}
-              </div>
-            </div>
-          </FormStep>
-        )
+            <option value="">Select ID type</option>
+            <option value="passport">Passport</option>
+            <option value="drivingLicense">Driving License</option>
+            <option value="nationalId">National ID</option>
+            <option value="aadhaar">Aadhaar Card</option>
+          </select>
+          {errors.idType && (
+            <p className="text-red-500 text-sm mt-1">{errors.idType}</p>
+          )}
+        </div>
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
+            Government ID Number <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="idNumber"
+            value={formData.idNumber}
+            onChange={handleInputChange}
+            placeholder="Enter your ID number"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            required
+          />
+          {errors.idNumber && (
+            <p className="text-red-500 text-sm mt-1">{errors.idNumber}</p>
+          )}
+        </div>
+        
+        {/* REMOVED: File uploads from here */}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="md:col-span-2">
+            <label className="block mb-1 font-medium text-gray-700">
+              Street Address <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="address.street"
+              value={formData.address.street}
+              onChange={handleInputChange}
+              placeholder="House no, street, area"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">
+              City <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="address.city"
+              value={formData.address.city}
+              onChange={handleInputChange}
+              placeholder="City"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">
+              State <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="address.state"
+              value={formData.address.state}
+              onChange={handleInputChange}
+              placeholder="State"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">
+              PIN Code <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="address.pincode"
+              value={formData.address.pincode}
+              onChange={handleInputChange}
+              placeholder="PIN Code"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">
+              Landmark (Optional)
+            </label>
+            <input
+              type="text"
+              name="address.landmark"
+              value={formData.address.landmark}
+              onChange={handleInputChange}
+              placeholder="Nearby landmark"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+        </div>
+      </div>
+    </FormStep>
+  )
       case 3:
         return (
           <FormStep
@@ -1056,18 +1102,7 @@ const handleSubmit = async () => {
                   <p className="text-red-500 text-sm mt-1">{errors.yearsOfExperience}</p>
                 )}
               </div>
-              <div>
-                <ImageUploadWithPreview
-                    label="Certifications (If any)"
-                    field="certifications"
-                    file={formData.certifications}
-                    required
-                    onFileChange={handleFileChange}
-                  />
-                  {errors.certifications && (
-                  <p className="text-red-500 text-sm mt-1">{errors.certifications}</p>
-                )}
-              </div>
+              
               <div>
                 <label className="block mb-2 font-medium text-gray-700">
                   Languages Known <span className="text-red-500">*</span>
@@ -1372,6 +1407,35 @@ const handleSubmit = async () => {
       showPrevious={true}
     >
       <div className="space-y-6">
+        {/* Move these from Step 2 to Step 6 */}
+        <div>
+          <ImageUploadWithPreview
+            label="Government ID Proof (Aadhaar, Passport, etc.)"
+            field="idProof"
+            file={formData.idProof}
+            required={true}
+            onFileChange={handleFileChange}
+            accept=".pdf,.jpg,.jpeg,.png"
+          />
+          {errors.idProof && (
+            <p className="text-red-500 text-sm mt-1">{errors.idProof}</p>
+          )}
+        </div>
+        
+        <div>
+          <ImageUploadWithPreview
+            label="Address Proof (Utility bill, Rental agreement, etc.)"
+            field="addressProof"
+            file={formData.addressProof}
+            required={true}
+            onFileChange={handleFileChange}
+            accept=".pdf,.jpg,.jpeg,.png"
+          />
+          {errors.addressProof && (
+            <p className="text-red-500 text-sm mt-1">{errors.addressProof}</p>
+          )}
+        </div>
+
         <div>
           <ImageUploadWithPreview
             label="Police Verification Certificate (Optional but recommended)"
@@ -1380,10 +1444,19 @@ const handleSubmit = async () => {
             onFileChange={handleFileChange}
             accept=".pdf,.jpg,.jpeg,.png"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Current police verification file: {formData.policeVerification?.name || 'None'}
-          </p>
         </div>
+
+        <div>
+                <ImageUploadWithPreview
+                    label="Experience Certifications (If any)"
+                    field="certifications"
+                    file={formData.certifications}
+                    onFileChange={handleFileChange}
+                  />
+                  {errors.certifications && (
+                  <p className="text-red-500 text-sm mt-1">{errors.certifications}</p>
+                )}
+              </div>
         
         <div>
           <ImageUploadWithPreview
@@ -1393,9 +1466,6 @@ const handleSubmit = async () => {
             onFileChange={handleFileChange}
             accept=".pdf,.jpg,.jpeg,.png"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Current trade license file: {formData.tradeLicense?.name || 'None'}
-          </p>
         </div>
         
         <div>
@@ -1407,9 +1477,6 @@ const handleSubmit = async () => {
             onFileChange={handleFileChange}
             accept="image/*"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Current passport photo: {formData.passportPhoto?.name || 'None'}
-          </p>
           {errors.passportPhoto && (
             <p className="text-red-500 text-sm mt-1">{errors.passportPhoto}</p>
           )}
@@ -1563,9 +1630,14 @@ const handleSubmit = async () => {
                 <span className="text-gray-600">ID Number:</span>
                 <p className="font-medium">{formData.idNumber || 'Not provided'}</p>
               </div>
+              
               <div className="md:col-span-2">
                 <span className="text-gray-600">Address:</span>
-                <p className="font-medium">{formData.currentAddress || 'Not provided'}</p>
+                <p className="font-medium">
+                  {formData.address.street || formData.address.city || formData.address.state || formData.address.pincode
+                    ? `${formData.address.street}, ${formData.address.city}, ${formData.address.state}, ${formData.address.pincode}${formData.address.landmark ? ` (Landmark: ${formData.address.landmark})` : ''}`
+                    : 'Not provided'}
+                </p>
               </div>
             </div>
           </div>
@@ -1650,10 +1722,6 @@ const handleSubmit = async () => {
           <div className="mb-6">
             <h4 className="font-medium text-gray-700 mb-3">Documents</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Profile Photo:</span>
-                <p className="font-medium">{formData.profilePhoto ? '✓ Uploaded' : '✗ Missing'}</p>
-              </div>
               <div>
                 <span className="text-gray-600">ID Proof:</span>
                 <p className="font-medium">{formData.idProof ? '✓ Uploaded' : '✗ Missing'}</p>

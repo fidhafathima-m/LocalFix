@@ -140,6 +140,9 @@ export const deleteUser = async (req: Request, res: Response) => {
 import { Technician } from '../technician/schemas/TechnicianSchema';
 import { TechnicianApplication } from '../technician/schemas/TechnicianApplicationSchema';
 import { AuthRequest } from '../../middleware/authMiddleware';
+import { TechnicianDocument } from "../technician/schemas/TechnicianDocumentSchema";
+import mongoose from "mongoose";
+import UserAddressSchema from "../../shared/UserAddressSchema";
 
 // Get all technicians with filters
 export const getAllTechnicians = async (req: Request, res: Response) => {
@@ -239,6 +242,9 @@ export const getAllTechnicians = async (req: Request, res: Response) => {
 };
 
 // Get technician by ID
+// src/modules/technician/technician.controller.ts
+
+// Get technician by ID - UPDATED VERSION
 export const getTechnicianById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -254,19 +260,49 @@ export const getTechnicianById = async (req: Request, res: Response) => {
       });
     }
 
-    // Get technician's application data
+     const userAddress = await UserAddressSchema.findOne({
+      userId: technician.userId,
+      isDefault: true
+    }).lean();
+
+    // Get technician's application data for personal info
     const application = await TechnicianApplication.findOne({
       technicianId: technician.userId
     }).lean();
 
+    // Format the response with personal information
+    const formattedTechnician = {
+      ...technician,
+      user: technician.userId,
+      // Map personal info from application
+      personalInfo: application ? {
+        fullName: application.personal?.fullName || technician.displayName,
+        gender: application.personal?.gender,
+        dateOfBirth: application.personal?.dateOfBirth,
+        languages: application.personal?.languages || [],
+        address: userAddress ? {
+          street: userAddress.street,
+          city: userAddress.city,
+          state: userAddress.state,
+          pincode: userAddress.pincode,
+          landmark: userAddress.landmark
+        } : application.personal?.address,
+        phoneNumber: application.personal?.phoneNumber || application.personal?.phone
+      } : {
+        fullName: technician.displayName,
+        languages: [],
+      },
+      // Map documents from application
+      documents: application ? formatApplicationDocuments(application.documents || {}) : {},
+      // Include profile picture from application or technician
+      profilePictureUrl: application?.documents?.passportPhoto?.url || technician.profilePictureUrl || '',
+      phone: application?.personal?.phoneNumber || application?.personal?.phone || (technician.userId as any)?.phone
+    };
+
     res.status(200).json({
       success: true,
       data: {
-        technician: {
-          ...technician,
-          user: technician.userId,
-          application
-        }
+        technician: formattedTechnician
       }
     });
 
@@ -592,7 +628,7 @@ export const rejectApplication = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Get application by ID
+// Get application by ID - READ FROM TechnicianApplication.documents
 export const getApplicationById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -610,12 +646,21 @@ export const getApplicationById = async (req: Request, res: Response) => {
       .select('email phone fullName createdAt')
       .lean();
 
+    // Convert to plain object
+    const applicationData = application.toObject();
+    
+    // Format documents from TechnicianApplication.documents for frontend
+    const formattedDocuments = formatApplicationDocuments(applicationData.documents || {});
+    
+    console.log('📂 Formatted documents for admin:', formattedDocuments);
+
     res.status(200).json({
       success: true,
       data: {
         application: {
-          ...application.toObject(),
-          user
+          ...applicationData,
+          user,
+          documents: formattedDocuments
         }
       }
     });
@@ -628,6 +673,109 @@ export const getApplicationById = async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+};
+
+// Helper function to format documents from TechnicianApplication.documents
+// Updated helper function to format documents from TechnicianApplication.documents
+const formatApplicationDocuments = (documents: any) => {
+  const formatted: any = {};
+  
+  console.log('📂 Raw documents from database:', documents);
+  
+  // Map the document fields to your frontend expected format
+  if (documents.idProof) {
+    formatted.idProof = {
+      url: documents.idProof.url,
+      verified: documents.idProof.verified || false,
+      uploadedAt: documents.idProof.uploadedAt,
+      type: 'idProof'
+    };
+  }
+  
+  if (documents.addressProof) {
+    formatted.addressProof = {
+      url: documents.addressProof.url,
+      verified: documents.addressProof.verified || false,
+      uploadedAt: documents.addressProof.uploadedAt,
+      type: 'addressProof'
+    };
+  }
+  
+  if (documents.policeVerification) {
+    formatted.policeVerification = {
+      url: documents.policeVerification.url,
+      verified: documents.policeVerification.verified || false,
+      uploadedAt: documents.policeVerification.uploadedAt,
+      type: 'policeVerification'
+    };
+  }
+  
+  if (documents.passportPhoto) {
+    formatted.passportPhoto = {
+      url: documents.passportPhoto.url,
+      verified: documents.passportPhoto.verified || false,
+      uploadedAt: documents.passportPhoto.uploadedAt,
+      type: 'passportPhoto'
+    };
+  }
+  
+  if (documents.drivingLicense) {
+    formatted.drivingLicense = {
+      url: documents.drivingLicense.url,
+      verified: documents.drivingLicense.verified || false,
+      uploadedAt: documents.drivingLicense.uploadedAt,
+      type: 'drivingLicense'
+    };
+  }
+  
+  if (documents.certifications) {
+    formatted.certifications = {
+      url: documents.certifications.url,
+      verified: documents.certifications.verified || false,
+      uploadedAt: documents.certifications.uploadedAt,
+      type: 'certifications'
+    };
+  }
+  
+  if (documents.tradeLicense) {
+    formatted.tradeLicense = {
+      url: documents.tradeLicense.url,
+      verified: documents.tradeLicense.verified || false,
+      uploadedAt: documents.tradeLicense.uploadedAt,
+      type: 'tradeLicense'
+    };
+  }
+  
+  console.log('📂 Formatted documents for frontend:', formatted);
+  return formatted;
+};
+// Helper function to format documents from TechnicianDocument collection
+const formatTechnicianDocuments = (documents: any[]) => {
+  const formatted: any = {};
+  
+  documents.forEach(doc => {
+    const docType = doc.type;
+    
+    // Map document types to your frontend expected format
+    if (docType === 'idProof') {
+      formatted.aadhaarCard = {
+        url: doc.fileUrl,
+        verified: doc.status === 'verified',
+        type: doc.type,
+        uploadedAt: doc.uploadedAt
+      };
+    } else if (docType === 'addressProof') {
+      formatted.panCard = { // Or addressProof based on your needs
+        url: doc.fileUrl,
+        verified: doc.status === 'verified',
+        type: doc.type,
+        uploadedAt: doc.uploadedAt
+      };
+    }
+    // Add more mappings as needed
+  });
+  
+  return formatted;
 };
 
 // Get application statistics

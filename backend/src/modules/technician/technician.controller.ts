@@ -11,7 +11,8 @@ import {
 } from './types/technicianApplication';
 import mongoose from 'mongoose';
 import { Technician } from './schemas/TechnicianSchema';
-import { AuthRequest } from '@/middleware/authMiddleware';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import UserAddressSchema from '../../shared/UserAddressSchema';
 
 export const startApplication = async (req: Request<{}, {}, StartApplicationRequest>, res: Response<ApiResponse>): Promise<void> => {
   try {
@@ -192,7 +193,75 @@ export const saveStep = async (req: AuthRequest, res: Response<ApiResponse>): Pr
       }
     });
 
-if (step === 'Documents') {
+    // In your saveStep function, move this block:
+// In your saveStep function, update the "Identity & Verification" section:
+if (step === "Identity & Verification") {
+  // If address is provided, save to UserAddress collection
+  if (processedStepData.address) {
+    try {
+      console.log("🏠 Processing address data:", processedStepData.address);
+      
+      // Parse address if it's a string (JSON)
+      let addressData = processedStepData.address;
+      if (typeof addressData === 'string') {
+        try {
+          addressData = JSON.parse(addressData);
+        } catch (e) {
+          console.log("⚠️ Could not parse address as JSON, treating as string");
+        }
+      }
+      
+      // Only save if we have valid address data
+      if (typeof addressData === 'object' && addressData.street) {
+        const userAddress = new UserAddressSchema({
+          userId: application.technicianId,
+          label: 'Home',
+          street: addressData.street || '',
+          city: addressData.city || '',
+          state: addressData.state || '',
+          pincode: addressData.pincode || '',
+          landmark: addressData.landmark || '',
+          isDefault: true,
+          location: {
+            type: "Point",
+            coordinates: [0, 0]
+          }
+        });
+        
+        await userAddress.save();
+        console.log("✅ Address saved to UserAddress collection:", userAddress._id);
+      } else {
+        console.log("⚠️ No valid address data to save");
+      }
+      
+    } catch (error) {
+      console.error("❌ Error saving to UserAddress:", error);
+      // Don't fail the entire step if address saving fails
+    }
+  }
+  
+  // ✅ ADD THIS: Also save the address data to the application's identity field
+  // This is what makes the step "complete" for validation
+  if (!application.identity) {
+    application.identity = {};
+  }
+  
+  // Merge the processed step data with existing identity data
+  application.identity = {
+    ...application.identity,
+    ...processedStepData
+  };
+  
+  console.log("✅ Updated application identity field:", application.identity);
+  
+  if (!application.stepsCompleted.includes(step)) {
+    application.stepsCompleted.push(step);
+    console.log(`✅ Added '${step}' to completed steps`);
+  }
+}
+
+// In your saveStep function, update the document processing section:
+else if (step === 'Documents') {
   console.log("🎯 Processing Documents step with file uploads");
   
   if (!application.documents || typeof application.documents !== 'object') {
@@ -201,7 +270,7 @@ if (step === 'Documents') {
   
   const documents: any = application.documents;
   
-  const documentFields = ['idProof', 'addressProof', 'policeVerification', 'passportPhoto', 'profilePhoto'];
+  const documentFields = ['idProof', 'addressProof', 'policeVerification', 'passportPhoto', 'profilePhoto', 'tradeLicense'];
   
   for (const field of documentFields) {
     if (req.files && (req.files as any)[field]) {
@@ -221,6 +290,7 @@ if (step === 'Documents') {
         const uploadResult = await uploadToCloudinary(fileToUpload);
         
         if (uploadResult && uploadResult.secure_url) {
+          // Save to TechnicianApplication.documents
           documents[field] = {
             url: uploadResult.secure_url,
             publicId: uploadResult.public_id,
@@ -230,15 +300,41 @@ if (step === 'Documents') {
             uploadedAt: new Date(),
             verified: false
           };
+          
           console.log(`✅ ${field} uploaded successfully:`, uploadResult.secure_url);
         } else {
           console.log(`❌ ${field} upload failed:`, uploadResult);
+          // Even if upload fails, mark the field as attempted but failed
+          documents[field] = {
+            url: '',
+            filename: fileToUpload.originalname,
+            uploadedAt: new Date(),
+            uploadFailed: true,
+            verified: false
+          };
         }
       } catch (uploadError) {
         console.error(`❌ Error uploading ${field}:`, uploadError);
+        // Mark document as failed but still record the attempt
+        documents[field] = {
+          url: '',
+          filename: file.originalname,
+          uploadedAt: new Date(),
+          uploadFailed: true,
+          error: uploadError instanceof Error ? uploadError.message : String(uploadError),
+          verified: false
+        };
       }
     } else {
       console.log(`📝 No file uploaded for ${field}`);
+      // Keep existing document if it exists, otherwise don't set anything
+      if (!documents[field]) {
+        documents[field] = {
+          url: '',
+          uploadedAt: null,
+          verified: false
+        };
+      }
     }
   }
   
@@ -338,10 +434,57 @@ if (step === 'Documents') {
     });
   }
 };
+
+// Helper function to save documents to TechnicianDocument collection
+const saveToTechnicianDocumentCollection = async (
+  technicianId: mongoose.Types.ObjectId | undefined,
+  applicationId: mongoose.Types.ObjectId,
+  documentType: string,
+  fileUrl: string,
+  file: any
+) => {
+  try {
+    // Map frontend field names to document types
+    const typeMapping: Record<string, string> = {
+      'idProof': 'idProof',
+      'addressProof': 'addressProof', 
+      'policeVerification': 'policeVerification',
+      'passportPhoto': 'passportPhoto',
+      'profilePhoto': 'profilePhoto',
+      'tradeLicense': 'tradeLicense'
+    };
+
+    const documentTypeForCollection = typeMapping[documentType] || 'other';
+
+    // Create or update document in TechnicianDocument collection
+    const technicianDocument = new TechnicianDocument({
+      technicianId: technicianId,
+      applicationId: applicationId,
+      type: documentTypeForCollection,
+      fileUrl: fileUrl,
+      status: 'submitted',
+      uploadedAt: new Date(),
+      metadata: {
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        fieldName: documentType
+      }
+    });
+
+    await technicianDocument.save();
+    console.log(`✅ Saved ${documentType} to TechnicianDocument collection:`, technicianDocument._id);
+    
+    return technicianDocument;
+  } catch (error) {
+    console.error(`❌ Error saving ${documentType} to TechnicianDocument collection:`, error);
+    throw error;
+  }
+};
+
 export const getApplication = async (req: Request<{ applicationId: string }>, res: Response<ApiResponse>): Promise<void> => {
   try {
     const { applicationId } = req.params;
-    
 
     const application = await TechnicianApplication.findById(applicationId);
     if (!application) {
@@ -353,57 +496,7 @@ export const getApplication = async (req: Request<{ applicationId: string }>, re
 
     console.log("🔍 Raw application documents from DB:", application.documents);
 
-    const getDocumentStatus = (docField: string) => {
-      if (!application.documents || typeof application.documents !== 'object') {
-        return { verified: false, submitted: false };
-      }
-      
-      const doc = (application.documents as any)[docField];
-      console.log(`🔍 ${docField} raw data:`, doc);
-      
-      let hasDocument = false;
-      let isVerified = false;
-      
-      if (doc) {
-        // Case 1: If it's a string (file URL/path) and not empty
-        if (typeof doc === 'string' && doc.trim().length > 0 && doc !== 'null' && doc !== 'undefined') {
-          hasDocument = true;
-        }
-        // Case 2: If it's an object with url/path property
-        else if (typeof doc === 'object' && doc !== null) {
-          // Check if it has a URL property
-          if (doc.url && typeof doc.url === 'string' && doc.url.trim().length > 0) {
-            hasDocument = true;
-          }
-          // Check if it has a path property  
-          else if (doc.path && typeof doc.path === 'string' && doc.path.trim().length > 0) {
-            hasDocument = true;
-          }
-          // Check if it's a file object with name/size
-          else if (doc.name || doc.size) {
-            hasDocument = true;
-          }
-          // Check if it has any properties (might be stored as object with metadata)
-          else if (Object.keys(doc).length > 0) {
-            hasDocument = true;
-          }
-        }
-        // Case 3: If it's an array with files
-        else if (Array.isArray(doc) && doc.length > 0) {
-          hasDocument = true;
-        }
-        
-        isVerified = doc.verified === true;
-      }
-      
-      console.log(`✅ ${docField} - hasDocument: ${hasDocument}, verified: ${isVerified}`);
-      
-      return {
-        verified: isVerified,
-        submitted: hasDocument
-      };
-    };
-
+    // Return the raw documents object as-is - NO PROCESSING!
     const applicationData = {
       _id: application._id,
       email: application.email,
@@ -414,12 +507,7 @@ export const getApplication = async (req: Request<{ applicationId: string }>, re
       skills: application.skills || {},
       availability: application.availability || {},
       bank: application.bank || {},
-      documents: {
-        idProof: getDocumentStatus('idProof'),
-        addressProof: getDocumentStatus('addressProof'),
-        policeVerification: getDocumentStatus('policeVerification'),
-        passportPhoto: getDocumentStatus('passportPhoto')
-      },
+      documents: application.documents || {}, // Return raw documents directly
       agreement: application.agreement,
       submittedAt: application.submittedAt,
       reviewNotes: application.reviewNotes,
@@ -427,7 +515,7 @@ export const getApplication = async (req: Request<{ applicationId: string }>, re
       updatedAt: application.updatedAt
     };
 
-    console.log("📄 Final document status:", applicationData.documents);
+    console.log("📄 Final application data with raw documents:", applicationData.documents);
 
     res.status(200).json({
       message: 'Application retrieved successfully',
@@ -441,7 +529,6 @@ export const getApplication = async (req: Request<{ applicationId: string }>, re
     });
   }
 };
-
 export const submitApplication = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
     const { applicationId } = req.body;
@@ -610,33 +697,10 @@ export const getApplicationStatus = async (req: Request<{ applicationId: string 
       return;
     }
 
-    const getDocumentStatus = (docField: string) => {
-      if (!application.documents || typeof application.documents !== 'object') {
-        return { verified: false, submitted: false };
-      }
-      
-      const doc = (application.documents as any)[docField];
-      
-      const hasDocument = doc && (
-        (typeof doc === 'string' && doc.length > 0) ||
-        (typeof doc === 'object' && Object.keys(doc).length > 0) ||
-        (Array.isArray(doc) && doc.length > 0)
-      );
-      
-      return {
-        verified: hasDocument && (doc.verified || false),
-        submitted: hasDocument
-      };
-    };
-
+    // Return raw documents instead of processed status
     const applicationData = {
       ...application.toObject(),
-      documents: {
-        idProof: getDocumentStatus('idProof'),
-        addressProof: getDocumentStatus('addressProof'),
-        policeVerification: getDocumentStatus('policeVerification'),
-        passportPhoto: getDocumentStatus('passportPhoto')
-      }
+      documents: application.documents || {} // Return raw documents
     };
 
     res.status(200).json({
@@ -651,7 +715,6 @@ export const getApplicationStatus = async (req: Request<{ applicationId: string 
     });
   }
 };
-
 export const getUserApplications = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
     const userId = req.user?.id;

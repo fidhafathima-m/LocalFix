@@ -254,7 +254,7 @@ const SignUp: React.FC<SignUpProps> = ({userType = 'user'}) => {
         </div>
 
         <div className='text-center p-3'>
-          <p className='text-gray-500'>Already have an account? <Link to='/login' className='text-[#1877F2]'>Login</Link></p>
+          <p className='text-gray-500'>Already have an account? <Link to={userType === 'serviceProvider' ? "/technicians/login": "/login"} className='text-[#1877F2]'>Login</Link></p>
         </div>
       </div>
     </>
