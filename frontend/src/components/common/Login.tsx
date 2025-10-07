@@ -211,20 +211,23 @@ setTimeout(() => {
       </form>
 
       {/* Social login */}
-      <div className="text-center mt-6">
+      {(userType === 'user' || userType === 'serviceProvider') && (
+        <div className="text-center mt-6">
         <p className="text-sm text-gray-500">Or continue with</p>
         <div className="flex justify-center gap-4 mt-2">
           <GoogleAuth userType={userType}/>
         </div>
       </div>
+      )}
+      
 
+      {(userType === 'user' || userType === 'serviceProvider') && (
       <div className="text-center p-3">
-        {userType !== 'serviceProvider' && (
           <p className="text-gray-500">
-            Don't have an account? <Link to="/signup" className="text-[#1877F2]">Sign Up</Link>
+            Don't have an account? <Link to={userType === 'serviceProvider' ? "/technicians/signup": "/signup"} className="text-[#1877F2]">Sign Up</Link>
           </p>
-        )}
       </div>
+      )}
     </div>
   );
 };

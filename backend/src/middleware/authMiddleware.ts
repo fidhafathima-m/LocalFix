@@ -56,3 +56,15 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
     return res.status(401).json({ message: "Invalid token" });
   }
 };
+
+// Admin middleware
+export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ 
+      success: false,
+      message: "Access denied. Admin role required." 
+    });
+  }
+};

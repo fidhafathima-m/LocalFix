@@ -23,6 +23,8 @@ import TechSignUp from './features/serviceProvider/pages/TechSignUp'
 import TechOTP from './features/serviceProvider/pages/TechOTP'
 import SignUpForm from './features/user/pages/SignUpForm'
 import { PendingTechnicianApplication } from './features/serviceProvider/pages/PendingTechnician'
+import TechnicianProfile from './features/admin/pages/TechnicianProfile'
+import { PendingApplicationProfile } from './features/admin/pages/PendingTechnicianProfile'
 
 function App() {
   return (
@@ -56,6 +58,9 @@ function App() {
           <Route path='/admin/reset-password' element={<AdminResetPasswordPage />} />
           <Route path='/admin/user-management' element={<ProtectedRoute allowedRoles={['admin']}><UserManagement/></ProtectedRoute>}/>
           <Route path='/admin/technician-management' element={<ProtectedRoute allowedRoles={['admin']}><TechnicianManagement/></ProtectedRoute>}/>
+          <Route path='/admin/technicians/:technicianId' element={<ProtectedRoute allowedRoles={['admin']}><TechnicianProfile/></ProtectedRoute>}/>
+          <Route path='/admin/technicians/:technicianId/:tabId' element={<ProtectedRoute allowedRoles={['admin']}><TechnicianProfile/></ProtectedRoute>}/>
+          <Route path='/admin/pending-applications/:applicationId' element={<ProtectedRoute allowedRoles={['admin']}><PendingApplicationProfile/></ProtectedRoute>}/>
         </Routes>
       </Router>
     </>
