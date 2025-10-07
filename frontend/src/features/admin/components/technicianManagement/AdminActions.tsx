@@ -1,9 +1,9 @@
 import React from 'react'
 import Swal from 'sweetalert2'
 import toast from 'react-hot-toast'
-import api from '../../../../utils/axiosConfig'
-import { useAuth } from '../../../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+// ✅ Import the corrected API functions
+import { approveApplication, rejectApplication, updateTechnicianStatus } from '../../api/technicianApi'
 
 interface AdminActionsProps {
   type: 'approved' | 'pending' | 'suspended' | 'rejected'
@@ -20,7 +20,6 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
   technicianName,
   onStatusUpdate
 }) => {
-  const { token } = useAuth()
   const navigate = useNavigate();
 
   const redirectToTechManagement = () => {
@@ -29,7 +28,7 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
     }, 1500)
   }
 
-  // Handle technician status change
+  // Handle technician status change - UPDATED
   const handleStatusChange = async (newStatus: string) => {
     if (!technicianId) return
 
@@ -55,15 +54,8 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
     })
 
     if (result.isConfirmed) {
-      const statusPromise = api.patch(
-        `${import.meta.env.VITE_BASE_URL}/technicians/${technicianId}/status`,
-        { status: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
+      // ✅ FIXED: Use the API function instead of hardcoded URL
+      const statusPromise = updateTechnicianStatus(technicianId, newStatus)
 
       const successMessage = newStatus === 'suspended' 
         ? `${technicianName} has been suspended successfully.`
@@ -92,7 +84,7 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
     }
   }
 
-  // Handle application approval
+  // Handle application approval - UPDATED
   const handleApproveApplication = async () => {
     if (!applicationId) return
 
@@ -111,15 +103,8 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
     })
 
     if (result.isConfirmed) {
-      const approvePromise = api.patch(
-        `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/approve`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
+      // ✅ FIXED: Use the API function instead of hardcoded URL
+      const approvePromise = approveApplication(applicationId)
 
       toast.promise(
         approvePromise,
@@ -144,7 +129,7 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
     }
   }
 
-  // Handle application rejection
+  // Handle application rejection - UPDATED
   const handleRejectApplication = async () => {
     if (!applicationId) return
 
@@ -176,15 +161,8 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
     })
 
     if (reason) {
-      const rejectPromise = api.patch(
-        `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/reject`,
-        { rejectionReason: reason },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
+      // ✅ FIXED: Use the API function instead of hardcoded URL
+      const rejectPromise = rejectApplication(applicationId, reason)
 
       toast.promise(
         rejectPromise,
@@ -208,7 +186,6 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
       )
     }
   }
-
   // Handle reset password
   // const handleResetPassword = async () => {
   //   const result = await Swal.fire({

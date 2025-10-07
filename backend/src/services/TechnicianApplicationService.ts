@@ -1,0 +1,592 @@
+import { Types } from 'mongoose';
+import { TechnicianApplicationRepository } from '../repositories/technician/TechnicianApplicationRepository';
+import { TechnicianRepository } from '../repositories/technician/TechnicianRepository';
+import { TechnicianDocumentRepository } from '../repositories/technician/TechnicianDocumentRepository';
+import { UserRepository } from '../repositories/user/UserRepository';
+import { 
+  StartApplicationRequest, 
+  SaveStepRequest, 
+  SubmitApplicationRequest, 
+  ApplicationResponse 
+} from '../interfaces/technician/ITechnicianApplication';
+import { uploadToCloudinary } from '../utils/cloudinary';
+import UserAddressSchema from '../models/UserAddressSchema';
+import { ITechnicianDocument } from '../interfaces/technician/ITechnicianDocuments';
+
+export class TechnicianApplicationService {
+  private applicationRepository: TechnicianApplicationRepository;
+  private technicianRepository: TechnicianRepository;
+  private documentRepository: TechnicianDocumentRepository;
+  private userRepository: UserRepository;
+
+  constructor() {
+    this.applicationRepository = new TechnicianApplicationRepository();
+    this.technicianRepository = new TechnicianRepository();
+    this.documentRepository = new TechnicianDocumentRepository();
+    this.userRepository = new UserRepository();
+  }
+
+  async startApplication(data: StartApplicationRequest): Promise<ApplicationResponse> {
+    try {
+      const { email, userId } = data;
+
+      console.log("Starting application for email:", email, "user:", userId);
+
+      if (!email || !userId) {
+        return { 
+          success: false, 
+          message: 'Email and User ID are required' 
+        };
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return { 
+          success: false, 
+          message: 'Please provide a valid email address' 
+        };
+      }
+
+      // Check if user already has ANY application 
+      const existingUserApplication = await this.applicationRepository.findByTechnicianIdAndStatus(
+        userId, 
+        ['draft', 'submitted', 'under_review', 'approved']
+      );
+
+      if (existingUserApplication) {
+        const appStatus = existingUserApplication.status;
+        
+        // If application is submitted or under review, redirect to pending dashboard
+        if (appStatus === 'submitted' || appStatus === 'under_review') {
+          return {
+            success: true,
+            message: 'Application already submitted',
+            data: { 
+              applicationId: existingUserApplication._id.toString(),
+              redirectTo: '/pending-technician/dashboard'
+            }
+          };
+        }
+        
+        // If application is approved, redirect to technician dashboard
+        if (appStatus === 'approved') {
+          return {
+            success: true,
+            message: 'Application already approved',
+            data: { 
+              applicationId: existingUserApplication._id.toString(),
+              redirectTo: '/technician/dashboard'
+            }
+          };
+        }
+        
+        // If it's a draft, return the existing application
+        return {
+          success: true,
+          message: 'Draft application found',
+          data: { 
+            applicationId: existingUserApplication._id.toString(),
+            redirectTo: null
+          }
+        };
+      }
+
+      // Check if email is already registered to different user
+      const existingEmailApplication = await this.applicationRepository.findByEmailAndStatus(
+        email, 
+        ['draft', 'submitted', 'under_review', 'approved']
+      );
+
+      if (existingEmailApplication) {
+        const existingAppTechnicianId = existingEmailApplication.technicianId?.toString();
+        
+        // Email already used by someone else
+        if (existingAppTechnicianId && existingAppTechnicianId !== userId) {
+          return { 
+            success: false, 
+            message: 'Email already has an application in progress by another user' 
+          };
+        }
+      }
+
+      // Create new application
+      const application = await this.applicationRepository.create({
+        email: email.toLowerCase().trim(),
+        technicianId: new Types.ObjectId(userId),
+        status: 'draft',
+        stepsCompleted: [],
+        personal: {},
+        identity: {},
+        skills: {},
+        availability: {},
+        bank: {},
+        documents: {},
+        agreement: false
+      });
+
+      console.log("Created new application with ID:", application._id);
+
+      return {
+        success: true,
+        message: 'Application started successfully',
+        data: { 
+          applicationId: application._id.toString(),
+          redirectTo: null
+        }
+      };
+
+    } catch (error) {
+      console.error('Start application error:', error);
+      return {
+        success: false,
+        message: 'Failed to start application',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  async saveStep(data: SaveStepRequest, files?: any): Promise<ApplicationResponse> {
+    try {
+      const { applicationId, step, ...stepData } = data;
+
+      if (!applicationId || !step) {
+        return { 
+          success: false, 
+          message: 'Application ID and step are required' 
+        };
+      }
+
+      const application = await this.applicationRepository.findById(applicationId);
+      if (!application) {
+        return { 
+          success: false, 
+          message: 'Application not found' 
+        };
+      }
+
+      const processedStepData = { ...stepData };
+      
+      // Parse JSON fields
+      const jsonFields = ['availability', 'services', 'languages', 'serviceAreas'];
+      jsonFields.forEach(field => {
+        if ((processedStepData as any)[field] && typeof (processedStepData as any)[field] === 'string') {
+          try {
+            (processedStepData as any)[field] = JSON.parse((processedStepData as any)[field]);
+          } catch (e) {
+            // Keep as string if parsing fails
+          }
+        }
+      });
+
+      // Handle different steps
+      if (step === "Identity & Verification") {
+        await this.handleIdentityVerificationStep(application, processedStepData);
+      } else if (step === 'Documents') {
+        await this.handleDocumentsStep(application, files);
+      } else if (step === 'Agreement & Consent') {
+        await this.handleAgreementStep(application, processedStepData);
+      } else if (step === 'Review & Submit') {
+        await this.handleReviewStep(application);
+      } else {
+        await this.handleGenericStep(application, step, processedStepData);
+      }
+
+      // Mark step as completed if not already
+      if (!application.stepsCompleted.includes(step)) {
+        application.stepsCompleted.push(step);
+      }
+
+      await this.applicationRepository.save(application);
+
+      return {
+        success: true,
+        message: 'Step saved successfully',
+        data: { 
+          application: { 
+            _id: application._id, 
+            stepsCompleted: application.stepsCompleted 
+          } 
+        }
+      };
+
+    } catch (error) {
+      console.error("Save step error:", error);
+      return {
+        success: false,
+        message: 'Failed to save step',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  private async handleIdentityVerificationStep(application: any, stepData: any): Promise<void> {
+    // Save address to UserAddress collection
+    if (stepData.address) {
+      try {
+        let addressData = stepData.address;
+        if (typeof addressData === 'string') {
+          try {
+            addressData = JSON.parse(addressData);
+          } catch (e) {
+            console.log("⚠️ Could not parse address as JSON");
+          }
+        }
+        
+        if (typeof addressData === 'object' && addressData.street) {
+          const userAddress = new UserAddressSchema({
+            userId: application.technicianId,
+            label: 'Home',
+            street: addressData.street || '',
+            city: addressData.city || '',
+            state: addressData.state || '',
+            pincode: addressData.pincode || '',
+            landmark: addressData.landmark || '',
+            isDefault: true,
+            location: {
+              type: "Point",
+              coordinates: [0, 0]
+            }
+          });
+          
+          await userAddress.save();
+        }
+      } catch (error) {
+        console.error("❌ Error saving to UserAddress:", error);
+      }
+    }
+    
+    // Save to application identity field
+    if (!application.identity) {
+      application.identity = {};
+    }
+    
+    application.identity = {
+      ...application.identity,
+      ...stepData
+    };
+  }
+
+  private async handleDocumentsStep(application: any, files: any): Promise<void> {
+    if (!application.documents || typeof application.documents !== 'object') {
+      application.documents = {};
+    }
+    
+    const documents: any = application.documents;
+    const documentFields = ['idProof', 'addressProof', 'policeVerification', 'passportPhoto', 'profilePhoto', 'tradeLicense'];
+    
+    for (const field of documentFields) {
+      if (files && files[field]) {
+        const file = files[field];
+        
+        try {
+          let fileToUpload = Array.isArray(file) ? file[0] : file;
+          
+          const uploadResult = await uploadToCloudinary(fileToUpload);
+          
+          if (uploadResult && uploadResult.secure_url) {
+            documents[field] = {
+              url: uploadResult.secure_url,
+              publicId: uploadResult.public_id,
+              filename: fileToUpload.originalname,
+              mimetype: fileToUpload.mimetype,
+              size: fileToUpload.size,
+              uploadedAt: new Date(),
+              verified: false
+            };
+            
+            // Also save to TechnicianDocument collection
+            await this.documentRepository.create({
+              technicianId: application.technicianId,
+              applicationId: application._id,
+              type: this.mapDocumentType(field),
+              fileUrl: uploadResult.secure_url,
+              status: 'pending',
+              uploadedAt: new Date(),
+              metadata: {
+                originalName: fileToUpload.originalname,
+                mimetype: fileToUpload.mimetype,
+                size: fileToUpload.size,
+                fieldName: field
+              }
+            });
+          }
+        } catch (uploadError) {
+          console.error(`❌ Error uploading ${field}:`, uploadError);
+          documents[field] = {
+            url: '',
+            filename: file.originalname,
+            uploadedAt: new Date(),
+            uploadFailed: true,
+            error: uploadError instanceof Error ? uploadError.message : String(uploadError),
+            verified: false
+          };
+        }
+      }
+    }
+    
+    application.documents = documents;
+  }
+
+  private mapDocumentType(field: string): ITechnicianDocument['type'] {
+  const mapping: Record<string, ITechnicianDocument['type']> = {
+    'idProof': 'idProof',
+    'addressProof': 'addressProof',
+    'policeVerification': 'policeVerification',
+    'passportPhoto': 'other',
+    'profilePhoto': 'other',
+    'tradeLicense': 'tradeLicense'
+  };
+  return mapping[field] || 'other';
+}
+
+  private async handleAgreementStep(application: any, stepData: any): Promise<void> {
+    if (stepData.agreement !== undefined) {
+      const agreementValue = stepData.agreement === 'true' || stepData.agreement === true;
+      application.agreement = agreementValue;
+    }
+  }
+
+  private async handleReviewStep(application: any): Promise<void> {
+    // No specific data processing for review step, just mark as completed
+  }
+
+  private async handleGenericStep(application: any, step: string, stepData: any): Promise<void> {
+    const stepMapping: Record<string, string> = {
+      'Personal Information': 'personal',
+      'Identity & Verification': 'identity',
+      'Skills & Services': 'skills',
+      'Availability & Work Preferences': 'availability',
+      'Banking Details': 'bank'
+    };
+
+    const applicationField = stepMapping[step];
+    if (applicationField) {
+      const currentData = application[applicationField] || {};
+      const newData = {
+        ...currentData,
+        ...stepData
+      };
+      application.set(applicationField, newData);
+    }
+  }
+
+  async getApplication(applicationId: string): Promise<ApplicationResponse> {
+    try {
+      const application = await this.applicationRepository.findById(applicationId);
+      if (!application) {
+        return { 
+          success: false, 
+          message: 'Application not found' 
+        };
+      }
+
+      const applicationData = {
+        _id: application._id,
+        email: application.email,
+        status: application.status,
+        stepsCompleted: application.stepsCompleted,
+        personal: application.personal || {},
+        identity: application.identity || {},
+        skills: application.skills || {},
+        availability: application.availability || {},
+        bank: application.bank || {},
+        documents: application.documents || {},
+        agreement: application.agreement,
+        submittedAt: application.submittedAt,
+        reviewNotes: application.reviewNotes,
+        createdAt: application.createdAt,
+        updatedAt: application.updatedAt
+      };
+
+      return {
+        success: true,
+        message: 'Application retrieved successfully',
+        data: { application: applicationData }
+      };
+    } catch (error) {
+      console.error('Get application error:', error);
+      return {
+        success: false,
+        message: 'Failed to retrieve application',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  async submitApplication(applicationId: string, userId: string): Promise<ApplicationResponse> {
+    try {
+      const application = await this.applicationRepository.findById(applicationId);
+      if (!application) {
+        return { 
+          success: false, 
+          message: 'Application not found' 
+        };
+      }
+
+      // Ownership validation
+      if (!application.technicianId || application.technicianId.toString() !== userId) {
+        return { 
+          success: false, 
+          message: 'Access denied - application does not belong to current user' 
+        };
+      }
+
+      // Check if application already submitted
+      if (application.status !== 'draft') {
+        return { 
+          success: false, 
+          message: 'Application has already been submitted' 
+        };
+      }
+
+      // Validate all required steps are completed
+      const requiredSteps = [
+        'Personal Information',
+        'Identity & Verification',
+        'Skills & Services',
+        'Availability & Work Preferences',
+        'Banking Details',
+        'Documents',
+        'Agreement & Consent',
+      ];
+
+      const missingSteps = requiredSteps.filter(step => 
+        !application.stepsCompleted.includes(step)
+      );
+
+      if (missingSteps.length > 0) {
+        return {
+          success: false,
+          message: 'Please complete all steps before submitting',
+          missingSteps
+        };
+      }
+
+      // Update user
+      const user = await this.userRepository.updateApplicationStatus(userId, 'submitted');
+      if (!user) {
+        return { 
+          success: false, 
+          message: 'User not found' 
+        };
+      }
+
+      // Update user email if different
+      if (application.email && user.email !== application.email) {
+        await this.userRepository.update(userId, { email: application.email });
+      }
+
+      // Update user role if needed
+      if (user.role !== 'serviceProvider') {
+        await this.userRepository.updateRole(userId, 'serviceProvider');
+      }
+
+      // Create or update technician record
+      let technician = await this.technicianRepository.findByUserId(userId);
+      
+      if (!technician) {
+        technician = await this.technicianRepository.create({
+          userId: new Types.ObjectId(userId),
+          displayName: application.personal?.fullName || 'Technician',
+          bio: application.skills?.bio || '',
+          experienceYears: parseInt(application.skills?.yearsOfExperience) || 0,
+          services: application.skills?.services || [],
+          serviceRates: {},
+          workAreas: application.skills?.serviceAreas || [],
+          serviceRadiusKm: parseInt(application.skills?.workRadius) || 10,
+          currentLocation: {
+            type: 'Point',
+            coordinates: [0, 0]
+          },
+          averageRating: 0,
+          ratingCount: 0,
+          status: 'submitted',
+          profilePictureUrl: application.documents?.passportPhoto?.url || '',
+        });
+      } else {
+        await this.technicianRepository.updateByUserId(userId, {
+          displayName: application.personal?.fullName || technician.displayName,
+          bio: application.skills?.bio || technician.bio,
+          experienceYears: parseInt(application.skills?.yearsOfExperience) || technician.experienceYears,
+          services: application.skills?.services || technician.services,
+          workAreas: application.skills?.serviceAreas || technician.workAreas,
+          serviceRadiusKm: parseInt(application.skills?.workRadius) || technician.serviceRadiusKm,
+          profilePictureUrl: application.documents?.passportPhoto?.url || technician.profilePictureUrl,
+          status: 'submitted',
+        });
+      }
+
+      // Update application status
+      await this.applicationRepository.update(applicationId, {
+        status: 'submitted',
+        submittedAt: new Date()
+      });
+
+      return {
+        success: true,
+        message: 'Application submitted successfully',
+        data: { 
+          applicationId: application._id.toString()
+        }
+      };
+
+    } catch (error) {
+      console.error('Submit application error:', error);
+      return {
+        success: false,
+        message: 'Failed to submit application',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  async getApplicationStatus(applicationId: string): Promise<ApplicationResponse> {
+    try {
+      const application = await this.applicationRepository.findById(applicationId);
+      if (!application) {
+        return { 
+          success: false, 
+          message: 'Application not found' 
+        };
+      }
+
+      const applicationData = {
+        ...application.toObject(),
+        documents: application.documents || {}
+      };
+
+      return {
+        success: true,
+        message: 'Application status retrieved successfully',
+        data: { application: applicationData }
+      };
+    } catch (error) {
+      console.error('Get application status error:', error);
+      return {
+        success: false,
+        message: 'Failed to get application status',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  async getUserApplications(userId: string): Promise<ApplicationResponse> {
+    try {
+      const applications = await this.applicationRepository.findByTechnicianId(userId);
+
+      return {
+        success: true,
+        message: 'User applications retrieved successfully',
+        data: { applications }
+      };
+    } catch (error) {
+      console.error('Get user applications error:', error);
+      return {
+        success: false,
+        message: 'Failed to retrieve user applications',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+}

@@ -56,39 +56,40 @@ export const PendingApplicationProfile: React.FC = () => {
   const { token } = useAuth()
 
   useEffect(() => {
-    const fetchApplicationDetails = async () => {
-      try {
-        setLoading(true)
-        const response = await api.get(
-          `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        )
-        
-        // Handle different response structures
-        const applicationData = response.data.data?.application || 
-                               response.data.application || 
-                               response.data.data ||
-                               response.data;
-        
-        console.log('Application data:', applicationData); // Debug log
-        console.log('Documents data:', applicationData?.documents); // Debug documents
-        setApplication(applicationData);
-        
-      } catch (error) {
-        console.error('Error fetching application details:', error)
-      } finally {
-        setLoading(false)
-      }
+  const fetchApplicationDetails = async () => {
+    try {
+      setLoading(true)
+      
+      // ✅ FIXED: Use the correct admin endpoint
+      const response = await api.get(
+        `/admin/technicians/applications/${applicationId}`
+      )
+      
+      console.log('📦 Full API Response:', response.data); // Debug the full response
+      
+      // Handle different response structures
+      const applicationData = response.data.data?.application || 
+                             response.data.data?.applications?.[0] || // Handle array format
+                             response.data.application || 
+                             response.data.data ||
+                             response.data;
+      
+      console.log('📄 Application data:', applicationData); 
+      console.log('📑 Documents data:', applicationData?.documents);
+      
+      setApplication(applicationData);
+      
+    } catch (error) {
+      console.error('❌ Error fetching application details:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    if (applicationId) {
-      fetchApplicationDetails()
-    }
-  }, [applicationId, token])
+  if (applicationId) {
+    fetchApplicationDetails()
+  }
+}, [applicationId, token])
 
   // Function to get profile picture URL from documents
   const getProfilePictureUrl = () => {

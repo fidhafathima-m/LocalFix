@@ -445,7 +445,6 @@ const handleDeleteUser = async (userId: string) => {
             )
             setSelectedUser(updatedUser)
             setIsModalOpen(false)
-            toast.success("User updated successfully!")
           }}
         />
       )}

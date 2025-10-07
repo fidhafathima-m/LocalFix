@@ -10,11 +10,10 @@ import {
   CheckCircleOutlined
 } from '@mui/icons-material'
 import Search from '../components/Search'
-import { useAuth } from '../../../context/AuthContext'
-import api from '../../../utils/axiosConfig'
 import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import toast from 'react-hot-toast'
+import { approveApplication, fetchPendingApplications, fetchTechnicians, rejectApplication, updateTechnicianStatus } from '../api/technicianApi'
 
 interface Technician {
   _id: string
@@ -67,49 +66,39 @@ export const TechnicianManagement: React.FC = () => {
   const [technicians, setTechnicians] = useState<Technician[]>([])
   const [applications, setApplications] = useState<TechnicianApplication[]>([])
   const [loading, setLoading] = useState(true)
-  const { token } = useAuth()
 
   // Fetch technicians and applications
   // Fetch technicians and applications
 useEffect(() => {
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      
-      console.log('🔍 Fetching from:', {
-        technicians: `${import.meta.env.VITE_BASE_URL}/technicians`,
-        applications: `${import.meta.env.VITE_BASE_URL}/technicians/applications/pending`
-      })
-      
-      const [techResponse, appsResponse] = await Promise.all([
-        api.get(`${import.meta.env.VITE_BASE_URL}/technicians`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        api.get(`${import.meta.env.VITE_BASE_URL}/technicians/applications/pending`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ])
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        console.log('🔍 Fetching technicians and applications...');
+        
+        const [techniciansData, applicationsData] = await Promise.all([
+          fetchTechnicians(),
+          fetchPendingApplications()
+        ]);
 
-      console.log('✅ Technicians response:', techResponse.data)
-      console.log('✅ Applications response:', appsResponse.data)
+        console.log('✅ Technicians data:', techniciansData);
+        console.log('✅ Applications data:', applicationsData);
 
-      const techniciansData = techResponse.data.data?.technicians || techResponse.data.technicians || techResponse.data || []
-      const applicationsData = appsResponse.data.data?.applications || appsResponse.data.applications || appsResponse.data || []
+        setTechnicians(Array.isArray(techniciansData) ? techniciansData : []);
+        setApplications(Array.isArray(applicationsData) ? applicationsData : []);
+        
+      } catch (error) {
+        console.error('❌ Error fetching data:', error);
+        setTechnicians([]);
+        setApplications([]);
+        toast.error('Failed to load technician data');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      setTechnicians(Array.isArray(techniciansData) ? techniciansData : [])
-      setApplications(Array.isArray(applicationsData) ? applicationsData : [])
-      
-    } catch (error) {
-      console.error('❌ Error fetching data:', error)
-      setTechnicians([])
-      setApplications([])
-    } finally {
-      setLoading(false)
-    }
-  }     
-
-  fetchData()
-}, [token])
+    fetchData();
+  }, []);
 
   // Count calculations based on real data
   const allTechnicians = technicians.length
@@ -219,48 +208,30 @@ const filteredTechnicians = technicians.filter(tech => {
       cancelButtonColor: '#6B7280',
       confirmButtonText: 'Yes, Approve!',
       cancelButtonText: 'Cancel',
-      reverseButtons: true,
-      background: '#ffffff',
-      iconColor: '#10B981'
-    })
+    });
 
     if (result.isConfirmed) {
-      const approvePromise = api.patch(
-        `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/approve`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-
-      toast.promise(
-        approvePromise,
-        {
-          loading: `Approving ${applicantName}'s application...`,
-          success: () => {
-            // Refresh data after success
-            setTimeout(() => {
-              window.location.reload()
-            }, 1000)
-            return `Application approved! ${applicantName} is now an active technician.`
-          },
-          error: 'Failed to approve application. Please try again.'
-        },
-        {
-          success: {
-            duration: 4000,
-          },
-          error: {
-            duration: 4000,
-          }
-        }
-      )
+      try {
+        await approveApplication(applicationId);
+        toast.success(`Application approved! ${applicantName} is now an active technician.`);
+        
+        // Refresh data
+        const [updatedTechnicians, updatedApplications] = await Promise.all([
+          fetchTechnicians(),
+          fetchPendingApplications()
+        ]);
+        
+        setTechnicians(updatedTechnicians);
+        setApplications(updatedApplications);
+        
+      } catch (error) {
+        console.error('Error approving application:', error);
+        toast.error('Failed to approve application. Please try again.');
+      }
     }
-  }
+  };
 
-  // Handle application rejection with confirmation
+  // Updated rejection function
   const handleRejectApplication = async (applicationId: string, applicantName: string) => {
     const { value: reason } = await Swal.fire({
       title: 'Reject Application?',
@@ -269,124 +240,71 @@ const filteredTechnicians = technicians.filter(tech => {
       input: 'textarea',
       inputLabel: 'Rejection Reason',
       inputPlaceholder: 'Enter the reason for rejection...',
-      inputAttributes: {
-        'aria-label': 'Enter the reason for rejection'
-      },
       showCancelButton: true,
       confirmButtonColor: '#EF4444',
       cancelButtonColor: '#6B7280',
       confirmButtonText: 'Reject Application',
       cancelButtonText: 'Cancel',
-      reverseButtons: true,
-      background: '#ffffff',
       inputValidator: (value) => {
-        if (!value) {
-          return 'Please provide a rejection reason!'
-        }
-        if (value.length < 10) {
-          return 'Reason must be at least 10 characters long'
-        }
+        if (!value) return 'Please provide a rejection reason!';
+        if (value.length < 10) return 'Reason must be at least 10 characters long';
       }
-    })
+    });
 
     if (reason) {
-      const rejectPromise = api.patch(
-        `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}/reject`,
-        { rejectionReason: reason },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-
-      toast.promise(
-        rejectPromise,
-        {
-          loading: `Rejecting ${applicantName}'s application...`,
-          success: () => {
-            // Refresh data after success
-            setTimeout(() => {
-              window.location.reload()
-            }, 1000)
-            return `Application rejected. ${applicantName} has been notified.`
-          },
-          error: 'Failed to reject application. Please try again.'
-        },
-        {
-          success: {
-            duration: 4000,
-          },
-          error: {
-            duration: 4000,
-          }
-        }
-      )
+      try {
+        await rejectApplication(applicationId, reason);
+        toast.success(`Application rejected. ${applicantName} has been notified.`);
+        
+        // Refresh data
+        const updatedApplications = await fetchPendingApplications();
+        setApplications(updatedApplications);
+        
+      } catch (error) {
+        console.error('Error rejecting application:', error);
+        toast.error('Failed to reject application. Please try again.');
+      }
     }
-  }
+  };
 
-  // Handle technician status change with confirmation
+  // Updated status change function
   const handleStatusChange = async (technicianId: string, newStatus: string, technicianName: string) => {
-    const action = newStatus === 'suspended' ? 'suspend' : 'activate'
-    const actionTitle = newStatus === 'suspended' ? 'Suspend Technician?' : 'Activate Technician?'
+    const action = newStatus === 'suspended' ? 'suspend' : 'activate';
+    const actionTitle = newStatus === 'suspended' ? 'Suspend Technician?' : 'Activate Technician?';
     const actionText = newStatus === 'suspended' 
       ? `Are you sure you want to suspend ${technicianName}? They will not be able to accept new jobs.`
-      : `Are you sure you want to activate ${technicianName}? They will be able to accept new jobs.`
-    const confirmColor = newStatus === 'suspended' ? '#EF4444' : '#10B981'
-    const confirmText = newStatus === 'suspended' ? 'Yes, Suspend!' : 'Yes, Activate!'
+      : `Are you sure you want to activate ${technicianName}? They will be able to accept new jobs.`;
 
     const result = await Swal.fire({
       title: actionTitle,
       html: actionText,
       icon: newStatus === 'suspended' ? 'warning' : 'question',
       showCancelButton: true,
-      confirmButtonColor: confirmColor,
+      confirmButtonColor: newStatus === 'suspended' ? '#EF4444' : '#10B981',
       cancelButtonColor: '#6B7280',
-      confirmButtonText: confirmText,
-      cancelButtonText: 'Cancel',
-      reverseButtons: true,
-      background: '#ffffff'
-    })
+      confirmButtonText: newStatus === 'suspended' ? 'Yes, Suspend!' : 'Yes, Activate!',
+    });
 
     if (result.isConfirmed) {
-      const statusPromise = api.patch(
-        `${import.meta.env.VITE_BASE_URL}/technicians/${technicianId}/status`,
-        { status: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-
-      const successMessage = newStatus === 'suspended' 
-        ? `${technicianName} has been suspended successfully.`
-        : `${technicianName} has been activated successfully.`
-
-      toast.promise(
-        statusPromise,
-        {
-          loading: `${action === 'suspend' ? 'Suspending' : 'Activating'} ${technicianName}...`,
-          success: () => {
-            // Refresh data after success
-            setTimeout(() => {
-              window.location.reload()
-            }, 1000)
-            return successMessage
-          },
-          error: `Failed to ${action} technician. Please try again.`
-        },
-        {
-          success: {
-            duration: 3000,
-          },
-          error: {
-            duration: 3000,
-          }
-        }
-      )
+      try {
+        await updateTechnicianStatus(technicianId, newStatus);
+        
+        const successMessage = newStatus === 'suspended' 
+          ? `${technicianName} has been suspended successfully.`
+          : `${technicianName} has been activated successfully.`;
+        
+        toast.success(successMessage);
+        
+        // Refresh technicians data
+        const updatedTechnicians = await fetchTechnicians();
+        setTechnicians(updatedTechnicians);
+        
+      } catch (error) {
+        console.error('Error updating technician status:', error);
+        toast.error(`Failed to ${action} technician. Please try again.`);
+      }
     }
-  }
+  };
 
   if (loading) {
     return (

@@ -4,9 +4,9 @@ import { AdminSidebar } from '../components/AdminSidebar'
 import { TechnicianProfileHeader } from '../components/technicianManagement/TechnicianProfileHeader'
 import { TechnicianProfileTabs } from '../components/technicianManagement/TechnicianProfileTabs'
 import { AdminActions } from '../components/technicianManagement/AdminActions'
-import { useAuth } from '../../../context/AuthContext'
-import api from '../../../utils/axiosConfig'
+import { fetchTechnicianById } from '../api/technicianApi'
 
+// In your TechnicianProfile.tsx - Update the interface
 interface TechnicianDetails {
   _id: string
   userId: string
@@ -65,7 +65,7 @@ export const TechnicianProfile: React.FC = () => {
   const location = useLocation()
   const [technician, setTechnician] = useState<TechnicianDetails | null>(null)
   const [loading, setLoading] = useState(true)
-  const { token } = useAuth()
+  const [error, setError] = useState<string | null>(null)
 
   // Determine active tab from URL
   const getActiveTab = () => {
@@ -89,18 +89,21 @@ export const TechnicianProfile: React.FC = () => {
   const fetchTechnicianDetails = async () => {
     try {
       setLoading(true)
-      const response = await api.get(
-        `${import.meta.env.VITE_BASE_URL}/technicians/${technicianId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
+      setError(null)
       
-      setTechnician(response.data.data?.technician || response.data.technician)
+      if (!technicianId) {
+        throw new Error('Technician ID is required')
+      }
+      
+      console.log('🔍 Fetching technician details for ID:', technicianId);
+      const technicianData = await fetchTechnicianById(technicianId)
+      
+      console.log('✅ Technician details fetched:', technicianData)
+      setTechnician(technicianData)
     } catch (error) {
-      console.error('Error fetching technician details:', error)
+      console.error('❌ Error fetching technician details:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load technician details')
+      setTechnician(null)
     } finally {
       setLoading(false)
     }
@@ -110,7 +113,26 @@ export const TechnicianProfile: React.FC = () => {
     if (technicianId) {
       fetchTechnicianDetails()
     }
-  }, [technicianId, token])
+  }, [technicianId])
+
+  if (error && !loading) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <AdminSidebar activePage="Technicians" />
+        <div className="flex-1 overflow-y-auto ml-[240px] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button 
+              onClick={fetchTechnicianDetails}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
