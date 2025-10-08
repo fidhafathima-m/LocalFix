@@ -329,58 +329,53 @@ private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminT
   return adminTechnician;
 }
 
-  async updateTechnicianStatus(id: string, statusData: UpdateStatusRequest): Promise<TechnicianListResponse> {
-    try {
-      const { status } = statusData;
+  async updateTechnicianStatus(id: string, statusData: UpdateStatusRequest): Promise<SingleTechnicianResponse> { // ✅ Change return type
+  try {
+    const { status } = statusData;
 
-      if (!status || !['approved', 'suspended', 'rejected'].includes(status)) {
-        return {
-          success: false,
-          message: 'Valid status is required (approved, suspended, rejected)'
-        };
-      }
-
-      const technician = await this.technicianRepository.updateTechnicianStatus(id, status);
-
-      if (!technician) {
-        return {
-          success: false,
-          message: 'Technician not found'
-        };
-      }
-
-       const adminTechnician = await this.convertToAdminTechnician(technician);
-
-      // If approving a technician, also update their application status
-      if (status === 'approved') {
-        await this.technicianRepository.updateApplicationStatus(
-          id,
-          'approved'
-        );
-      }
-
-      return {
-        success: true,
-        message: `Technician status updated to ${status}`,
-        data: {
-          technicians: [adminTechnician],
-          pagination: {
-            page: 0,
-            limit: 0,
-            total: 0,
-            pages: 0
-          }
-        }
-      };
-    } catch (error) {
-      console.error('Update technician status error:', error);
+    if (!status || !['approved', 'suspended', 'rejected'].includes(status)) {
       return {
         success: false,
-        message: 'Failed to update technician status',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Valid status is required (approved, suspended, rejected)'
       };
     }
+
+    const technician = await this.technicianRepository.updateTechnicianStatus(id, status);
+
+    if (!technician) {
+      return {
+        success: false,
+        message: 'Technician not found'
+      };
+    }
+
+    const adminTechnician = await this.convertToAdminTechnician(technician);
+
+    // If approving a technician, also update their application status
+    if (status === 'approved') {
+      await this.technicianRepository.updateApplicationStatus(
+        id,
+        'approved'
+      );
+    }
+
+    // ✅ FIXED: Return single technician response
+    return {
+      success: true,
+      message: `Technician status updated to ${status}`,
+      data: {
+        technician: adminTechnician // ✅ Single technician object
+      }
+    };
+  } catch (error) {
+    console.error('Update technician status error:', error);
+    return {
+      success: false,
+      message: 'Failed to update technician status',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
+}
 
   async getTechnicianStats(): Promise<TechnicianStatsResponse> {
     try {
