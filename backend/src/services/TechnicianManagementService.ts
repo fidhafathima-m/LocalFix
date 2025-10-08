@@ -15,6 +15,7 @@ import {
   ApplicationFilters
 } from '../interfaces/admin/ITechnicianManagement';
 import { Types } from 'mongoose';
+import { Technician } from '../models/technician/TechnicianSchema';
 
 export class TechnicianManagementService {
   private technicianRepository: TechnicianManagementRepository;
@@ -171,33 +172,15 @@ async getTechnicianById(id: string): Promise<SingleTechnicianResponse> {
 }
 
 private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminTechnician> {
-  console.log('=== DEBUG convertToAdminTechnician START ===');
   
   // Get user data
   const user = await this.technicianRepository.findUserById(technician.userId as Types.ObjectId);
-  console.log('👤 User data:', user);
-  
-  // Get user address
-  const userAddress = await this.technicianRepository.findUserAddress(technician.userId as Types.ObjectId);
-  console.log('🏠 User address:', userAddress);
   
   // Get technician's application data for personal info
   const application = await this.technicianRepository.findApplicationByTechnicianId(technician._id.toString());
-  console.log('📄 Application data:', application);
-  console.log('📄 Application personal data:', application?.personal);
-  console.log('📄 Application documents:', application?.documents);
-
-  console.log('🔍 Application personal field:', application?.personal);
-  console.log('🔍 Application personal field type:', typeof application?.personal);
-  console.log('🔍 Application personal keys:', application?.personal ? Object.keys(application.personal) : 'No personal data');
-
-  if (application?.personal) {
-    console.log('🔍 gender in application:', application.personal.gender);
-    console.log('🔍 phoneNumber in application:', application.personal.phoneNumber);
-    console.log('🔍 dateOfBirth in application:', application.personal.dateOfBirth);
-    console.log('🔍 address in application:', application.personal.address);
-    console.log('🔍 languages in application:', application.personal.languages);
-  }
+  
+  // ✅ FIXED: Get address from UserAddress collection
+  const userAddress = await this.technicianRepository.findUserAddress(technician.userId as Types.ObjectId);
 
   // Map status from technician schema to admin schema
   const mapStatus = (status: string): 'pending' | 'approved' | 'rejected' | 'suspended' => {
@@ -216,63 +199,100 @@ private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminT
     }
   };
 
-  const getPersonalInfo = (technician: ITechnician, application?: any) => {
-  // ✅ PRIORITY 1: Use technician's personalInfo if available
-  if (technician.personalInfo) {
-    console.log('✅ Using technician personalInfo');
-    return {
-      fullName: technician.personalInfo.fullName || technician.displayName,
-      gender: technician.personalInfo.gender || 'Not specified',
-      phoneNumber: technician.personalInfo.phoneNumber || technician.phone || 'Not provided',
-      dateOfBirth: technician.personalInfo.dateOfBirth || 'Not specified',
-      languages: technician.personalInfo.languages || [],
-      address: technician.personalInfo.address ? {
+  // ✅ FIXED: Better personal info extraction that includes address from UserAddress
+  const getPersonalInfo = (technician: ITechnician, application?: any, userAddress?: any) => {
+    // Check if technician personalInfo has real data (not just fallbacks)
+    const hasRealTechnicianData = technician.personalInfo && 
+      (technician.personalInfo.gender !== 'Not specified' || 
+       technician.personalInfo.phoneNumber !== 'Not provided' ||
+       technician.personalInfo.dateOfBirth !== 'Not specified');
+
+    // Use technician data if it has real values, otherwise use application data
+    let personalInfo: any;
+    
+    if (hasRealTechnicianData) {
+      personalInfo = {
+        fullName: technician.personalInfo?.fullName || technician.displayName,
+        gender: technician.personalInfo?.gender,
+        phoneNumber: technician.personalInfo?.phoneNumber || technician.phone,
+        dateOfBirth: technician.personalInfo?.dateOfBirth,
+        languages: technician.personalInfo?.languages || [],
+      };
+    } else if (application?.personal) {
+      const appPersonal = application.personal;
+      personalInfo = {
+        fullName: appPersonal.fullName || technician.displayName,
+        gender: appPersonal.gender || 'Not specified',
+        phoneNumber: appPersonal.phoneNumber || technician.phone || 'Not provided',
+        dateOfBirth: appPersonal.dateOfBirth || 'Not specified',
+        languages: appPersonal.languages || [],
+      };
+    } else {
+      personalInfo = {
+        fullName: technician.displayName,
+        gender: 'Not specified',
+        phoneNumber: technician.phone || 'Not provided',
+        dateOfBirth: 'Not specified',
+        languages: [],
+      };
+    }
+
+    // ✅ ADD ADDRESS FROM USERADDRESS COLLECTION
+    if (userAddress) {
+      personalInfo.address = {
+        street: userAddress.street || 'Not specified',
+        city: userAddress.city || 'Not specified',
+        state: userAddress.state || 'Not specified',
+        pincode: userAddress.pincode || 'Not specified'
+      };
+    } else if (technician.personalInfo?.address) {
+      personalInfo.address = {
         street: technician.personalInfo.address.street || 'Not specified',
         city: technician.personalInfo.address.city || 'Not specified',
         state: technician.personalInfo.address.state || 'Not specified',
         pincode: technician.personalInfo.address.pincode || 'Not specified'
-      } : undefined
-    };
-  }
-  
-  // ✅ PRIORITY 2: Use application personal data
-  if (application?.personal) {
-    console.log('✅ Using application personal data');
-    return {
-      fullName: application.personal.fullName || technician.displayName,
-      gender: application.personal.gender || 'Not specified',
-      phoneNumber: application.personal.phoneNumber || technician.phone || 'Not provided',
-      dateOfBirth: application.personal.dateOfBirth || 'Not specified',
-      languages: application.personal.languages || [],
-      address: application.personal.address ? {
+      };
+    } else if (application?.personal?.address) {
+      personalInfo.address = {
         street: application.personal.address.street || 'Not specified',
         city: application.personal.address.city || 'Not specified',
         state: application.personal.address.state || 'Not specified',
         pincode: application.personal.address.pincode || 'Not specified'
-      } : undefined
-    };
-  }
-  
-  // ✅ FALLBACK: Use basic technician data
-  console.log('✅ Using fallback technician data');
-  return {
-    fullName: technician.displayName,
-    gender: 'Not specified',
-    phoneNumber: technician.phone || 'Not provided',
-    dateOfBirth: 'Not specified',
-    languages: [],
-    address: undefined
+      };
+    } else {
+      personalInfo.address = undefined;
+    }
+
+    return personalInfo;
   };
-};
 
   // Format personal information
-  const personalInfo = getPersonalInfo(technician, application)
+  const personalInfo = getPersonalInfo(technician, application, userAddress);
 
-  console.log('🔍 Formatted personalInfo:', personalInfo);
+  // ✅ FIXED: Better document handling
+  const getDocuments = (technician: ITechnician, application?: any) => {
+    
+    // Always prefer application documents for approved technicians
+    if (application?.documents) {
+      const formattedDocs = this.formatApplicationDocuments(application.documents);
+      return formattedDocs;
+    }
+    
+    // Fallback for profile picture
+    const fallbackDocs: any = {};
+    if (technician.profilePictureUrl) {
+      fallbackDocs.profilePhoto = {
+        url: technician.profilePictureUrl,
+        verified: true,
+        type: 'profilePhoto'
+      };
+    }
+    
+    return fallbackDocs;
+  };
 
   // Format documents
-  const documents = application ? this.formatApplicationDocuments(application.documents) : {};
-  console.log('📑 Formatted documents:', documents);
+  const documents = getDocuments(technician, application);
 
   // Create the admin technician view
   const adminTechnician: IAdminTechnician = {
@@ -280,7 +300,7 @@ private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminT
     userId: technician.userId,
     displayName: technician.displayName,
     email: user?.email || '',
-    phone: user?.phone || '',
+    phone: user?.phone || technician.phone || '',
     services: technician.services,
     experienceYears: technician.experienceYears,
     workAreas: technician.workAreas,
@@ -292,7 +312,7 @@ private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminT
     completedJobs: 0,
     ongoingJobs: 0,
     totalEarnings: 0,
-    profilePictureUrl: application?.documents?.passportPhoto?.url || technician.profilePictureUrl,
+    profilePictureUrl: technician.profilePictureUrl,
     createdAt: technician.createdAt,
     updatedAt: technician.updatedAt,
     user: user ? {
@@ -301,15 +321,14 @@ private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminT
       fullName: user.fullName || technician.displayName,
       createdAt: user.createdAt
     } : undefined,
-    personalInfo: personalInfo ,
+    personalInfo: personalInfo,
+    documents: documents,
     availability: undefined
   };
 
-  console.log('✅ Final adminTechnician:', adminTechnician);
-  console.log('=== DEBUG convertToAdminTechnician END ===');
-
   return adminTechnician;
 }
+
   async updateTechnicianStatus(id: string, statusData: UpdateStatusRequest): Promise<TechnicianListResponse> {
     try {
       const { status } = statusData;

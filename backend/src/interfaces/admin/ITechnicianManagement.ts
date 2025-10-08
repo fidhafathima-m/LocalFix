@@ -32,7 +32,7 @@ export interface IAdminTechnician {
   personalInfo?: {
     fullName: string;
     gender?: string;
-    phoneNumber?: string; // Make this optional
+    phoneNumber?: string;
     dateOfBirth?: string;
     languages?: string[];
     address?: {
@@ -41,6 +41,12 @@ export interface IAdminTechnician {
       state: string;
       pincode: string;
     };
+  };
+  documents?: { // ✅ ADD THIS
+    aadhaarCard?: { url: string; verified: boolean };
+    panCard?: { url: string; verified: boolean };
+    drivingLicense?: { url: string; verified: boolean };
+    [key: string]: any;
   };
   availability?: any;
 }

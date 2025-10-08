@@ -1,3 +1,5 @@
+// src/interfaces/technician/ITechnician.ts
+
 import { Types } from 'mongoose';
 
 export interface IGeoPoint {

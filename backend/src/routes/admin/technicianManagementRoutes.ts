@@ -24,4 +24,5 @@ router.get('/applications/:id', protect, admin, technicianManagement.getApplicat
 router.patch('/applications/:id/approve', protect, admin, technicianManagement.approveApplication); // PATCH /api/technicians/applications/:id/approve
 router.patch('/applications/:id/reject', protect, admin, technicianManagement.rejectApplication); // PATCH /api/technicians/applications/:id/reject
 
+
 export default router;

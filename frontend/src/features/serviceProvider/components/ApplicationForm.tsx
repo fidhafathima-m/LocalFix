@@ -606,36 +606,51 @@ const handleNext = async () => {
 
   const currentStepFields = stepFields[stepName] || [];
   
-  // In your frontend handleNext function, update the file handling:
-currentStepFields.forEach((field) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let value = (formData as any)[field];
-  
-  if (value !== null && value !== undefined) {
-    // Special handling for agreement field - send as boolean, not string
-    if (field === "agreement") {
-      stepForm.append(field, value ? "true" : "false");
-    } 
-    // Handle availability object
-    else if (field === "availability" && typeof value === "object") {
-      value = JSON.stringify(value);
-      stepForm.append(field, value);
-    } 
-    // Handle arrays
-    else if (Array.isArray(value)) {
-      value = JSON.stringify(value);
-      stepForm.append(field, value);
+  // ✅ FIXED: Better handling for different field types
+  currentStepFields.forEach((field) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let value = (formData as any)[field];
+    
+    console.log(`🔍 Processing field: ${field}, value:`, value); // Debug log
+    
+    if (value !== null && value !== undefined) {
+      // Special handling for agreement field - send as boolean, not string
+      if (field === "agreement") {
+        stepForm.append(field, value ? "true" : "false");
+      } 
+      // ✅ FIXED: Handle address object - this is the key fix!
+      else if (field === "address" && typeof value === "object") {
+        // Stringify the address object
+        const addressString = JSON.stringify(value);
+        console.log('📮 Sending address:', addressString); // Debug log
+        stepForm.append(field, addressString);
+      }
+      // Handle availability object
+      else if (field === "availability" && typeof value === "object") {
+        value = JSON.stringify(value);
+        stepForm.append(field, value);
+      } 
+      // Handle arrays
+      else if (Array.isArray(value)) {
+        value = JSON.stringify(value);
+        stepForm.append(field, value);
+      }
+      // Handle files
+      else if (value instanceof File) {
+        stepForm.append(field, value);
+      }
+      // Handle all other values
+      else {
+        stepForm.append(field, String(value));
+      }
     }
-    // Handle files - IMPORTANT: Append files directly
-    else if (value instanceof File) {
-      stepForm.append(field, value); // This should work now
-    }
-    // Handle all other values
-    else {
-      stepForm.append(field, String(value));
-    }
+  });
+
+  // ✅ ADDED: Debug what's being sent
+  console.log('📤 Sending form data for step:', stepName);
+  for (const [key, value] of stepForm.entries()) {
+    console.log(`  ${key}:`, value);
   }
-});
 
   try {
     await api.post(

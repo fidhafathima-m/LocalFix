@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { AdminSidebar } from '../components/AdminSidebar'
@@ -46,10 +47,12 @@ interface TechnicianDetails {
       pincode: string
     }
   }
-  documents?: {
+  documents?: { // ✅ MAKE SURE THIS EXISTS
     aadhaarCard?: { url: string; verified: boolean }
     panCard?: { url: string; verified: boolean }
     drivingLicense?: { url: string; verified: boolean }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
   }
   availability?: {
     isAvailable: boolean
@@ -95,10 +98,8 @@ export const TechnicianProfile: React.FC = () => {
         throw new Error('Technician ID is required')
       }
       
-      console.log('🔍 Fetching technician details for ID:', technicianId);
       const technicianData = await fetchTechnicianById(technicianId)
       
-      console.log('✅ Technician details fetched:', technicianData)
       setTechnician(technicianData)
     } catch (error) {
       console.error('❌ Error fetching technician details:', error)
@@ -256,9 +257,10 @@ export const TechnicianProfile: React.FC = () => {
   )
 }
 // Personal Information Tab Component
+// Personal Information Tab Component
 const PersonalInfoTab: React.FC<{ technician: TechnicianDetails, isSuspended?: boolean }> = ({ technician, isSuspended }) => {
 
-   // Helper function to get phone number from multiple possible sources
+  // Helper function to get phone number from multiple possible sources
   const getPhoneNumber = () => {
     return technician.personalInfo?.phoneNumber || 
            technician.user?.phone || 
@@ -277,6 +279,32 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails, isSuspended?: b
     return addressParts.length > 0 ? addressParts.join(', ') : 'Not specified';
   };
 
+  // ✅ FIXED: Helper to get gender with proper fallback
+  const getGender = () => {
+    return technician.personalInfo?.gender || 'Not specified';
+  };
+
+  // ✅ FIXED: Helper to get date of birth with proper formatting
+  const getDateOfBirth = () => {
+    if (!technician.personalInfo?.dateOfBirth || technician.personalInfo.dateOfBirth === 'Not specified') {
+      return 'Not specified';
+    }
+    
+    try {
+      // Check if it's already a valid date string
+      const date = new Date(technician.personalInfo.dateOfBirth);
+      return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'Not specified';
+    } catch (error) {
+      console.error(error)
+      return 'Not specified';
+    }
+  };
+
+  // ✅ FIXED: Helper to get languages
+  const getLanguages = () => {
+    return technician.personalInfo?.languages || [];
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       {isSuspended && (
@@ -288,26 +316,26 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails, isSuspended?: b
       )}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-medium">Personal Information</h2>
-         {!isSuspended && (
-        <button className="flex items-center text-blue-600 hover:text-blue-800">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-1"
-          >
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-          <span>Edit</span>
-        </button>
-         )}
+        {!isSuspended && (
+          <button className="flex items-center text-blue-600 hover:text-blue-800">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="mr-1"
+            >
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            <span>Edit</span>
+          </button>
+        )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
@@ -336,7 +364,7 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails, isSuspended?: b
           </p>
         </div>
 
-        {/* Gender */}
+        {/* Gender - ✅ FIXED */}
         <div>
           <div className="flex items-center mb-1">
             <svg
@@ -356,10 +384,10 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails, isSuspended?: b
             </svg>
             <p className="text-sm text-gray-500">Gender</p>
           </div>
-          <p className="font-medium">{technician.personalInfo?.gender || 'Not specified'}</p>
+          <p className="font-medium">{getGender()}</p>
         </div>
 
-        {/* Date of Birth */}
+        {/* Date of Birth - ✅ FIXED */}
         <div>
           <div className="flex items-center mb-1">
             <svg
@@ -382,14 +410,11 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails, isSuspended?: b
             <p className="text-sm text-gray-500">Date of Birth</p>
           </div>
           <p className="font-medium">
-            {technician.personalInfo?.dateOfBirth 
-              ? new Date(technician.personalInfo.dateOfBirth).toLocaleDateString()
-              : 'Not specified'
-            }
+            {getDateOfBirth()}
           </p>
         </div>
 
-        {/* Phone Number */}
+        {/* Phone Number - ✅ FIXED */}
         <div>
           <div className="flex items-center mb-1">
             <svg
@@ -434,7 +459,7 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails, isSuspended?: b
           <p className="font-medium">{technician.user?.email || technician.email || 'Not provided'}</p>
         </div>
 
-        {/* Address */}
+        {/* Address - ✅ FIXED */}
         <div>
           <div className="flex items-center mb-1">
             <svg
@@ -455,17 +480,17 @@ const PersonalInfoTab: React.FC<{ technician: TechnicianDetails, isSuspended?: b
             <p className="text-sm text-gray-500">Address</p>
           </div>
           <p className="font-medium">
-            {getFormattedAddress() }
+            {getFormattedAddress()}
           </p>
         </div>
       </div>
 
-      {/* Languages Spoken */}
-      {technician.personalInfo?.languages && technician.personalInfo.languages.length > 0 && (
+      {/* Languages Spoken - ✅ FIXED */}
+      {getLanguages().length > 0 && (
         <div className="mt-8">
           <h3 className="text-base font-medium mb-4">Languages Spoken</h3>
           <div className="flex flex-wrap gap-2">
-            {technician.personalInfo.languages.map((language, index) => (
+            {getLanguages().map((language, index) => (
               <span 
                 key={index}
                 className="px-3 py-1 bg-gray-100 rounded-full text-sm border border-gray-200"
@@ -583,11 +608,18 @@ const ServicesSkillsTab: React.FC<{ technician: TechnicianDetails, isSuspended?:
   )
 }
 
-// Other Tab Components (Verification, Availability, Earnings, Reviews, Bookings)
+// Verification Documents Tab Component
 const VerificationDocumentsTab: React.FC<{ technician: TechnicianDetails, isSuspended?: boolean }> = ({ technician, isSuspended }) => {
+  
+  // ✅ FIXED: Helper to get documents with proper fallback
+  const getDocuments = () => {
+    return technician.documents || {};
+  };
+
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-       {isSuspended && (
+      {isSuspended && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-700 text-sm">
             <strong>Note:</strong> Document verification status is view-only while technician is suspended.
@@ -597,53 +629,57 @@ const VerificationDocumentsTab: React.FC<{ technician: TechnicianDetails, isSusp
       <h2 className="text-lg font-medium mb-6">Verification & Documents</h2>
       <div className="space-y-6">
         {/* Document Status */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="font-medium mb-3">Aadhaar Card</h3>
-            <div className="flex items-center justify-between">
-              <span className={`px-2 py-1 rounded text-xs ${
-                technician.documents?.aadhaarCard?.verified 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {technician.documents?.aadhaarCard?.verified ? 'Verified' : 'Pending'}
-              </span>
-              {technician.documents?.aadhaarCard?.url && (
-                <a 
-                  href={technician.documents.aadhaarCard.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  View Document
-                </a>
-              )}
-            </div>
-          </div>
+        
 
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="font-medium mb-3">PAN Card</h3>
-            <div className="flex items-center justify-between">
-              <span className={`px-2 py-1 rounded text-xs ${
-                technician.documents?.panCard?.verified 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {technician.documents?.panCard?.verified ? 'Verified' : 'Pending'}
-              </span>
-              {technician.documents?.panCard?.url && (
-                <a 
-                  href={technician.documents.panCard.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  View Document
-                </a>
-              )}
+        {/* Show all available documents dynamically */}
+        {Object.keys(getDocuments()).length > 0 && (
+          <div className="border-t pt-6">
+            <h3 className="font-medium mb-4">All Documents</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(getDocuments()).map(([key, doc]: [string, any]) => {
+                if (!doc || typeof doc !== 'object') return null;
+                
+                const documentNames: Record<string, string> = {
+                  aadhaarCard: 'Aadhaar Card',
+                  panCard: 'PAN Card',
+                  drivingLicense: 'Driving License',
+                  profilePhoto: 'Profile Photo',
+                  passportPhoto: 'Passport Photo',
+                  idProof: 'ID Proof',
+                  addressProof: 'Address Proof'
+                };
+
+                const displayName = documentNames[key] || 
+                  key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+                return (
+                  <div key={key} className="border border-gray-200 rounded-lg p-4">
+                    <h4 className="font-medium mb-2">{displayName}</h4>
+                    <div className="flex items-center justify-between">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        doc.verified 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {doc.verified ? 'Verified' : 'Submitted'}
+                      </span>
+                      {doc.url && (
+                        <a 
+                          href={doc.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          View
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Verification Status */}
         <div className="border-t pt-6">

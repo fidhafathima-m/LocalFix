@@ -141,7 +141,7 @@ async findOrCreateTechnician(application: any): Promise<ITechnician> {
     });
 
     if (technician) {
-      // Update existing technician with application data
+      // Update existing technician with REAL application data
       technician = await Technician.findOneAndUpdate(
         { userId: application.technicianId },
         { 
@@ -156,23 +156,22 @@ async findOrCreateTechnician(application: any): Promise<ITechnician> {
             profilePictureUrl: application.documents?.passportPhoto?.url || 
                               application.documents?.profilePhoto?.url || 
                               technician.profilePictureUrl,
-            // ✅ ADD PERSONAL INFO TRANSFER
             phone: application.personal?.phoneNumber || technician.phone,
-            // Store personal info in technician for easy access
-            personalInfo: application.personal ? {
-              fullName: application.personal.fullName,
-              gender: application.personal.gender,
-              phoneNumber: application.personal.phoneNumber,
-              dateOfBirth: application.personal.dateOfBirth,
-              address: application.personal.address,
-              languages: application.personal.languages || []
-            } : technician.personalInfo
+            // ✅ CRITICAL FIX: Transfer ACTUAL application data, not fallbacks
+            personalInfo: {
+              fullName: application.personal?.fullName || technician.personalInfo?.fullName,
+              gender: application.personal?.gender || technician.personalInfo?.gender,
+              phoneNumber: application.personal?.phoneNumber || technician.personalInfo?.phoneNumber,
+              dateOfBirth: application.personal?.dateOfBirth || technician.personalInfo?.dateOfBirth,
+              address: application.personal?.address || technician.personalInfo?.address,
+              languages: application.personal?.languages || technician.personalInfo?.languages || []
+            }
           }
         },
         { new: true }
       );
     } else {
-      // Create new technician with application data
+      // Create new technician with REAL application data
       technician = await Technician.create({
         userId: application.technicianId,
         displayName: application.personal?.fullName || 'Technician',
@@ -184,29 +183,30 @@ async findOrCreateTechnician(application: any): Promise<ITechnician> {
         status: 'approved',
         profilePictureUrl: application.documents?.passportPhoto?.url || 
                           application.documents?.profilePhoto?.url,
-        // ✅ ADD PERSONAL INFO TRANSFER
         phone: application.personal?.phoneNumber,
-        personalInfo: application.personal ? {
-          fullName: application.personal.fullName,
-          gender: application.personal.gender,
-          phoneNumber: application.personal.phoneNumber,
-          dateOfBirth: application.personal.dateOfBirth,
-          address: application.personal.address,
-          languages: application.personal.languages || []
-        } : undefined
+        // ✅ CRITICAL FIX: Transfer ACTUAL application data
+        personalInfo: {
+          fullName: application.personal?.fullName,
+          gender: application.personal?.gender,
+          phoneNumber: application.personal?.phoneNumber,
+          dateOfBirth: application.personal?.dateOfBirth,
+          address: application.personal?.address,
+          languages: application.personal?.languages || []
+        }
       });
     }
 
     if (!technician) {
       throw new Error('Technician could not be found or created');
     }
+
+    console.log('✅ Technician created/updated with personalInfo:', technician.personalInfo);
     return technician;
   } catch (error) {
     console.error('Find or create technician error:', error);
     throw error;
   }
 }
-
   async findTechnicianByApplicationId(applicationId: string): Promise<ITechnician | null> {
     const application = await TechnicianApplication.findById(applicationId);
     if (!application) return null;
@@ -237,12 +237,30 @@ async findApplicationByTechnicianId(technicianId: string): Promise<any> {
   try {
     console.log('🔍 Searching for application by technicianId:', technicianId);
     
+    // Try multiple ways to find the application
     const application = await TechnicianApplication.findOne({ 
       technicianId: new Types.ObjectId(technicianId) 
-    }).lean();
+    })
+    .select('personal skills documents status')
+    .lean();
+    
+    if (!application) {
+      console.log('❌ No application found with technicianId:', technicianId);
+      
+      // Alternative: try to find by user ID if technicianId doesn't work
+      const technician = await Technician.findById(technicianId);
+      if (technician) {
+        console.log('🔍 Trying to find application by userId:', technician.userId);
+        const appByUserId = await TechnicianApplication.findOne({
+          technicianId: technician.userId
+        }).select('personal skills documents status').lean();
+        
+        console.log('🔍 Application found by userId:', !!appByUserId);
+        return appByUserId;
+      }
+    }
     
     console.log('📄 Found application:', application);
-    
     return application;
   } catch (error) {
     console.error('❌ Error finding application by technician ID:', error);
