@@ -81,7 +81,6 @@ export const UserModal: React.FC<UserModalProps> = ({
     
     const updatedUser = await updateUser(user._id, formData);
     
-    console.log('User updated successfully:', updatedUser);
     
     onUserUpdated(updatedUser);
     toast.success("User updated successfully!");

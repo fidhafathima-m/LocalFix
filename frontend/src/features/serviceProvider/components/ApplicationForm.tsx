@@ -155,11 +155,9 @@ const startApplication = async (): Promise<string | null> => {
     const responseData = resp.data.data;
     const newApplicationId = responseData?.applicationId;
     
-    console.log("Start application response:", responseData);
     
     // Handle redirects properly
     if (responseData?.redirectTo) {
-      console.log("Redirecting to:", responseData.redirectTo);
       
       // Only redirect if we're not already on the target page
       const currentPath = window.location.pathname;
@@ -215,8 +213,6 @@ useEffect(() => {
       const applicationUser = localStorage.getItem("currentTechnicianApplication");
       
       if (applicationUser !== user?._id) {
-        // Different user - clear old application data
-        console.log("Clearing previous user's application data");
         localStorage.removeItem("applicationId");
         localStorage.removeItem("currentTechnicianApplication");
         localStorage.removeItem(`techApp-${savedAppId}`);
@@ -238,14 +234,12 @@ useEffect(() => {
           // FIXED: Redirect based on status - only if NOT on application page
           if ((appData.status === 'submitted' || appData.status === 'under_review') && 
               !window.location.pathname.includes('/application')) {
-            console.log("Application already submitted, redirecting to pending dashboard");
             window.location.href = '/pending-technician/dashboard';
             return;
           }
           
           // If application is approved, redirect to technician dashboard
           if (appData.status === 'approved' && !window.location.pathname.includes('/application')) {
-            console.log("Application approved, redirecting to technician dashboard");
             window.location.href = '/technician/dashboard';
             return;
           }
@@ -268,11 +262,8 @@ useEffect(() => {
     if (!applicationId) return;
 
     try {
-      console.log("Fetching application with ID:", applicationId);
       const resp = await api.get(
         `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`);
-
-      console.log("Fetched application:", resp.data);
       
       const application = resp.data.data?.application || resp.data.application;
       
@@ -370,7 +361,6 @@ useEffect(() => {
         };
       }
       
-      console.log("Loaded availability:", parsedData.availability);
       setFormData(parsedData);
     }
   }
@@ -483,7 +473,6 @@ const handleInputChange = (
 
   
  const handleFileChange = (field: string) => (file: File | null) => {
-  console.log(`handleFileChange: Setting ${field} to:`, file?.name);
   setFormData((prev) => ({
     ...prev,
     [field]: file,
@@ -578,7 +567,6 @@ const handleInputChange = (
 const handleNext = async () => {
   const stepErrors = validateStepFields(currentStep);
 
-  console.log(`Current step: ${currentStep}, Errors:`, stepErrors);
   
   if (Object.keys(stepErrors).length > 0) {
     setErrors(stepErrors);
@@ -611,18 +599,15 @@ const handleNext = async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let value = (formData as any)[field];
     
-    console.log(`🔍 Processing field: ${field}, value:`, value); // Debug log
     
     if (value !== null && value !== undefined) {
       // Special handling for agreement field - send as boolean, not string
       if (field === "agreement") {
         stepForm.append(field, value ? "true" : "false");
       } 
-      // ✅ FIXED: Handle address object - this is the key fix!
       else if (field === "address" && typeof value === "object") {
         // Stringify the address object
         const addressString = JSON.stringify(value);
-        console.log('📮 Sending address:', addressString); // Debug log
         stepForm.append(field, addressString);
       }
       // Handle availability object
@@ -645,12 +630,6 @@ const handleNext = async () => {
       }
     }
   });
-
-  // ✅ ADDED: Debug what's being sent
-  console.log('📤 Sending form data for step:', stepName);
-  for (const [key, value] of stepForm.entries()) {
-    console.log(`  ${key}:`, value);
-  }
 
   try {
     await api.post(
@@ -688,39 +667,32 @@ const handleNext = async () => {
   }
 // In your ApplicationForm.tsx - fix the handleSubmit function
 const handleSubmit = async () => {
-  console.log("🔐 Debug - User:", user?._id);
-  console.log("🔐 Debug - Token exists:", !!token);
-  console.log("🔐 Debug - Application ID:", applicationId);
 
   // Get token directly from localStorage to ensure it's current
   const currentToken = localStorage.getItem('token');
-  console.log("🔐 Current token from localStorage:", currentToken ? "Exists" : "Missing");
 
   if (!currentToken) {
-    console.error("🔐 No token found in localStorage");
+    console.error("No token found in localStorage");
     alert("Your session has expired. Please log in again.");
     window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
     return;
   }
 
   if (!user?._id) {
-    console.error("🔐 No user data found");
+    console.error("No user data found");
     alert("User information not found. Please log in again.");
     window.location.href = '/technician/login';
     return;
   }
 
   if (!applicationId) {
-    console.error("❌ No application ID found");
+    console.error("No application ID found");
     alert("Application not found. Please start a new application.");
     return;
   }
 
   try {
-    console.log("🚀 Submitting application with ID:", applicationId);
     
-    // Submit the application directly without token verification
-    console.log("📤 Making submit request to backend...");
     const submitResponse = await api.post(
       `${import.meta.env.VITE_BASE_URL}/technician-application/submit`,
       {
@@ -728,7 +700,6 @@ const handleSubmit = async () => {
       }
     );
 
-    console.log("✅ Submit response:", submitResponse.data);
 
     if (submitResponse.status === 200) {
       // Update application status in auth context
@@ -754,7 +725,6 @@ const handleSubmit = async () => {
         const userData = JSON.parse(currentUser);
         userData.applicationStatus = 'submitted';
         localStorage.setItem('user', JSON.stringify(userData));
-        console.log("✅ Updated localStorage user applicationStatus to 'submitted'");
       }
       
       setIsSubmitted(true);
@@ -762,10 +732,9 @@ const handleSubmit = async () => {
       
       localStorage.removeItem(`techApp-${applicationId}`);
       
-      console.log("🎉 Application submitted successfully!");
     }
   } catch (error: unknown) {
-    console.error('❌ Submission error:', error);
+    console.error('Submission error:', error);
     
     if (axios.isAxiosError(error)) {
       const errorMessage = error.response?.data?.message || error.response?.statusText || error.message;

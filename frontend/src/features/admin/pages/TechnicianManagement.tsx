@@ -74,15 +74,12 @@ useEffect(() => {
       try {
         setLoading(true);
         
-        console.log('🔍 Fetching technicians and applications...');
         
         const [techniciansData, applicationsData] = await Promise.all([
           fetchTechnicians(),
           fetchPendingApplications()
         ]);
 
-        console.log('✅ Technicians data:', techniciansData);
-        console.log('✅ Applications data:', applicationsData);
 
         setTechnicians(Array.isArray(techniciansData) ? techniciansData : []);
         setApplications(Array.isArray(applicationsData) ? applicationsData : []);

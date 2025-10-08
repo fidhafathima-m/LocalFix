@@ -9,6 +9,8 @@ import {
   EditOutlined,
   MarkChatUnreadOutlined,
   HelpOutlineOutlined,
+  CancelOutlined,
+  RefreshOutlined,
 } from '@mui/icons-material';
 import Header from '../../../components/common/Header';
 import Footer from '../../../components/common/Footer';
@@ -24,7 +26,6 @@ interface DocumentInfo {
   size?: number;
   uploadedAt?: string;
   uploadFailed?: boolean
-  // Add other fields that might be in your documents
 }
 
 interface ApplicationData {
@@ -47,11 +48,12 @@ interface ApplicationData {
   documents?: Record<string, DocumentInfo>,
   submittedAt?: string,
   reviewNotes?: string,
+  rejectionReason?: string,
+  rejectedAt?: string,
   createdAt: string,
   updatedAt: string
 }
 
-// Update the TechnicianData interface in your frontend component
 interface TechnicianData {
   _id: string;
   userId: string;
@@ -77,9 +79,9 @@ export const PendingTechnicianApplication: React.FC = () => {
   const [applicationStatus, setApplicationStatus] = useState<string>('pending');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token} = useAuth();
+  const [isResubmitting, setIsResubmitting] = useState(false);
+  const { token } = useAuth();
 
-  // Fixed function name - was declared as fetchTechnicianData but used as fetchApplicationData
   const fetchApplicationData = async () => {
     try {
       setLoading(true);
@@ -91,7 +93,6 @@ export const PendingTechnicianApplication: React.FC = () => {
         return;
       }
 
-      // Check application status first
       const applicationResponse = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`,
         {
@@ -104,7 +105,6 @@ export const PendingTechnicianApplication: React.FC = () => {
       if (applicationResponse.data.data?.application) {
         const appData = applicationResponse.data.data.application;
         
-        // If application is draft, redirect to application form
         if (appData.status === 'draft') {
           window.location.href = '/technician/apply';
           return;
@@ -113,7 +113,6 @@ export const PendingTechnicianApplication: React.FC = () => {
         setApplicationData(appData);
         setApplicationStatus(appData.status);
         
-        // If application is approved, try to fetch technician data
         if (appData.status === 'approved') {
           try {
             const technicianResponse = await axios.get(
@@ -142,24 +141,15 @@ export const PendingTechnicianApplication: React.FC = () => {
     }
   };
 
- // In your new PendingTechnicianApplication component - fix the useEffect
-useEffect(() => {
-  const checkApplicationStatus = async () => {
-    // Instead of just checking localStorage, check if user has a submitted application
+  const handleResubmitApplication = async () => {
+    if (!applicationData) return;
+    
     try {
-      setLoading(true);
+      setIsResubmitting(true);
       
-      // First, try to get applicationId from localStorage (for draft applications)
-      const applicationId = localStorage.getItem("applicationId");
-      
-      if (applicationId) {
-        await fetchApplicationData();
-        return;
-      }
-      
-      // If no applicationId in localStorage, check if user has any applications
-      const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/technician-application/user/applications`,
+      const response = await axios.patch(
+        `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationData._id}/resubmit`,
+        {},
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -167,30 +157,70 @@ useEffect(() => {
         }
       );
       
-      const applications = response.data.data?.applications || [];
-      const latestApplication = applications[0];
-      
-      if (latestApplication) {
-        // Store the applicationId for future use
-        localStorage.setItem("applicationId", latestApplication._id);
-        setApplicationData(latestApplication);
-        setApplicationStatus(latestApplication.status);
+      if (response.data.success) {
+        // Refresh application data
+        await fetchApplicationData();
+        // Optionally redirect to application form for edits
+        window.location.href = '/technician/apply';
+      } else {
+        setError("Failed to resubmit application");
+      }
+    } catch (error) {
+      console.error("Error resubmitting application:", error);
+      setError("Failed to resubmit application. Please try again.");
+    } finally {
+      setIsResubmitting(false);
+    }
+  };
+
+  const handleNewApplication = () => {
+    // Clear the existing application ID and start fresh
+    localStorage.removeItem("applicationId");
+    window.location.href = '/technician/apply';
+  };
+
+  useEffect(() => {
+    const checkApplicationStatus = async () => {
+      try {
+        setLoading(true);
         
-        // Redirect based on status
-        if (latestApplication.status === 'draft') {
+        const applicationId = localStorage.getItem("applicationId");
+        
+        if (applicationId) {
+          await fetchApplicationData();
+          return;
+        }
+        
+        const response = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/technician-application/user/applications`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+        
+        const applications = response.data.data?.applications || [];
+        const latestApplication = applications[0];
+        
+        if (latestApplication) {
+          localStorage.setItem("applicationId", latestApplication._id);
+          setApplicationData(latestApplication);
+          setApplicationStatus(latestApplication.status);
+          
+          if (latestApplication.status === 'draft') {
+            window.location.href = '/technician/apply';
+            return;
+          }
+        } else {
           window.location.href = '/technician/apply';
           return;
         }
-      } else {
-        // No applications found, redirect to apply
-        window.location.href = '/technician/apply';
-        return;
-      }
-    } catch (error) {
-      console.error("Error checking application status:", error);
-      setError("Failed to load application data");
-    } finally {
-      setLoading(false);
+      } catch (error) {
+        console.error("Error checking application status:", error);
+        setError("Failed to load application data");
+      } finally {
+        setLoading(false);
     }
   };
 
@@ -208,70 +238,92 @@ useEffect(() => {
     });
   };
 
+  const getRejectionDate = () => {
+    if (!applicationData?.rejectedAt) return 'N/A';
+    
+    return new Date(applicationData.rejectedAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    });
+  };
+
   const getInitials = (name: string) => {
     return name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U';
   };
 
- const getDocumentStatus = (documentType: string): { verified: boolean; submitted: boolean; uploadFailed: boolean } => {
-  if (!applicationData || !applicationData.documents) {
-    return { verified: false, submitted: false, uploadFailed: false };
-  }
-  
-  const doc = applicationData.documents[documentType];
-  
-  if (!doc) {
-    return { verified: false, submitted: false, uploadFailed: false };
-  }
-  
-  const hasDocument = !!doc.url && doc.url.trim().length > 0;
-  const isVerified = doc.verified || false;
-  const uploadFailed = doc.uploadFailed || false;
-  
-  return {
-    verified: isVerified,
-    submitted: hasDocument && !uploadFailed,
-    uploadFailed: uploadFailed
-  };
-};
-// Add this debug useEffect
-// Update your debug useEffect
-useEffect(() => {
-  if (applicationData) {
-    console.log("🔍 DEBUG - Full Application Data:", applicationData);
-    console.log("🔍 DEBUG - Documents Structure:", applicationData.documents);
-    console.log("🔍 DEBUG - Documents Type:", typeof applicationData.documents);
-    console.log("🔍 DEBUG - Is documents null/undefined?", !applicationData.documents);
-    
-    if (applicationData.documents) {
-      console.log("🔍 DEBUG - Documents keys:", Object.keys(applicationData.documents));
-      
-      // Check each document individually with more details
-      ['idProof', 'addressProof', 'policeVerification', 'passportPhoto'].forEach(docType => {
-        const doc = applicationData.documents?.[docType];
-        console.log(`🔍 DEBUG - ${docType}:`, doc);
-        console.log(`🔍 DEBUG - ${docType} type:`, typeof doc);
-        console.log(`🔍 DEBUG - ${docType} has URL:`, !!doc?.url);
-        console.log(`🔍 DEBUG - ${docType} URL value:`, doc?.url);
-        console.log(`🔍 DEBUG - ${docType} URL length:`, doc?.url?.length);
-        console.log(`🔍 DEBUG - ${docType} verified:`, doc?.verified);
-        
-        // Test the getDocumentStatus function
-        const status = getDocumentStatus(docType);
-        console.log(`🔍 DEBUG - ${docType} getDocumentStatus result:`, status);
-      });
-    } else {
-      console.log("🔍 DEBUG - No documents field found in application data");
+  const getDocumentStatus = (documentType: string): { verified: boolean; submitted: boolean; uploadFailed: boolean } => {
+    if (!applicationData || !applicationData.documents) {
+      return { verified: false, submitted: false, uploadFailed: false };
     }
-  }
-}, [applicationData]);
+    
+    const doc = applicationData.documents[documentType];
+    
+    if (!doc) {
+      return { verified: false, submitted: false, uploadFailed: false };
+    }
+    
+    const hasDocument = !!doc.url && doc.url.trim().length > 0;
+    const isVerified = doc.verified || false;
+    const uploadFailed = doc.uploadFailed || false;
+    
+    return {
+      verified: isVerified,
+      submitted: hasDocument && !uploadFailed,
+      uploadFailed: uploadFailed
+    };
+  };
 
   const getVerificationProgress = () => {
     if (!applicationData) return 0;
     
     const completedSteps = applicationData.stepsCompleted || [];
-    const totalSteps = 8; // Total steps in your application
+    const totalSteps = 8;
     
     return Math.round((completedSteps.length / totalSteps) * 100);
+  };
+
+  // Status badge configuration
+  const getStatusBadge = () => {
+    const status = applicationData?.status;
+    
+    switch (status) {
+      case 'submitted':
+        return {
+          bgColor: 'bg-yellow-100',
+          textColor: 'text-yellow-800',
+          icon: <AccessTimeOutlined className="w-3 h-3 mr-1" />,
+          text: 'Pending Verification'
+        };
+      case 'under_review':
+        return {
+          bgColor: 'bg-blue-100',
+          textColor: 'text-blue-800',
+          icon: <AccessTimeOutlined className="w-3 h-3 mr-1" />,
+          text: 'Under Review'
+        };
+      case 'approved':
+        return {
+          bgColor: 'bg-green-100',
+          textColor: 'text-green-800',
+          icon: <CheckCircleOutlineOutlined className="w-3 h-3 mr-1" />,
+          text: 'Approved'
+        };
+      case 'rejected':
+        return {
+          bgColor: 'bg-red-100',
+          textColor: 'text-red-800',
+          icon: <CancelOutlined className="w-3 h-3 mr-1" />,
+          text: 'Rejected'
+        };
+      default:
+        return {
+          bgColor: 'bg-gray-100',
+          textColor: 'text-gray-800',
+          icon: <CircleOutlined className="w-3 h-3 mr-1" />,
+          text: status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'
+        };
+    }
   };
 
   // If application is approved and technician data exists, redirect to technician dashboard
@@ -339,6 +391,8 @@ useEffect(() => {
     );
   }
 
+  const statusBadge = getStatusBadge();
+
   return (
     <>
       <Header userType='serviceProvider' isApproved={false} />
@@ -357,133 +411,172 @@ useEffect(() => {
                   {applicationData.personal?.fullName || 'Not Provided'}
                 </h1>
                 <div className="flex items-center">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    <AccessTimeOutlined className="w-3 h-3 mr-1" />
-                    {applicationData.status === 'submitted' ? 'Pending Verification' : 
-                     applicationData.status === 'under_review' ? 'Under Review' : 
-                     applicationData.status.charAt(0).toUpperCase() + applicationData.status.slice(1)}
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge.bgColor} ${statusBadge.textColor}`}>
+                    {statusBadge.icon}
+                    {statusBadge.text}
                   </span>
                 </div>
               </div>
-              <button 
-                onClick={() => window.location.href = '/technician/apply'}
-                className="text-blue-500 flex items-center text-sm font-medium"
-              >
-                <EditOutlined className="w-4 h-4 mr-1" />
-                Edit Application
-              </button>
+              {applicationData.status !== 'rejected' && (
+                <button 
+                  onClick={() => window.location.href = '/technician/apply'}
+                  className="text-blue-500 flex items-center text-sm font-medium"
+                >
+                  <EditOutlined className="w-4 h-4 mr-1" />
+                  Edit Application
+                </button>
+              )}
             </div>
             <div className="mt-2">
               <p className="text-sm text-gray-500">
                 Application Date: {getApplicationDate()}
               </p>
+              {applicationData.status === 'rejected' && (
+                <p className="text-sm text-gray-500">
+                  Rejected Date: {getRejectionDate()}
+                </p>
+              )}
               <p className="text-sm text-gray-500">
                 Phone: {applicationData.personal?.phoneNumber || applicationData.phone}
               </p>
-              <p className="text-sm text-gray-500">
-                Progress: {getVerificationProgress()}% Complete
-              </p>
+              {applicationData.status !== 'rejected' && (
+                <p className="text-sm text-gray-500">
+                  Progress: {getVerificationProgress()}% Complete
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Application Status */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <h2 className="font-medium mb-4">Application Status</h2>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
-                  applicationData.stepsCompleted.includes('Personal Information') ? 
-                  'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-400'
-                }`}>
-                  <CheckCircleOutlineOutlined className="w-5 h-5" />
-                </div>
-                <span className="text-xs text-gray-600 text-center">
-                  Profile Completed
-                </span>
-              </div>
-              <div className={`flex-1 h-1 mx-2 ${
-                applicationData.stepsCompleted.includes('Identity & Verification') ? 
-                'bg-green-200' : 'bg-gray-200'
-              }`}></div>
-              <div className="flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
-                  applicationData.stepsCompleted.includes('Documents') ? 
-                  'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-400'
-                }`}>
-                  <CheckCircleOutlineOutlined className="w-5 h-5" />
-                </div>
-                <span className="text-xs text-gray-600 text-center">
-                  Documents Submitted
-                </span>
-              </div>
-              <div className={`flex-1 h-1 mx-2 ${
-                applicationData.status === 'under_review' ? 'bg-yellow-200' : 'bg-gray-200'
-              }`}></div>
-              <div className="flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
-                  applicationData.status === 'under_review' ? 
-                  'bg-yellow-100 text-yellow-500' : 'bg-gray-100 text-gray-400'
-                }`}>
-                  <AccessTimeOutlined className="w-5 h-5" />
-                </div>
-                <span className="text-xs text-gray-600 text-center">
-                  Admin Verification
-                </span>
-              </div>
-              <div className="flex-1 h-1 mx-2 bg-gray-200"></div>
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-2">
-                  <CircleOutlined className="w-5 h-5" />
-                </div>
-                <span className="text-xs text-gray-600 text-center">
-                  Start Accepting Jobs
-                </span>
-              </div>
-            </div>
-
-            {/* Status Message */}
-            <div className={`border rounded-lg p-4 mb-4 ${
-              applicationData.status === 'submitted' ? 'bg-blue-50 border-blue-100' :
-              applicationData.status === 'under_review' ? 'bg-yellow-50 border-yellow-100' :
-              'bg-gray-50 border-gray-100'
-            }`}>
+          {/* Rejection Details - Only show if rejected */}
+          {applicationData.status === 'rejected' && (
+            <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-500">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <ErrorOutlineOutlined className={`h-5 w-5 ${
-                    applicationData.status === 'submitted' ? 'text-blue-500' :
-                    applicationData.status === 'under_review' ? 'text-yellow-500' :
-                    'text-gray-500'
-                  }`} />
+                  <CancelOutlined className="h-5 w-5 text-red-500" />
                 </div>
                 <div className="ml-3">
-                  <h3 className={`text-sm font-medium ${
-                    applicationData.status === 'submitted' ? 'text-blue-800' :
-                    applicationData.status === 'under_review' ? 'text-yellow-800' :
-                    'text-gray-800'
-                  }`}>
-                    {applicationData.status === 'submitted' ? 'Verification Pending' :
-                     applicationData.status === 'under_review' ? 'Under Review' :
-                     'Application Status'}
+                  <h3 className="text-sm font-medium text-red-800">
+                    Application Rejected
                   </h3>
-                  <div className="mt-2 text-sm text-gray-700">
+                  <div className="mt-2 text-sm text-red-700">
                     <p>
-                      {applicationData.status === 'submitted' 
-                        ? 'Your application has been submitted and is waiting for admin review. This typically takes 24-48 hours.'
-                        : applicationData.status === 'under_review'
-                        ? 'Your application is currently being reviewed by our admin team. You will be notified once the review is complete.'
-                        : 'Your application is being processed.'
-                      }
+                      Unfortunately, your technician application has been rejected. 
+                      {applicationData.rejectionReason && (
+                        <span> <strong>Reason:</strong> {applicationData.rejectionReason}</span>
+                      )}
+                      {applicationData.reviewNotes && (
+                        <span> <strong>Additional Notes:</strong> {applicationData.reviewNotes}</span>
+                      )}
                     </p>
-                    {applicationData.reviewNotes && (
-                      <p className="mt-2 text-sm text-gray-600">
-                        <strong>Admin Note:</strong> {applicationData.reviewNotes}
-                      </p>
-                    )}
+                    <p className="mt-2">
+                      You can review the issues mentioned above and submit a new application.
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Application Status - Hide for rejected applications */}
+          {applicationData.status !== 'rejected' && (
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <h2 className="font-medium mb-4">Application Status</h2>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
+                    applicationData.stepsCompleted.includes('Personal Information') ? 
+                    'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    <CheckCircleOutlineOutlined className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs text-gray-600 text-center">
+                    Profile Completed
+                  </span>
+                </div>
+                <div className={`flex-1 h-1 mx-2 ${
+                  applicationData.stepsCompleted.includes('Identity & Verification') ? 
+                  'bg-green-200' : 'bg-gray-200'
+                }`}></div>
+                <div className="flex flex-col items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
+                    applicationData.stepsCompleted.includes('Documents') ? 
+                    'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    <CheckCircleOutlineOutlined className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs text-gray-600 text-center">
+                    Documents Submitted
+                  </span>
+                </div>
+                <div className={`flex-1 h-1 mx-2 ${
+                  applicationData.status === 'under_review' ? 'bg-yellow-200' : 'bg-gray-200'
+                }`}></div>
+                <div className="flex flex-col items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
+                    applicationData.status === 'under_review' ? 
+                    'bg-yellow-100 text-yellow-500' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    <AccessTimeOutlined className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs text-gray-600 text-center">
+                    Admin Verification
+                  </span>
+                </div>
+                <div className="flex-1 h-1 mx-2 bg-gray-200"></div>
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-2">
+                    <CircleOutlined className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs text-gray-600 text-center">
+                    Start Accepting Jobs
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Message */}
+              <div className={`border rounded-lg p-4 mb-4 ${
+                applicationData.status === 'submitted' ? 'bg-blue-50 border-blue-100' :
+                applicationData.status === 'under_review' ? 'bg-yellow-50 border-yellow-100' :
+                'bg-gray-50 border-gray-100'
+              }`}>
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <ErrorOutlineOutlined className={`h-5 w-5 ${
+                      applicationData.status === 'submitted' ? 'text-blue-500' :
+                      applicationData.status === 'under_review' ? 'text-yellow-500' :
+                      'text-gray-500'
+                    }`} />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className={`text-sm font-medium ${
+                      applicationData.status === 'submitted' ? 'text-blue-800' :
+                      applicationData.status === 'under_review' ? 'text-yellow-800' :
+                      'text-gray-800'
+                    }`}>
+                      {applicationData.status === 'submitted' ? 'Verification Pending' :
+                       applicationData.status === 'under_review' ? 'Under Review' :
+                       'Application Status'}
+                    </h3>
+                    <div className="mt-2 text-sm text-gray-700">
+                      <p>
+                        {applicationData.status === 'submitted' 
+                          ? 'Your application has been submitted and is waiting for admin review. This typically takes 24-48 hours.'
+                          : applicationData.status === 'under_review'
+                          ? 'Your application is currently being reviewed by our admin team. You will be notified once the review is complete.'
+                          : 'Your application is being processed.'
+                        }
+                      </p>
+                      {applicationData.reviewNotes && (
+                        <p className="mt-2 text-sm text-gray-600">
+                          <strong>Admin Note:</strong> {applicationData.reviewNotes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Document Status */}
           <div className="bg-white rounded-lg shadow-sm p-4">
@@ -528,77 +621,137 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Next Steps */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <h2 className="font-medium mb-3">Next Steps:</h2>
-            <ul className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start">
-                <span className="text-green-500 mr-2">-</span>
-                <span>Wait for admin verification (24-48 hours)</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-green-500 mr-2">-</span>
-                <span>Keep your phone available for verification calls</span>
-              </li>
-              {!getDocumentStatus('policeVerification').submitted && (
-                <li className="flex items-start">
-                  <span className="text-green-500 mr-2">-</span>
-                  <span>Submit police verification certificate (recommended)</span>
-                </li>
-              )}
-            </ul>
-          </div>
-
-          {/* Restrictions */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <h2 className="font-medium mb-3">Restrictions During Verification</h2>
-            <div className="space-y-3">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mt-0.5">
-                  <div className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center">
-                    <ClearOutlined className="h-3 w-3 text-red-500" />
-                  </div>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-gray-700 font-medium">
-                    Cannot accept bookings
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    You'll be able to accept job requests after verification
-                  </p>
-                </div>
+          {/* Action Buttons for Rejected Applications */}
+          {applicationData.status === 'rejected' && (
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <h2 className="font-medium mb-3">Apply Again</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                You can submit a new application after addressing the issues mentioned above.
+              </p>
+              <div className="space-y-3">
+                <button 
+                  onClick={handleResubmitApplication}
+                  disabled={isResubmitting}
+                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshOutlined className="w-4 h-4 mr-2" />
+                  {isResubmitting ? 'Resubmitting...' : 'Resubmit with Same Data'}
+                </button>
+                <button 
+                  onClick={handleNewApplication}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <EditOutlined className="w-4 h-4 mr-2" />
+                  Start Fresh Application
+                </button>
               </div>
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mt-0.5">
-                  <div className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center">
-                    <ClearOutlined className="h-3 w-3 text-red-500" />
+              <p className="text-xs text-gray-500 mt-3">
+                <strong>Resubmit with Same Data:</strong> Uses your existing application data, good if you only need to update documents.
+                <br />
+                <strong>Start Fresh Application:</strong> Creates a completely new application from scratch.
+              </p>
+            </div>
+          )}
+
+          {/* Next Steps - Different for rejected applications */}
+          {applicationData.status === 'rejected' ? (
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <h2 className="font-medium mb-3">Next Steps After Rejection:</h2>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li className="flex items-start">
+                  <span className="text-red-500 mr-2">•</span>
+                  <span>Review the rejection reason above carefully</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-red-500 mr-2">•</span>
+                  <span>Update any incorrect or missing information</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-red-500 mr-2">•</span>
+                  <span>Ensure all documents are clear and valid</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-red-500 mr-2">•</span>
+                  <span>Resubmit your application when ready</span>
+                </li>
+              </ul>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <h2 className="font-medium mb-3">Next Steps:</h2>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li className="flex items-start">
+                  <span className="text-green-500 mr-2">•</span>
+                  <span>Wait for admin verification (24-48 hours)</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-500 mr-2">•</span>
+                  <span>Keep your phone available for verification calls</span>
+                </li>
+                {!getDocumentStatus('policeVerification').submitted && (
+                  <li className="flex items-start">
+                    <span className="text-green-500 mr-2">•</span>
+                    <span>Submit police verification certificate (recommended)</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+
+          {/* Restrictions - Hide for rejected applications */}
+          {applicationData.status !== 'rejected' && (
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <h2 className="font-medium mb-3">Restrictions During Verification</h2>
+              <div className="space-y-3">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <div className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center">
+                      <ClearOutlined className="h-3 w-3 text-red-500" />
+                    </div>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-700 font-medium">
+                      Cannot accept bookings
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      You'll be able to accept job requests after verification
+                    </p>
                   </div>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-gray-700 font-medium">
-                    Limited profile visibility
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Your profile won't be visible to customers until verified
-                  </p>
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <div className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center">
+                      <ClearOutlined className="h-3 w-3 text-red-500" />
+                    </div>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-700 font-medium">
+                      Limited profile visibility
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Your profile won't be visible to customers until verified
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Update Documents */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <h2 className="font-medium mb-3">Update Documents</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Need to update or add missing documents? You can do that here.
-            </p>
-            <button 
-              onClick={() => window.location.href = '/technician/apply'}
-              className="w-full flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <span className="text-sm font-medium">Manage Documents</span>
-            </button>
-          </div>
+          {/* Update Documents - Hide for rejected applications */}
+          {applicationData.status !== 'rejected' && (
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <h2 className="font-medium mb-3">Update Documents</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Need to update or add missing documents? You can do that here.
+              </p>
+              <button 
+                onClick={() => window.location.href = '/technician/apply'}
+                className="w-full flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <span className="text-sm font-medium">Manage Documents</span>
+              </button>
+            </div>
+          )}
 
           {/* Need Help */}
           <div className="bg-white rounded-lg shadow-sm p-4">

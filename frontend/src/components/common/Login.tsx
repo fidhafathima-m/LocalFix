@@ -90,6 +90,9 @@ setTimeout(() => {
     } else if (userData.applicationStatus === 'approved') {
       console.log('Redirecting to approved technician dashboard');
       navigate('/technician/dashboard');
+    }else if (userData.applicationStatus === 'rejected') {
+      console.log('Redirecting to rejected technician dashboard');
+      navigate('/pending-technician/dashboard');
     } else if (userData.applicationStatus === 'draft') {
       console.log('Redirecting to continue draft application');
       navigate('/technician/apply');

@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
-import  TechnicianApplicationController from '../controllers/technician/technicianApplication';
-import { protect } from '../middleware/authMiddleware';
+import  TechnicianApplicationController from '../../controllers/technician/technicianApplication';
+import { protect } from '../../middleware/authMiddleware';
 
 const router = express.Router();
 

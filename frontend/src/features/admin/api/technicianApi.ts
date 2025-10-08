@@ -158,12 +158,8 @@ export const getApplicationStats = async (): Promise<ApplicationStats> => {
 // In technicianApi.ts - Update the fetchTechnicianById function
 export const fetchTechnicianById = async (technicianId: string): Promise<Technician> => {
   try {
-    console.log('🔍 Fetching technician by ID:', technicianId);
     
     const res = await api.get<ApiResponse<{ technician: Technician }>>(`/admin/technicians/${technicianId}`);
-    
-    console.log('📦 RAW API Response:', res.data);
-    console.log('🔍 Response data structure:', res.data.data);
     
     if (res.data.success && res.data.data) {
       // ✅ Handle both response formats for compatibility
@@ -171,12 +167,10 @@ export const fetchTechnicianById = async (technicianId: string): Promise<Technic
                         (res.data.data.technician && res.data.data.technician[0]);
       
       if (technician) {
-        console.log('✅ Technician data retrieved successfully');
         return technician;
       }
     }
     
-    console.warn('⚠️ API response indicates failure:', res.data.message);
     throw new Error(res.data.message || 'Failed to fetch technician');
     
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

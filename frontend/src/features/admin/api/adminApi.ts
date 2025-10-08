@@ -12,9 +12,7 @@ interface ApiResponse<T> {
 // Fetch all users - UPDATED ENDPOINT
 export const fetchUsers = async (): Promise<User[]> => {
   try {
-    console.log('🔐 Fetching users...');
     const res = await api.get<ApiResponse<{ users: User[] }>>('/admin/users');
-    console.log('✅ Users response:', res.data);
     
     if (res.data.success && res.data.data && res.data.data.users) {
       return res.data.data.users;
@@ -30,10 +28,8 @@ export const fetchUsers = async (): Promise<User[]> => {
 // Update user - FIXED ENDPOINT
 export const updateUser = async (userId: string, updates: Partial<User>): Promise<User> => {
   try {
-    console.log('🔄 Updating user:', userId, updates);
     // ✅ Now calls: PUT /api/admin/users/:userId (without /edit)
     const res = await api.put<ApiResponse<{ user: User }>>(`/admin/users/${userId}`, updates);
-    console.log('✅ Update response:', res.data);
     
     if (res.data.success && res.data.data && res.data.data.user) {
       return res.data.data.user;
@@ -49,7 +45,6 @@ export const updateUser = async (userId: string, updates: Partial<User>): Promis
 // Delete user - FIXED METHOD AND ENDPOINT
 export const deleteUser = async (userId: string): Promise<void> => {
   try {
-    console.log('🗑️ Deleting user:', userId);
     // ✅ Now calls: DELETE /api/admin/users/:userId (not PATCH /delete)
     const res = await api.delete<ApiResponse<void>>(`/admin/users/${userId}`);
     

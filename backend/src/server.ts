@@ -6,7 +6,8 @@ import connectDB from './config/db'
 import userAuth from './routes/userRoutes'
 import userRoutes from './routes/admin/userManagementRoutes'
 import adminTechnicianRoutes from './routes/admin/technicianManagementRoutes'
-import technicianRoutes from './routes/technicianRoutes'
+import technicianRoutes from './routes/technician/technicianRoutes'
+import technicianDashboardRoutes from './routes/technician/technicianDashboardRoutes'
 
 connectDB();
 
@@ -34,6 +35,7 @@ app.use("/api/admin/users", userRoutes);
 // Mount routes
 app.use("/api/admin/technicians", adminTechnicianRoutes);
 app.use('/api/technician-application', technicianRoutes);
+app.use('/api/technician', technicianDashboardRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send("Localfix API running...")

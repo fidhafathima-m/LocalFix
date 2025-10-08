@@ -65,8 +65,6 @@ export const PendingApplicationProfile: React.FC = () => {
         `/admin/technicians/applications/${applicationId}`
       )
       
-      console.log('📦 Full API Response:', response.data); // Debug the full response
-      
       // Handle different response structures
       const applicationData = response.data.data?.application || 
                              response.data.data?.applications?.[0] || // Handle array format
@@ -74,8 +72,6 @@ export const PendingApplicationProfile: React.FC = () => {
                              response.data.data ||
                              response.data;
       
-      console.log('📄 Application data:', applicationData); 
-      console.log('📑 Documents data:', applicationData?.documents);
       
       setApplication(applicationData);
       

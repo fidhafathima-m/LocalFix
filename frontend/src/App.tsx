@@ -25,6 +25,7 @@ import SignUpForm from './features/user/pages/SignUpForm'
 import { PendingTechnicianApplication } from './features/serviceProvider/pages/PendingTechnician'
 import TechnicianProfile from './features/admin/pages/TechnicianProfile'
 import { PendingApplicationProfile } from './features/admin/pages/PendingTechnicianProfile'
+import { ApprovedTechnicianDashboard } from './features/serviceProvider/pages/ApprovedTechnician'
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
           <Route path='/technicians/forgot-password' element={<TechForgotPassword/>}/>
           <Route path='/technicians/verify-otp' element={<TechOTP/>}/>
           <Route path='/pending-technician/dashboard' element={<PendingTechnicianApplication/>}/>
+          <Route path='/technician/dashboard' element={<ApprovedTechnicianDashboard/>}/>
 
           {/* admin routes */}
           <Route path='/admin/login'element={<AdminLogin/>}/>
