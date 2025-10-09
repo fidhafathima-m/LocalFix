@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { newPasswordSchema, validateSchema } from '../../validation';
 
 type UserType = 'user' | 'serviceProvider' | 'admin';
 
@@ -15,18 +16,14 @@ const NewPassword: React.FC<NewPasswordProps> = ({userType, onSubmit}) => {
   const [error, setError] = useState('')
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Basic validation
-    if (!password) {
-      setError('Password is required')
-      return
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long')
-      return
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      return
+    const validation = validateSchema(newPasswordSchema, {
+      password,
+      confirmPassword,
+      userType
+    })
+    if(!validation.success && validation.errors) {
+      setError(validation.errors?.password || validation.errors?.confirmPassword || "Validation failed");
+      return;
     }
     setError('')
     onSubmit(password)

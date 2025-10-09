@@ -3,6 +3,7 @@ import { AxiosError } from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { sendOTP } from '../../api/auth';
 import toast from 'react-hot-toast';
+import { forgotPasswordSchema, validateSchema } from '../../validation';
 
 type UserType = 'user' | 'serviceProvider' | 'admin';
 
@@ -28,21 +29,14 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const phoneRegex = /^\d{10}$/;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const validation = validateSchema(forgotPasswordSchema, {
+      phone,
+      email,
+      userType
+    })
 
-    if (!phone && !email) {
-      setError('Please enter either phone number or email');
-      return;
-    }
-
-    if (phone && !phoneRegex.test(phone)) {
-      setError('Please enter a valid 10-digit phone number');
-      return;
-    }
-
-    if (email && !emailRegex.test(email)) {
-      setError('Please enter a valid email address');
+    if(!validation.success && validation.errors) {
+      setError(validation.errors?.phone || validation.errors?.email || 'Validation failed');
       return;
     }
 

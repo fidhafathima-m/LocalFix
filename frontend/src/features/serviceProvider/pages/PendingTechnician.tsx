@@ -348,15 +348,6 @@ const handleStartFreshApplication = async () => {
     };
   };
 
-  const getVerificationProgress = () => {
-    if (!applicationData) return 0;
-    
-    const completedSteps = applicationData.stepsCompleted || [];
-    const totalSteps = 8;
-    
-    return Math.round((completedSteps.length / totalSteps) * 100);
-  };
-
   // Status badge configuration
   const getStatusBadge = () => {
     const status = applicationData?.status;
@@ -513,11 +504,6 @@ const handleStartFreshApplication = async () => {
               <p className="text-sm text-gray-500">
                 Phone: {applicationData.personal?.phoneNumber || applicationData.phone}
               </p>
-              {applicationData.status !== 'rejected' && (
-                <p className="text-sm text-gray-500">
-                  Progress: {getVerificationProgress()}% Complete
-                </p>
-              )}
             </div>
           </div>
 

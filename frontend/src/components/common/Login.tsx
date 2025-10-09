@@ -5,6 +5,7 @@ import { loginUser } from '../../api/auth';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import GoogleAuth from '../../features/user/components/GoogleAuth';
+import { loginSchema, validateSchema } from '../../validation';
 
 type UserType = 'user' | 'serviceProvider' | 'admin';
 
@@ -22,29 +23,19 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
   const { login } = useAuth();
 
   const validateForm = (): boolean => {
-    let valid = true;
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^\d{10}$/;
-
-    if (!identifier) {
-      setIdentifierError('Enter email or phone');
-      valid = false;
-    } else if (!emailRegex.test(identifier) && !phoneRegex.test(identifier)) {
-      setIdentifierError('Enter valid email or phone');
-      valid = false;
-    } else {
-      setIdentifierError('');
+    const validation = validateSchema(loginSchema, {
+      identifier,
+      password,
+      userType
+    })
+    if(!validation.success && validation.errors) {
+      setIdentifierError(validation.errors.identifier || '');
+      setPasswordError(validation.errors.password || '');
+      return false;
     }
-
-    if (!password || password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      valid = false;
-    } else {
-      setPasswordError('');
-    }
-
-    return valid;
+    setIdentifierError('');
+    setPasswordError('')
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

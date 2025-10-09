@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react'
 import { StepIndicator } from '../components/StepIndicator'
 import { FormStep } from '../components/FormStep'
@@ -7,6 +8,9 @@ import { ImageUploadWithPreview } from '../components/ImageUploadWithPreview';
 import { ApplicationSubmitted } from '../pages/ApplicationSubmitted';
 import { useAuth } from '../../../context/AuthContext';
 import api from '../../../utils/axiosConfig';
+import { validateAvailability, validateStepSchema } from '../../../validation';
+import { stepSchemas, type AgreementData, type AvailabilityData, type BankingData, type DocumentsData, type IdentityData, type PersonalInfoData, type SkillsData } from '../../../validation/schemas/technicianApplicationSchema';
+import toast from 'react-hot-toast';
 
 // Define all possible steps
 const STEPS = [
@@ -41,6 +45,7 @@ export const ApplicationForm: React.FC = () => {
   const [applicationId, setApplicationId] = useState<string | null>(null);
    const [, setApplicationStatus] = useState<string | null>(null);
    const { token, user, updateApplicationStatus, updateUsers } = useAuth(); 
+   const [isLoading, setIsLoading] = useState(false)
 
 
   // File related
@@ -124,6 +129,7 @@ export const ApplicationForm: React.FC = () => {
     // Step 7: Agreement & Consent
     agreement: false,
   })
+
 
 const startApplication = async (): Promise<string | null> => {
   if (!user?._id) {
@@ -373,10 +379,18 @@ const handleInputChange = (
   >,
 ) => {
   const { name, value, type } = e.target as HTMLInputElement
+
+  // Clear error for this field when user starts typing
+  if (errors[name]) {
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[name];
+      return newErrors;
+    });
+  }
   
   if (type === 'checkbox') {
     const checked = (e.target as HTMLInputElement).checked
-    const { name } = e.target as HTMLInputElement
     
     setFormData((prev) => {
       // Services checkboxes
@@ -436,9 +450,9 @@ const handleInputChange = (
       return prev
     })
   } else {
-    // Handle time inputs for availability
-    if (name.includes('Time-')) {
-      const [timeType, day] = name.split('-')
+    // Handle time inputs for availability - FIXED THIS PART
+    if (name.includes('-Time-')) {
+      const [timeType, day] = name.split('-Time-');
       setFormData((prev) => ({
         ...prev,
         availability: {
@@ -473,6 +487,14 @@ const handleInputChange = (
 
   
  const handleFileChange = (field: string) => (file: File | null) => {
+
+  if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   setFormData((prev) => ({
     ...prev,
     [field]: file,
@@ -485,86 +507,160 @@ const handleInputChange = (
   }
 }
 
-  const validateStepFields = (step: number): Record<string, string> => {
-  const stepErrors: Record<string, string> = {};
-
-  switch (step) {
-    // Step 1: Personal Information
-    case 1:
-      if (!formData.fullName.trim()) stepErrors.fullName = "Full name is required";
-      if (!formData.phoneNumber.trim()) stepErrors.phoneNumber = "Phone number is required";
-      if (!formData.email.trim()) stepErrors.email = "Email is required";
-      if (!formData.dateOfBirth.trim()) stepErrors.dateOfBirth = "Date of Birth is required";
-      if (!formData.gender.trim()) stepErrors.gender = "Gender is required";
-      break;
-
-    // Step 2: Identity & Verification
-    case 2:
-      // if (!formData.currentAddress.trim()) stepErrors.currentAddress = "Current address is required";
-      if (!formData.idType.trim()) stepErrors.idType = "ID type is required";
-      if (!formData.idNumber.trim()) stepErrors.idNumber = "ID number is required";
-      if (!formData.address.street.trim()) stepErrors["address.street"] = "Street address is required";
-      if (!formData.address.city.trim()) stepErrors["address.city"] = "City is required";
-      if (!formData.address.state.trim()) stepErrors["address.state"] = "State is required";
-      if (!formData.address.pincode.trim()) stepErrors["address.pincode"] = "PIN code is required";
-      break;
-
-    // Step 3: Skills & Services
-    case 3:
-      if (formData.services.length === 0) stepErrors.services = "At least one service is required";
-      if (!formData.yearsOfExperience.trim()) stepErrors.yearsOfExperience = "Experience is required";
-      if (!formData.bio.trim()) stepErrors.bio = "Bio is required";
-      if (formData.languages.length === 0) stepErrors.languages = "At least one language is required";
-      break;
-
-    // Step 4: Availability & Work Preferences
-    case 4: {
-      if (formData.serviceAreas.length === 0) stepErrors.serviceAreas = "Select at least one service area";
-      if (!formData.workRadius.trim()) stepErrors.workRadius = "Select a preferred work radius";
-      const availableDays = Object.entries(formData.availability).filter(([, val]) => val.available);
-      if (availableDays.length === 0) stepErrors.availability = "Select at least one day of availability";
-      availableDays.forEach(([day, { startTime, endTime }]) => {
-        if (!startTime) stepErrors[`startTime-${day}`] = `Start time required for ${day}`;
-        if (!endTime) stepErrors[`endTime-${day}`] = `End time required for ${day}`;
-      });
-      break;
+ const validateStepFields = (step: number): Record<string, string> => {
+  let stepErrors: Record<string, string> = {};
+  
+  // Helper function to flatten form data (for steps that need flat structure)
+  const flattenFormData = (data: any): Record<string, any> => {
+    const flattened: Record<string, any> = {};
+    
+    for (const [key, value] of Object.entries(data)) {
+      if (value && typeof value === 'object' && !(value instanceof File) && !Array.isArray(value)) {
+        // Handle nested objects (like address)
+        for (const [nestedKey, nestedValue] of Object.entries(value)) {
+          flattened[`${key}.${nestedKey}`] = nestedValue;
+        }
+      } else {
+        flattened[key] = value;
+      }
     }
+    
+    return flattened;
+  };
 
-    // Step 5: Banking Details
-    case 5:
-      if (!formData.accountHolderName.trim()) stepErrors.accountHolderName = "Account holder name is required";
-      if (!formData.accountNumber.trim()) stepErrors.accountNumber = "Account number is required";
-      if (!formData.ifscCode.trim()) stepErrors.ifscCode = "IFSC code is required";
+  switch(step) {
+    case 1: 
+      { 
+        const flattenedData = flattenFormData(formData);
+        const personalValidation = validateStepSchema<PersonalInfoData>(
+          stepSchemas[1],
+          flattenedData
+        );
+        if(!personalValidation.success && personalValidation.errors) {
+          stepErrors = personalValidation.errors
+        }
+        break; 
+      }
+    case 2: 
+      { 
+        const flattenedData = flattenFormData(formData);
+        const identityValidation = validateStepSchema<IdentityData>(
+          stepSchemas[2],
+          flattenedData
+        );
+        if (!identityValidation.success && identityValidation.errors) {
+          stepErrors = identityValidation.errors;
+        }
+        break; 
+      }
+    case 3: 
+      { 
+        const flattenedData = flattenFormData(formData);
+        const skillsValidation = validateStepSchema<SkillsData>(
+          stepSchemas[3],
+          flattenedData
+        );
+        if (!skillsValidation.success && skillsValidation.errors) {
+          stepErrors = skillsValidation.errors
+        }
+        break; 
+      }
+    case 4: 
+      { 
+        // For step 4, DON'T flatten the data - use the original structure
+        // because availabilityStepSchema expects nested availability object
+        const step4Data = {
+          serviceAreas: formData.serviceAreas,
+          workRadius: formData.workRadius,
+          availability: formData.availability
+        };
+        
+        console.log('🔍 Step 4 data for validation:', step4Data);
+        
+        const availabilityValidation = validateStepSchema<AvailabilityData>(
+          stepSchemas[4],
+          step4Data
+        );
+        
+        if (!availabilityValidation.success && availabilityValidation.errors) {
+          stepErrors = availabilityValidation.errors;
+          console.log('🔍 Step 4 validation errors:', stepErrors);
+        }
+        
+        // Additional time validation
+        const timeErrors = validateAvailability(formData.availability);
+        stepErrors = { ...stepErrors, ...timeErrors };
+        break; 
+      }
+    case 5: 
+      { 
+        const flattenedData = flattenFormData(formData);
+        const bankingValidation = validateStepSchema<BankingData>(
+          stepSchemas[5],
+          flattenedData
+        );
+        if (!bankingValidation.success && bankingValidation.errors) {
+          stepErrors = bankingValidation.errors;
+        }
+        break; 
+      }
+    case 6: 
+      { 
+        // For documents, we don't need to flatten since files are handled separately
+        const documentsValidation = validateStepSchema<DocumentsData>(
+          stepSchemas[6],
+          formData
+        );
+        if (!documentsValidation.success && documentsValidation.errors) {
+          stepErrors = documentsValidation.errors;
+        }
+        break; 
+      }
+    case 7: 
+      { 
+        const agreementValidation = validateStepSchema<AgreementData>(
+          stepSchemas[7],
+          { agreement: formData.agreement }
+        );
+        if (!agreementValidation.success && agreementValidation.errors) {
+          stepErrors = agreementValidation.errors;
+        }
+        break; 
+      }
+    case 8: 
       break;
-
-    // Step 6: Documents
-    case 6:
-      // Only passport photo is mandatory
-      if (!formData.passportPhoto) stepErrors.passportPhoto = "Passport photo is required";
-      if (!formData.idProof) stepErrors.idProof = "ID proof is required";
-
-
-      break;
-
-    // Step 7: Agreement & Consent
-    case 7:
-      if (!formData.agreement) stepErrors.agreement = "You must agree to the terms and conditions";
-      break;
-
-    // Step 8: Review & Submit
-    case 8:
-      break;
-
     default:
       break;
   }
-
+  
   return stepErrors;
 };
+const getMaxDate = (): string => {
+  const today = new Date();
+  const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+  return maxDate.toISOString().split('T')[0];
+};
 
-
+const calculateAge = (dateOfBirth: string): number | null => {
+  if (!dateOfBirth) return null;
+  
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  
+  if (isNaN(birthDate.getTime())) return null;
+  
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+};
 
 const handleNext = async () => {
+  if (isLoading) return;
   const stepErrors = validateStepFields(currentStep);
 
   
@@ -574,6 +670,7 @@ const handleNext = async () => {
   } else {
     setErrors({});
   }
+  setIsLoading(true);
 
   let currentApplicationId = applicationId;
 
@@ -581,7 +678,8 @@ const handleNext = async () => {
   if (!currentApplicationId) {
     currentApplicationId = await startApplication();
     if (!currentApplicationId) {
-      alert("Failed to start application");
+      toast.error("Failed to start application");
+      setIsLoading(false);
       return;
     }
   }
@@ -596,7 +694,6 @@ const handleNext = async () => {
   
   // ✅ FIXED: Better handling for different field types
   currentStepFields.forEach((field) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let value = (formData as any)[field];
     
     
@@ -656,6 +753,8 @@ const handleNext = async () => {
     } else {
       alert("Failed to save this step");
     }
+  } finally {
+    setIsLoading(false)
   }
 };
 
@@ -667,6 +766,7 @@ const handleNext = async () => {
   }
 // In your ApplicationForm.tsx - fix the handleSubmit function
 const handleSubmit = async () => {
+  if (isLoading) return; 
 
   // Get token directly from localStorage to ensure it's current
   const currentToken = localStorage.getItem('token');
@@ -675,6 +775,7 @@ const handleSubmit = async () => {
     console.error("No token found in localStorage");
     alert("Your session has expired. Please log in again.");
     window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+    setIsLoading(false);
     return;
   }
 
@@ -772,6 +873,8 @@ const handleSubmit = async () => {
     } else {
       alert('There was an unknown error submitting the application.');
     }
+  } finally {
+    setIsLoading(false);
   }
 };
   // Show success message after form submission
@@ -797,6 +900,7 @@ const handleSubmit = async () => {
             title="Step 1: Personal Information"
             onNext={handleNext}
             showPrevious={false}
+            nextButtonText={isLoading ? "Saving..." : undefined}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -855,21 +959,32 @@ const handleSubmit = async () => {
                 )}
               </div>
               <div>
-                <label className="block mb-1 font-medium text-gray-700">
-                  Date of Birth <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  value={formData.dateOfBirth}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                />
-                {errors.dateOfBirth && (
-                  <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>
-                )}
-              </div>
+                  <label className="block mb-1 font-medium text-gray-700">
+                    Date of Birth <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border rounded-md ${
+                      errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    required
+                    max={getMaxDate()}
+                  />
+                  {formData.dateOfBirth && (
+                    <p className={`text-sm mt-1 ${
+                      calculateAge(formData.dateOfBirth) !== null && calculateAge(formData.dateOfBirth)! >= 18 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      Age: {calculateAge(formData.dateOfBirth)} years
+                      {calculateAge(formData.dateOfBirth) !== null && calculateAge(formData.dateOfBirth)! < 18 && ' - Must be 18 or older'}
+                    </p>
+                  )}
+                  {errors.dateOfBirth && (
+                    <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>
+                  )}
+                </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
                   Gender <span className="text-red-500">*</span>
@@ -900,6 +1015,7 @@ const handleSubmit = async () => {
       onNext={handleNext}
       onPrevious={handlePrevious}
       showPrevious={true}
+      nextButtonText={isLoading ? "Saving..." : undefined}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
@@ -941,79 +1057,103 @@ const handleSubmit = async () => {
           )}
         </div>
         
-        {/* REMOVED: File uploads from here */}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2">
-            <label className="block mb-1 font-medium text-gray-700">
-              Street Address <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="address.street"
-              value={formData.address.street}
-              onChange={handleInputChange}
-              placeholder="House no, street, area"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium text-gray-700">
-              City <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="address.city"
-              value={formData.address.city}
-              onChange={handleInputChange}
-              placeholder="City"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium text-gray-700">
-              State <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="address.state"
-              value={formData.address.state}
-              onChange={handleInputChange}
-              placeholder="State"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium text-gray-700">
-              PIN Code <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="address.pincode"
-              value={formData.address.pincode}
-              onChange={handleInputChange}
-              placeholder="PIN Code"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium text-gray-700">
-              Landmark (Optional)
-            </label>
-            <input
-              type="text"
-              name="address.landmark"
-              value={formData.address.landmark}
-              onChange={handleInputChange}
-              placeholder="Nearby landmark"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
+        <div className="md:col-span-2">
+          <label className="block mb-1 font-medium text-gray-700">
+            Street Address <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="address.street"
+            value={formData.address.street}
+            onChange={handleInputChange}
+            placeholder="House no, street, area"
+            className={`w-full px-3 py-2 border rounded-md ${
+              errors['address.street'] ? 'border-red-500' : 'border-gray-300'
+            }`}
+            required
+          />
+          {errors['address.street'] && (
+            <p className="text-red-500 text-sm mt-1">{errors['address.street']}</p>
+          )}
         </div>
+        
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
+            City <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="address.city"
+            value={formData.address.city}
+            onChange={handleInputChange}
+            placeholder="City"
+            className={`w-full px-3 py-2 border rounded-md ${
+              errors['address.city'] ? 'border-red-500' : 'border-gray-300'
+            }`}
+            required
+          />
+          {errors['address.city'] && (
+            <p className="text-red-500 text-sm mt-1">{errors['address.city']}</p>
+          )}
+        </div>
+        
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
+            State <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="address.state"
+            value={formData.address.state}
+            onChange={handleInputChange}
+            placeholder="State"
+            className={`w-full px-3 py-2 border rounded-md ${
+              errors['address.state'] ? 'border-red-500' : 'border-gray-300'
+            }`}
+            required
+          />
+          {errors['address.state'] && (
+            <p className="text-red-500 text-sm mt-1">{errors['address.state']}</p>
+          )}
+        </div>
+        
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
+            PIN Code <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="address.pincode"
+            value={formData.address.pincode}
+            onChange={handleInputChange}
+            placeholder="PIN Code"
+            className={`w-full px-3 py-2 border rounded-md ${
+              errors['address.pincode'] ? 'border-red-500' : 'border-gray-300'
+            }`}
+            required
+          />
+          {errors['address.pincode'] && (
+            <p className="text-red-500 text-sm mt-1">{errors['address.pincode']}</p>
+          )}
+        </div>
+        
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
+            Landmark (Optional)
+          </label>
+          <input
+            type="text"
+            name="address.landmark"
+            value={formData.address.landmark}
+            onChange={handleInputChange}
+            placeholder="Nearby landmark"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+          {/* No error for optional field */}
+        </div>
+      </div>
       </div>
     </FormStep>
   )
@@ -1024,6 +1164,7 @@ const handleSubmit = async () => {
             onNext={handleNext}
             onPrevious={handlePrevious}
             showPrevious={true}
+            nextButtonText={isLoading ? "Saving..." : undefined}
           >
             <div className="space-y-6">
               <div>
@@ -1151,6 +1292,7 @@ const handleSubmit = async () => {
             onNext={handleNext}
             onPrevious={handlePrevious}
             showPrevious={true}
+            nextButtonText={isLoading ? "Saving..." : undefined}
           >
             <div className="space-y-6">
               <div>
@@ -1298,6 +1440,7 @@ const handleSubmit = async () => {
             onNext={handleNext}
             onPrevious={handlePrevious}
             showPrevious={true}
+            nextButtonText={isLoading ? "Saving..." : undefined}
           >
             <div className="space-y-6">
               <div>
@@ -1344,7 +1487,7 @@ const handleSubmit = async () => {
                   name="ifscCode"
                   value={formData.ifscCode}
                   onChange={handleInputChange}
-                  placeholder="Enter IFSC code"
+                  placeholder="Eg: HDFC0001234"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
@@ -1389,6 +1532,7 @@ const handleSubmit = async () => {
       onNext={handleNext}
       onPrevious={handlePrevious}
       showPrevious={true}
+      nextButtonText={isLoading ? "Uploading Documents..." : undefined}
     >
       <div className="space-y-6">
         {/* Move these from Step 2 to Step 6 */}
@@ -1482,72 +1626,137 @@ const handleSubmit = async () => {
       case 7:
   return (
     <FormStep
-      title="Step 7: Agreement & Consent"
-      onNext={handleNext}
-      onPrevious={handlePrevious}
-      showPrevious={true}
-    >
-      <div className="space-y-6">
-        <div className="bg-gray-50 p-6 rounded-md">
-          <h3 className="font-medium text-lg mb-4">Terms & Conditions</h3>
-          <div className="space-y-4 text-sm">
-            <div>
-              <h4 className="font-medium text-gray-800">
-                1. Service Provider Relationship
-              </h4>
-              <p className="text-gray-600">
-                By registering as a technician on LocalFix, you
-                acknowledge that you are an independent service provider
-                and not an employee of LocalFix. You are responsible for
-                your own taxes, insurance, and compliance with local
-                regulations.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-800">
-                2. Service Quality
-              </h4>
-              <p className="text-gray-600">
-                You agree to provide services with professional care and
-                skill, using appropriate materials and adhering to
-                industry standards. You will communicate clearly with
-                customers about service details, timing, and pricing.
-              </p>
-            </div>
+  title="Step 7: Agreement & Consent"
+  onNext={handleNext}
+  onPrevious={handlePrevious}
+  showPrevious={true}
+  nextButtonText={isLoading ? "Saving..." : undefined}
+>
+  <div className="space-y-6">
+    <div className="bg-gray-50 rounded-md overflow-hidden">
+      <div className="p-6 border-b border-gray-200">
+        <h3 className="font-medium text-lg mb-2">Terms & Conditions</h3>
+        <p className="text-sm text-gray-600">
+          Please read the following terms carefully before agreeing
+        </p>
+      </div>
+      
+      {/* Scrollable Terms Container */}
+      <div className="max-h-64 overflow-y-auto p-6 bg-white">
+        <div className="space-y-6 text-sm">
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">
+              1. Service Provider Relationship
+            </h4>
+            <p className="text-gray-600 leading-relaxed">
+              By registering as a technician on LocalFix, you
+              acknowledge that you are an independent service provider
+              and not an employee of LocalFix. You are responsible for
+              your own taxes, insurance, and compliance with local
+              regulations.
+            </p>
           </div>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-start">
-            <input
-              type="checkbox"
-              id="agreement"
-              name="agreement"
-              checked={formData.agreement}
-              onChange={handleInputChange}
-              className="mt-1 w-4 h-4 text-blue-600"
-              required
-            />
-            <label htmlFor="agreement" className="ml-2 text-gray-700">
-              I have read and agree to LocalFix's{' '}
-              <span className="text-blue-600 hover:underline">
-                Terms & Conditions
-              </span>{' '}
-              and{' '}
-              <span className="text-blue-600 hover-underline">
-                Code of Conduct
-              </span>
-            </label>
-            {errors.agreement && (
-              <p className="text-red-500 text-sm mt-1">{errors.agreement}</p>
-            )}
+          
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">
+              2. Service Quality
+            </h4>
+            <p className="text-gray-600 leading-relaxed">
+              You agree to provide services with professional care and
+              skill, using appropriate materials and adhering to
+              industry standards. You will communicate clearly with
+              customers about service details, timing, and pricing.
+            </p>
           </div>
-        </div>
-        <div className="text-sm text-gray-600 italic mt-4">
-          By proceeding, you confirm that all information provided is
-          accurate and complete to the best of your knowledge.
+          
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">
+              3. Booking & Scheduling
+            </h4>
+            <p className="text-gray-600 leading-relaxed">
+              You agree to respond to service requests promptly and honor appointments. If you need to cancel or reschedule, you must provide reasonable notice to both the customer and LocalFix.
+            </p>
+          </div>
+          
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">
+              4. Payment Terms
+            </h4>
+            <p className="text-gray-600 leading-relaxed">
+              LocalFix will process customer payments and transfer your service fee to your registered bank account, minus the platform commission. Payments are typically processed within 3-5 business days after job completion and customer confirmation.
+            </p>
+          </div>
+          
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">
+              5. Ratings & Reviews
+            </h4>
+            <p className="text-gray-600 leading-relaxed">
+              Customers may rate and review your services. You agree that these ratings will be displayed on your profile and may affect your visibility and ranking on the platform.
+            </p>
+          </div>
+          
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">
+              6. Document Verification
+            </h4>
+            <p className="text-gray-600 leading-relaxed">
+              You consent to verification of all documents and information provided during registration. Providing false information may result in immediate termination of your account.
+            </p>
+          </div>
+          
+          <div>
+            <h4 className="font-medium text-gray-800 mb-2">
+              7. Account Termination
+            </h4>
+            <p className="text-gray-600 leading-relaxed">
+              LocalFix reserves the right to suspend or terminate your account for violations of these terms, poor service quality, or inappropriate behavior toward customers.
+            </p>
+          </div>
         </div>
       </div>
-    </FormStep>
+      
+      {/* Scroll indicator (optional) */}
+      <div className="bg-gray-50 px-6 py-2 border-t border-gray-200">
+        <p className="text-xs text-gray-500 text-center">
+          ↑ Scroll to read all terms ↑
+        </p>
+      </div>
+    </div>
+
+    <div className="space-y-4">
+      <div className="flex items-start">
+        <input
+          type="checkbox"
+          id="agreement"
+          name="agreement"
+          checked={formData.agreement}
+          onChange={handleInputChange}
+          className="mt-1 w-4 h-4 text-blue-600"
+          required
+        />
+        <label htmlFor="agreement" className="ml-2 text-gray-700">
+          I have read and agree to LocalFix's{' '}
+          <span className="text-blue-600 hover:underline">
+            Terms & Conditions
+          </span>{' '}
+          and{' '}
+          <span className="text-blue-600 hover:underline">
+            Code of Conduct
+          </span>
+        </label>
+        {errors.agreement && (
+          <p className="text-red-500 text-sm mt-1">{errors.agreement}</p>
+        )}
+      </div>
+    </div>
+    
+    <div className="text-sm text-gray-600 italic mt-4">
+      By proceeding, you confirm that all information provided is
+      accurate and complete to the best of your knowledge.
+    </div>
+  </div>
+</FormStep>
   )
       case 8:
   return (
@@ -1556,7 +1765,9 @@ const handleSubmit = async () => {
       onNext={handleSubmit}
       onPrevious={handlePrevious}
       showPrevious={true}
+      nextButtonText={isLoading ? "Submitting Application..." : undefined}
       isLastStep={true}
+      
     >
       <div className="space-y-8">
         <div className="flex flex-col items-center py-8">
