@@ -11,11 +11,13 @@ import {
   HelpOutlineOutlined,
   CancelOutlined,
   RefreshOutlined,
+  AddCircleOutlineOutlined
 } from '@mui/icons-material';
 import Header from '../../../components/common/Header';
 import Footer from '../../../components/common/Footer';
 import axios from 'axios';
 import { useAuth } from '../../../context/AuthContext';
+import toast from 'react-hot-toast'
 
 interface DocumentInfo {
   url: string;
@@ -83,101 +85,155 @@ export const PendingTechnicianApplication: React.FC = () => {
   const { token } = useAuth();
 
   const fetchApplicationData = async () => {
-    try {
-      setLoading(true);
-      const applicationId = localStorage.getItem("applicationId");
+  try {
+    setLoading(true);
+    const applicationId = localStorage.getItem("applicationId");
+    
+    if (!applicationId) {
+      setError("No application found");
+      setLoading(false);
+      return;
+    }
+
+    
+    const applicationResponse = await axios.get(
+      `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    
+    
+    if (applicationResponse.data.data?.application) {
+      const appData = applicationResponse.data.data.application;
       
-      if (!applicationId) {
-        setError("No application found");
-        setLoading(false);
+      
+      if (appData.status === 'draft') {
+        window.location.href = '/technician/apply';
         return;
       }
-
-      const applicationResponse = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
       
-      if (applicationResponse.data.data?.application) {
-        const appData = applicationResponse.data.data.application;
-        
-        if (appData.status === 'draft') {
-          window.location.href = '/technician/apply';
-          return;
-        }
-        
-        setApplicationData(appData);
-        setApplicationStatus(appData.status);
-        
-        if (appData.status === 'approved') {
-          try {
-            const technicianResponse = await axios.get(
-              `${import.meta.env.VITE_BASE_URL}/technicians/by-application/${applicationId}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`
-                }
+      setApplicationData(appData);
+      setApplicationStatus(appData.status);
+      
+      if (appData.status === 'approved') {
+        try {
+          const technicianResponse = await axios.get(
+            `${import.meta.env.VITE_BASE_URL}/technicians/by-application/${applicationId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
               }
-            );
-            if (technicianResponse.data.data?.technician) {
-              setTechnicianData(technicianResponse.data.data.technician);
             }
-          } catch (techError) {
-            console.log("No technician data found yet", techError);
+          );
+          if (technicianResponse.data.data?.technician) {
+            setTechnicianData(technicianResponse.data.data.technician);
           }
+        } catch (techError) {
+          console.log("No technician data found yet", techError);
         }
-      } else {
-        setError("Failed to load application data");
       }
-    } catch (error) {
-      console.error("Error fetching application data:", error);
+    } else {
       setError("Failed to load application data");
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error("Error fetching application data:", error);
+    setError("Failed to load application data");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleResubmitApplication = async () => {
-    if (!applicationData) return;
+  if (!applicationData) return;
+  
+  try {
+    setIsResubmitting(true);
     
-    try {
-      setIsResubmitting(true);
-      
-      const response = await axios.patch(
-        `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationData._id}/resubmit`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+    console.log("🔍 Attempting to resubmit application:", applicationData._id);
+    console.log("🔍 Current application status:", applicationData.status);
+    
+    const response = await axios.patch(
+      `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationData._id}/resubmit`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-      );
-      
-      if (response.data.success) {
-        // Refresh application data
-        await fetchApplicationData();
-        // Optionally redirect to application form for edits
-        window.location.href = '/technician/apply';
-      } else {
-        setError("Failed to resubmit application");
       }
-    } catch (error) {
-      console.error("Error resubmitting application:", error);
-      setError("Failed to resubmit application. Please try again.");
-    } finally {
-      setIsResubmitting(false);
+    );
+    
+    console.log("🔍 Resubmit response:", response.data);
+    
+    if (response.data.success) {
+      toast.success('Application resubmitted successfully!', {
+        duration: 4000,
+        position: 'top-right',
+      });
+      
+      await fetchApplicationData();
+    } else {
+      console.error("🔍 Resubmit failed:", response.data.message);
+      setError(response.data.message || "Failed to resubmit application");
     }
-  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    console.error("🔍 Error resubmitting application:", error);
+    console.error("🔍 Error response:", error.response?.data);
+    console.error("🔍 Error status:", error.response?.status);
+    
+    const errorMessage = error.response?.data?.message || "Failed to resubmit application. Please try again.";
+    setError(errorMessage);
+    
+    toast.error(errorMessage, {
+      duration: 4000,
+      position: 'top-right',
+    });
+  } finally {
+    setIsResubmitting(false);
+  }
+};
 
-  const handleNewApplication = () => {
-    // Clear the existing application ID and start fresh
-    localStorage.removeItem("applicationId");
-    window.location.href = '/technician/apply';
-  };
+const handleStartFreshApplication = async () => {
+  // This creates a completely new application
+  try {
+    setIsResubmitting(true);
+    
+    const response = await axios.post(
+      `${import.meta.env.VITE_BASE_URL}/technician-application/start-new-after-rejection`,
+      {
+        email: applicationData?.personal?.email
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    
+    if (response.data.success) {
+      // Store the new application ID
+      localStorage.setItem("applicationId", response.data.data.applicationId);
+      
+      toast.success('New application started! You can now update your information.', {
+        duration: 4000,
+        position: 'top-right',
+      });
+      
+      // Redirect to application form
+      window.location.href = '/technicians/apply';
+    } else {
+      setError("Failed to start new application");
+    }
+  } catch (error) {
+    console.error("Error starting new application:", error);
+    setError("Failed to start new application. Please try again.");
+  } finally {
+    setIsResubmitting(false);
+  }
+};
 
   useEffect(() => {
     const checkApplicationStatus = async () => {
@@ -239,14 +295,32 @@ export const PendingTechnicianApplication: React.FC = () => {
   };
 
   const getRejectionDate = () => {
-    if (!applicationData?.rejectedAt) return 'N/A';
-    
-    return new Date(applicationData.rejectedAt).toLocaleDateString('en-US', {
+  if (!applicationData?.rejectedAt) {
+    // Fallback to updatedAt if rejectedAt is not available
+    const fallbackDate = applicationData?.updatedAt;
+    if (fallbackDate) {
+      return new Date(fallbackDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+    return 'Date not available';
+  }
+  
+  
+  try {
+    const date = new Date(applicationData.rejectedAt);
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'numeric',
+      month: 'long',
       day: 'numeric'
     });
-  };
+  } catch (error) {
+    console.error("🔍 Error parsing rejectedAt:", error);
+    return 'Invalid Date';
+  }
+};
 
   const getInitials = (name: string) => {
     return name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U';
@@ -447,7 +521,7 @@ export const PendingTechnicianApplication: React.FC = () => {
             </div>
           </div>
 
-          {/* Rejection Details - Only show if rejected */}
+
           {applicationData.status === 'rejected' && (
             <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-500">
               <div className="flex">
@@ -459,16 +533,48 @@ export const PendingTechnicianApplication: React.FC = () => {
                     Application Rejected
                   </h3>
                   <div className="mt-2 text-sm text-red-700">
-                    <p>
-                      Unfortunately, your technician application has been rejected. 
-                      {applicationData.rejectionReason && (
-                        <span> <strong>Reason:</strong> {applicationData.rejectionReason}</span>
-                      )}
-                      {applicationData.reviewNotes && (
-                        <span> <strong>Additional Notes:</strong> {applicationData.reviewNotes}</span>
-                      )}
+                    <p className="mb-3">
+                      Unfortunately, your technician application has been rejected.
                     </p>
-                    <p className="mt-2">
+                    
+                    {/* Display Rejection Reason */}
+                    {applicationData.rejectionReason ? (
+                      <div className="mb-3">
+                        <strong className="block mb-1">Rejection Reason:</strong> 
+                        <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                          <p className="text-red-700 whitespace-pre-wrap">
+                            {applicationData.rejectionReason}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-3">
+                        <p className="text-red-600 italic">
+                          No specific rejection reason provided.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Display Additional Notes if any */}
+                    {applicationData.reviewNotes && (
+                      <div className="mb-3">
+                        <strong className="block mb-1">Admin Notes:</strong> 
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                          <p className="text-yellow-700 whitespace-pre-wrap">
+                            {applicationData.reviewNotes}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Display Rejection Date */}
+                    {applicationData.rejectedAt && (
+                      <p className="text-sm text-red-600 mt-3">
+                        <strong>Rejected on:</strong> {getRejectionDate()}
+                      </p>
+                    )}
+                    
+                    <p className="mt-4 text-red-800 font-medium">
                       You can review the issues mentioned above and submit a new application.
                     </p>
                   </div>
@@ -476,7 +582,6 @@ export const PendingTechnicianApplication: React.FC = () => {
               </div>
             </div>
           )}
-
           {/* Application Status - Hide for rejected applications */}
           {applicationData.status !== 'rejected' && (
             <div className="bg-white rounded-lg shadow-sm p-4">
@@ -626,7 +731,7 @@ export const PendingTechnicianApplication: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-4">
               <h2 className="font-medium mb-3">Apply Again</h2>
               <p className="text-sm text-gray-600 mb-4">
-                You can submit a new application after addressing the issues mentioned above.
+                Choose how you want to proceed with your application:
               </p>
               <div className="space-y-3">
                 <button 
@@ -635,20 +740,22 @@ export const PendingTechnicianApplication: React.FC = () => {
                   className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <RefreshOutlined className="w-4 h-4 mr-2" />
-                  {isResubmitting ? 'Resubmitting...' : 'Resubmit with Same Data'}
+                  {isResubmitting ? 'Resubmitting...' : 'Quick Resubmit'}
                 </button>
+                
                 <button 
-                  onClick={handleNewApplication}
-                  className="w-full flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  onClick={handleStartFreshApplication}
+                  disabled={isResubmitting}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <EditOutlined className="w-4 h-4 mr-2" />
-                  Start Fresh Application
+                  <AddCircleOutlineOutlined className="w-4 h-4 mr-2" />
+                  {isResubmitting ? 'Creating...' : 'Start Completely Fresh'}
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-3">
-                <strong>Resubmit with Same Data:</strong> Uses your existing application data, good if you only need to update documents.
-                <br />
-                <strong>Start Fresh Application:</strong> Creates a completely new application from scratch.
+                <strong>Quick Resubmit:</strong> Resubmit your current application as-is<br />
+                <strong>Edit & Improve:</strong> Modify your current application before resubmitting<br />
+                <strong>Start Completely Fresh:</strong> Create a new application (keeps your documents)
               </p>
             </div>
           )}

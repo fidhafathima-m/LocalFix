@@ -13,6 +13,19 @@ const TechnicianSchema = new Schema<ITechnician>(
     serviceRates: { type: Schema.Types.Mixed },
     workAreas: { type: [String], default: [] },
     serviceRadiusKm: { type: Number, default: 10 },
+    personalInfo: {
+      fullName: {type: String},
+      gender: {type: String},
+      phoneNumber: {type: String},
+      dateOfBirth: {type: Date},
+      address: {
+        street: {type: String},
+        city: {type: String},
+        state: {type: String},
+        pincode: {type: String}
+      },
+      languages: {type: String}
+    },
 
     currentLocation: {
       type: {
@@ -36,9 +49,10 @@ const TechnicianSchema = new Schema<ITechnician>(
       default: 'not-applied',
     },
     rejectionReason: { type: String },
+    rejectedAt: { type: Date },
     resubmittedCount: { type: Number, default: 0 },
     profilePictureUrl: { type: String },
-
+    previousApplicationId: { type: Schema.Types.ObjectId, ref: 'TechnicianApplication' },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },

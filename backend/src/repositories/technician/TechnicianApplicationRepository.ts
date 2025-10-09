@@ -21,11 +21,11 @@ export class TechnicianApplicationRepository {
   }
 
   async findByTechnicianIdAndStatus(technicianId: string, statuses: string[]): Promise<ITechnicianApplication | null> {
-    return await TechnicianApplication.findOne({
-      technicianId: new Types.ObjectId(technicianId),
-      status: { $in: statuses }
-    });
-  }
+  return await TechnicianApplication.findOne({
+    technicianId: new Types.ObjectId(technicianId),
+    status: { $in: statuses }
+  }).sort({ createdAt: -1 }); // Get the most recent application
+}
 
   async create(applicationData: Partial<ITechnicianApplication>): Promise<ITechnicianApplication> {
     return await TechnicianApplication.create(applicationData);
@@ -42,4 +42,11 @@ export class TechnicianApplicationRepository {
   async save(application: ITechnicianApplication): Promise<ITechnicianApplication> {
     return await application.save();
   }
+  // Add to TechnicianApplicationRepository class
+async findByUserIdAndStatus(userId: string, statuses: string[]): Promise<ITechnicianApplication | null> {
+  return await TechnicianApplication.findOne({
+    technicianId: new Types.ObjectId(userId),
+    status: { $in: statuses }
+  }).sort({ createdAt: -1 });
+}
 }

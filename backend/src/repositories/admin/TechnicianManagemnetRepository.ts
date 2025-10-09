@@ -73,14 +73,55 @@ export class TechnicianManagementRepository {
     return await TechnicianApplication.findById(id);
   }
 
-  async updateApplicationStatus(id: string, status: string, updateData: any = {}): Promise<ITechnicianApplication | null> {
-    return await TechnicianApplication.findByIdAndUpdate(
-      id,
-      { $set: { status, ...updateData } },
-      { new: true }
-    );
-  }
+  // In TechnicianManagementRepository - updateApplicationStatus method
+async updateApplicationStatus(
+  applicationId: string, 
+  status: string, 
+  additionalData?: any
+): Promise<ITechnicianApplication | null> {
+  try {
+    console.log('🔍 Updating application status:', { applicationId, status, additionalData });
+    
+    const updateData: any = {
+      status,
+      updatedAt: new Date()
+    };
 
+    // Add rejection data if provided
+    if (additionalData) {
+      if (additionalData.rejectionReason) {
+        updateData.rejectionReason = additionalData.rejectionReason;
+        console.log('🔍 Setting rejectionReason:', additionalData.rejectionReason);
+      }
+      if (additionalData.rejectedAt) {
+        updateData.rejectedAt = additionalData.rejectedAt;
+        console.log('🔍 Setting rejectedAt:', additionalData.rejectedAt);
+      } else if (status === 'rejected') {
+        // Automatically set rejectedAt if not provided
+        updateData.rejectedAt = new Date();
+        console.log('🔍 Auto-setting rejectedAt for rejection');
+      }
+      if (additionalData.reviewNotes) {
+        updateData.reviewNotes = additionalData.reviewNotes;
+      }
+    }
+
+    console.log('🔍 Final update data:', updateData);
+
+    const result = await TechnicianApplication.findByIdAndUpdate(
+      applicationId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    console.log('🔍 Update result rejectedAt:', result?.rejectedAt);
+    
+    return result;
+  } catch (error) {
+    console.error('❌ Error in updateApplicationStatus:', error);
+    throw error;
+  }
+}
   async getApplicationStats(): Promise<{
     total: number;
     pending: number;

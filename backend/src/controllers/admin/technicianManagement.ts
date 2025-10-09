@@ -42,11 +42,37 @@ export class TechnicianManagementController {
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  rejectApplication = async (req: AuthRequest, res: Response): Promise<void> => {
+  // In your technicianManagement controller
+rejectApplication = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
     const { id } = req.params;
-    const result = await this.technicianService.rejectApplication(id, req.body);
+    const { rejectionReason } = req.body;
+
+    console.log('🔍 Controller: Rejecting application:', id);
+    console.log('🔍 Controller: Rejection reason:', rejectionReason);
+
+    if (!rejectionReason) {
+      res.status(400).json({
+        success: false,
+        message: 'Rejection reason is required'
+      });
+      return;
+    }
+
+    const result = await this.technicianService.rejectApplication(id, { rejectionReason });
+    
+    console.log('🔍 Controller: Result:', result);
+    
     res.status(result.success ? 200 : 400).json(result);
-  };
+  } catch (error) {
+    console.error('❌ Controller error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
 
   getApplicationById = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;

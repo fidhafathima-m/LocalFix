@@ -39,6 +39,7 @@ router.get('/:applicationId', protect, TechnicianApplicationController.getApplic
 router.post('/submit', protect, TechnicianApplicationController.submitApplication);
 router.get('/status/:email', TechnicianApplicationController.getApplicationStatus);
 router.get('/user/applications', protect, TechnicianApplicationController.getUserApplications);
-
+router.patch('/:applicationId/resubmit', protect, TechnicianApplicationController.resubmitApplication); 
+router.post('/start-new-after-rejection', protect, TechnicianApplicationController.startNewAfterRejection);
 
 export default router;

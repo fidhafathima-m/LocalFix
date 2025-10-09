@@ -130,50 +130,57 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
   }
 
   // Handle application rejection - UPDATED
-  const handleRejectApplication = async () => {
-    if (!applicationId) return
+ // In your AdminActions component - handleRejectApplication
+const handleRejectApplication = async () => {
+  if (!applicationId) return
 
-    const { value: reason } = await Swal.fire({
-      title: 'Reject Application?',
-      html: `Please provide a reason for rejecting <strong>${technicianName}</strong>'s application:`,
-      icon: 'warning',
-      input: 'textarea',
-      inputLabel: 'Rejection Reason',
-      inputPlaceholder: 'Enter the reason for rejection...',
-      inputAttributes: {
-        'aria-label': 'Enter the reason for rejection'
-      },
-      showCancelButton: true,
-      confirmButtonColor: '#EF4444',
-      cancelButtonColor: '#6B7280',
-      confirmButtonText: 'Reject Application',
-      cancelButtonText: 'Cancel',
-      reverseButtons: true,
-      background: '#ffffff',
-      inputValidator: (value) => {
-        if (!value) {
-          return 'Please provide a rejection reason!'
-        }
-        if (value.length < 10) {
-          return 'Reason must be at least 10 characters long'
-        }
+  const { value: reason } = await Swal.fire({
+    title: 'Reject Application?',
+    html: `Please provide a reason for rejecting <strong>${technicianName}</strong>'s application:`,
+    icon: 'warning',
+    input: 'textarea',
+    inputLabel: 'Rejection Reason',
+    inputPlaceholder: 'Enter the reason for rejection...',
+    inputAttributes: {
+      'aria-label': 'Enter the reason for rejection'
+    },
+    showCancelButton: true,
+    confirmButtonColor: '#EF4444',
+    cancelButtonColor: '#6B7280',
+    confirmButtonText: 'Reject Application',
+    cancelButtonText: 'Cancel',
+    reverseButtons: true,
+    background: '#ffffff',
+    inputValidator: (value) => {
+      if (!value) {
+        return 'Please provide a rejection reason!'
       }
-    })
+      if (value.length < 10) {
+        return 'Reason must be at least 10 characters long'
+      }
+    }
+  })
 
-    if (reason) {
-      // ✅ FIXED: Use the API function instead of hardcoded URL
+  if (reason) {
+    console.log('🔍 Frontend: Rejecting with reason:', reason);
+    
+    try {
       const rejectPromise = rejectApplication(applicationId, reason)
 
       toast.promise(
         rejectPromise,
         {
           loading: `Rejecting ${technicianName}'s application...`,
-          success: () => {
+          success: (result) => {
+            console.log('🔍 Frontend: Rejection success:', result);
             onStatusUpdate?.()
             redirectToTechManagement()
             return `Application rejected. ${technicianName} has been notified.`
           },
-          error: 'Failed to reject application. Please try again.'
+          error: (error) => {
+            console.log('🔍 Frontend: Rejection error:', error);
+            return 'Failed to reject application. Please try again.'
+          }
         },
         {
           success: {
@@ -184,8 +191,11 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
           }
         }
       )
+    } catch (error) {
+      console.error('🔍 Frontend: Catch error:', error);
     }
   }
+}
   // Handle reset password
   // const handleResetPassword = async () => {
   //   const result = await Swal.fire({

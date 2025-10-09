@@ -125,6 +125,7 @@ export interface ITechnicianApplication {
   submittedAt?: Date;
   reviewNotes?: string;
   rejectionReason?: string;
+  rejectedAt?: string
   resubmittedCount: number;
   lastSubmittedAt?: Date;
   createdAt: Date;

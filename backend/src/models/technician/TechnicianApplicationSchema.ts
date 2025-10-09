@@ -16,10 +16,12 @@ export interface ITechnicianApplication extends Document {
   submittedAt?: Date;
   reviewNotes?: string;
   rejectionReason?: string;
+  rejectedAt?: string
   resubmittedCount: number;
   lastSubmittedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  previousApplicationId?: Types.ObjectId;
 }
 
 const TechnicianApplicationSchema = new Schema<ITechnicianApplication>(
@@ -42,6 +44,7 @@ const TechnicianApplicationSchema = new Schema<ITechnicianApplication>(
     submittedAt: { type: Date },
     reviewNotes: { type: String },
     rejectionReason: { type: String },
+    rejectedAt: { type: Date },
     resubmittedCount: { type: Number, default: 0 },
     lastSubmittedAt: { type: Date },
   },

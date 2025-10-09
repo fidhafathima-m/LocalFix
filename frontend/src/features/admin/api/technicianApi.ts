@@ -93,8 +93,17 @@ export const approveApplication = async (applicationId: string): Promise<void> =
 };
 
 // Reject application - UPDATED ENDPOINT
+// In technicianApi.ts - FIX THE ENDPOINT
 export const rejectApplication = async (applicationId: string, rejectionReason: string): Promise<void> => {
-  const res = await api.patch<ApiResponse<void>>(`/admin/technicians/applications/${applicationId}/reject`, { rejectionReason });
+  console.log('🔍 API: Rejecting application:', applicationId);
+  console.log('🔍 API: Rejection reason:', rejectionReason);
+  
+  const res = await api.patch<ApiResponse<void>>(
+    `/admin/technicians/applications/${applicationId}/reject`, 
+    { rejectionReason }
+  );
+  
+  console.log('🔍 API Response:', res.data);
   
   if (!res.data.success) {
     throw new Error(res.data.message || 'Failed to reject application');

@@ -39,7 +39,9 @@ export interface ITechnician {
   status: 'not-applied' | 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
   rejectionReason?: string;
   resubmittedCount: number;
+  rejectedAt?: Date
   profilePictureUrl?: string;
+  previousApplicationId?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }

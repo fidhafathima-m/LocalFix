@@ -38,9 +38,14 @@ export interface ITechnicianApplicationData {
   agreement: boolean;
   submittedAt?: Date;
   reviewNotes?: string;
+  rejectedAt?: Date
   rejectionReason?: string;
   resubmittedCount: number;
   lastSubmittedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ResubmitApplicationRequest {
+  applicationId: string;
 }

@@ -515,67 +515,84 @@ private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminT
     }
   }
 
-  async rejectApplication(id: string, rejectData: RejectApplicationRequest): Promise<ApplicationListResponse> {
-    try {
-      const { rejectionReason } = rejectData;
+  // In your rejectApplication method in TechnicianManagementService
+async rejectApplication(id: string, rejectData: RejectApplicationRequest): Promise<ApplicationListResponse> {
+  try {
+    const { rejectionReason } = rejectData;
 
-      const application = await this.technicianRepository.findApplicationById(id);
-      if (!application) {
-        return {
-          success: false,
-          message: 'Application not found'
-        };
-      }
+    console.log('🔍 Rejecting application:', id);
+    console.log('🔍 Rejection reason:', rejectionReason);
 
-      // Update application status
-      const updatedApplication = await this.technicianRepository.updateApplicationStatus(
-        id, 
-        'rejected', 
-        { rejectionReason }
-      );
-
-      if (!updatedApplication) {
-        return {
-          success: false,
-          message: 'Failed to update application'
-        };
-      }
-
-      // Update user's application status
-      await this.technicianRepository.updateUserApplicationStatus(
-        application.technicianId as Types.ObjectId,
-        'rejected'
-      );
-
-      // Update technician status if exists
-      await this.technicianRepository.updateTechnicianStatus(
-        id,
-        'rejected'
-      );
-
-      return {
-        success: true,
-        message: 'Application rejected successfully',
-        data: {
-          applications: [updatedApplication as ITechnicianApplication],
-          pagination: {
-            page: 1,
-            limit: 1,
-            total: 1,
-            pages: 1
-          }
-        }
-      };
-
-    } catch (error) {
-      console.error('Reject application error:', error);
+    const application = await this.technicianRepository.findApplicationById(id);
+    if (!application) {
+      console.log('❌ Application not found');
       return {
         success: false,
-        message: 'Failed to reject application',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Application not found'
       };
     }
+
+    console.log('🔍 Found application:', application._id);
+    console.log('🔍 Current application status:', application.status);
+
+    // Update application status with rejection details
+    const updatedApplication = await this.technicianRepository.updateApplicationStatus(
+      id, 
+      'rejected', 
+      { 
+        rejectionReason,
+        rejectedAt: new Date()
+      }
+    );
+
+    console.log('🔍 Updated application:', updatedApplication);
+    console.log('🔍 Updated rejectionReason:', updatedApplication?.rejectionReason);
+
+    if (!updatedApplication) {
+      console.log('❌ Failed to update application');
+      return {
+        success: false,
+        message: 'Failed to update application'
+      };
+    }
+
+    // Update user's application status
+    await this.technicianRepository.updateUserApplicationStatus(
+      application.technicianId as Types.ObjectId,
+      'rejected'
+    );
+
+    // Update technician status if exists
+    await this.technicianRepository.updateTechnicianStatus(
+      application.technicianId?.toString() || id,
+      'rejected'
+    );
+
+    console.log('✅ Application rejected successfully');
+
+    return {
+      success: true,
+      message: 'Application rejected successfully',
+      data: {
+        applications: [updatedApplication as ITechnicianApplication],
+        pagination: {
+          page: 1,
+          limit: 1,
+          total: 1,
+          pages: 1
+        }
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Reject application error:', error);
+    return {
+      success: false,
+      message: 'Failed to reject application',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
+}
 
   async getApplicationById(id: string): Promise<ApplicationListResponse> {
     try {

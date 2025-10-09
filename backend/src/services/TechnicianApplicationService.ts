@@ -27,124 +27,127 @@ export class TechnicianApplicationService {
   }
 
   async startApplication(data: StartApplicationRequest): Promise<ApplicationResponse> {
-    try {
-      const { email, userId } = data;
+  try {
+    const { email, userId } = data;
 
-      console.log("Starting application for email:", email, "user:", userId);
+    console.log("Starting application for email:", email, "user:", userId);
 
-      if (!email || !userId) {
-        return { 
-          success: false, 
-          message: 'Email and User ID are required' 
-        };
-      }
+    if (!email || !userId) {
+      return { 
+        success: false, 
+        message: 'Email and User ID are required' 
+      };
+    }
 
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return { 
-          success: false, 
-          message: 'Please provide a valid email address' 
-        };
-      }
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return { 
+        success: false, 
+        message: 'Please provide a valid email address' 
+      };
+    }
 
-      // Check if user already has ANY application 
-      const existingUserApplication = await this.applicationRepository.findByTechnicianIdAndStatus(
-        userId, 
-        ['draft', 'submitted', 'under_review', 'approved']
-      );
+    // ✅ FIX: Include 'rejected' in the status array
+    const existingUserApplication = await this.applicationRepository.findByTechnicianIdAndStatus(
+      userId, 
+      ['draft', 'submitted', 'under_review', 'approved', 'rejected'] // ✅ Added 'rejected'
+    );
 
-      if (existingUserApplication) {
-        const appStatus = existingUserApplication.status;
-        
-        // If application is submitted or under review, redirect to pending dashboard
-        if (appStatus === 'submitted' || appStatus === 'under_review') {
-          return {
-            success: true,
-            message: 'Application already submitted',
-            data: { 
-              applicationId: existingUserApplication._id.toString(),
-              redirectTo: '/pending-technician/dashboard'
-            }
-          };
-        }
-        
-        // If application is approved, redirect to technician dashboard
-        if (appStatus === 'approved') {
-          return {
-            success: true,
-            message: 'Application already approved',
-            data: { 
-              applicationId: existingUserApplication._id.toString(),
-              redirectTo: '/technician/dashboard'
-            }
-          };
-        }
-        
-        // If it's a draft, return the existing application
+    if (existingUserApplication) {
+      const appStatus = existingUserApplication.status;
+      
+      // If application is submitted or under review, redirect to pending dashboard
+      if (appStatus === 'submitted' || appStatus === 'under_review') {
         return {
           success: true,
-          message: 'Draft application found',
+          message: 'Application already submitted',
           data: { 
             applicationId: existingUserApplication._id.toString(),
-            redirectTo: null
+            redirectTo: '/pending-technician/dashboard'
           }
         };
       }
-
-      // Check if email is already registered to different user
-      const existingEmailApplication = await this.applicationRepository.findByEmailAndStatus(
-        email, 
-        ['draft', 'submitted', 'under_review', 'approved']
-      );
-
-      if (existingEmailApplication) {
-        const existingAppTechnicianId = existingEmailApplication.technicianId?.toString();
-        
-        // Email already used by someone else
-        if (existingAppTechnicianId && existingAppTechnicianId !== userId) {
-          return { 
-            success: false, 
-            message: 'Email already has an application in progress by another user' 
-          };
-        }
+      
+      // If application is approved, redirect to technician dashboard
+      if (appStatus === 'approved') {
+        return {
+          success: true,
+          message: 'Application already approved',
+          data: { 
+            applicationId: existingUserApplication._id.toString(),
+            redirectTo: '/technician/dashboard'
+          }
+        };
       }
-
-      // Create new application
-      const application = await this.applicationRepository.create({
-        email: email.toLowerCase().trim(),
-        technicianId: new Types.ObjectId(userId),
-        status: 'draft',
-        stepsCompleted: [],
-        personal: {},
-        identity: {},
-        skills: {},
-        availability: {},
-        bank: {},
-        documents: {},
-        agreement: false
-      });
-
-      console.log("Created new application with ID:", application._id);
-
-      return {
-        success: true,
-        message: 'Application started successfully',
-        data: { 
-          applicationId: application._id.toString(),
-          redirectTo: null
-        }
-      };
-
-    } catch (error) {
-      console.error('Start application error:', error);
-      return {
-        success: false,
-        message: 'Failed to start application',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
+      
+      // ✅ FIX: If it's a draft OR rejected, return the existing application
+      // Allow rejected applications to be edited and resubmitted
+      if (appStatus === 'draft' || appStatus === 'rejected') {
+        return {
+          success: true,
+          message: appStatus === 'rejected' ? 'Rejected application found - you can edit and resubmit' : 'Draft application found',
+          data: { 
+            applicationId: existingUserApplication._id.toString(),
+            redirectTo: null // ✅ This allows them to go to the application form
+          }
+        };
+      }
     }
+
+    // Check if email is already registered to different user
+    const existingEmailApplication = await this.applicationRepository.findByEmailAndStatus(
+      email, 
+      ['draft', 'submitted', 'under_review', 'approved', 'rejected'] // ✅ Also update here
+    );
+
+    if (existingEmailApplication) {
+      const existingAppTechnicianId = existingEmailApplication.technicianId?.toString();
+      
+      // Email already used by someone else
+      if (existingAppTechnicianId && existingAppTechnicianId !== userId) {
+        return { 
+          success: false, 
+          message: 'Email already has an application in progress by another user' 
+        };
+      }
+    }
+
+    // Create new application
+    const application = await this.applicationRepository.create({
+      email: email.toLowerCase().trim(),
+      technicianId: new Types.ObjectId(userId),
+      status: 'draft',
+      stepsCompleted: [],
+      personal: {},
+      identity: {},
+      skills: {},
+      availability: {},
+      bank: {},
+      documents: {},
+      agreement: false
+    });
+
+    console.log("Created new application with ID:", application._id);
+
+    return {
+      success: true,
+      message: 'Application started successfully',
+      data: { 
+        applicationId: application._id.toString(),
+        redirectTo: null
+      }
+    };
+
+  } catch (error) {
+    console.error('Start application error:', error);
+    return {
+      success: false,
+      message: 'Failed to start application',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
+}
 
   async saveStep(data: SaveStepRequest, files?: any): Promise<ApplicationResponse> {
     try {
@@ -371,48 +374,60 @@ export class TechnicianApplicationService {
     }
   }
 
-  async getApplication(applicationId: string): Promise<ApplicationResponse> {
-    try {
-      const application = await this.applicationRepository.findById(applicationId);
-      if (!application) {
-        return { 
-          success: false, 
-          message: 'Application not found' 
-        };
-      }
-
-      const applicationData = {
-        _id: application._id,
-        email: application.email,
-        status: application.status,
-        stepsCompleted: application.stepsCompleted,
-        personal: application.personal || {},
-        identity: application.identity || {},
-        skills: application.skills || {},
-        availability: application.availability || {},
-        bank: application.bank || {},
-        documents: application.documents || {},
-        agreement: application.agreement,
-        submittedAt: application.submittedAt,
-        reviewNotes: application.reviewNotes,
-        createdAt: application.createdAt,
-        updatedAt: application.updatedAt
-      };
-
-      return {
-        success: true,
-        message: 'Application retrieved successfully',
-        data: { application: applicationData }
-      };
-    } catch (error) {
-      console.error('Get application error:', error);
-      return {
-        success: false,
-        message: 'Failed to retrieve application',
-        error: error instanceof Error ? error.message : 'Unknown error'
+  // In TechnicianApplicationService - getApplication method
+async getApplication(applicationId: string): Promise<ApplicationResponse> {
+  try {
+    const application = await this.applicationRepository.findById(applicationId);
+    if (!application) {
+      return { 
+        success: false, 
+        message: 'Application not found' 
       };
     }
+
+    console.log("🔍 Service - Application found:", {
+      id: application._id,
+      status: application.status,
+      rejectionReason: application.rejectionReason,
+      rejectedAt: application.rejectedAt
+    });
+
+    const applicationData = {
+      _id: application._id,
+      email: application.email,
+      status: application.status,
+      stepsCompleted: application.stepsCompleted,
+      personal: application.personal || {},
+      identity: application.identity || {},
+      skills: application.skills || {},
+      availability: application.availability || {},
+      bank: application.bank || {},
+      documents: application.documents || {},
+      agreement: application.agreement,
+      submittedAt: application.submittedAt,
+      reviewNotes: application.reviewNotes,
+      rejectionReason: application.rejectionReason, // Make sure this is included
+      rejectedAt: application.rejectedAt, // And this
+      createdAt: application.createdAt,
+      updatedAt: application.updatedAt
+    };
+
+    console.log("🔍 Service - Returning application data:", applicationData);
+
+    return {
+      success: true,
+      message: 'Application retrieved successfully',
+      data: { application: applicationData }
+    };
+  } catch (error) {
+    console.error('Get application error:', error);
+    return {
+      success: false,
+      message: 'Failed to retrieve application',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
+}
 
   async submitApplication(applicationId: string, userId: string): Promise<ApplicationResponse> {
     try {
@@ -589,4 +604,161 @@ export class TechnicianApplicationService {
       };
     }
   }
+
+  // In TechnicianApplicationService - update resubmitApplication method
+async resubmitApplication(applicationId: string, userId: string): Promise<ApplicationResponse> {
+  try {
+    console.log("🔍 Resubmit - Starting for application:", applicationId);
+    console.log("🔍 Resubmit - User ID:", userId);
+
+    const application = await this.applicationRepository.findById(applicationId);
+    if (!application) {
+      console.log("❌ Resubmit - Application not found");
+      return { 
+        success: false, 
+        message: 'Application not found' 
+      };
+    }
+
+    console.log("🔍 Resubmit - Found application:", {
+      id: application._id,
+      status: application.status,
+      technicianId: application.technicianId
+    });
+
+    // Ownership validation
+    if (!application.technicianId) {
+      console.log("❌ Resubmit - No technicianId found in application");
+      return { 
+        success: false, 
+        message: 'Application has no technician assigned' 
+      };
+    }
+
+    if (application.technicianId.toString() !== userId) {
+      console.log("❌ Resubmit - Ownership mismatch:", {
+        applicationTechnicianId: application.technicianId.toString(),
+        currentUserId: userId
+      });
+      return { 
+        success: false, 
+        message: 'Access denied - application does not belong to current user' 
+      };
+    }
+
+    // Check if application is rejected
+    if (application.status !== 'rejected') {
+      console.log("❌ Resubmit - Application status is not rejected:", application.status);
+      return { 
+        success: false, 
+        message: 'Only rejected applications can be resubmitted' 
+      };
+    }
+
+    console.log("🔍 Resubmit - All validations passed, updating application...");
+
+    // Update application status and clear rejection details
+    application.status = 'submitted';
+    application.rejectionReason = undefined;
+    application.reviewNotes = undefined;
+    application.resubmittedCount = (application.resubmittedCount || 0) + 1;
+    application.lastSubmittedAt = new Date();
+    application.updatedAt = new Date();
+
+    console.log("🔍 Resubmit - Saving application...");
+    await this.applicationRepository.save(application);
+    console.log("🔍 Resubmit - Application saved successfully");
+
+    // Update technician status if exists
+    console.log("🔍 Resubmit - Updating technician status...");
+    const technician = await this.technicianRepository.findByUserId(userId);
+    if (technician) {
+      console.log("🔍 Resubmit - Found technician, updating status to submitted");
+      await this.technicianRepository.updateByUserId(userId, {
+        status: 'submitted'
+      });
+    } else {
+      console.log("🔍 Resubmit - No technician found for user");
+    }
+
+    console.log("✅ Resubmit - Completed successfully");
+
+    return {
+      success: true,
+      message: 'Application resubmitted successfully',
+      data: { 
+        applicationId: application._id.toString()
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Resubmit application error:', error);
+    return {
+      success: false,
+      message: 'Failed to resubmit application',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+// In TechnicianApplicationService - add this method
+async startNewApplicationAfterRejection(userId: string, email: string): Promise<ApplicationResponse> {
+  try {
+    console.log("Starting new application after rejection for user:", userId);
+
+    // Find the rejected application
+    const rejectedApplication = await this.applicationRepository.findByTechnicianIdAndStatus(
+      userId, 
+      ['rejected']
+    );
+
+    if (!rejectedApplication) {
+      return { 
+        success: false, 
+        message: 'No rejected application found' 
+      };
+    }
+
+    // Create a brand new application, but copy some data for convenience
+    const newApplication = await this.applicationRepository.create({
+      email: email.toLowerCase().trim(),
+      technicianId: new Types.ObjectId(userId),
+      status: 'draft',
+      stepsCompleted: [],
+      
+      // Copy basic info to save user time, but reset steps
+      personal: rejectedApplication.personal || {},
+      identity: rejectedApplication.identity || {},
+      skills: rejectedApplication.skills || {},
+      availability: rejectedApplication.availability || {},
+      bank: rejectedApplication.bank || {},
+      
+      // Keep documents to avoid re-uploading
+      documents: rejectedApplication.documents || {},
+      
+      agreement: false,
+      previousApplicationId: rejectedApplication._id, // Track the previous application
+      resubmittedCount: (rejectedApplication.resubmittedCount || 0) + 1
+    });
+
+    console.log("Created new application after rejection:", newApplication._id);
+
+    return {
+      success: true,
+      message: 'New application started successfully',
+      data: { 
+        applicationId: newApplication._id.toString(),
+        redirectTo: null
+      }
+    };
+
+  } catch (error) {
+    console.error('Start new application after rejection error:', error);
+    return {
+      success: false,
+      message: 'Failed to start new application',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
 }

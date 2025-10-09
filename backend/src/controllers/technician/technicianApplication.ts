@@ -55,6 +55,40 @@ export class TechnicianApplicationController {
     const result = await this.applicationService.getUserApplications(userId);
     res.status(result.success ? 200 : 400).json(result);
   };
+  // In TechnicianApplicationController - resubmitApplication method
+resubmitApplication = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { applicationId } = req.params; // Make sure it's from params, not body
+  const userId = req.user?.id;
+  
+  console.log("🔍 Controller - Resubmit params:", req.params);
+  console.log("🔍 Controller - Application ID:", applicationId);
+  console.log("🔍 Controller - User ID:", userId);
+  
+  if (!userId) {
+    res.status(401).json({ success: false, message: 'Authentication required' });
+    return;
+  }
+
+  const result = await this.applicationService.resubmitApplication(applicationId, userId);
+  res.status(result.success ? 200 : 400).json(result);
+};
+
+// In TechnicianApplicationController - add this method
+startNewAfterRejection = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { email } = req.body;
+  const userId = req.user?.id;
+  
+  if (!userId || !email) {
+    res.status(400).json({ 
+      success: false, 
+      message: 'User ID and email are required' 
+    });
+    return;
+  }
+
+  const result = await this.applicationService.startNewApplicationAfterRejection(userId, email);
+  res.status(result.success ? 200 : 400).json(result);
+};
 }
 
 export default new TechnicianApplicationController();
