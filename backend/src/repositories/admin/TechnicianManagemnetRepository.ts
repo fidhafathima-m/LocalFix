@@ -26,13 +26,34 @@ export class TechnicianManagementRepository {
       .lean();
   }
 
-  async updateTechnicianStatus(id: string, status: string): Promise<ITechnician | null> {
-    return await Technician.findByIdAndUpdate(
+  // In your TechnicianManagementRepository
+async updateTechnicianStatus(id: string, status: string): Promise<ITechnician | null> {
+  try {
+    
+    const updatedTechnician = await Technician.findByIdAndUpdate(
       id,
-      { $set: { status } },
-      { new: true }
-    ).populate('userId', 'email phone fullName');
+      { 
+        status: status,
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    );
+    
+    return updatedTechnician;
+  } catch (error) {
+    console.error('❌ Repository: Error updating technician status:', error);
+    throw error;
   }
+}
+
+async findTechnicianByUserId(userId: string): Promise<ITechnician | null> {
+  try {
+    return await Technician.findOne({ userId: new Types.ObjectId(userId) });
+  } catch (error) {
+    console.error('Error finding technician by userId:', error);
+    return null;
+  }
+}
 
   async getTechnicianStats(): Promise<{
     total: number;
@@ -80,7 +101,6 @@ async updateApplicationStatus(
   additionalData?: any
 ): Promise<ITechnicianApplication | null> {
   try {
-    console.log('🔍 Updating application status:', { applicationId, status, additionalData });
     
     const updateData: any = {
       status,
@@ -91,22 +111,18 @@ async updateApplicationStatus(
     if (additionalData) {
       if (additionalData.rejectionReason) {
         updateData.rejectionReason = additionalData.rejectionReason;
-        console.log('🔍 Setting rejectionReason:', additionalData.rejectionReason);
       }
       if (additionalData.rejectedAt) {
         updateData.rejectedAt = additionalData.rejectedAt;
-        console.log('🔍 Setting rejectedAt:', additionalData.rejectedAt);
       } else if (status === 'rejected') {
         // Automatically set rejectedAt if not provided
         updateData.rejectedAt = new Date();
-        console.log('🔍 Auto-setting rejectedAt for rejection');
       }
       if (additionalData.reviewNotes) {
         updateData.reviewNotes = additionalData.reviewNotes;
       }
     }
 
-    console.log('🔍 Final update data:', updateData);
 
     const result = await TechnicianApplication.findByIdAndUpdate(
       applicationId,
@@ -114,7 +130,6 @@ async updateApplicationStatus(
       { new: true, runValidators: true }
     );
 
-    console.log('🔍 Update result rejectedAt:', result?.rejectedAt);
     
     return result;
   } catch (error) {
@@ -157,14 +172,12 @@ async updateApplicationStatus(
 
   async findUserAddress(userId: Types.ObjectId): Promise<any> {
   try {
-    console.log('🔍 Searching for user address by userId:', userId);
     
     const address = await UserAddressSchema.findOne({ 
       userId,
       isDefault: true 
     }).select('street city state pincode landmark').lean();
     
-    console.log('🏠 Found user address:', address);
     
     return address;
   } catch (error) {
@@ -241,7 +254,6 @@ async findOrCreateTechnician(application: any): Promise<ITechnician> {
       throw new Error('Technician could not be found or created');
     }
 
-    console.log('✅ Technician created/updated with personalInfo:', technician.personalInfo);
     return technician;
   } catch (error) {
     console.error('Find or create technician error:', error);
@@ -261,11 +273,9 @@ async findOrCreateTechnician(application: any): Promise<ITechnician> {
 
 async findUserById(userId: Types.ObjectId): Promise<any> {
   try {
-    console.log('🔍 Searching for user by ID:', userId);
     
     const user = await User.findById(userId).select('email phone fullName createdAt').lean();
     
-    console.log('👤 Found user:', user);
     
     return user;
   } catch (error) {
@@ -276,7 +286,6 @@ async findUserById(userId: Types.ObjectId): Promise<any> {
 
 async findApplicationByTechnicianId(technicianId: string): Promise<any> {
   try {
-    console.log('🔍 Searching for application by technicianId:', technicianId);
     
     // Try multiple ways to find the application
     const application = await TechnicianApplication.findOne({ 
@@ -286,22 +295,18 @@ async findApplicationByTechnicianId(technicianId: string): Promise<any> {
     .lean();
     
     if (!application) {
-      console.log('❌ No application found with technicianId:', technicianId);
       
       // Alternative: try to find by user ID if technicianId doesn't work
       const technician = await Technician.findById(technicianId);
       if (technician) {
-        console.log('🔍 Trying to find application by userId:', technician.userId);
         const appByUserId = await TechnicianApplication.findOne({
           technicianId: technician.userId
         }).select('personal skills documents status').lean();
         
-        console.log('🔍 Application found by userId:', !!appByUserId);
         return appByUserId;
       }
     }
     
-    console.log('📄 Found application:', application);
     return application;
   } catch (error) {
     console.error('❌ Error finding application by technician ID:', error);

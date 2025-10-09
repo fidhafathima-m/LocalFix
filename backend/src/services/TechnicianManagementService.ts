@@ -57,6 +57,7 @@ export class TechnicianManagementService {
         page = 1,
         limit = 10
       } = filters;
+      
 
       // Build filter object
       const filter: any = {};
@@ -172,6 +173,7 @@ async getTechnicianById(id: string): Promise<SingleTechnicianResponse> {
 }
 
 private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminTechnician> {
+
   
   // Get user data
   const user = await this.technicianRepository.findUserById(technician.userId as Types.ObjectId);
@@ -182,22 +184,26 @@ private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminT
   // ✅ FIXED: Get address from UserAddress collection
   const userAddress = await this.technicianRepository.findUserAddress(technician.userId as Types.ObjectId);
 
-  // Map status from technician schema to admin schema
-  const mapStatus = (status: string): 'pending' | 'approved' | 'rejected' | 'suspended' => {
-    switch (status) {
-      case 'submitted':
-      case 'under_review':
-        return 'pending';
-      case 'approved':
-        return 'approved';
-      case 'rejected':
-        return 'rejected';
-      case 'suspended':
-        return 'suspended';
-      default:
-        return 'pending';
-    }
-  };
+const mapStatus = (status: string): 'pending' | 'approved' | 'rejected' | 'suspended' => {
+  switch (status) {
+    case 'submitted':
+    case 'under_review':
+    case 'pending': // Add explicit pending case
+      return 'pending';
+    case 'approved':
+    case 'active': // Add active case if it exists
+      return 'approved';
+    case 'rejected':
+      return 'rejected'; // ✅ This will now work correctly
+    case 'suspended':
+    case 'blocked': // Add blocked case if it exists
+      return 'suspended';
+    default:
+      console.warn('⚠️ Unknown technician status:', status);
+      return status as 'pending' | 'approved' | 'rejected' | 'suspended'; // Return as-is if valid
+  }
+};
+
 
   // ✅ FIXED: Better personal info extraction that includes address from UserAddress
   const getPersonalInfo = (technician: ITechnician, application?: any, userAddress?: any) => {
@@ -520,22 +526,42 @@ async rejectApplication(id: string, rejectData: RejectApplicationRequest): Promi
   try {
     const { rejectionReason } = rejectData;
 
-    console.log('🔍 Rejecting application:', id);
-    console.log('🔍 Rejection reason:', rejectionReason);
 
     const application = await this.technicianRepository.findApplicationById(id);
     if (!application) {
-      console.log('❌ Application not found');
       return {
         success: false,
         message: 'Application not found'
       };
     }
 
-    console.log('🔍 Found application:', application._id);
-    console.log('🔍 Current application status:', application.status);
+    // ✅ CRITICAL FIX: Update the technician status to 'rejected'
+    if (application.technicianId) {
+      
+      // Find the technician by technicianId from the application
+      const technician = await this.technicianRepository.findTechnicianById(application.technicianId.toString());
+      
+      if (technician) {
+        
+        const updatedTechnician = await this.technicianRepository.updateTechnicianStatus(
+          application.technicianId.toString(),
+          'rejected'
+        );
+        
+        
+        // Try to find technician by userId as fallback
+        const technicianByUser = await this.technicianRepository.findTechnicianByUserId(application.technicianId.toString());
+        if (technicianByUser) {
+          const updatedTechnician = await this.technicianRepository.updateTechnicianStatus(
+            technicianByUser._id.toString(),
+            'rejected'
+          );
+        }
+      }
+    } else {
+      console.log('No technicianId found in application');
+    }
 
-    // Update application status with rejection details
     const updatedApplication = await this.technicianRepository.updateApplicationStatus(
       id, 
       'rejected', 
@@ -545,30 +571,19 @@ async rejectApplication(id: string, rejectData: RejectApplicationRequest): Promi
       }
     );
 
-    console.log('🔍 Updated application:', updatedApplication);
-    console.log('🔍 Updated rejectionReason:', updatedApplication?.rejectionReason);
 
     if (!updatedApplication) {
-      console.log('❌ Failed to update application');
       return {
         success: false,
         message: 'Failed to update application'
       };
     }
 
-    // Update user's application status
     await this.technicianRepository.updateUserApplicationStatus(
       application.technicianId as Types.ObjectId,
       'rejected'
     );
 
-    // Update technician status if exists
-    await this.technicianRepository.updateTechnicianStatus(
-      application.technicianId?.toString() || id,
-      'rejected'
-    );
-
-    console.log('✅ Application rejected successfully');
 
     return {
       success: true,

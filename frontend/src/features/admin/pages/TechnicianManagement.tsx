@@ -102,16 +102,14 @@ useEffect(() => {
   const pendingApplications = applications.length
   const suspendedTechnicians = technicians.filter(t => t.status === 'suspended').length
 
-  // Filter technicians based on active tab and filters
-  // Filter technicians based on active tab and filters
 const filteredTechnicians = technicians.filter(tech => {
   if (activeTab === 'pending') {
     return false // Pending applications are handled separately
   } else if (activeTab === 'suspended') {
     return tech.status === 'suspended'
   } else if (activeTab === 'all') {
-    // Include all statuses except pending (since pending has its own tab)
-    return tech.status === 'approved' || tech.status === 'suspended' || tech.status === 'rejected'
+    // Include ALL statuses for the "all" tab
+    return true
   }
   return true
 })
@@ -128,26 +126,33 @@ const filteredTechnicians = technicians.filter(tech => {
     return matchesSearch && matchesService
   })
 
-  // Filter technicians for search and other filters
   const filteredTechs = filteredTechnicians.filter(tech => {
-    const matchesSearch = tech.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         tech.user?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         tech.user?.phone?.includes(searchQuery) ||
-                         tech.workAreas.some(area => area.toLowerCase().includes(searchQuery.toLowerCase()))
-    
-    const matchesService = serviceFilter === 'All Services' || 
-                          tech.services.includes(serviceFilter)
-    
-    const matchesStatus = statusFilter === 'All Statuses' || 
-                         tech.status === statusFilter.toLowerCase()
-    
-    const matchesRating = ratingFilter === 'All Ratings' || 
-                         (ratingFilter === '5 Star' && tech.averageRating >= 4.8) ||
-                         (ratingFilter === '4+ Star' && tech.averageRating >= 4.0) ||
-                         (ratingFilter === '3+ Star' && tech.averageRating >= 3.0)
+  const matchesSearch = tech.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       tech.user?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       tech.user?.phone?.includes(searchQuery) ||
+                       tech.workAreas.some(area => area.toLowerCase().includes(searchQuery.toLowerCase()))
+  
+  const matchesService = serviceFilter === 'All Services' || 
+                        tech.services.includes(serviceFilter)
+  
+  // FIX: Proper status mapping
+  const statusMap: Record<string, string> = {
+    'Active': 'approved',
+    'Pending': 'pending', 
+    'Suspended': 'suspended',
+    'Rejected': 'rejected'
+  }
+  
+  const matchesStatus = statusFilter === 'All Statuses' || 
+                       tech.status === statusMap[statusFilter]
+  
+  const matchesRating = ratingFilter === 'All Ratings' || 
+                       (ratingFilter === '5 Star' && tech.averageRating >= 4.8) ||
+                       (ratingFilter === '4+ Star' && tech.averageRating >= 4.0) ||
+                       (ratingFilter === '3+ Star' && tech.averageRating >= 3.0)
 
-    return matchesSearch && matchesService && matchesStatus && matchesRating
-  })
+  return matchesSearch && matchesService && matchesStatus && matchesRating
+})
 
   // Service badge colors
   const getServiceColor = (service: string) => {

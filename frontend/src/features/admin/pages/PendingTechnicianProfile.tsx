@@ -161,15 +161,15 @@ const pdfDocumentTypes = ['idProof', 'addressProof', 'policeVerification', 'driv
       // Default to PDF for unknown types to be safe
       const fileTypeIsPdf = isPdf || (!isImage && !isPdf);
 
-      let finalUrl = doc.url;
-      if (isPdf && !doc.url.toLowerCase().endsWith('.pdf')) {
-        finalUrl = `${doc.url}.pdf`;
-      }
+      // let finalUrl = doc.url;
+      // if (isPdf && !doc.url.toLowerCase().endsWith('.pdf')) {
+      //   finalUrl = `${doc.url}.pdf`;
+      // }
 
       return {
         key,
         displayName: documentTypes[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-        url: finalUrl,
+        url: doc.url,
         verified: doc.verified || false,
         type: doc.type || key,
         isPdf: fileTypeIsPdf,
@@ -179,29 +179,21 @@ const pdfDocumentTypes = ['idProof', 'addressProof', 'policeVerification', 'driv
 };
 
 // Function to handle document viewing with Cloudinary-specific handling
-const handleViewDocument = (url: string, isPdf: boolean, docName: string) => {
+const handleViewDocument = (url: string, isPdf: boolean) => {
   if (isPdf) {
-    // For Cloudinary PDFs (raw uploads), we need to force download behavior
-    const link = document.createElement('a');
-    
-    // Add download parameter to Cloudinary URL to force PDF download
-    const separator = url.includes('?') ? '&' : '?';
-    const downloadUrl = `${url}${separator}flags=attachment`;
-    
-    link.href = downloadUrl;
-    link.download = `${docName.replace(/\s+/g, '_')}.pdf`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
+    let viewUrl = url;
+
+    // If this is a Cloudinary raw file, use Google Docs Viewer
+    if (url.includes('res.cloudinary.com') && url.includes('/raw/upload/')) {
+      viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+    }
+
+    window.open(viewUrl, '_blank', 'noopener,noreferrer');
   } else {
-    // For images, open directly in new tab
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 };
+
 
 
   // Function to get file type icon
@@ -421,7 +413,7 @@ const handleViewDocument = (url: string, isPdf: boolean, docName: string) => {
                               {doc.isPdf ? 'PDF Document' : 'Image'}
                             </span>
                             <button
-                              onClick={() => handleViewDocument(doc.url, doc.isPdf, doc.displayName)}
+                              onClick={() => handleViewDocument(doc.url, doc.isPdf)}
                               className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1 cursor-pointer"
                             >
                               <span>{doc.isPdf ? 'View PDF' : 'View Image'}</span>
