@@ -75,7 +75,7 @@ interface TechnicianData {
   updatedAt: string;
 }
 
-export const PendingTechnicianApplication: React.FC = () => {
+const PendingTechnicianApplication: React.FC = () => {
   const [applicationData, setApplicationData] = useState<ApplicationData | null>(null);
   const [technicianData, setTechnicianData] = useState<TechnicianData | null>(null);
   const [applicationStatus, setApplicationStatus] = useState<string>('pending');
@@ -892,3 +892,5 @@ const handleStartFreshApplication = async () => {
     </>
   );
 };
+
+export default PendingTechnicianApplication

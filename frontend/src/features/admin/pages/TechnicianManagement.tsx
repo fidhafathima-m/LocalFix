@@ -57,7 +57,7 @@ interface TechnicianApplication {
   createdAt: string
 }
 
-export const TechnicianManagement: React.FC = () => {
+const TechnicianManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [serviceFilter, setServiceFilter] = useState('All Services')
   const [ratingFilter, setRatingFilter] = useState('All Ratings')
@@ -680,3 +680,5 @@ const filteredTechnicians = technicians.filter(tech => {
     </div>
   )
 }
+
+export default TechnicianManagement

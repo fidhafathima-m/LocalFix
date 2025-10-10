@@ -62,7 +62,7 @@ interface DashboardData {
   profile: TechnicianProfile
 }
 
-export const ApprovedTechnicianDashboard: React.FC = () => {
+const ApprovedTechnicianDashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -640,3 +640,5 @@ export const ApprovedTechnicianDashboard: React.FC = () => {
     </>
   )
 }
+
+export default ApprovedTechnicianDashboard

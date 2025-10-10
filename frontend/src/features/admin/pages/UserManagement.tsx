@@ -33,7 +33,7 @@ export interface User {
   createdAt: string
   wallet: {balance: number}
 }
-export const UserManagement: React.FC = () => {
+const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -452,3 +452,5 @@ const handleDeleteUser = async (userId: string) => {
     
   )
 }
+
+export default UserManagement

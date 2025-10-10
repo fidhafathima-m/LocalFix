@@ -14,7 +14,7 @@ import {
   QueryBuilderOutlined,
 } from '@mui/icons-material';
 import Search from '../components/Search'
-export const AdminDashboard: React.FC = () => {
+const AdminDashboard: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar activePage='Dashboard'/>
@@ -150,3 +150,5 @@ export const AdminDashboard: React.FC = () => {
     </div>
   )
 }
+
+export default AdminDashboard

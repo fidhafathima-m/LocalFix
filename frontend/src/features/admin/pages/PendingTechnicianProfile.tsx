@@ -49,7 +49,7 @@ interface PendingApplication {
   createdAt: string
 }
 
-export const PendingApplicationProfile: React.FC = () => {
+const PendingApplicationProfile: React.FC = () => {
   const { applicationId } = useParams<{ applicationId: string }>()
   const [application, setApplication] = useState<PendingApplication | null>(null)
   const [loading, setLoading] = useState(true)
@@ -479,3 +479,5 @@ const handleViewDocument = (url: string, isPdf: boolean) => {
     </div>
   )
 }
+
+export default PendingApplicationProfile

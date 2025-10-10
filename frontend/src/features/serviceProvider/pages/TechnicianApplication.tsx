@@ -2,7 +2,7 @@ import React from 'react'
 import Header from '../../../components/common/Header'
 import { ApplicationForm } from '../components/ApplicationForm'
 import Footer from '../../../components/common/Footer'
-export const TechnicianApplication: React.FC = () => {
+const TechnicianApplication: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header userType='serviceProvider' isApproved={false}/>
@@ -21,3 +21,5 @@ export const TechnicianApplication: React.FC = () => {
     </div>
   )
 }
+
+export default TechnicianApplication
