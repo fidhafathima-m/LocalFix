@@ -12,9 +12,13 @@ export const dateSchema = z.string()
 
 export const requiredString = z.string().min(1, 'This field is required');
 
-export const fileSchema = z.instanceof(File)
-  .optional()
-  .or(z.null());
+// ✅ FIX: Better file schema that handles both File objects and string paths
+export const fileSchema = z.any()
+  .refine((val) => {
+    // Accept File objects, null, undefined, or strings (for existing files)
+    return val === null || val === undefined || val instanceof File || typeof val === 'string';
+  }, 'Invalid file format')
+  .optional();
 
 // Address schema
 export const addressSchema = z.object({
@@ -23,6 +27,12 @@ export const addressSchema = z.object({
   state: z.string().min(1, 'State is required'),
   pincode: z.string().min(1, 'PIN code is required'),
   landmark: z.string().optional(),
+});
+
+// ✅ FIX: Add proper location schema
+export const locationSchema = z.object({
+  coordinates: z.array(z.number()).length(2, "Coordinates must have exactly 2 numbers"),
+  formattedAddress: z.string().min(1, "Formatted address is required"),
 });
 
 // Availability schema
@@ -42,17 +52,16 @@ export const availabilitySchema = z.object({
   sunday: dayAvailabilitySchema,
 });
 
-// Step 1: Personal Information
 // Age validation utility function
 export const validateAge = (dateOfBirth: string, minAge: number = 18): boolean => {
   const today = new Date();
   const birthDate = new Date(dateOfBirth);
   
-  // Calculate age
+  if (isNaN(birthDate.getTime())) return false;
+  
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
   
-  // Adjust age if birthday hasn't occurred this year
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
@@ -64,19 +73,15 @@ export const validateAge = (dateOfBirth: string, minAge: number = 18): boolean =
 export const dateOfBirthSchema = z.string()
   .min(1, 'Date of birth is required')
   .refine((dob) => {
-    // Basic date format validation
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(dob)) return false;
     
-    // Check if it's a valid date
     const date = new Date(dob);
     return !isNaN(date.getTime());
   }, 'Enter a valid date in YYYY-MM-DD format')
-  .refine((dob) => {
-    return validateAge(dob, 18);
-  }, 'You must be at least 18 years old to register as a technician');
+  .refine((dob) => validateAge(dob, 18), 'You must be at least 18 years old to register as a technician');
 
-// Step 1: Personal Information (updated with age validation)
+// Step 1: Personal Information
 export const personalInfoSchema = z.object({
   fullName: requiredString,
   phoneNumber: phoneSchema,
@@ -87,15 +92,36 @@ export const personalInfoSchema = z.object({
   }),
 });
 
-// Step 2: Identity & Verification
+// Step 2: Identity & Verification - FIXED structure
 export const identitySchema = z.object({
   idType: z.enum(['passport', 'drivingLicense', 'nationalId', 'aadhaar'], {
     message: 'Please select ID type'
   }),
   idNumber: requiredString,
+  // ✅ FIX: Include location in the main identity schema
+  location: locationSchema,
 });
 
 export const addressFormSchema = z.object({
+  'address.street': z.string().min(1, 'Street address is required'),
+  'address.city': z.string().min(1, 'City is required'),
+  'address.state': z.string().min(1, 'State is required'),
+  'address.pincode': z.string().min(1, 'PIN code is required'),
+  'address.landmark': z.string().optional(),
+});
+
+// ✅ FIX: Create a combined schema for step 2 validation
+export const identityStepSchema = z.object({
+  // Identity fields
+  idType: z.enum(['passport', 'drivingLicense', 'nationalId', 'aadhaar'], {
+    message: 'Please select ID type'
+  }),
+  idNumber: requiredString,
+  
+  // Location field (from map)
+  location: locationSchema,
+  
+  // Address fields (nested)
   'address.street': z.string().min(1, 'Street address is required'),
   'address.city': z.string().min(1, 'City is required'),
   'address.state': z.string().min(1, 'State is required'),
@@ -126,21 +152,29 @@ export const availabilityStepSchema = z.object({
 export const bankingSchema = z.object({
   accountHolderName: requiredString,
   accountNumber: z.string()
-    .regex(/^\d{9,18}$/, `Account number must be 9 to 18 digits`),
+    .regex(/^\d{9,18}$/, 'Account number must be 9 to 18 digits'),
   ifscCode: z.string()
     .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, 'Enter valid IFSC code'),
   upiId: z.string().optional(),
 });
 
-
-// Step 6: Documents
+// Step 6: Documents - FIXED file validation
 export const documentsSchema = z.object({
-  idProof: z.instanceof(File, { message: 'ID proof is required' }),
-  addressProof: z.instanceof(File, { message: 'Address proof is required' }),
+  idProof: z.any().refine(
+    (val) => val !== null && val !== undefined && val !== '',
+    'ID proof is required'
+  ),
+  addressProof: z.any().refine(
+    (val) => val !== null && val !== undefined && val !== '',
+    'Address proof is required'
+  ),
   policeVerification: fileSchema,
   tradeLicense: fileSchema,
   certifications: fileSchema,
-  passportPhoto: z.instanceof(File, { message: 'Passport photo is required' }),
+  passportPhoto: z.any().refine(
+    (val) => val !== null && val !== undefined && val !== '',
+    'Passport photo is required'
+  ),
 });
 
 // Step 7: Agreement & Consent
@@ -150,17 +184,45 @@ export const agreementSchema = z.object({
   }),
 });
 
-export const identityStepSchema = z.object({
-  ...identitySchema.shape,
-  ...addressFormSchema.shape,
-});
+// Step-specific schemas for validation
+export const stepSchemas = {
+  1: personalInfoSchema,
+  2: identityStepSchema, // ✅ Use the combined schema
+  3: skillsSchema,
+  4: availabilityStepSchema,
+  5: bankingSchema,
+  6: documentsSchema,
+  7: agreementSchema,
+};
 
-// Complete application schema
+// Type exports
+export type PersonalInfoData = z.infer<typeof personalInfoSchema>;
+export type IdentityData = z.infer<typeof identityStepSchema>; // ✅ Use combined schema type
+export type SkillsData = z.infer<typeof skillsSchema>;
+export type AvailabilityData = z.infer<typeof availabilityStepSchema>;
+export type BankingData = z.infer<typeof bankingSchema>;
+export type DocumentsData = z.infer<typeof documentsSchema>;
+export type AgreementData = z.infer<typeof agreementSchema>;
+
+// ✅ FIX: Remove the old identityStepSchema that was incorrectly defined
+// export const identityStepSchema = z.object({
+//   ...identitySchema.shape,
+//   ...addressFormSchema.shape,
+// });
+
+// Complete application schema (optional - for full form validation)
 export const technicianApplicationSchema = z.object({
   // Step 1
   ...personalInfoSchema.shape,
-  // Step 2
-  ...identitySchema.shape,
+  // Step 2 - use individual fields instead of spread
+  idType: identityStepSchema.shape.idType,
+  idNumber: identityStepSchema.shape.idNumber,
+  location: identityStepSchema.shape.location,
+  'address.street': identityStepSchema.shape['address.street'],
+  'address.city': identityStepSchema.shape['address.city'],
+  'address.state': identityStepSchema.shape['address.state'],
+  'address.pincode': identityStepSchema.shape['address.pincode'],
+  'address.landmark': identityStepSchema.shape['address.landmark'],
   // Step 3
   ...skillsSchema.shape,
   // Step 4
@@ -173,23 +235,4 @@ export const technicianApplicationSchema = z.object({
   ...agreementSchema.shape,
 });
 
-// Step-specific schemas for validation
-export const stepSchemas = {
-  1: personalInfoSchema,
-  2: identityStepSchema,
-  3: skillsSchema,
-  4: availabilityStepSchema,
-  5: bankingSchema,
-  6: documentsSchema,
-  7: agreementSchema,
-};
-
-// Type exports
-export type PersonalInfoData = z.infer<typeof personalInfoSchema>;
-export type IdentityData = z.infer<typeof identityStepSchema>;
-export type SkillsData = z.infer<typeof skillsSchema>;
-export type AvailabilityData = z.infer<typeof availabilityStepSchema>;
-export type BankingData = z.infer<typeof bankingSchema>;
-export type DocumentsData = z.infer<typeof documentsSchema>;
-export type AgreementData = z.infer<typeof agreementSchema>;
 export type TechnicianApplicationData = z.infer<typeof technicianApplicationSchema>;

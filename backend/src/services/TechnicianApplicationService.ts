@@ -223,52 +223,70 @@ export class TechnicianApplicationService {
     }
   }
 
-  private async handleIdentityVerificationStep(application: any, stepData: any): Promise<void> {
-    // Save address to UserAddress collection
-    if (stepData.address) {
-      try {
-        let addressData = stepData.address;
-        if (typeof addressData === 'string') {
-          try {
-            addressData = JSON.parse(addressData);
-          } catch (e) {
-            console.log("⚠️ Could not parse address as JSON");
-          }
+ private async handleIdentityVerificationStep(application: any, stepData: any): Promise<void> {
+  // Save address to UserAddress collection
+  if (stepData.address || stepData.location) {
+    try {
+      let addressData = stepData.address;
+      let locationData = stepData.location;
+      
+      if (typeof addressData === 'string') {
+        try {
+          addressData = JSON.parse(addressData);
+        } catch (e) {
+          console.log("⚠️ Could not parse address as JSON");
         }
-        
-        if (typeof addressData === 'object' && addressData.street) {
-          const userAddress = new UserAddressSchema({
-            userId: application.technicianId,
-            label: 'Home',
-            street: addressData.street || '',
-            city: addressData.city || '',
-            state: addressData.state || '',
-            pincode: addressData.pincode || '',
-            landmark: addressData.landmark || '',
-            isDefault: true,
-            location: {
-              type: "Point",
-              coordinates: [0, 0]
-            }
-          });
-          
-          await userAddress.save();
-        }
-      } catch (error) {
-        console.error("❌ Error saving to UserAddress:", error);
       }
+      
+      if (typeof locationData === 'string') {
+        try {
+          locationData = JSON.parse(locationData);
+        } catch (e) {
+          console.log("⚠️ Could not parse location as JSON");
+        }
+      }
+      
+      if (typeof addressData === 'object' && addressData.street) {
+        const userAddress = new UserAddressSchema({
+          userId: application.technicianId,
+          label: 'Home',
+          street: addressData.street || '',
+          city: addressData.city || '',
+          state: addressData.state || '',
+          pincode: addressData.pincode || '',
+          landmark: addressData.landmark || '',
+          isDefault: true,
+          location: {
+            type: "Point",
+            coordinates: locationData?.coordinates || [0, 0]
+          },
+          formattedAddress: locationData?.formattedAddress || '',
+          placeId: locationData?.placeId || ''
+        });
+        
+        await userAddress.save();
+      }
+    } catch (error) {
+      console.error("❌ Error saving to UserAddress:", error);
     }
-    
-    // Save to application identity field
-    if (!application.identity) {
-      application.identity = {};
-    }
-    
-    application.identity = {
-      ...application.identity,
-      ...stepData
-    };
   }
+  
+  // ✅ FIX: Save location data to application identity field
+  if (!application.identity) {
+    application.identity = {};
+  }
+  
+  // ✅ FIX: Include location in the application data
+  application.identity = {
+    ...application.identity,
+    ...stepData
+  };
+  
+  // ✅ FIX: Ensure location is properly structured
+  if (stepData.location && typeof stepData.location === 'object') {
+    application.identity.location = stepData.location;
+  }
+}
 
   private async handleDocumentsStep(application: any, files: any): Promise<void> {
     if (!application.documents || typeof application.documents !== 'object') {

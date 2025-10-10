@@ -11,6 +11,7 @@ import api from '../../../utils/axiosConfig';
 import { validateAvailability, validateStepSchema } from '../../../validation';
 import { stepSchemas, type AgreementData, type AvailabilityData, type BankingData, type DocumentsData, type IdentityData, type PersonalInfoData, type SkillsData } from '../../../validation/schemas/technicianApplicationSchema';
 import toast from 'react-hot-toast';
+import { OSMLocationPicker } from '../../../components/common/LocationPicker';
 
 // Define all possible steps
 const STEPS = [
@@ -27,7 +28,7 @@ const STEPS = [
 // Define which fields belong to each step
 const stepFields: Record<string, string[]> = {
   "Personal Information": ["fullName", "phoneNumber", "email", "dateOfBirth", "gender"],
-  "Identity & Verification": ["idType", "idNumber", "address"],
+  "Identity & Verification": ["idType", "idNumber", "address", "location"],
   "Skills & Services": ["services", "yearsOfExperience", "languages", "bio"],
   "Availability & Work Preferences": ["serviceAreas", "workRadius", "availability"],
   "Banking Details": ["accountHolderName", "accountNumber", "ifscCode", "upiId"],
@@ -70,6 +71,10 @@ export const ApplicationForm: React.FC = () => {
       state: '',
       pincode: '',
       landmark: ''
+    },
+     location: {
+      coordinates: [0, 0] as number[], // [lng, lat]
+      formattedAddress: ''
     },
     // Step 3: Skills & Services
     services: [] as string[],
@@ -543,15 +548,27 @@ const handleInputChange = (
       }
     case 2: 
       { 
-        const flattenedData = flattenFormData(formData);
+         const step2Data = {
+          idType: formData.idType,
+          idNumber: formData.idNumber,
+          location: formData.location, // Keep as object, not flattened
+          'address.street': formData.address.street,
+          'address.city': formData.address.city,
+          'address.state': formData.address.state,
+          'address.pincode': formData.address.pincode,
+          'address.landmark': formData.address.landmark,
+        };
+        
+        console.log('🔍 Step 2 validation data:', step2Data);
+        
         const identityValidation = validateStepSchema<IdentityData>(
           stepSchemas[2],
-          flattenedData
+          step2Data
         );
         if (!identityValidation.success && identityValidation.errors) {
           stepErrors = identityValidation.errors;
         }
-        break; 
+        break;  
       }
     case 3: 
       { 
@@ -567,8 +584,6 @@ const handleInputChange = (
       }
     case 4: 
       { 
-        // For step 4, DON'T flatten the data - use the original structure
-        // because availabilityStepSchema expects nested availability object
         const step4Data = {
           serviceAreas: formData.serviceAreas,
           workRadius: formData.workRadius,
@@ -661,13 +676,32 @@ const calculateAge = (dateOfBirth: string): number | null => {
 
 const handleNext = async () => {
   if (isLoading) return;
+  console.log('🔍 Step validation for step:', currentStep);
+  console.log('🔍 Current form data:', formData);
+
+   // ✅ IMPROVED DEBUG: Check location structure specifically
+  console.log('🔍 Location data structure:', {
+    location: formData.location,
+    hasLocation: !!formData.location,
+    hasCoordinates: !!formData.location?.coordinates,
+    coordinatesLength: formData.location?.coordinates?.length,
+    coordinates: formData.location?.coordinates,
+    hasFormattedAddress: !!formData.location?.formattedAddress,
+    formattedAddress: formData.location?.formattedAddress
+  });
+  
+
   const stepErrors = validateStepFields(currentStep);
+
+  console.log('🔍 Validation errors:', stepErrors);
 
   
   if (Object.keys(stepErrors).length > 0) {
+    console.log('❌ Validation failed, errors:', stepErrors);
     setErrors(stepErrors);
     return;
   } else {
+    console.log('✅ Validation passed, proceeding to next step');
     setErrors({});
   }
   setIsLoading(true);
@@ -702,7 +736,7 @@ const handleNext = async () => {
       if (field === "agreement") {
         stepForm.append(field, value ? "true" : "false");
       } 
-      else if (field === "address" && typeof value === "object") {
+      else if ((field === "address" || field === "location") && typeof value === "object") {
         // Stringify the address object
         const addressString = JSON.stringify(value);
         stepForm.append(field, addressString);
@@ -1017,146 +1051,208 @@ const handleSubmit = async () => {
       showPrevious={true}
       nextButtonText={isLoading ? "Saving..." : undefined}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">
-            Government ID Type <span className="text-red-500">*</span>
-          </label>
-          <select
-            name="idType"
-            value={formData.idType}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          >
-            <option value="">Select ID type</option>
-            <option value="passport">Passport</option>
-            <option value="drivingLicense">Driving License</option>
-            <option value="nationalId">National ID</option>
-            <option value="aadhaar">Aadhaar Card</option>
-          </select>
-          {errors.idType && (
-            <p className="text-red-500 text-sm mt-1">{errors.idType}</p>
-          )}
-        </div>
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">
-            Government ID Number <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="idNumber"
-            value={formData.idNumber}
-            onChange={handleInputChange}
-            placeholder="Enter your ID number"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          />
-          {errors.idNumber && (
-            <p className="text-red-500 text-sm mt-1">{errors.idNumber}</p>
-          )}
-        </div>
-        
-        
+      <div className="space-y-6">
+        {/* Existing ID fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="md:col-span-2">
-          <label className="block mb-1 font-medium text-gray-700">
-            Street Address <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="address.street"
-            value={formData.address.street}
-            onChange={handleInputChange}
-            placeholder="House no, street, area"
-            className={`w-full px-3 py-2 border rounded-md ${
-              errors['address.street'] ? 'border-red-500' : 'border-gray-300'
-            }`}
-            required
-          />
-          {errors['address.street'] && (
-            <p className="text-red-500 text-sm mt-1">{errors['address.street']}</p>
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">
+              Government ID Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="idType"
+              value={formData.idType}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            >
+              <option value="">Select ID type</option>
+              <option value="passport">Passport</option>
+              <option value="drivingLicense">Driving License</option>
+              <option value="nationalId">National ID</option>
+              <option value="aadhaar">Aadhaar Card</option>
+            </select>
+            {errors.idType && (
+              <p className="text-red-500 text-sm mt-1">{errors.idType}</p>
+            )}
+          </div>
+          <div>
+            <label className="block mb-1 font-medium text-gray-700">
+              Government ID Number <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="idNumber"
+              value={formData.idNumber}
+              onChange={handleInputChange}
+              placeholder="Enter your ID number"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            />
+            {errors.idNumber && (
+              <p className="text-red-500 text-sm mt-1">{errors.idNumber}</p>
+            )}
+          </div>
+        </div>
+
+        {/* OpenStreetMap Location Picker */}
+        <div className="border-t pt-6">
+          
+<OSMLocationPicker
+  onLocationSelect={(location) => {
+    console.log('📍 Location selected:', location);
+    
+    // ✅ FIX: Create proper location object that matches validation schema
+    const locationData = {
+      coordinates: [location.lng, location.lat], // [longitude, latitude] format
+      formattedAddress: location.address || ''
+    };
+    
+    console.log('📍 Processed location data:', locationData);
+    
+    // Update location coordinates - FIXED structure
+    setFormData(prev => ({
+      ...prev,
+      location: locationData
+    }));
+    
+    // Auto-fill address fields with fallbacks for undefined
+    if (location.addressComponents) {
+      const { street, city, state, pincode, landmark } = location.addressComponents;
+      
+      console.log('🏠 Auto-filling address:', { street, city, state, pincode, landmark });
+      
+      setFormData(prev => ({
+        ...prev,
+        address: {
+          street: street || prev.address.street || '',
+          city: city || prev.address.city || '',
+          state: state || prev.address.state || '',
+          pincode: pincode || prev.address.pincode || '',
+          landmark: landmark || prev.address.landmark || ''
+        }
+      }));
+    }
+  }}
+  className="mt-4"
+/>
+          
+          {errors.location && (
+            <p className="text-red-500 text-sm mt-2">{errors.location}</p>
           )}
         </div>
-        
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">
-            City <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="address.city"
-            value={formData.address.city}
-            onChange={handleInputChange}
-            placeholder="City"
-            className={`w-full px-3 py-2 border rounded-md ${
-              errors['address.city'] ? 'border-red-500' : 'border-gray-300'
-            }`}
-            required
-          />
-          {errors['address.city'] && (
-            <p className="text-red-500 text-sm mt-1">{errors['address.city']}</p>
-          )}
+
+        {/* Address Fields */}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-4">
+            Address Details 
+            <span className="text-green-600 text-sm ml-2">(Auto-filled from map selection)</span>
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="block mb-1 font-medium text-gray-700">
+                Street Address <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="address.street"
+                value={formData.address.street}
+                onChange={handleInputChange}
+                placeholder="House no, street, area"
+                className={`w-full px-3 py-2 border rounded-md ${
+                  errors['address.street'] ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {errors['address.street'] && (
+                <p className="text-red-500 text-sm mt-1">{errors['address.street']}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block mb-1 font-medium text-gray-700">
+                City <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="address.city"
+                value={formData.address.city}
+                onChange={handleInputChange}
+                placeholder="City"
+                className={`w-full px-3 py-2 border rounded-md ${
+                  errors['address.city'] ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {errors['address.city'] && (
+                <p className="text-red-500 text-sm mt-1">{errors['address.city']}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block mb-1 font-medium text-gray-700">
+                State <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="address.state"
+                value={formData.address.state}
+                onChange={handleInputChange}
+                placeholder="State"
+                className={`w-full px-3 py-2 border rounded-md ${
+                  errors['address.state'] ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {errors['address.state'] && (
+                <p className="text-red-500 text-sm mt-1">{errors['address.state']}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block mb-1 font-medium text-gray-700">
+                PIN Code <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="address.pincode"
+                value={formData.address.pincode}
+                onChange={handleInputChange}
+                placeholder="PIN Code"
+                className={`w-full px-3 py-2 border rounded-md ${
+                  errors['address.pincode'] ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {errors['address.pincode'] && (
+                <p className="text-red-500 text-sm mt-1">{errors['address.pincode']}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block mb-1 font-medium text-gray-700">
+                Landmark (Optional)
+              </label>
+              <input
+                type="text"
+                name="address.landmark"
+                value={formData.address.landmark}
+                onChange={handleInputChange}
+                placeholder="Nearby landmark"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-50 rounded-md">
+            <p className="text-sm text-blue-700">
+              💡 <strong>Tip:</strong> Click on the map above to automatically fill these address fields using OpenStreetMap. 
+              You can also manually edit them if the auto-filled data needs correction.
+            </p>
+          </div>
         </div>
-        
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">
-            State <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="address.state"
-            value={formData.address.state}
-            onChange={handleInputChange}
-            placeholder="State"
-            className={`w-full px-3 py-2 border rounded-md ${
-              errors['address.state'] ? 'border-red-500' : 'border-gray-300'
-            }`}
-            required
-          />
-          {errors['address.state'] && (
-            <p className="text-red-500 text-sm mt-1">{errors['address.state']}</p>
-          )}
-        </div>
-        
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">
-            PIN Code <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="address.pincode"
-            value={formData.address.pincode}
-            onChange={handleInputChange}
-            placeholder="PIN Code"
-            className={`w-full px-3 py-2 border rounded-md ${
-              errors['address.pincode'] ? 'border-red-500' : 'border-gray-300'
-            }`}
-            required
-          />
-          {errors['address.pincode'] && (
-            <p className="text-red-500 text-sm mt-1">{errors['address.pincode']}</p>
-          )}
-        </div>
-        
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">
-            Landmark (Optional)
-          </label>
-          <input
-            type="text"
-            name="address.landmark"
-            value={formData.address.landmark}
-            onChange={handleInputChange}
-            placeholder="Nearby landmark"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-          {/* No error for optional field */}
-        </div>
-      </div>
       </div>
     </FormStep>
-  )
+  );
       case 3:
         return (
           <FormStep

@@ -24,7 +24,7 @@ const TechnicianSchema = new Schema<ITechnician>(
         state: {type: String},
         pincode: {type: String}
       },
-      languages: {type: String}
+      languages: { type: [String], default: [] }
     },
 
     currentLocation: {
