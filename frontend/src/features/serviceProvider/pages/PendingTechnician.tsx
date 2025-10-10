@@ -170,7 +170,7 @@ const PendingTechnicianApplication: React.FC = () => {
     if (response.data.success) {
       toast.success('Application resubmitted successfully!', {
         duration: 4000,
-        position: 'top-right',
+        position: 'top-center',
       });
       
       await fetchApplicationData();

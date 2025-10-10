@@ -45,7 +45,7 @@ const TechnicianSchema = new Schema<ITechnician>(
 
     status: {
       type: String,
-      enum: ['not-applied' , 'draft' , 'submitted' , 'under_review' , 'approved' , 'rejected'],
+      enum: ['not-applied' , 'draft' , 'submitted' , 'under_review' , 'approved' , 'rejected', 'suspended'],
       default: 'not-applied',
     },
     rejectionReason: { type: String },

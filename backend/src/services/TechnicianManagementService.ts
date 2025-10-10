@@ -64,7 +64,22 @@ export class TechnicianManagementService {
 
       // Status filter
       if (status && status !== 'all') {
-        filter.status = status;
+        // Map frontend status to database status
+        const statusMap: Record<string, string> = {
+          'active': 'approved',
+          'pending': 'pending', 
+          'suspended': 'suspended',
+          'rejected': 'rejected'
+        };
+
+        console.log('🔍 getAllTechnicians filters:', filters);
+        console.log('📊 Final MongoDB filter:', filter);
+        
+        const dbStatus = statusMap[status] || status;
+        filter.status = dbStatus;
+      } else {
+        // Default: show only approved, suspended, rejected - not pending applications
+        filter.status = { $in: ['approved', 'suspended', 'rejected'] };
       }
 
       // Service filter
@@ -184,7 +199,10 @@ private async convertToAdminTechnician(technician: ITechnician): Promise<IAdminT
   // ✅ FIXED: Get address from UserAddress collection
   const userAddress = await this.technicianRepository.findUserAddress(technician.userId as Types.ObjectId);
 
-const mapStatus = (status: string): 'pending' | 'approved' | 'rejected' | 'suspended' => {
+const mapStatus = (status: string, application?: any): 'pending' | 'approved' | 'rejected' | 'suspended' => {
+  if (application && ['submitted', 'under_review', 'pending'].includes(application.status)) {
+      return 'pending';
+    }
   switch (status) {
     case 'submitted':
     case 'under_review':
@@ -203,6 +221,7 @@ const mapStatus = (status: string): 'pending' | 'approved' | 'rejected' | 'suspe
       return status as 'pending' | 'approved' | 'rejected' | 'suspended'; // Return as-is if valid
   }
 };
+const status = mapStatus(technician.status, application);
 
 
   // ✅ FIXED: Better personal info extraction that includes address from UserAddress
@@ -311,7 +330,7 @@ const mapStatus = (status: string): 'pending' | 'approved' | 'rejected' | 'suspe
     experienceYears: technician.experienceYears,
     workAreas: technician.workAreas,
     serviceRadiusKm: technician.serviceRadiusKm,
-    status: mapStatus(technician.status),
+    status: status,
     averageRating: technician.averageRating,
     ratingCount: technician.ratingCount,
     totalJobs: 0,
@@ -526,42 +545,77 @@ async rejectApplication(id: string, rejectData: RejectApplicationRequest): Promi
   try {
     const { rejectionReason } = rejectData;
 
-
+    console.log('🔍 START rejectApplication for application ID:', id);
+    
     const application = await this.technicianRepository.findApplicationById(id);
     if (!application) {
+      console.log('❌ Application not found');
       return {
         success: false,
         message: 'Application not found'
       };
     }
 
+    console.log('📄 Application found:', {
+      applicationId: application._id,
+      technicianId: application.technicianId,
+      currentStatus: application.status
+    });
+
     // ✅ CRITICAL FIX: Update the technician status to 'rejected'
     if (application.technicianId) {
+      console.log('👨‍💼 Looking for technician with technicianId:', application.technicianId.toString());
       
-      // Find the technician by technicianId from the application
+      // Method 1: Find by technicianId (from application)
       const technician = await this.technicianRepository.findTechnicianById(application.technicianId.toString());
       
       if (technician) {
+        console.log('✅ Technician found by technicianId:', {
+          technicianId: technician._id,
+          currentStatus: technician.status,
+          displayName: technician.displayName
+        });
         
         const updatedTechnician = await this.technicianRepository.updateTechnicianStatus(
           application.technicianId.toString(),
           'rejected'
         );
         
+        console.log('🔄 Technician status update result:', {
+          success: !!updatedTechnician,
+          newStatus: updatedTechnician?.status
+        });
+      } else {
+        console.log('❌ Technician not found by technicianId, trying by userId...');
         
-        // Try to find technician by userId as fallback
+        // Method 2: Find by userId as fallback
         const technicianByUser = await this.technicianRepository.findTechnicianByUserId(application.technicianId.toString());
         if (technicianByUser) {
+          console.log('✅ Technician found by userId:', {
+            technicianId: technicianByUser._id,
+            currentStatus: technicianByUser.status,
+            displayName: technicianByUser.displayName
+          });
+          
           const updatedTechnician = await this.technicianRepository.updateTechnicianStatus(
             technicianByUser._id.toString(),
             'rejected'
           );
+          
+          console.log('🔄 Technician status update result:', {
+            success: !!updatedTechnician,
+            newStatus: updatedTechnician?.status
+          });
+        } else {
+          console.log('❌ Technician not found by userId either');
         }
       }
     } else {
-      console.log('No technicianId found in application');
+      console.log('❌ No technicianId found in application');
     }
 
+    // Update application status
+    console.log('📝 Updating application status to rejected...');
     const updatedApplication = await this.technicianRepository.updateApplicationStatus(
       id, 
       'rejected', 
@@ -571,19 +625,19 @@ async rejectApplication(id: string, rejectData: RejectApplicationRequest): Promi
       }
     );
 
+    console.log('✅ Application status update result:', {
+      success: !!updatedApplication,
+      newStatus: updatedApplication?.status
+    });
 
-    if (!updatedApplication) {
-      return {
-        success: false,
-        message: 'Failed to update application'
-      };
-    }
-
+    // Update user application status
+    console.log('👤 Updating user application status...');
     await this.technicianRepository.updateUserApplicationStatus(
       application.technicianId as Types.ObjectId,
       'rejected'
     );
 
+    console.log('🎉 Rejection process completed successfully');
 
     return {
       success: true,

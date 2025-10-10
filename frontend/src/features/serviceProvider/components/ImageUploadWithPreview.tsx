@@ -41,6 +41,7 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
       setPreviewUrl(null);
     }
   }, [currentFile]);
+  
 
   const handleFileChange = useCallback(
     (selectedFile: File | null) => {

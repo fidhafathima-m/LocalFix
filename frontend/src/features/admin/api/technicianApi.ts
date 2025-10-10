@@ -51,10 +51,16 @@ interface TechnicianApplication {
   createdAt: string;
 }
 
-// Fetch all technicians - UPDATED ENDPOINT
-export const fetchTechnicians = async (): Promise<Technician[]> => {
+// Fetch all technicians - UPDATED to accept filters
+export const fetchTechnicians = async (filters: { status?: string } = {}): Promise<Technician[]> => {
   try {
-    const res = await api.get<ApiResponse<{ technicians: Technician[] }>>('/admin/technicians');
+    console.log('🔍 API: Fetching technicians with filters:', filters);
+    
+    const res = await api.get<ApiResponse<{ technicians: Technician[] }>>('/admin/technicians', {
+      params: filters
+    });
+    
+    console.log('🔍 API: Technicians response:', res.data);
     
     if (res.data.success && res.data.data && res.data.data.technicians) {
       return res.data.data.technicians;

@@ -34,7 +34,7 @@ export class AuthService {
 
   async signup(signupData: SignupData): Promise<AuthResponse> {
     try {
-      const { email, phone, fullName, password, userType } = signupData;
+      const { email, phone } = signupData;
 
       // Validation
       if (!email && !phone) {
