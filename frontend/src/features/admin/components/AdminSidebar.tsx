@@ -11,8 +11,10 @@ import {
   StarBorderOutlined,
   LogoutOutlined, 
 } from '@mui/icons-material';
-import { useAuth } from '../../../context/AuthContext'; 
 import { useNavigate, Link } from 'react-router-dom';
+import { useAppDispatch } from '../../../hooks/redux';
+import { logout } from '../../../store/slices/authSlice';
+import { clearAdminData } from '../../../store/slices/adminSlice';
 
 interface SidebarItemProps {
   icon: React.ReactNode
@@ -50,13 +52,13 @@ interface AdminSidebarProps {
 }
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
-  const { logout, user } = useAuth()
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
 
   const handleLogout = () => {
-    logout();
-    if (user?.role === 'admin') navigate('/admin/login');
-    else navigate('/login'); 
+    dispatch(logout())
+    dispatch(clearAdminData()); // Clear admin data on logout
+    navigate('/admin/login');
 };
 
   return (

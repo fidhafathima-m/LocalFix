@@ -288,66 +288,108 @@ export class TechnicianApplicationService {
   }
 }
 
-  private async handleDocumentsStep(application: any, files: any): Promise<void> {
-    if (!application.documents || typeof application.documents !== 'object') {
-      application.documents = {};
-    }
-    
-    const documents: any = application.documents;
-    const documentFields = ['idProof', 'addressProof', 'policeVerification', 'passportPhoto', 'profilePhoto', 'tradeLicense'];
-    
-    for (const field of documentFields) {
-      if (files && files[field]) {
-        const file = files[field];
+private async handleDocumentsStep(application: any, files: any): Promise<void> {
+  if (!application.documents || typeof application.documents !== 'object') {
+    application.documents = {};
+  }
+  
+  const documents: any = application.documents;
+  const documentFields = ['idProof', 'addressProof', 'policeVerification', 'passportPhoto', 'profilePhoto', 'tradeLicense'];
+  
+  console.log('📁 Documents step - Received files:', files);
+  
+  for (const field of documentFields) {
+    if (files && files[field]) {
+      const file = files[field];
+      console.log(`📤 Processing ${field}:`, {
+        field: field,
+        file: file,
+        isArray: Array.isArray(file),
+        fileCount: Array.isArray(file) ? file.length : 1
+      });
+      
+      try {
+        let fileToUpload = Array.isArray(file) ? file[0] : file;
         
-        try {
-          let fileToUpload = Array.isArray(file) ? file[0] : file;
+        console.log(`📤 Uploading ${field} to Cloudinary:`, {
+          originalName: fileToUpload.originalname,
+          mimetype: fileToUpload.mimetype,
+          size: fileToUpload.size
+        });
+        
+        const uploadResult = await uploadToCloudinary(fileToUpload);
+        
+        console.log(`✅ Cloudinary upload result for ${field}:`, uploadResult);
+        
+        if (uploadResult && uploadResult.secure_url) {
+          documents[field] = {
+            url: uploadResult.secure_url,
+            publicId: uploadResult.public_id,
+            filename: fileToUpload.originalname,
+            mimetype: fileToUpload.mimetype,
+            size: fileToUpload.size,
+            uploadedAt: new Date(),
+            verified: false,
+            uploadFailed: false // ✅ Explicitly set uploadFailed to false
+          };
           
-          const uploadResult = await uploadToCloudinary(fileToUpload);
+          console.log(`✅ Successfully saved ${field} document:`, documents[field]);
           
-          if (uploadResult && uploadResult.secure_url) {
-            documents[field] = {
-              url: uploadResult.secure_url,
-              publicId: uploadResult.public_id,
-              filename: fileToUpload.originalname,
+          // Also save to TechnicianDocument collection
+          await this.documentRepository.create({
+            technicianId: application.technicianId,
+            applicationId: application._id,
+            type: this.mapDocumentType(field),
+            fileUrl: uploadResult.secure_url,
+            status: 'pending',
+            uploadedAt: new Date(),
+            metadata: {
+              originalName: fileToUpload.originalname,
               mimetype: fileToUpload.mimetype,
               size: fileToUpload.size,
-              uploadedAt: new Date(),
-              verified: false
-            };
-            
-            // Also save to TechnicianDocument collection
-            await this.documentRepository.create({
-              technicianId: application.technicianId,
-              applicationId: application._id,
-              type: this.mapDocumentType(field),
-              fileUrl: uploadResult.secure_url,
-              status: 'pending',
-              uploadedAt: new Date(),
-              metadata: {
-                originalName: fileToUpload.originalname,
-                mimetype: fileToUpload.mimetype,
-                size: fileToUpload.size,
-                fieldName: field
-              }
-            });
-          }
-        } catch (uploadError) {
-          console.error(`❌ Error uploading ${field}:`, uploadError);
+              fieldName: field
+            }
+          });
+        } else {
+          console.error(`❌ Cloudinary returned no secure_url for ${field}`);
           documents[field] = {
             url: '',
-            filename: file.originalname,
+            filename: fileToUpload.originalname,
             uploadedAt: new Date(),
             uploadFailed: true,
-            error: uploadError instanceof Error ? uploadError.message : String(uploadError),
+            error: 'Cloudinary upload failed - no secure_url returned',
             verified: false
           };
         }
+      } catch (uploadError) {
+        console.error(`❌ Error uploading ${field}:`, uploadError);
+        // ✅ FIX: Properly handle the error object
+        let errorMessage = 'Unknown upload error';
+        if (uploadError instanceof Error) {
+          errorMessage = uploadError.message;
+        } else if (typeof uploadError === 'string') {
+          errorMessage = uploadError;
+        } else if (uploadError && typeof uploadError === 'object') {
+          errorMessage = JSON.stringify(uploadError);
+        }
+        
+        documents[field] = {
+          url: '',
+          filename: file.originalname,
+          uploadedAt: new Date(),
+          uploadFailed: true,
+          error: errorMessage, // ✅ Now this will be a proper string
+          verified: false
+        };
       }
+    } else {
+      console.log(`📭 No file provided for ${field}`);
     }
-    
-    application.documents = documents;
   }
+  
+  application.documents = documents;
+  console.log('📁 Final documents state:', application.documents);
+}
 
   private mapDocumentType(field: string): ITechnicianDocument['type'] {
   const mapping: Record<string, ITechnicianDocument['type']> = {
@@ -517,6 +559,34 @@ async getApplication(applicationId: string): Promise<ApplicationResponse> {
 
       // Create or update technician record
       let technician = await this.technicianRepository.findByUserId(userId);
+
+      const languages = application.personal?.languages || [];
+      const languagesArray = Array.isArray(languages) ? languages : 
+                          (typeof languages === 'string' ? [languages] : []);
+
+                          // ✅ FIX: Properly handle address object - ensure it's not a string
+    let addressData = {};
+    if (application.identity?.address) {
+      // If address is a string (JSON), parse it
+      if (typeof application.identity.address === 'string') {
+        try {
+          addressData = JSON.parse(application.identity.address);
+        } catch (e) {
+          console.error('❌ Error parsing address JSON:', e);
+          addressData = {};
+        }
+      } else {
+        // If it's already an object, use it directly
+        addressData = application.identity.address;
+      }
+    }
+
+    console.log('🔍 Address data for technician:', {
+      original: application.identity?.address,
+      parsed: addressData,
+      type: typeof application.identity?.address
+    });
+
       
       if (!technician) {
         technician = await this.technicianRepository.create({
@@ -536,6 +606,14 @@ async getApplication(applicationId: string): Promise<ApplicationResponse> {
           ratingCount: 0,
           status: 'submitted',
           profilePictureUrl: application.documents?.passportPhoto?.url || '',
+          personalInfo: {
+            fullName: application.personal?.fullName || '',
+            gender: application.personal?.gender || '',
+            phoneNumber: application.personal?.phoneNumber || '',
+            dateOfBirth: application.personal?.dateOfBirth || '',
+            languages: languagesArray,
+            address: addressData
+        }
         });
       } else {
         await this.technicianRepository.updateByUserId(userId, {
@@ -547,6 +625,15 @@ async getApplication(applicationId: string): Promise<ApplicationResponse> {
           serviceRadiusKm: parseInt(application.skills?.workRadius) || technician.serviceRadiusKm,
           profilePictureUrl: application.documents?.passportPhoto?.url || technician.profilePictureUrl,
           status: 'submitted',
+          personalInfo: {
+            ...technician.personalInfo,
+            fullName: application.personal?.fullName || technician.personalInfo?.fullName || '',
+            gender: application.personal?.gender || technician.personalInfo?.gender || '',
+            phoneNumber: application.personal?.phoneNumber || technician.personalInfo?.phoneNumber || '',
+            dateOfBirth: application.personal?.dateOfBirth || technician.personalInfo?.dateOfBirth || '',
+            languages: languagesArray,
+            address: addressData
+        }
         });
       }
 

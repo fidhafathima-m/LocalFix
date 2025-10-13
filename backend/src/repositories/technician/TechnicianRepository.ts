@@ -7,16 +7,41 @@ export class TechnicianRepository {
     return await Technician.findOne({ userId: new Types.ObjectId(userId) });
   }
 
-  async create(technicianData: Partial<ITechnician>): Promise<ITechnician> {
-    return await Technician.create(technicianData);
+  async findById(id: string): Promise<ITechnician | null> {
+    return await Technician.findById(id);
   }
 
-  async updateByUserId(userId: string, updateData: Partial<ITechnician>): Promise<ITechnician | null> {
-    return await Technician.findOneAndUpdate(
-      { userId: new Types.ObjectId(userId) },
-      { $set: updateData },
-      { new: true }
-    );
+  async create(technicianData: any): Promise<ITechnician> {
+    try {
+      console.log('🔍 Creating technician with data:', {
+        personalInfo: technicianData.personalInfo,
+        addressType: typeof technicianData.personalInfo?.address
+      });
+      
+      const technician = new Technician(technicianData);
+      return await technician.save();
+    } catch (error) {
+      console.error('❌ Error creating technician:', error);
+      throw error;
+    }
+  }
+
+  async updateByUserId(userId: string, updateData: any): Promise<ITechnician | null> {
+    try {
+      console.log('🔍 Updating technician with data:', {
+        personalInfo: updateData.personalInfo,
+        addressType: typeof updateData.personalInfo?.address
+      });
+      
+      return await Technician.findOneAndUpdate(
+        { userId },
+        { $set: updateData },
+        { new: true }
+      );
+    } catch (error) {
+      console.error('❌ Error updating technician:', error);
+      throw error;
+    }
   }
 
   // Fixed save method - only works with Mongoose documents

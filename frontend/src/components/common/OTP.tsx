@@ -1,15 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useAuth } from '../../context/AuthContext';
-import { verifyOTP, resendOTP } from '../../api/auth';
-import type { UserType, OTPContext } from '../../api/auth';
+import { useAppDispatch } from '../../hooks/redux';
+import { loginSuccess, type User } from '../../store/slices/authSlice';
+import { authAPI, type OTPData } from '../../services/authApi';
 import { AxiosError } from 'axios';
-import type { VerifyOTPData } from '../../api/auth';
+
+type UserType = 'user' | 'serviceProvider' | 'admin';
+type OTPContext = 'signup' | 'forgot';
 
 interface OTPProps {
   userType: UserType;
   context: OTPContext;
+}
+
+interface LocationState {
+  phone?: string;
+  email?: string;
+  userType: UserType;
+  fullName?: string;
+  password?: string;
+}
+
+// Extended OTPData interface for signup
+interface SignupOTPData extends OTPData {
+  fullName?: string;
+  password?: string;
 }
 
 const OTP: React.FC<OTPProps> = ({ userType, context }) => {
@@ -20,10 +36,10 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
   const [countdown, setCountdown] = useState(60);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const dispatch = useAppDispatch();
 
   // Get data from location state
-  const locationData = location.state as { phone?: string; email?: string; userType: UserType };
+  const locationData = location.state as LocationState;
 
   // Also check localStorage as fallback
   const storageKey = context === 'signup' ? 'signupData' : 'forgotData';
@@ -34,6 +50,8 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
     ...contextData,
     ...locationData
   };
+
+  console.log('🔍 OTP Component - Final data:', finalData);
 
   // Countdown timer effect
   useEffect(() => {
@@ -68,46 +86,83 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
 
     try {
       if (context === 'signup') {
-        // Signup OTP verification
-        console.log('Sending userType:', userType);
-        const res = await verifyOTP({ otp, userType, context, ...finalData });
-        console.log('API Response user role:', res.user.role);
+        // Signup OTP verification - Include all required user data
+        console.log('🔍 Sending OTP verification with data:', {
+          otp,
+          userType,
+          context,
+          phone: finalData.phone,
+          email: finalData.email,
+          fullName: finalData.fullName,
+          password: finalData.password
+        });
 
-        localStorage.setItem('user', JSON.stringify(res.user));
-        localStorage.setItem('token', res.token);
+        // Create the OTP data with proper typing
+        const otpData: SignupOTPData = {
+          otp,
+          userType,
+          context,
+          phone: finalData.phone,
+          email: finalData.email,
+          fullName: finalData.fullName,
+          password: finalData.password
+        };
 
-        login(res.user, res.token);
-        toast.success('OTP verified successfully');
+        // Remove undefined values while preserving type
+        const cleanOtpData: SignupOTPData = {
+          otp: otpData.otp,
+          userType: otpData.userType,
+          context: otpData.context,
+          ...(otpData.phone && { phone: otpData.phone }),
+          ...(otpData.email && { email: otpData.email }),
+          ...(otpData.fullName && { fullName: otpData.fullName }),
+          ...(otpData.password && { password: otpData.password }),
+        };
 
-        // FIXED: Use the role from the response, not the userType prop
-        const userRole = res.user.role;
+        console.log('🔍 Clean OTP data being sent:', cleanOtpData);
+
+        // Use type assertion since we know cleanOtpData has all required properties
+        const res = await authAPI.verifyOTP(cleanOtpData as OTPData);
+        console.log('🔍 API Response:', res.data);
+
+        if (!res.data.user || !res.data.token) {
+          throw new Error('Invalid response from server - missing user data');
+        }
+
+        dispatch(loginSuccess({
+          user: res.data.user as User,
+          token: res.data.token
+        }));
+
+        toast.success('OTP verified successfully!');
+
+        // Use the role from the response, not the userType prop
+        const userRole = res.data.user.role;
         
         let redirectPath = '/';
         if (userRole === 'user') {
           redirectPath = '/';
         } else if (userRole === 'serviceProvider') {
           // Check if they have an application status
-        if (res.user.applicationStatus === 'approved') {
-          redirectPath = '/technician/dashboard';
-        } else if (res.user.applicationStatus === 'submitted' || res.user.applicationStatus === 'under_review') {
-          redirectPath = '/pending-technician/dashboard';
-        } else {
-          redirectPath = '/technicians'; // New technician home
-        }
+          if (res.data.user.applicationStatus === 'approved') {
+            redirectPath = '/technicians/dashboard';
+          } else if (res.data.user.applicationStatus === 'submitted' || res.data.user.applicationStatus === 'under_review') {
+            redirectPath = '/pending-technician/dashboard';
+          } else {
+            redirectPath = '/technicians'; // New technician home
+          }
         } else if (userRole === 'admin') {
           redirectPath = '/admin/dashboard';
         }
 
-        console.log('User Role from API:', userRole);
-        console.log('Redirecting to:', redirectPath);
-        console.log('OTP Component - Received userType prop:', userType);
-        console.log('OTP Component - Location state:', location.state);
-        console.log('OTP Component - Final data:', finalData);
+        console.log('🔍 User Role from API:', userRole);
+        console.log('🔍 Redirecting to:', redirectPath);
+        
         localStorage.removeItem('signupData');
         navigate(redirectPath, { replace: true });
       } else {
-        // Forgot password OTP verification - Use verifyResetOtp endpoint
-        const data: VerifyOTPData = {
+        // Forgot password OTP verification
+        const data: OTPData = {
           otp,
           context: 'forgot',
           userType,
@@ -115,8 +170,8 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
           email: finalData.email,
         };
 
-        // Call the verifyResetOtp endpoint for forgot password
-        await verifyOTP(data);
+        // Call the verifyOTP endpoint for forgot password
+        await authAPI.verifyOTP(data);
 
         // Determine the correct reset password route based on userType
         let resetPath = '/reset-password';
@@ -125,7 +180,6 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
         } else if (userType === 'serviceProvider') {
           resetPath = '/technicians/reset-password';
         }
-
 
         // Navigate to reset password with all necessary data
         navigate(resetPath, {
@@ -142,8 +196,14 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
       }
     } catch (err: unknown) {
       const error = err as AxiosError<{ message: string }>;
-      console.error('OTP verification error:', error.response?.data);
-      toast.error(error.response?.data?.message || 'OTP verification failed');
+      console.error('🔍 OTP verification error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      const errorMessage = error.response?.data?.message || 'OTP verification failed';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -157,7 +217,7 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
     try {
       const purpose = context === 'signup' ? 'signup' : 'reset';
       
-      await resendOTP({
+      await authAPI.resendOTP({
         phone: finalData.phone,
         email: finalData.email,
         purpose,

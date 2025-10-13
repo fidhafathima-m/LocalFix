@@ -516,6 +516,20 @@ const status = mapStatus(technician.status, application);
       // Update or create technician record
       const technician = await this.technicianRepository.findOrCreateTechnician(application);
 
+      if (application.personal?.languages && technician) {
+      const languages = application.personal.languages;
+      const languagesArray = Array.isArray(languages) ? languages : 
+                            (typeof languages === 'string' ? [languages] : []);
+
+      await this.technicianRepository.updateTechnicianPersonalInfo(
+        technician._id.toString(),
+        {
+          ...technician.personalInfo,
+          languages: languagesArray
+        }
+      );
+    }
+
       return {
         success: true,
         message: 'Application approved successfully',

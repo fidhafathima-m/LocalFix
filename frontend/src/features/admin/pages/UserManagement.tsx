@@ -15,7 +15,9 @@ import {
 } from '@mui/icons-material'
 import Search from '../components/Search'
 import { UserModal } from '../components/UserModal'
-import { deleteUser, fetchUsers, updateUserStatus } from '../api/adminApi';
+import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
+import { fetchUsersFailure, fetchUsersStart, fetchUsersSuccess, removeUser, updateUser, updateUserStatus } from '../../../store/slices/adminSlice';
+import { adminAPI } from '../../../services/adminApi';
 export interface User {
   _id: string
   fullName: string
@@ -34,8 +36,10 @@ export interface User {
   wallet: {balance: number}
 }
 const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
+
+  const {users, usersLoading} = useAppSelector((state) => state.admin)
+  const dispatch = useAppDispatch();
+  
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All Status')
 
@@ -76,18 +80,21 @@ const filteredUsers = statusFilter === "All Status"
 
    useEffect(() => {
   const loadUsers = async () => {
+    dispatch(fetchUsersStart());
     try {
-      const data = await fetchUsers();
-      setUsers(data ?? []) // fallback to [] if undefined
+      const response = await adminAPI.getUsers();
+      if (response.data.success && response.data.data) {
+        dispatch(fetchUsersSuccess(response.data.data.users || []));
+      } else {
+        dispatch(fetchUsersFailure(response.data.message || 'Failed to fetch users'));
+      }
     } catch (err) {
       console.error('Error fetching users:', err)
-      setUsers([]) 
-    } finally {
-      setLoading(false)
-    }
+      dispatch(fetchUsersFailure('Failed to load users'));
+    } 
   }
   loadUsers()
-}, [])
+}, [dispatch])
 
 const handleOpenViewModal = (user: User) => {
   setSelectedUser(user)
@@ -106,9 +113,6 @@ const handleCloseModal = () => {
 }
 
 
-
- // Block / Unblock user
-// Block / Unblock user
 const handleBlockUser = async (userId: string, newStatus: "Active" | "Inactive" | "Blocked") => {
   const result = await Swal.fire({
     title: `Are you sure?`,
@@ -123,13 +127,13 @@ const handleBlockUser = async (userId: string, newStatus: "Active" | "Inactive" 
   if (!result.isConfirmed) return;
 
   try {
-    // Use the status update endpoint for blocking/unblocking
-    const updatedUser = await updateUserStatus(userId, newStatus);
+    const response = await adminAPI.updateUserStatus(userId, newStatus);
 
-    setUsers(prev => prev.map(u => u._id === userId ? updatedUser : u));
-    setSelectedUser(prev => prev && prev._id === userId ? updatedUser : prev);
-
-    toast.success(`User status changed to ${newStatus}`);
+    if (response.data.success && response.data.data) {
+      dispatch(updateUserStatus({ userId, status: newStatus }));
+      setSelectedUser(prev => prev && prev._id === userId ? response.data.data!.user : prev);
+      toast.success(`User status changed to ${newStatus}`);
+    }
   } catch (err) {
     console.error("Error updating user status:", err);
     toast.error("Failed to update user status");
@@ -137,30 +141,28 @@ const handleBlockUser = async (userId: string, newStatus: "Active" | "Inactive" 
 };
 
 
-const handleDeleteUser = async (userId: string) => {
-  const result = await Swal.fire({
-    title: "Are you sure?",
-    text: "This action cannot be undone. The user will be permanently deleted.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "Yes, delete it!",
-  })
+ const handleDeleteUser = async (userId: string) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This action cannot be undone. The user will be permanently deleted.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    })
 
-  if (!result.isConfirmed) return
+    if (!result.isConfirmed) return
 
-  try {
-    await deleteUser(userId)
-
-    setUsers(prev => prev.filter(u => u._id !== userId))
-
-    toast.success("User has been deleted.",)
-  } catch (err) {
-    console.error(err)
-    toast.error("Failed to delete user")
+    try {
+      await adminAPI.deleteUser(userId)
+      dispatch(removeUser(userId))
+      toast.success("User has been deleted.")
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to delete user")
+    }
   }
-}
 
   
   // Stats calculations
@@ -263,7 +265,7 @@ const handleDeleteUser = async (userId: string) => {
               </div>
             </div>
             {/* Users table */}
-            {loading ? (
+            {usersLoading ? (
               <div className="p-6 text-center text-gray-500">Loading users...</div>
             ) : (
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -440,9 +442,7 @@ const handleDeleteUser = async (userId: string) => {
           onClose={handleCloseModal}
           onBlock={(status) => selectedUser && handleBlockUser(selectedUser._id, status)}
           onUserUpdated={(updatedUser) => {
-            setUsers((prev) =>
-              prev.map(u => u._id === updatedUser._id ? updatedUser : u)
-            )
+            dispatch(updateUser(updatedUser));
             setSelectedUser(updatedUser)
             setIsModalOpen(false)
           }}

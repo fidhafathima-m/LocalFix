@@ -6,12 +6,13 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import axios from 'axios';
 import { ImageUploadWithPreview } from '../components/ImageUploadWithPreview';
 import { ApplicationSubmitted } from '../pages/ApplicationSubmitted';
-import { useAuth } from '../../../context/AuthContext';
 import api from '../../../utils/axiosConfig';
 import { validateAvailability, validateStepSchema } from '../../../validation';
 import { stepSchemas, type AgreementData, type AvailabilityData, type BankingData, type DocumentsData, type IdentityData, type PersonalInfoData, type SkillsData } from '../../../validation/schemas/technicianApplicationSchema';
 import toast from 'react-hot-toast';
 import { OSMLocationPicker } from '../../../components/common/LocationPicker';
+import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
+import { updateApplicationStatus, updateUser } from '../../../store/slices/authSlice';
 
 // Define all possible steps
 const STEPS = [
@@ -45,7 +46,8 @@ export const ApplicationForm: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [applicationId, setApplicationId] = useState<string | null>(null);
    const [, setApplicationStatus] = useState<string | null>(null);
-   const { token, user, updateApplicationStatus, updateUsers } = useAuth(); 
+   const {user, token} = useAppSelector((state) => state.auth)
+   const dispatch = useAppDispatch()
    const [isLoading, setIsLoading] = useState(false)
 
 
@@ -674,28 +676,14 @@ const calculateAge = (dateOfBirth: string): number | null => {
   return age;
 };
 
+// In ApplicationForm.tsx - Update the handleNext function
 const handleNext = async () => {
   if (isLoading) return;
   console.log('🔍 Step validation for step:', currentStep);
-  console.log('🔍 Current form data:', formData);
-
-   // ✅ IMPROVED DEBUG: Check location structure specifically
-  console.log('🔍 Location data structure:', {
-    location: formData.location,
-    hasLocation: !!formData.location,
-    hasCoordinates: !!formData.location?.coordinates,
-    coordinatesLength: formData.location?.coordinates?.length,
-    coordinates: formData.location?.coordinates,
-    hasFormattedAddress: !!formData.location?.formattedAddress,
-    formattedAddress: formData.location?.formattedAddress
-  });
-  
 
   const stepErrors = validateStepFields(currentStep);
-
   console.log('🔍 Validation errors:', stepErrors);
 
-  
   if (Object.keys(stepErrors).length > 0) {
     console.log('❌ Validation failed, errors:', stepErrors);
     setErrors(stepErrors);
@@ -726,69 +714,137 @@ const handleNext = async () => {
 
   const currentStepFields = stepFields[stepName] || [];
   
-  // ✅ FIXED: Better handling for different field types
-  currentStepFields.forEach((field) => {
-    let value = (formData as any)[field];
-    
-    
-    if (value !== null && value !== undefined) {
-      // Special handling for agreement field - send as boolean, not string
-      if (field === "agreement") {
-        stepForm.append(field, value ? "true" : "false");
-      } 
-      else if ((field === "address" || field === "location") && typeof value === "object") {
-        // Stringify the address object
-        const addressString = JSON.stringify(value);
-        stepForm.append(field, addressString);
-      }
-      // Handle availability object
-      else if (field === "availability" && typeof value === "object") {
-        value = JSON.stringify(value);
-        stepForm.append(field, value);
-      } 
-      // Handle arrays
-      else if (Array.isArray(value)) {
-        value = JSON.stringify(value);
-        stepForm.append(field, value);
-      }
-      // Handle files
-      else if (value instanceof File) {
-        stepForm.append(field, value);
-      }
-      // Handle all other values
-      else {
-        stepForm.append(field, String(value));
-      }
-    }
+  console.log('📁 Current step fields:', currentStepFields);
+  console.log('📁 Form data files:', {
+    idProof: formData.idProof,
+    addressProof: formData.addressProof,
+    policeVerification: formData.policeVerification,
+    tradeLicense: formData.tradeLicense,
+    certifications: formData.certifications,
+    passportPhoto: formData.passportPhoto
   });
 
+  // ✅ SPECIAL HANDLING FOR DOCUMENTS STEP
+  if (stepName === "Documents") {
+    console.log('📁 Documents step - Form data files:', {
+      idProof: formData.idProof,
+      addressProof: formData.addressProof,
+      policeVerification: formData.policeVerification,
+      tradeLicense: formData.tradeLicense,
+      certifications: formData.certifications,
+      passportPhoto: formData.passportPhoto
+    });
+    // For documents step, only append files that exist
+    const documentFields = [
+      'idProof',
+      'addressProof', 
+      'policeVerification',
+      'tradeLicense',
+      'certifications',
+      'passportPhoto'
+    ];
+
+    documentFields.forEach(field => {
+      const file = (formData as any)[field];
+      if (file instanceof File) {
+        console.log(`📤 Appending file for ${field}:`, {
+          name: file.name,
+          size: file.size,
+          type: file.type
+        });
+        stepForm.append(field, file);
+      } else {
+        console.log(`📭 No file for ${field}`);
+      }
+    });
+  } else {
+    // Handle other steps normally
+    currentStepFields.forEach((field) => {
+      let value = (formData as any)[field];
+      
+      if (value !== null && value !== undefined) {
+        // Skip file fields in non-document steps
+        if (value instanceof File) {
+          console.log(`⏭️ Skipping file field ${field} in non-document step`);
+          return;
+        }
+
+        // Special handling for agreement field
+        if (field === "agreement") {
+          stepForm.append(field, value ? "true" : "false");
+        } 
+        else if ((field === "address" || field === "location") && typeof value === "object") {
+          const addressString = JSON.stringify(value);
+          stepForm.append(field, addressString);
+        }
+        // Handle availability object
+        else if (field === "availability" && typeof value === "object") {
+          value = JSON.stringify(value);
+          stepForm.append(field, value);
+        } 
+        // Handle arrays
+        else if (Array.isArray(value)) {
+          value = JSON.stringify(value);
+          stepForm.append(field, value);
+        }
+        // Handle all other values
+        else {
+          stepForm.append(field, String(value));
+        }
+      }
+    });
+  }
+
   try {
-    await api.post(
+    console.log('📤 Sending request for step:', stepName);
+    
+    const response = await api.post(
       `${import.meta.env.VITE_BASE_URL}/technician-application/save-step`,
       stepForm,
       { 
         headers: { 
           "Content-Type": "multipart/form-data",
-        } 
+        },
+        timeout: 30000 // 30 second timeout for file uploads
       }
     );
+    
+    console.log('✅ Step saved successfully:', response.data);
     
     // Move to next step
     if (currentStep < STEPS.length) {
       setCurrentStep((prev) => prev + 1);
     } 
   } catch (err: unknown) {
-    console.error("Error saving step:", err);
+    console.error("❌ Error saving step:", err);
+    
     if (axios.isAxiosError(err)) {
+      console.error('❌ Axios error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        headers: err.response?.headers
+      });
+      
       const errorMessage = err.response?.data?.message || err.message;
-      alert(`Failed to save step: ${errorMessage}`);
+      
+      if (err.code === 'ECONNABORTED') {
+        toast.error('Request timeout. Please check your internet connection and try again.');
+      } else if (err.response?.status === 413) {
+        toast.error('File too large. Please upload smaller files.');
+      } else if (err.response?.status === 415) {
+        toast.error('Unsupported file type. Please upload PDF, JPG, or PNG files.');
+      } else {
+        toast.error(`Failed to save step: ${errorMessage}`);
+      }
     } else if (err instanceof Error) {
-      alert(`Failed to save step: ${err.message}`);
+      toast.error(`Failed to save step: ${err.message}`);
     } else {
-      alert("Failed to save this step");
+      toast.error("Failed to save this step. Please try again.");
     }
   } finally {
-    setIsLoading(false)
+    setIsLoading(false);
   }
 };
 
@@ -838,20 +894,20 @@ const handleSubmit = async () => {
 
     if (submitResponse.status === 200) {
       // Update application status in auth context
-      updateApplicationStatus('submitted');
+      dispatch(updateApplicationStatus('submitted'));
 
       // ✅ Also update the entire user object in auth context
       if (submitResponse.data.data?.user) {
         // If backend returns updated user data
-        updateUsers({
+        dispatch(updateUser({
           ...user,
           applicationStatus: 'submitted'
-        });
+        }));
       } else {
         // Fallback: Update just the application status
-        updateUsers({
+        dispatch(updateUser({
           applicationStatus: 'submitted'
-        });
+        }));
       }
       
       // ✅ Update localStorage as well
@@ -1317,7 +1373,7 @@ const handleSubmit = async () => {
                   <option value="2">2 years</option>
                   <option value="3">3 years</option>
                   <option value="4">4 years</option>
-                  <option value="5+">5+ years</option>
+                  <option value="5">5 years</option>
                 </select>
                 {errors.yearsOfExperience && (
                   <p className="text-red-500 text-sm mt-1">{errors.yearsOfExperience}</p>

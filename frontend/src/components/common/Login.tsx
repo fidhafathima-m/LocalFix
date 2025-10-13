@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginUser } from '../../api/auth';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { loginStart, loginSuccess, loginFailure, type User } from '../../store/slices/authSlice';
+import { authAPI, type LoginCredentials } from '../../services/authApi';
 import toast from 'react-hot-toast';
-import { useAuth } from '../../context/AuthContext';
 import GoogleAuth from '../../features/user/components/GoogleAuth';
 import { loginSchema, validateSchema } from '../../validation';
 
@@ -14,27 +14,30 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ userType }) => {
-  const [identifier, setIdentifier] = useState(''); // email or phone
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [identifierError, setIdentifierError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  
+  const dispatch = useAppDispatch();
+  const { loading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const validateForm = (): boolean => {
     const validation = validateSchema(loginSchema, {
       identifier,
       password,
       userType
-    })
-    if(!validation.success && validation.errors) {
+    });
+    
+    if (!validation.success && validation.errors) {
       setIdentifierError(validation.errors.identifier || '');
       setPasswordError(validation.errors.password || '');
       return false;
     }
+    
     setIdentifierError('');
-    setPasswordError('')
+    setPasswordError('');
     return true;
   };
 
@@ -42,95 +45,64 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setLoading(true);
+    dispatch(loginStart());
+    
     try {
+      const credentials: LoginCredentials = { identifier, password, role: userType };
+      const res = await authAPI.login(credentials);
       
-      const res = await loginUser({ identifier, password, role: userType });
-      
-      // Check if response data exists
-      if (!res || !res.data) {
-        throw new Error('No response received from server');
-      }
-      
-      
-      // Check if user and token exist in response
-      if (!res.data.user || !res.data.token) {
+      if (!res?.data?.user || !res.data.token) {
         throw new Error('Invalid response format from server');
       }
       
-      login(res.data.user, res.data.token);
+      const userData = {
+        ...res.data.user,
+        applicationStatus: res.data.user.applicationStatus || 'not-applied'
+      };
+
+      dispatch(loginSuccess({
+        user: userData as User,
+        token: res.data.token
+      }));
+      
       toast.success('Login successful!');
 
-       const userData = {
-      ...res.data.user,
-      applicationStatus: res.data.user.applicationStatus || 'not-applied'
-    };
-
-      // In your Login component - update the redirect logic
-setTimeout(() => {
-  console.log('Login successful - User data:', userData);
-  console.log('Application status:', userData.applicationStatus);
-  console.log('User role:', userData.role);
-
-  // Enhanced technician routing logic
-  if (userType === 'serviceProvider') {
-    // Check application status for routing
-    if (userData.applicationStatus === 'submitted' || userData.applicationStatus === 'under_review') {
-      console.log('Redirecting to pending technician dashboard - application submitted/under review');
-      navigate('/pending-technician/dashboard');
-    } else if (userData.applicationStatus === 'approved') {
-      console.log('Redirecting to approved technician dashboard');
-      navigate('/technician/dashboard');
-    }else if (userData.applicationStatus === 'rejected') {
-      console.log('Redirecting to rejected technician dashboard');
-      navigate('/pending-technician/dashboard');
-    } else if (userData.applicationStatus === 'draft') {
-      console.log('Redirecting to continue draft application');
-      navigate('/technician/apply');
-    } else {
-      console.log('Redirecting to application form - no application or not applied');
-      navigate('/technicians');
-    }
-  } else if (userType === 'admin') {
-    navigate('/admin/dashboard');
-  } else {
-    navigate('/');
-  }
-}, 1000);
-    } catch (error: unknown) {
-      console.error('Login error details:', error);
-      
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else if (axios.isAxiosError(error)) {
-        // Detailed Axios error logging
-        console.error('Axios error details:', {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          message: error.message
-        });
-        
-        if (error.response?.data?.message) {
-          toast.error(error.response.data.message);
-        } else if (error.response?.status === 401) {
-          toast.error('Invalid credentials');
-        } else if (error.response?.status === 404) {
-          toast.error('User not found');
-        } else if (error.response?.status === 400) {
-          toast.error('Bad request - check your input');
-        } else if (error.response?.status === 500) {
-          toast.error('Server error - please try again later');
-        } else if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNREFUSED') {
-          toast.error('Cannot connect to server. Check your connection.');
+      // Redirect logic
+      setTimeout(() => {
+        if (userType === 'serviceProvider') {
+          if (userData.applicationStatus === 'submitted' || userData.applicationStatus === 'under_review') {
+            navigate('/pending-technician/dashboard');
+          } else if (userData.applicationStatus === 'approved') {
+            navigate('/technician/dashboard');
+          } else if (userData.applicationStatus === 'rejected') {
+            navigate('/pending-technician/dashboard');
+          } else if (userData.applicationStatus === 'draft') {
+            navigate('/technician/apply');
+          } else {
+            navigate('/technicians');
+          }
+        } else if (userType === 'admin') {
+          navigate('/admin/dashboard');
         } else {
-          toast.error(`Login failed: ${error.response?.status || 'Unknown error'}`);
+          navigate('/');
         }
-      } else {
-        toast.error('Login failed - unexpected error');
+      }, 1000);
+      
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error('Login error:', error);
+      let errorMessage = 'Login failed';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Invalid credentials';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'User not found';
       }
-    } finally {
-      setLoading(false);
+      
+      dispatch(loginFailure(errorMessage));
+      toast.error(errorMessage);
     }
   };
 
@@ -147,13 +119,11 @@ setTimeout(() => {
 
   return (
     <div className="max-w-md mx-auto p-6 shadow-md mt-10">
-      {/* Header */}
       <div className="mb-4 text-center">
         <h1 className="text-2xl font-semibold">{getTitle()}</h1>
         <p className="text-sm text-gray-500">Welcome back! Please log in to continue.</p>
       </div>
 
-      {/* Form */}
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
           <label className="block text-sm mb-1">Email or Phone</label>
@@ -204,23 +174,21 @@ setTimeout(() => {
         </button>
       </form>
 
-      {/* Social login */}
       {(userType === 'user' || userType === 'serviceProvider') && (
         <div className="text-center mt-6">
-        <p className="text-sm text-gray-500">Or continue with</p>
-        <div className="flex justify-center gap-4 mt-2">
-          <GoogleAuth userType={userType}/>
+          <p className="text-sm text-gray-500">Or continue with</p>
+          <div className="flex justify-center gap-4 mt-2">
+            <GoogleAuth userType={userType}/>
+          </div>
         </div>
-      </div>
       )}
-      
 
       {(userType === 'user' || userType === 'serviceProvider') && (
-      <div className="text-center p-3">
+        <div className="text-center p-3">
           <p className="text-gray-500">
             Don't have an account? <Link to={userType === 'serviceProvider' ? "/technicians/signup": "/signup"} className="text-[#1877F2]">Sign Up</Link>
           </p>
-      </div>
+        </div>
       )}
     </div>
   );

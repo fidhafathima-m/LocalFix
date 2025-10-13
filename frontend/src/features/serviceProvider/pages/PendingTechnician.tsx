@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   ErrorOutlineOutlined,
   CheckCircleOutlineOutlined,
@@ -16,8 +17,9 @@ import {
 import Header from '../../../components/common/Header';
 import Footer from '../../../components/common/Footer';
 import axios from 'axios';
-import { useAuth } from '../../../context/AuthContext';
 import toast from 'react-hot-toast'
+import { useAppSelector } from '../../../hooks/redux';
+import { useNavigate } from 'react-router-dom';
 
 interface DocumentInfo {
   url: string;
@@ -82,161 +84,195 @@ const PendingTechnicianApplication: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isResubmitting, setIsResubmitting] = useState(false);
-  const { token } = useAuth();
+  const { token, isLoggedIn } = useAppSelector((state) => state.auth);
+  const navigate = useNavigate();
 
-  const fetchApplicationData = async () => {
-  try {
-    setLoading(true);
-    const applicationId = localStorage.getItem("applicationId");
-    
-    if (!applicationId) {
-      setError("No application found");
+  const fetchApplicationData = useCallback(async () => {
+    // ✅ Check if user is logged in and has a valid token
+    if (!isLoggedIn || !token) {
+      console.log('🔐 User not logged in or token missing, skipping API call');
       setLoading(false);
       return;
     }
 
-    
-    const applicationResponse = await axios.get(
-      `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
-    
-    
-    if (applicationResponse.data.data?.application) {
-      const appData = applicationResponse.data.data.application;
+    try {
+      setLoading(true);
+      setError(null);
       
+      const applicationId = localStorage.getItem("applicationId");
       
-      if (appData.status === 'draft') {
-        window.location.href = '/technician/apply';
+      if (!applicationId) {
+        setError("No application found");
+        setLoading(false);
         return;
       }
+
+      console.log('🔐 Making API call with token:', token ? 'Token exists' : 'No token');
       
-      setApplicationData(appData);
-      setApplicationStatus(appData.status);
-      
-      if (appData.status === 'approved') {
-        try {
-          const technicianResponse = await axios.get(
-            `${import.meta.env.VITE_BASE_URL}/technicians/by-application/${applicationId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
-            }
-          );
-          if (technicianResponse.data.data?.technician) {
-            setTechnicianData(technicianResponse.data.data.technician);
+      const applicationResponse = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
           }
-        } catch (techError) {
-          console.log("No technician data found yet", techError);
         }
+      );
+      
+      if (applicationResponse.data.data?.application) {
+        const appData = applicationResponse.data.data.application;
+        
+        if (appData.status === 'draft') {
+          navigate('/technicians/apply');
+          return;
+        }
+        
+        setApplicationData(appData);
+        setApplicationStatus(appData.status);
+        
+        if (appData.status === 'approved') {
+          try {
+            const technicianResponse = await axios.get(
+              `${import.meta.env.VITE_BASE_URL}/technicians/by-application/${applicationId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`
+                }
+              }
+            );
+            if (technicianResponse.data.data?.technician) {
+              setTechnicianData(technicianResponse.data.data.technician);
+            }
+          } catch (techError) {
+            console.log("No technician data found yet", techError);
+          }
+        }
+      } else {
+        setError("Failed to load application data");
       }
-    } else {
-      setError("Failed to load application data");
+    } catch (error: any) {
+      console.error("Error fetching application data:", error);
+      
+      // ✅ Handle 401 Unauthorized specifically
+      if (error.response?.status === 401) {
+        console.log('🔐 Unauthorized - Token expired or invalid');
+        setError("Your session has expired. Please log in again.");
+        // Optionally redirect to login
+        // navigate('/technicians/login');
+      } else {
+        setError("Failed to load application data");
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching application data:", error);
-    setError("Failed to load application data");
-  } finally {
-    setLoading(false);
-  }
-};
+  }, [token, isLoggedIn, navigate]);
 
   const handleResubmitApplication = async () => {
-  if (!applicationData) return;
-  
-  try {
-    setIsResubmitting(true);
-    
-    console.log("🔍 Attempting to resubmit application:", applicationData._id);
-    console.log("🔍 Current application status:", applicationData.status);
-    
-    const response = await axios.patch(
-      `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationData._id}/resubmit`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
-    
-    console.log("🔍 Resubmit response:", response.data);
-    
-    if (response.data.success) {
-      toast.success('Application resubmitted successfully!', {
-        duration: 4000,
-        position: 'top-center',
-      });
-      
-      await fetchApplicationData();
-    } else {
-      console.error("🔍 Resubmit failed:", response.data.message);
-      setError(response.data.message || "Failed to resubmit application");
+    // ✅ Check authentication before making request
+    if (!isLoggedIn || !token) {
+      toast.error('Please log in to perform this action');
+      navigate('/technicians/login');
+      return;
     }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error("🔍 Error resubmitting application:", error);
-    console.error("🔍 Error response:", error.response?.data);
-    console.error("🔍 Error status:", error.response?.status);
-    
-    const errorMessage = error.response?.data?.message || "Failed to resubmit application. Please try again.";
-    setError(errorMessage);
-    
-    toast.error(errorMessage, {
-      duration: 4000,
-      position: 'top-right',
-    });
-  } finally {
-    setIsResubmitting(false);
-  }
-};
 
-const handleStartFreshApplication = async () => {
-  // This creates a completely new application
-  try {
-    setIsResubmitting(true);
+    if (!applicationData) return;
     
-    const response = await axios.post(
-      `${import.meta.env.VITE_BASE_URL}/technician-application/start-new-after-rejection`,
-      {
-        email: applicationData?.personal?.email
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
+    try {
+      setIsResubmitting(true);
+      
+      const response = await axios.patch(
+        `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationData._id}/resubmit`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
+      );
+      
+      if (response.data.success) {
+        toast.success('Application resubmitted successfully!', {
+          duration: 4000,
+          position: 'top-center',
+        });
+        
+        await fetchApplicationData();
+      } else {
+        setError(response.data.message || "Failed to resubmit application");
       }
-    );
-    
-    if (response.data.success) {
-      // Store the new application ID
-      localStorage.setItem("applicationId", response.data.data.applicationId);
+    } catch (error: any) {
+      console.error("Error resubmitting application:", error);
       
-      toast.success('New application started! You can now update your information.', {
-        duration: 4000,
-        position: 'top-right',
-      });
-      
-      // Redirect to application form
-      window.location.href = '/technicians/apply';
-    } else {
-      setError("Failed to start new application");
+      if (error.response?.status === 401) {
+        toast.error('Your session has expired. Please log in again.');
+        navigate('/technicians/login');
+      } else {
+        const errorMessage = error.response?.data?.message || "Failed to resubmit application. Please try again.";
+        setError(errorMessage);
+        toast.error(errorMessage, { duration: 4000, position: 'top-center' });
+      }
+    } finally {
+      setIsResubmitting(false);
     }
-  } catch (error) {
-    console.error("Error starting new application:", error);
-    setError("Failed to start new application. Please try again.");
-  } finally {
-    setIsResubmitting(false);
-  }
-};
+  };
+
+  const handleStartFreshApplication = async () => {
+    // ✅ Check authentication before making request
+    if (!isLoggedIn || !token) {
+      toast.error('Please log in to perform this action');
+      navigate('/technicians/login');
+      return;
+    }
+
+    try {
+      setIsResubmitting(true);
+      
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/technician-application/start-new-after-rejection`,
+        {
+          email: applicationData?.personal?.email
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (response.data.success) {
+        localStorage.setItem("applicationId", response.data.data.applicationId);
+        
+        toast.success('New application started! You can now update your information.', {
+          duration: 4000,
+          position: 'top-center',
+        });
+        
+        navigate('/technicians/apply');
+      } else {
+        setError("Failed to start new application");
+      }
+    } catch (error: any) {
+      console.error("Error starting new application:", error);
+      
+      if (error.response?.status === 401) {
+        toast.error('Your session has expired. Please log in again.');
+        navigate('/technicians/login');
+      } else {
+        setError("Failed to start new application. Please try again.");
+      }
+    } finally {
+      setIsResubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const checkApplicationStatus = async () => {
+      // ✅ Early return if not logged in
+      if (!isLoggedIn || !token) {
+        console.log('🔐 User not authenticated, skipping application status check');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         
@@ -265,23 +301,34 @@ const handleStartFreshApplication = async () => {
           setApplicationStatus(latestApplication.status);
           
           if (latestApplication.status === 'draft') {
-            window.location.href = '/technician/apply';
+            navigate('/technicians/apply');
             return;
           }
         } else {
-          window.location.href = '/technician/apply';
+          navigate('/technicians/apply');
           return;
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error checking application status:", error);
-        setError("Failed to load application data");
+        
+        if (error.response?.status === 401) {
+          setError("Your session has expired. Please log in again.");
+        } else {
+          setError("Failed to load application data");
+        }
       } finally {
         setLoading(false);
-    }
-  };
+      }
+    };
 
-  checkApplicationStatus();
-}, []);
+    checkApplicationStatus();
+  }, [token, isLoggedIn, navigate, fetchApplicationData]);
+
+  // If application is approved and technician data exists, redirect to technician dashboard
+  if (applicationStatus === 'approved' && technicianData) {
+    window.location.href = '/technicians/dashboard'; // ✅ Fixed path
+    return null;
+  }
 
   const getApplicationDate = () => {
     if (!applicationData) return 'N/A';
@@ -395,6 +442,28 @@ const handleStartFreshApplication = async () => {
   if (applicationStatus === 'approved' && technicianData) {
     window.location.href = '/technician/dashboard';
     return null;
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <Header userType='serviceProvider' isApproved={false} />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <ErrorOutlineOutlined className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Authentication Required</h2>
+            <p className="text-gray-600 mb-4">Please log in to view your application status.</p>
+            <button 
+              onClick={() => navigate('/technicians/login')}
+              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+            >
+              Login
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
   }
 
   if (loading) {

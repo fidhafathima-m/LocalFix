@@ -1,20 +1,19 @@
-import type { JSX } from '@emotion/react/jsx-runtime';
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAppSelector } from '../hooks/redux';
 
 interface ProtectedProps {
-  children: JSX.Element;
+  children: React.ReactElement;
   allowedRoles: ('admin' | 'user' | 'serviceProvider')[];
 }
 
 const ProtectedRoute: React.FC<ProtectedProps> = ({ children, allowedRoles }) => {
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn, user } = useAppSelector((state) => state.auth);
 
   if (!isLoggedIn) {
     if (allowedRoles.includes('admin')) return <Navigate to="/admin/login" replace />;
     if (allowedRoles.includes('serviceProvider')) return <Navigate to="/technicians/login" replace />;
-    return <Navigate to="/login" replace />; // normal user
+    return <Navigate to="/login" replace />;
   }
 
   if (!user || !allowedRoles.includes(user.role)) {

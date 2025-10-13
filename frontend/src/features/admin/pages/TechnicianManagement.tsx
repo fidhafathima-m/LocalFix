@@ -18,7 +18,9 @@ import Search from '../components/Search'
 import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import toast from 'react-hot-toast'
-import { approveApplication, fetchPendingApplications, fetchTechnicians, rejectApplication, updateTechnicianStatus } from '../api/technicianApi'
+import { useAppDispatch, useAppSelector } from '../../../hooks/redux'
+import { fetchApplicationsFailure, fetchApplicationsStart, fetchApplicationsSuccess, fetchTechniciansFailure, fetchTechniciansStart, fetchTechniciansSuccess, removeApplication, updateApplicationStatus, updateTechnicianStatus } from '../../../store/slices/adminSlice'
+import { adminAPI } from '../../../services/adminApi'
 
 interface Technician {
   _id: string
@@ -72,14 +74,14 @@ const isTechnicianApplication = (item: Technician | TechnicianApplication): item
 }
 
 const TechnicianManagement: React.FC = () => {
+
+  const {technicians, applications, techniciansLoading, applicationsLoading} = useAppSelector((state) => state.admin)
+  const dispatch = useAppDispatch()
+
   const [searchQuery, setSearchQuery] = useState('')
   const [serviceFilter, setServiceFilter] = useState('All Services')
   const [ratingFilter, setRatingFilter] = useState('All Ratings')
-  const [activeTab, setActiveTab] = useState('active') // Changed default to 'active'
-  const [technicians, setTechnicians] = useState<Technician[]>([])
-  const [applications, setApplications] = useState<TechnicianApplication[]>([])
-  const [loading, setLoading] = useState(true)
-
+  const [activeTab, setActiveTab] = useState('active') 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
@@ -88,28 +90,32 @@ const TechnicianManagement: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
+        dispatch(fetchTechniciansStart());
+        dispatch(fetchApplicationsStart());
         
-        const [techniciansData, applicationsData] = await Promise.all([
-          fetchTechnicians(),
-          fetchPendingApplications()
+        const [techniciansResponse, applicationsResponse] = await Promise.all([
+          adminAPI.getTechnicians(),
+          adminAPI.getPendingApplications()
         ]);
 
-        setTechnicians(Array.isArray(techniciansData) ? techniciansData : []);
-        setApplications(Array.isArray(applicationsData) ? applicationsData : []);
+        if (techniciansResponse.data.success && techniciansResponse.data.data) {
+          dispatch(fetchTechniciansSuccess(techniciansResponse.data.data.technicians || []));
+        }
+
+        if (applicationsResponse.data.success && applicationsResponse.data.data) {
+          dispatch(fetchApplicationsSuccess(applicationsResponse.data.data.applications || []));
+        }
         
       } catch (error) {
         console.error('❌ Error fetching data:', error);
-        setTechnicians([]);
-        setApplications([]);
+        dispatch(fetchTechniciansFailure('Failed to load technician data'));
+        dispatch(fetchApplicationsFailure('Failed to load applications data'));
         toast.error('Failed to load technician data');
-      } finally {
-        setLoading(false);
-      }
+      } 
     };
 
     fetchData();
-  }, []);
+  }, [dispatch]);
 
   // Filter technicians based on active tab
   const filteredTechnicians = technicians.filter(tech => {
@@ -243,17 +249,9 @@ const TechnicianManagement: React.FC = () => {
 
     if (result.isConfirmed) {
       try {
-        await approveApplication(applicationId);
+        await adminAPI.approveApplication(applicationId);
+        dispatch(updateApplicationStatus({ applicationId, status: 'approved' }));
         toast.success(`Application approved! ${applicantName} is now an active technician.`);
-        
-        // Refresh data
-        const [updatedTechnicians, updatedApplications] = await Promise.all([
-          fetchTechnicians(),
-          fetchPendingApplications()
-        ]);
-        
-        setTechnicians(updatedTechnicians);
-        setApplications(updatedApplications);
         
       } catch (error) {
         console.error('Error approving application:', error);
@@ -262,8 +260,6 @@ const TechnicianManagement: React.FC = () => {
     }
   };
 
-  // Updated rejection function
-  // Updated rejection function in TechnicianManagement component
 const handleRejectApplication = async (applicationId: string, applicantName: string) => {
   const { value: reason } = await Swal.fire({
     title: 'Reject Application?',
@@ -285,20 +281,9 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
 
   if (reason) {
     try {
-      await rejectApplication(applicationId, reason);
+      await adminAPI.rejectApplication(applicationId, reason);
+      dispatch(removeApplication(applicationId));
       toast.success(`Application rejected. ${applicantName} has been notified.`);
-      
-      // ✅ CRITICAL FIX: Refresh BOTH technicians and applications
-      const [updatedTechnicians, updatedApplications] = await Promise.all([
-        fetchTechnicians(), // Refresh ALL technicians
-        fetchPendingApplications() // Refresh applications
-      ]);
-      
-      console.log('🔄 After rejection - Technicians:', updatedTechnicians);
-      console.log('🔄 After rejection - Applications:', updatedApplications);
-      
-      setTechnicians(updatedTechnicians);
-      setApplications(updatedApplications);
       
     } catch (error) {
       console.error('Error rejecting application:', error);
@@ -326,17 +311,17 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
 
     if (result.isConfirmed) {
       try {
-        await updateTechnicianStatus(technicianId, newStatus);
+        await adminAPI.updateTechnicianStatus(technicianId, newStatus);
         
         const successMessage = newStatus === 'suspended' 
           ? `${technicianName} has been suspended successfully.`
           : `${technicianName} has been activated successfully.`;
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          dispatch(updateTechnicianStatus({ technicianId, status: newStatus as any }));
         
         toast.success(successMessage);
         
-        // Refresh technicians data
-        const updatedTechnicians = await fetchTechnicians();
-        setTechnicians(updatedTechnicians);
         
       } catch (error) {
         console.error('Error updating technician status:', error);
@@ -526,7 +511,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
     }
   };
 
-  if (loading) {
+  if (techniciansLoading || applicationsLoading) {
     return (
       <div className="flex h-screen bg-gray-50">
         <AdminSidebar activePage="Technicians" />

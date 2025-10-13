@@ -2,6 +2,7 @@
 import { Types } from 'mongoose';
 import { TechnicianRepository } from '../repositories/technician/TechnicianRepository';
 import { UserRepository } from '../repositories/user/UserRepository';
+import { UserAddressRepository } from '../repositories/user/UserAddressRepository';
 
 interface DashboardOverview {
   upcomingBookings?: number;
@@ -13,10 +14,12 @@ interface DashboardOverview {
 export class TechnicianDashboardService {
   private technicianRepository: TechnicianRepository;
   private userRepository: UserRepository;
+  private userAddressRepository: UserAddressRepository;
 
   constructor() {
     this.technicianRepository = new TechnicianRepository();
     this.userRepository = new UserRepository();
+    this.userAddressRepository = new UserAddressRepository();
   }
 
   async getDashboardOverview(technicianId: string): Promise<any> {
@@ -62,6 +65,64 @@ export class TechnicianDashboardService {
         };
       }
 
+      const userAddress = await this.userAddressRepository.findByUserId(technician.userId as Types.ObjectId);
+
+      const getPersonalInfo = (technician: any, userAddress?: any) => {
+        // Check if technician personalInfo has real data (not just fallbacks)
+        const hasRealTechnicianData = technician.personalInfo && 
+          (technician.personalInfo.gender !== 'Not specified' || 
+           technician.personalInfo.phoneNumber !== 'Not provided' ||
+           technician.personalInfo.dateOfBirth !== 'Not specified');
+
+        let personalInfo: any;
+        
+        if (hasRealTechnicianData) {
+          personalInfo = {
+            fullName: technician.personalInfo?.fullName || technician.displayName,
+            gender: technician.personalInfo?.gender || 'Not specified',
+            phoneNumber: technician.personalInfo?.phoneNumber || technician.phone || 'Not provided',
+            dateOfBirth: technician.personalInfo?.dateOfBirth || 'Not specified',
+            languages: technician.personalInfo?.languages || [],
+          };
+        } else {
+          personalInfo = {
+            fullName: technician.displayName,
+            gender: 'Not specified',
+            phoneNumber: technician.phone || 'Not provided',
+            dateOfBirth: 'Not specified',
+            languages: [],
+          };
+        }
+
+        // ✅ ADD ADDRESS FROM USERADDRESS COLLECTION - SAME AS ADMIN
+        if (userAddress) {
+          personalInfo.address = {
+            street: userAddress.street || 'Not specified',
+            city: userAddress.city || 'Not specified',
+            state: userAddress.state || 'Not specified',
+            pincode: userAddress.pincode || 'Not specified'
+          };
+        } else if (technician.personalInfo?.address) {
+          personalInfo.address = {
+            street: technician.personalInfo.address.street || 'Not specified',
+            city: technician.personalInfo.address.city || 'Not specified',
+            state: technician.personalInfo.address.state || 'Not specified',
+            pincode: technician.personalInfo.address.pincode || 'Not specified'
+          };
+        } else {
+          personalInfo.address = {
+            street: 'Not specified',
+            city: 'Not specified',
+            state: 'Not specified',
+            pincode: 'Not specified'
+          };
+        }
+
+        return personalInfo;
+      };
+
+      // Format personal information - SAME AS ADMIN
+      const personalInfo = getPersonalInfo(technician, userAddress);
       // Create the profile with ALL fields from your schema
       const profile = {
         // Basic info
@@ -77,23 +138,7 @@ export class TechnicianDashboardService {
         isVerified: technician.status === 'approved',
         bio: technician.bio || '',
         status: technician.status,
-        
-        // Personal info from technician schema
-        personalInfo: {
-          fullName: technician.personalInfo?.fullName || '',
-          gender: technician.personalInfo?.gender || '',
-          phoneNumber: technician.personalInfo?.phoneNumber || user.phone || '',
-          dateOfBirth: technician.personalInfo?.dateOfBirth 
-            ? new Date(technician.personalInfo.dateOfBirth).toISOString().split('T')[0]
-            : '',
-          languages: technician.personalInfo?.languages || '',
-          address: {
-            street: technician.personalInfo?.address?.street || '',
-            city: technician.personalInfo?.address?.city || '',
-            state: technician.personalInfo?.address?.state || '',
-            pincode: technician.personalInfo?.address?.pincode || ''
-          }
-        }
+        personalInfo
       };
 
       return {

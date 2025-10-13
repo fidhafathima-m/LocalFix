@@ -46,6 +46,19 @@ async updateTechnicianStatus(id: string, status: string): Promise<ITechnician | 
   }
 }
 
+async updateTechnicianPersonalInfo(technicianId: string, personalInfo: any): Promise<ITechnician | null> {
+    return await Technician.findByIdAndUpdate(
+      technicianId,
+      { 
+        $set: { 
+          personalInfo,
+          updatedAt: new Date()
+        } 
+      },
+      { new: true }
+    );
+  }
+
 async findTechnicianByUserId(userId: string): Promise<ITechnician | null> {
   try {
     return await Technician.findOne({ userId: new Types.ObjectId(userId) });
@@ -194,6 +207,10 @@ async findOrCreateTechnician(application: any): Promise<ITechnician> {
       userId: application.technicianId 
     });
 
+     const languages = application.personal?.languages || [];
+    const languagesArray = Array.isArray(languages) ? languages : 
+                          (typeof languages === 'string' ? [languages] : []);
+
     if (technician) {
       // Update existing technician with REAL application data
       technician = await Technician.findOneAndUpdate(
@@ -218,7 +235,7 @@ async findOrCreateTechnician(application: any): Promise<ITechnician> {
               phoneNumber: application.personal?.phoneNumber || technician.personalInfo?.phoneNumber,
               dateOfBirth: application.personal?.dateOfBirth || technician.personalInfo?.dateOfBirth,
               address: application.personal?.address || technician.personalInfo?.address,
-              languages: application.personal?.languages || technician.personalInfo?.languages || []
+              languages: languagesArray
             }
           }
         },
@@ -245,7 +262,7 @@ async findOrCreateTechnician(application: any): Promise<ITechnician> {
           phoneNumber: application.personal?.phoneNumber,
           dateOfBirth: application.personal?.dateOfBirth,
           address: application.personal?.address,
-          languages: application.personal?.languages || []
+          languages: languagesArray
         }
       });
     }

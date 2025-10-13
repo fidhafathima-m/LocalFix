@@ -2,43 +2,13 @@
 import React, { useState, useEffect } from 'react'
 import {
   CalendarTodayOutlined,
-  // AccountCircleOutlined,
   FmdGoodOutlined,
-  // ChevronRightOutlined,
   StarBorderOutlined,
   Star,
 } from '@mui/icons-material'
 import Header from '../../../components/common/Header'
 import Footer from '../../../components/common/Footer'
-import { fetchTechnicianProfile } from '../api/technicianDasboardApi'
-
-interface TechnicianProfile {
-  displayName: string
-  email: string
-  phone: string
-  services: string[]
-  experienceYears: number
-  workAreas: string[]
-  averageRating: number
-  ratingCount: number
-  profilePictureUrl: string
-  isVerified: boolean
-  personalInfo: {
-    fullName: string
-    gender: string
-    phoneNumber: string
-    dateOfBirth: string
-    address: {
-      street: string
-      city: string
-      state: string
-      pincode: string
-    }
-    languages: string
-  }
-  bio?: string
-  status: string
-}
+import { technicianAPI, type TechnicianProfile } from '../../../services/technicianApi' // Use consistent API
 
 interface DashboardData {
   overview: {
@@ -74,9 +44,24 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         setLoading(true)
         setError(null)
         
-        // Fetch real technician profile from backend
-        const profileResponse = await fetchTechnicianProfile()
-        const profile = profileResponse.profile
+        // ✅ USE CONSISTENT technicianAPI INSTEAD OF SEPARATE FUNCTION
+        const response = await technicianAPI.getProfile()
+        console.log('🔍 Full API Response:', response)
+        
+        if (!response.data.success) {
+          throw new Error('Failed to fetch profile: API returned unsuccessful')
+        }
+
+        const profile = response.data.data.profile
+        console.log('🔍 Profile data:', profile)
+        console.log('🔍 Personal info:', profile?.personalInfo)
+        console.log('🔍 Address data:', profile?.personalInfo?.address)
+
+        if (!profile.personalInfo?.address) {
+          console.log('🔍 Checking for address in different structures:')
+          console.log('🔍 Profile keys:', Object.keys(profile))
+          console.log('🔍 PersonalInfo keys:', profile.personalInfo ? Object.keys(profile.personalInfo) : 'No personalInfo')
+        }
         
         setDashboardData({
           overview: {
@@ -99,19 +84,19 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           },
           profile: {
             ...profile,
-            status: profile.status ?? "approved",
+            // Ensure personalInfo structure is consistent
             personalInfo: {
-              fullName: profile.personalInfo?.fullName ?? '',
-              gender: profile.personalInfo?.gender ?? '',
-              phoneNumber: profile.personalInfo?.phoneNumber ?? '',
-              dateOfBirth: profile.personalInfo?.dateOfBirth ?? '',
-              address: {
-                street: profile.personalInfo?.address?.street ?? '',
-                city: profile.personalInfo?.address?.city ?? '',
-                state: profile.personalInfo?.address?.state ?? '',
-                pincode: profile.personalInfo?.address?.pincode ?? '',
+              fullName: profile.personalInfo?.fullName || profile.displayName,
+              gender: profile.personalInfo?.gender || 'Not specified',
+              phoneNumber: profile.personalInfo?.phoneNumber || profile.phone || 'Not provided',
+              dateOfBirth: profile.personalInfo?.dateOfBirth || 'Not specified',
+              address: profile.personalInfo?.address || {
+                street: 'Not specified',
+                city: 'Not specified', 
+                state: 'Not specified',
+                pincode: 'Not specified'
               },
-              languages: profile.personalInfo?.languages ?? '',
+              languages: profile.personalInfo?.languages || [],
             }
           }
         })
@@ -149,6 +134,8 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         isNewTechnician: true
       },
       profile: {
+        _id: "",
+        userId: "",
         displayName: "",
         email: "",
         phone: "",
@@ -159,22 +146,47 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         ratingCount: 0,
         profilePictureUrl: "",
         isVerified: false,
-        status: "approved",
+        status: "active",
+        isApproved: true,
+        createdAt: "",
+        updatedAt: "",
         personalInfo: {
           fullName: '',
-          gender: '',
+          gender: 'Not specified',
           phoneNumber: '',
           dateOfBirth: '',
           address: {
-            street: '',
-            city: '',
-            state: '',
-            pincode: ''
+            street: 'Not specified',
+            city: 'Not specified',
+            state: 'Not specified',
+            pincode: 'Not specified'
           },
-          languages: ''
+          languages: []
         }
       }
     }
+  }
+
+  // Helper function to get formatted address - CONSISTENT with admin
+  const getFormattedAddress = (profile: TechnicianProfile) => {
+    if (!profile.personalInfo?.address) {
+      return 'Not specified'
+    }
+    
+    const { street, city, state, pincode } = profile.personalInfo.address
+    const addressParts = [street, city, state, pincode].filter(part => part && part.trim() !== '' && part !== 'Not specified')
+    return addressParts.length > 0 ? addressParts.join(', ') : 'Not specified'
+  }
+
+  // Helper function to get languages as array
+  const getLanguagesArray = (languages: string[] | string): string[] => {
+    if (Array.isArray(languages)) {
+      return languages
+    }
+    if (typeof languages === 'string' && languages.trim() !== '') {
+      return languages.split(',').map(lang => lang.trim())
+    }
+    return []
   }
 
   const renderStars = (rating: number, filled = false) => {
@@ -202,17 +214,25 @@ const ApprovedTechnicianDashboard: React.FC = () => {
   }
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not specified'
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
+    if (!dateString || dateString === 'Not specified') return 'Not specified'
+    
+    try {
+      const date = new Date(dateString)
+      return !isNaN(date.getTime()) ? date.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }) : 'Not specified'
+    } catch (error) {
+      console.error(error)
+      return 'Not specified'
+    }
   }
 
   const getLocation = (profile: TechnicianProfile) => {
-    if (profile.personalInfo?.address?.city && profile.personalInfo?.address?.state) {
-      return `${profile.personalInfo.address.city}, ${profile.personalInfo.address.state}`
+    const address = profile.personalInfo?.address
+    if (address?.city && address?.state && address.city !== 'Not specified' && address.state !== 'Not specified') {
+      return `${address.city}, ${address.state}`
     }
     if (profile.workAreas && profile.workAreas.length > 0) {
       return profile.workAreas[0]
@@ -276,6 +296,156 @@ const ApprovedTechnicianDashboard: React.FC = () => {
   }
 
   const { overview, profile } = dashboardData
+
+   const renderProfileTab = () => (
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-medium">Profile Information</h3>
+        <button className="text-blue-600 text-sm font-medium hover:text-blue-700">
+          Edit Profile
+        </button>
+      </div>
+      
+      {/* Bio Section */}
+      {dashboardData?.profile.bio && (
+        <div className="mb-6">
+          <h4 className="font-medium text-gray-900 mb-2">About Me</h4>
+          <p className="text-gray-600 text-sm">{dashboardData.profile.bio}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Personal Details */}
+        <div>
+          <h4 className="font-medium text-gray-900 mb-4">Personal Details</h4>
+          <dl className="space-y-3">
+            <div>
+              <dt className="text-sm text-gray-500">Full Name</dt>
+              <dd className="text-sm font-medium">
+                {dashboardData?.profile.personalInfo?.fullName || dashboardData?.profile.displayName || 'Not specified'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Email</dt>
+              <dd className="text-sm font-medium">{dashboardData?.profile.email}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Phone</dt>
+              <dd className="text-sm font-medium">
+                {dashboardData?.profile.personalInfo?.phoneNumber || dashboardData?.profile.phone || 'Not provided'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Gender</dt>
+              <dd className="text-sm font-medium">
+                {dashboardData?.profile.personalInfo?.gender || 'Not specified'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Date of Birth</dt>
+              <dd className="text-sm font-medium">
+                {formatDate(dashboardData?.profile.personalInfo?.dateOfBirth || '')}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Languages</dt>
+              <dd className="text-sm font-medium">
+                {getLanguagesArray(dashboardData?.profile.personalInfo?.languages || []).length > 0 
+                  ? getLanguagesArray(dashboardData?.profile.personalInfo?.languages || []).join(', ')
+                  : 'Not specified'
+                }
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        {/* Professional Details */}
+        <div>
+          <h4 className="font-medium text-gray-900 mb-4">Professional Details</h4>
+          <dl className="space-y-3">
+            <div>
+              <dt className="text-sm text-gray-500">Experience</dt>
+              <dd className="text-sm font-medium">{dashboardData?.profile.experienceYears} years</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Services</dt>
+              <dd className="text-sm font-medium">
+                {dashboardData?.profile.services.length > 0 
+                  ? dashboardData.profile.services.join(', ') 
+                  : 'No services specified'
+                }
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Work Areas</dt>
+              <dd className="text-sm font-medium">
+                {dashboardData?.profile.workAreas.length > 0 
+                  ? dashboardData.profile.workAreas.join(', ') 
+                  : 'No work areas specified'
+                }
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Rating</dt>
+              <dd className="text-sm font-medium">
+                {dashboardData?.profile.averageRating.toFixed(1)} ({dashboardData?.profile.ratingCount} reviews)
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Status</dt>
+              <dd className="text-sm font-medium">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  dashboardData?.profile.isVerified 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {dashboardData?.profile.isVerified ? 'Verified' : 'Pending Verification'}
+                </span>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      {/* Address Section - USING CONSISTENT FORMATTING */}
+      <div className="mt-6 pt-6 border-t border-gray-200">
+        <h4 className="font-medium text-gray-900 mb-4">Address</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <dt className="text-sm text-gray-500">Street</dt>
+            <dd className="text-sm font-medium">
+              {dashboardData?.profile.personalInfo?.address?.street || 'Not specified'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm text-gray-500">City</dt>
+            <dd className="text-sm font-medium">
+              {dashboardData?.profile.personalInfo?.address?.city || 'Not specified'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm text-gray-500">State</dt>
+            <dd className="text-sm font-medium">
+              {dashboardData?.profile.personalInfo?.address?.state || 'Not specified'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm text-gray-500">Pincode</dt>
+            <dd className="text-sm font-medium">
+              {dashboardData?.profile.personalInfo?.address?.pincode || 'Not specified'}
+            </dd>
+          </div>
+          {/* Full Address Display */}
+          <div className="md:col-span-2">
+            <dt className="text-sm text-gray-500">Full Address</dt>
+            <dd className="text-sm font-medium mt-1 p-3 bg-gray-50 rounded-md">
+              {getFormattedAddress(dashboardData!.profile)}
+            </dd>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -400,149 +570,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         )
 
       case 'profile':
-        return (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-medium">Profile Information</h3>
-              <button className="text-blue-600 text-sm font-medium hover:text-blue-700">
-                Edit Profile
-              </button>
-            </div>
-            
-            {/* Bio Section */}
-            {profile.bio && (
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-2">About Me</h4>
-                <p className="text-gray-600 text-sm">{profile.bio}</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Personal Details */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-4">Personal Details</h4>
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm text-gray-500">Full Name</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.displayName || 'Not specified'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Email</dt>
-                    <dd className="text-sm font-medium">{profile.email}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Phone</dt>
-                    <dd className="text-sm font-medium">{profile.phone}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Gender</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.personalInfo?.gender || 'Not specified'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Date of Birth</dt>
-                    <dd className="text-sm font-medium">
-                      {formatDate(profile.personalInfo?.dateOfBirth || '')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Languages</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.personalInfo?.languages || 'Not specified'}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-
-              {/* Professional Details */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-4">Professional Details</h4>
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm text-gray-500">Experience</dt>
-                    <dd className="text-sm font-medium">{profile.experienceYears} years</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Services</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.services.length > 0 ? profile.services.join(', ') : 'No services specified'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Work Areas</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.workAreas.length > 0 ? profile.workAreas.join(', ') : 'No work areas specified'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Rating</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.averageRating.toFixed(1)} ({profile.ratingCount} reviews)
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Status</dt>
-                    <dd className="text-sm font-medium">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        profile.isVerified 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {profile.isVerified ? 'Verified' : 'Pending Verification'}
-                      </span>
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
-
-            {/* Address Section */}
-            {profile.personalInfo?.address && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h4 className="font-medium text-gray-900 mb-4">Address</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <dt className="text-sm text-gray-500">Street</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.personalInfo.address.street || 'Not specified'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">City</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.personalInfo.address.city || 'Not specified'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">State</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.personalInfo.address.state || 'Not specified'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">Pincode</dt>
-                    <dd className="text-sm font-medium">
-                      {profile.personalInfo.address.pincode || 'Not specified'}
-                    </dd>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )
-
-      default:
-        return (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="text-gray-400 text-4xl mb-4">⚙️</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Section Under Development</h3>
-            <p className="text-gray-500 mb-4">This section is currently unavailable.</p>
-            <p className="text-gray-400 text-sm">Please check back later for updates.</p>
-          </div>
-        )
+        return renderProfileTab()
     }
   }
 

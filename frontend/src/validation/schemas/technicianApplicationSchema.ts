@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
 
 // Common schemas
@@ -12,13 +13,58 @@ export const dateSchema = z.string()
 
 export const requiredString = z.string().min(1, 'This field is required');
 
-// ✅ FIX: Better file schema that handles both File objects and string paths
+// ✅ FIX: Better file schema that properly handles File objects
 export const fileSchema = z.any()
   .refine((val) => {
-    // Accept File objects, null, undefined, or strings (for existing files)
-    return val === null || val === undefined || val instanceof File || typeof val === 'string';
-  }, 'Invalid file format')
+    // Accept File objects, null, undefined, empty strings, or existing file paths
+    if (val === null || val === undefined || val === '') return true;
+    if (typeof val === 'string') return true; // For existing file URLs
+    if (val instanceof File) {
+      // Validate file type and size
+      const allowedTypes = [
+        'image/jpeg', 
+        'image/jpg', 
+        'image/png', 
+        'application/pdf'
+      ];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      if (!allowedTypes.includes(val.type)) {
+        throw new Error('File must be JPG, PNG, or PDF');
+      }
+      if (val.size > maxSize) {
+        throw new Error('File size must be less than 5MB');
+      }
+      return true;
+    }
+    return false;
+  }, 'Invalid file format. Must be JPG, PNG, or PDF under 5MB')
   .optional();
+
+// ✅ FIX: Required file schema
+export const requiredFileSchema = z.any()
+  .refine((val) => {
+    if (!val) return false;
+    if (typeof val === 'string' && val.trim() !== '') return true;
+    if (val instanceof File) {
+      const allowedTypes = [
+        'image/jpeg', 
+        'image/jpg', 
+        'image/png', 
+        'application/pdf'
+      ];
+      const maxSize = 5 * 1024 * 1024;
+      
+      if (!allowedTypes.includes(val.type)) {
+        throw new Error('File must be JPG, PNG, or PDF');
+      }
+      if (val.size > maxSize) {
+        throw new Error('File size must be less than 5MB');
+      }
+      return true;
+    }
+    return false;
+  }, 'This document is required and must be JPG, PNG, or PDF under 5MB');
 
 // Address schema
 export const addressSchema = z.object({
@@ -158,23 +204,14 @@ export const bankingSchema = z.object({
   upiId: z.string().optional(),
 });
 
-// Step 6: Documents - FIXED file validation
+// ✅ FIX: Step 6: Documents - Proper file validation
 export const documentsSchema = z.object({
-  idProof: z.any().refine(
-    (val) => val !== null && val !== undefined && val !== '',
-    'ID proof is required'
-  ),
-  addressProof: z.any().refine(
-    (val) => val !== null && val !== undefined && val !== '',
-    'Address proof is required'
-  ),
+  idProof: requiredFileSchema,
+  addressProof: requiredFileSchema,
   policeVerification: fileSchema,
   tradeLicense: fileSchema,
   certifications: fileSchema,
-  passportPhoto: z.any().refine(
-    (val) => val !== null && val !== undefined && val !== '',
-    'Passport photo is required'
-  ),
+  passportPhoto: requiredFileSchema,
 });
 
 // Step 7: Agreement & Consent
@@ -183,6 +220,30 @@ export const agreementSchema = z.object({
     message: 'You must agree to the terms and conditions'
   }),
 });
+
+// ✅ ADD: Availability time validation function
+export const validateAvailability = (availability: any): Record<string, string> => {
+  const errors: Record<string, string> = {};
+  
+  Object.entries(availability).forEach(([day, dayData]: [string, any]) => {
+    if (dayData.available) {
+      const startTime = new Date(`2000-01-01T${dayData.startTime}`);
+      const endTime = new Date(`2000-01-01T${dayData.endTime}`);
+      
+      if (startTime >= endTime) {
+        errors[`${day}Time`] = `End time must be after start time for ${day}`;
+      }
+      
+      // Validate time format
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(dayData.startTime) || !timeRegex.test(dayData.endTime)) {
+        errors[`${day}Format`] = `Invalid time format for ${day}`;
+      }
+    }
+  });
+  
+  return errors;
+};
 
 // Step-specific schemas for validation
 export const stepSchemas = {
@@ -204,13 +265,26 @@ export type BankingData = z.infer<typeof bankingSchema>;
 export type DocumentsData = z.infer<typeof documentsSchema>;
 export type AgreementData = z.infer<typeof agreementSchema>;
 
-// ✅ FIX: Remove the old identityStepSchema that was incorrectly defined
-// export const identityStepSchema = z.object({
-//   ...identitySchema.shape,
-//   ...addressFormSchema.shape,
-// });
+// ✅ FIX: Updated validation function for steps
+export const validateStepSchema = <T>(schema: z.ZodSchema<T>, data: any): { success: boolean; errors?: Record<string, string> } => {
+  try {
+    schema.parse(data);
+    return { success: true };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors: Record<string, string> = {};
+      // ✅ FIX: Use the correct property name - it's 'issues' not 'errors'
+      error.issues.forEach((issue) => {
+        const path = issue.path.join('.');
+        errors[path] = issue.message;
+      });
+      return { success: false, errors };
+    }
+    return { success: false, errors: { general: 'Validation failed' } };
+  }
+};
 
-// Complete application schema (optional - for full form validation)
+// ✅ ADD: Complete application schema (optional - for full form validation)
 export const technicianApplicationSchema = z.object({
   // Step 1
   ...personalInfoSchema.shape,
@@ -236,3 +310,70 @@ export const technicianApplicationSchema = z.object({
 });
 
 export type TechnicianApplicationData = z.infer<typeof technicianApplicationSchema>;
+
+// ✅ ADD: File validation helper function
+export const validateFileUpload = (file: File | null, fieldName: string): string | null => {
+  if (!file) {
+    return `${fieldName} is required`;
+  }
+
+  const allowedTypes = [
+    'image/jpeg', 
+    'image/jpg', 
+    'image/png', 
+    'application/pdf'
+  ];
+  const maxSize = 5 * 1024 * 1024; // 5MB
+
+  if (!allowedTypes.includes(file.type)) {
+    return `${fieldName} must be a JPG, PNG, or PDF file`;
+  }
+
+  if (file.size > maxSize) {
+    return `${fieldName} must be smaller than 5MB`;
+  }
+
+  return null;
+};
+
+// ✅ ADD: Document step validation helper
+export const validateDocumentsStep = (formData: any): Record<string, string> => {
+  const errors: Record<string, string> = {};
+  
+  const requiredDocuments = [
+    { field: 'idProof', name: 'ID Proof' },
+    { field: 'addressProof', name: 'Address Proof' },
+    { field: 'passportPhoto', name: 'Passport Photo' }
+  ];
+
+  requiredDocuments.forEach(({ field, name }) => {
+    const file = formData[field];
+    if (!file) {
+      errors[field] = `${name} is required`;
+    } else if (file instanceof File) {
+      const fileError = validateFileUpload(file, name);
+      if (fileError) {
+        errors[field] = fileError;
+      }
+    }
+  });
+
+  // Validate optional documents if they exist
+  const optionalDocuments = [
+    { field: 'policeVerification', name: 'Police Verification' },
+    { field: 'tradeLicense', name: 'Trade License' },
+    { field: 'certifications', name: 'Certifications' }
+  ];
+
+  optionalDocuments.forEach(({ field, name }) => {
+    const file = formData[field];
+    if (file && file instanceof File) {
+      const fileError = validateFileUpload(file, name);
+      if (fileError) {
+        errors[field] = fileError;
+      }
+    }
+  });
+
+  return errors;
+};
