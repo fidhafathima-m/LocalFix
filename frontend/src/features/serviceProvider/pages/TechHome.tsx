@@ -2,9 +2,9 @@ import Header from '../../../components/common/Header'
 import Footer from '../../../components/common/Footer'
 import whyJoin from '../data/whyJoin';
 import heroImage from '../../../assets/images/hero.jpg'; 
-import { useAuth } from '../../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { useAppSelector } from '../../../hooks/redux';
 
 interface TechnicianUser {
   fullName: string;
@@ -14,7 +14,7 @@ interface TechnicianUser {
 
 
 const TechHome = () => {
-  const { isLoggedIn, user } = useAuth();
+  const {isLoggedIn, user} = useAppSelector((state) => state.auth)
 
   
   return (
@@ -95,7 +95,7 @@ const PublicBanner = () => {
 // Banner for logged-in technicians
 const LoggedInBanner = ({ tech }: { tech: TechnicianUser }) => {
   
-  const { user, token } = useAuth();
+  const {user, token} = useAppSelector((state) => state.auth)
 
   const handleApplyNow = async () => {
   

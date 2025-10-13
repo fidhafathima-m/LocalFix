@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AdminSidebar } from '../components/AdminSidebar'
-import { useAuth } from '../../../context/AuthContext'
-import api from '../../../utils/axiosConfig'
 import ChevronLeftOutlinedIcon from '@mui/icons-material/ChevronLeftOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import { AdminActions } from '../components/technicianManagement/AdminActions'
+import { adminAPI } from '../../../services/adminApi'
+import { useAppSelector } from '../../../hooks/redux'
 
 interface DocumentInfo {
   url: string
@@ -38,9 +39,8 @@ interface PendingApplication {
     services?: string[]
     yearsOfExperience?: number
     bio?: string
-    
   },
-  availability: {
+  availability?: {
     serviceAreas?: string[]
     workRadius?: string
   }
@@ -49,46 +49,53 @@ interface PendingApplication {
   createdAt: string
 }
 
-export const PendingApplicationProfile: React.FC = () => {
+const PendingApplicationProfile: React.FC = () => {
   const { applicationId } = useParams<{ applicationId: string }>()
   const [application, setApplication] = useState<PendingApplication | null>(null)
   const [loading, setLoading] = useState(true)
-  const { token } = useAuth()
+  const { applications, applicationsLoading } = useAppSelector((state) => state.admin)
 
   useEffect(() => {
     const fetchApplicationDetails = async () => {
-      try {
-        setLoading(true)
-        const response = await api.get(
-          `${import.meta.env.VITE_BASE_URL}/technicians/applications/${applicationId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        )
-        
-        // Handle different response structures
-        const applicationData = response.data.data?.application || 
-                               response.data.application || 
-                               response.data.data ||
-                               response.data;
-        
-        console.log('Application data:', applicationData); // Debug log
-        console.log('Documents data:', applicationData?.documents); // Debug documents
-        setApplication(applicationData);
-        
-      } catch (error) {
-        console.error('Error fetching application details:', error)
-      } finally {
-        setLoading(false)
-      }
+  try {
+    setLoading(true)
+    
+    if (!applicationId) {
+      throw new Error('Application ID is required')
     }
 
+    const response = await adminAPI.getApplicationDetails(applicationId)
+    
+    if (response.data.success && response.data.data?.applications?.[0]) {
+      // ✅ FIX: Get the application from the applications array
+      const applicationData = response.data.data.applications[0]
+      setApplication(applicationData)
+    } else {
+      throw new Error(response.data.message || 'Application not found')
+    }
+    
+  } catch (error) {
+    console.error('❌ Error fetching application details:', error)
+  } finally {
+    setLoading(false)
+  }
+}
     if (applicationId) {
       fetchApplicationDetails()
     }
-  }, [applicationId, token])
+  }, [applicationId])
+
+  // Alternative: If you want to use Redux store instead of local state
+  useEffect(() => {
+    if (applicationId && applications.length > 0) {
+      const existingApplication = applications.find(app => app._id === applicationId)
+      if (existingApplication) {
+        // Convert to PendingApplication format if needed
+        setApplication(existingApplication as any)
+        setLoading(false)
+      }
+    }
+  }, [applicationId, applications])
 
   // Function to get profile picture URL from documents
   const getProfilePictureUrl = () => {
@@ -110,102 +117,87 @@ export const PendingApplicationProfile: React.FC = () => {
   }
 
   // Function to get all available documents dynamically
-const getAvailableDocuments = () => {
-  if (!application?.documents) return [];
+  const getAvailableDocuments = () => {
+    if (!application?.documents) return [];
 
-const documentTypes: Record<string, string> = {
-  // Map backend field names to display names
-  'idProof': 'ID Proof',
-  'addressProof': 'Address Proof',
-  'passportPhoto': 'Passport Photo',
-  'profilePhoto': 'Profile Photo',
-  'policeVerification': 'Police Verification',
-  'tradeLicense': 'Trade License',
-  'certifications': 'Certifications',
-  'drivingLicense': 'Driving License',
-  'voterId': 'Voter ID',
-  'passport': 'Passport',
-  'aadhaar': 'Aadhaar Card',
-  'nationalId': 'National ID'
-};
+    const documentTypes: Record<string, string> = {
+      // Map backend field names to display names
+      'idProof': 'ID Proof',
+      'addressProof': 'Address Proof',
+      'passportPhoto': 'Passport Photo',
+      'profilePhoto': 'Profile Photo',
+      'policeVerification': 'Police Verification',
+      'tradeLicense': 'Trade License',
+      'certifications': 'Certifications',
+      'drivingLicense': 'Driving License',
+      'voterId': 'Voter ID',
+      'passport': 'Passport',
+      'aadhaar': 'Aadhaar Card',
+      'nationalId': 'National ID'
+    };
 
-  // Document types that should ALWAYS be treated as PDFs
-const pdfDocumentTypes = ['idProof', 'addressProof', 'policeVerification', 'drivingLicense', 'tradeLicense', 'certifications'];
-  
-  // Document types that should ALWAYS be treated as images
-  const imageDocumentTypes = ['passportPhoto', 'profilePhoto'];
+    // Document types that should ALWAYS be treated as PDFs
+    const pdfDocumentTypes = ['idProof', 'addressProof', 'policeVerification', 'drivingLicense', 'tradeLicense', 'certifications'];
+    
+    // Document types that should ALWAYS be treated as images
+    const imageDocumentTypes = ['passportPhoto', 'profilePhoto'];
 
-  return Object.entries(application.documents)
-    .filter(([, doc]) => doc && doc.url && typeof doc.url === 'string' && doc.url.trim() !== '')
-    .map(([key, doc]) => {
-      // Determine file type based on document type and URL analysis
-      let isPdf = false;
-      let isImage = false;
+    return Object.entries(application.documents)
+      .filter(([, doc]) => doc && doc.url && typeof doc.url === 'string' && doc.url.trim() !== '')
+      .map(([key, doc]) => {
+        // Determine file type based on document type and URL analysis
+        let isPdf = false;
+        let isImage = false;
 
-      // Method 1: Check by document type (most reliable)
-      if (pdfDocumentTypes.includes(key)) {
-        isPdf = true;
-      } else if (imageDocumentTypes.includes(key)) {
-        isImage = true;
-      } 
-      // Method 2: Check Cloudinary URL structure
-      else if (doc.url.includes('/raw/upload/')) {
-        isPdf = true; // Cloudinary raw uploads are typically PDFs
-      } else if (doc.url.includes('/image/upload/')) {
-        isImage = true; // Cloudinary image uploads are images
+        // Method 1: Check by document type (most reliable)
+        if (pdfDocumentTypes.includes(key)) {
+          isPdf = true;
+        } else if (imageDocumentTypes.includes(key)) {
+          isImage = true;
+        } 
+        // Method 2: Check Cloudinary URL structure
+        else if (doc.url.includes('/raw/upload/')) {
+          isPdf = true; // Cloudinary raw uploads are typically PDFs
+        } else if (doc.url.includes('/image/upload/')) {
+          isImage = true; // Cloudinary image uploads are images
+        }
+        // Method 3: Check file extension as fallback
+        else if (doc.url.toLowerCase().match(/\.(pdf)$/)) {
+          isPdf = true;
+        } else if (doc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+          isImage = true;
+        }
+
+        // Default to PDF for unknown types to be safe
+        const fileTypeIsPdf = isPdf || (!isImage && !isPdf);
+
+        return {
+          key,
+          displayName: documentTypes[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+          url: doc.url,
+          verified: doc.verified || false,
+          type: doc.type || key,
+          isPdf: fileTypeIsPdf,
+          uploadedAt: doc.uploadedAt
+        };
+      });
+  };
+
+  // Function to handle document viewing with Cloudinary-specific handling
+  const handleViewDocument = (url: string, isPdf: boolean) => {
+    if (isPdf) {
+      let viewUrl = url;
+
+      // If this is a Cloudinary raw file, use Google Docs Viewer
+      if (url.includes('res.cloudinary.com') && url.includes('/raw/upload/')) {
+        viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
       }
-      // Method 3: Check file extension as fallback
-      else if (doc.url.toLowerCase().match(/\.(pdf)$/)) {
-        isPdf = true;
-      } else if (doc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-        isImage = true;
-      }
 
-      // Default to PDF for unknown types to be safe
-      const fileTypeIsPdf = isPdf || (!isImage && !isPdf);
-
-      let finalUrl = doc.url;
-      if (isPdf && !doc.url.toLowerCase().endsWith('.pdf')) {
-        finalUrl = `${doc.url}.pdf`;
-      }
-
-      return {
-        key,
-        displayName: documentTypes[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-        url: finalUrl,
-        verified: doc.verified || false,
-        type: doc.type || key,
-        isPdf: fileTypeIsPdf,
-        uploadedAt: doc.uploadedAt
-      };
-    });
-};
-
-// Function to handle document viewing with Cloudinary-specific handling
-const handleViewDocument = (url: string, isPdf: boolean, docName: string) => {
-  if (isPdf) {
-    // For Cloudinary PDFs (raw uploads), we need to force download behavior
-    const link = document.createElement('a');
-    
-    // Add download parameter to Cloudinary URL to force PDF download
-    const separator = url.includes('?') ? '&' : '?';
-    const downloadUrl = `${url}${separator}flags=attachment`;
-    
-    link.href = downloadUrl;
-    link.download = `${docName.replace(/\s+/g, '_')}.pdf`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-  } else {
-    // For images, open directly in new tab
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-};
-
+      window.open(viewUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   // Function to get file type icon
   const getFileIcon = (isPdf: boolean) => {
@@ -215,7 +207,7 @@ const handleViewDocument = (url: string, isPdf: boolean, docName: string) => {
   const availableDocuments = getAvailableDocuments();
   const profilePictureUrl = getProfilePictureUrl();
 
-  if (loading) {
+  if (loading || applicationsLoading) {
     return (
       <div className="flex h-screen bg-gray-50">
         <AdminSidebar activePage="Technicians" />
@@ -325,8 +317,6 @@ const handleViewDocument = (url: string, isPdf: boolean, docName: string) => {
               <div>
                 <h3 className="text-base font-medium mb-4">Personal Information</h3>
                 <div className="space-y-4">
-                  
-
                   <div>
                     <p className="text-sm text-gray-500">Full Name</p>
                     <p className="font-medium">{application.personal?.fullName || 'Not provided'}</p>
@@ -424,7 +414,7 @@ const handleViewDocument = (url: string, isPdf: boolean, docName: string) => {
                               {doc.isPdf ? 'PDF Document' : 'Image'}
                             </span>
                             <button
-                              onClick={() => handleViewDocument(doc.url, doc.isPdf, doc.displayName)}
+                              onClick={() => handleViewDocument(doc.url, doc.isPdf)}
                               className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1 cursor-pointer"
                             >
                               <span>{doc.isPdf ? 'View PDF' : 'View Image'}</span>
@@ -477,12 +467,11 @@ const handleViewDocument = (url: string, isPdf: boolean, docName: string) => {
               </div>
             </div>
 
-                    
             {/* Admin Actions */}
             <AdminActions
               type="pending"
-              applicationId={application?._id}
-              technicianName={application?.personal?.fullName || 'Applicant'}
+              applicationId={application._id}
+              technicianName={application.personal?.fullName || 'Applicant'}
             />
           </div>
         </div>
@@ -490,3 +479,5 @@ const handleViewDocument = (url: string, isPdf: boolean, docName: string) => {
     </div>
   )
 }
+
+export default PendingApplicationProfile

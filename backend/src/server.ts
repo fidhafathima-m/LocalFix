@@ -3,10 +3,11 @@ import dotenv from 'dotenv'
 dotenv.config();
 import cors from 'cors'
 import connectDB from './config/db'
-import userAuth from './modules/user/user.routes'
-import userRoutes from './modules/admin/admin.routes'
-import adminTechnicianRoutes from './modules/admin/admin.technicianRoutes'
-import technicianRoutes from './modules/technician/technician.routes'
+import userAuth from './routes/userRoutes'
+import userRoutes from './routes/admin/userManagementRoutes'
+import adminTechnicianRoutes from './routes/admin/technicianManagementRoutes'
+import technicianRoutes from './routes/technician/technicianRoutes'
+import technicianDashboardRoutes from './routes/technician/technicianDashboardRoutes'
 
 connectDB();
 
@@ -21,7 +22,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(cors({ 
   origin: "http://localhost:5173", 
-  methods: ["GET","POST","OPTIONS", "PATCH"],
+  methods: ["GET","POST","OPTIONS", "PATCH", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type","Authorization"], 
   credentials: true 
 }));
@@ -29,11 +30,12 @@ app.use(cors({
 app.use("/uploads", express.static("uploads"));
 
 app.use('/api/auth', userAuth);
-app.use("/api/users", userRoutes);
+app.use("/api/admin/users", userRoutes);
 
 // Mount routes
-app.use("/api/technicians", adminTechnicianRoutes);
+app.use("/api/admin/technicians", adminTechnicianRoutes);
 app.use('/api/technician-application', technicianRoutes);
+app.use('/api/technician', technicianDashboardRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send("Localfix API running...")

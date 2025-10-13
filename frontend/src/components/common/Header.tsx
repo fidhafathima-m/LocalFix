@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '../../context/AuthContext';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { logout } from '../../store/slices/authSlice';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-
-
 
 interface HeaderProps {
     isApproved?: boolean,
@@ -15,12 +14,13 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ userType: propUserType, isApproved}) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
-    const {isLoggedIn, logout, user} = useAuth()
     const [isClient, setIsClient] = useState(false);
+    
+    const dispatch = useAppDispatch();
+    const { isLoggedIn, user } = useAppSelector((state) => state.auth);
     const userType = propUserType ?? user?.role ?? 'user';
 
     const navigate = useNavigate();
-
 
     useEffect(() => {
         setIsClient(true);
@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ userType: propUserType, isApproved}) =>
         });
 
         if (result.isConfirmed) {
-            logout();
+            dispatch(logout());
             if (userType === "serviceProvider") {
               navigate("/technicians", { replace: true });
             } else {
@@ -53,8 +53,7 @@ const Header: React.FC<HeaderProps> = ({ userType: propUserType, isApproved}) =>
             }
             toast.success('You have been logged out!');
         }
-        };
-
+    };
 
     // Close mobile menu when window is resized to desktop size
     useEffect(() => {
@@ -198,7 +197,6 @@ const Header: React.FC<HeaderProps> = ({ userType: propUserType, isApproved}) =>
   }
 };
 
-
     const mobileLinks = () => {
   const desktopLinks = links();
 
@@ -237,6 +235,7 @@ const Header: React.FC<HeaderProps> = ({ userType: propUserType, isApproved}) =>
     });
   });
 };
+
     return (
         <header className={`sticky top-0 z-50 bg-white transition-shadow ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
             {/* Main Header */}

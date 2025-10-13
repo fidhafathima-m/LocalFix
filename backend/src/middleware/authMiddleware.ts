@@ -1,7 +1,7 @@
-// middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import User from "../modules/user/user.model";
+import User from "../models/UserSchema";
+import { Types } from "mongoose";
 
 export interface AuthRequest extends Request {
   user?: { 
@@ -22,7 +22,10 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
   if (!token) {
     console.log("🔐 No token provided");
-    return res.status(401).json({ message: "Authentication required" });
+    return res.status(401).json({ 
+      success: false,
+      message: "Authentication required" 
+    });
   }
 
   try {
@@ -33,18 +36,25 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
     
     if (!userId) {
       console.log("🔐 No user ID found in token");
-      return res.status(401).json({ message: "Invalid token structure" });
+      return res.status(401).json({ 
+        success: false,
+        message: "Invalid token structure" 
+      });
     }
 
-    const user = await User.findById(userId).select('-password');
+    const user = await User.findById(userId).select('-passwordHash');
     
     if (!user) {
       console.log("🔐 User not found for ID:", userId);
-      return res.status(401).json({ message: "User not found" });
+      return res.status(401).json({ 
+        success: false,
+        message: "User not found" 
+      });
     }
 
+    // Fix: Convert ObjectId to string properly
     req.user = { 
-      id: (user._id as string).toString(),
+      id: user._id.toString(), // Convert ObjectId to string
       role: user.role,
       email: user.email
     };
@@ -53,7 +63,10 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
     next();
   } catch (error) {
     console.error("🔐 Token verification failed:", error);
-    return res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ 
+      success: false,
+      message: "Invalid token" 
+    });
   }
 };
 
@@ -67,4 +80,42 @@ export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
       message: "Access denied. Admin role required." 
     });
   }
+};
+
+// Service Provider middleware
+export const serviceProvider = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.user && req.user.role === 'serviceProvider') {
+    next();
+  } else {
+    res.status(403).json({ 
+      success: false,
+      message: "Access denied. Service Provider role required." 
+    });
+  }
+};
+
+// User middleware (regular users)
+export const user = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.user && req.user.role === 'user') {
+    next();
+  } else {
+    res.status(403).json({ 
+      success: false,
+      message: "Access denied. User role required." 
+    });
+  }
+};
+
+// Optional: Combined role middleware
+export const requireRole = (roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (req.user && roles.includes(req.user.role || '')) {
+      next();
+    } else {
+      res.status(403).json({ 
+        success: false,
+        message: `Access denied. Required roles: ${roles.join(', ')}` 
+      });
+    }
+  };
 };

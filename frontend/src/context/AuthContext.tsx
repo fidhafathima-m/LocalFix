@@ -50,14 +50,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
                         setUser(parsedUser);
                         setToken(savedToken);
                         setApplicationStatus(parsedUser.applicationStatus || 'not-applied');
-                        console.log("🔐 Auth initialized with valid token");
                     } catch (validationError) {
-                        console.warn("🔐 Token validation failed, clearing auth data", validationError);
+                        console.warn("Token validation failed, clearing auth data", validationError);
                         logout();
                     }
                 }
             } catch (error) {
-                console.error("🔐 Auth initialization error:", error);
+                console.error("Auth initialization error:", error);
                 logout(); // Clear corrupted data
             } finally {
                 setIsInitialized(true);
@@ -81,10 +80,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
             setToken(authToken);
             setApplicationStatus(userWithDefaults.applicationStatus);
             
-            console.log("🔐 Login successful - User:", userWithDefaults);
-            console.log("🔐 Login successful - Application Status:", userWithDefaults.applicationStatus);
         } catch (error) {
-            console.error("🔐 Login storage error:", error);
+            console.error("Login storage error:", error);
         }
     }
 
@@ -97,7 +94,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         setToken(null);
         setApplicationStatus('not-applied');
         
-        console.log("🔐 Logout completed");
     };
 
     // Token refresh function
@@ -112,7 +108,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
             }
             return false;
         } catch (error) {
-            console.error("🔐 Token refresh failed:", error);
+            console.error("Token refresh failed:", error);
             return false;
         }
     };

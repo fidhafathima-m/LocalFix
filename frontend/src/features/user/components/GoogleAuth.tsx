@@ -1,16 +1,16 @@
-import { GoogleLogin, type CredentialResponse, GoogleOAuthProvider } from "@react-oauth/google";
-import { useAuth } from "../../../context/AuthContext";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
+import { useAppDispatch } from "../../../hooks/redux";
+import { loginSuccess, type User } from "../../../store/slices/authSlice";
 import toast from "react-hot-toast";
-import axios from "axios";
+import { authAPI } from "../../../services/authApi";
 import { useNavigate, useLocation } from "react-router-dom";
 
 interface GoogleAuthProps {
   userType?: 'user' | 'serviceProvider' | 'admin';
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const GoogleAuth: React.FC<GoogleAuthProps> = ({ userType = 'user' }) => {
-    const { login } = useAuth();
+const GoogleAuth: React.FC<GoogleAuthProps> = () => {
+    const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -24,12 +24,16 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ userType = 'user' }) => {
         }
 
         try {
-            const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/google`, {
+            const res = await authAPI.googleAuth({
                 token: credentialResponse.credential,
                 userType: currentUserType 
             });
 
-            login(res.data.user, res.data.token);
+            dispatch(loginSuccess({
+                user: res.data.user as User,
+                token: res.data.token
+            }));
+            
             toast.success("Signed in with Google!");
             
             // Redirect based on userType
@@ -38,9 +42,10 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ userType = 'user' }) => {
             } else {
                 navigate("/");
             }
-        } catch (error: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
             console.error("Google auth error:", error);
-            if (axios.isAxiosError(error) && error.response?.data?.message) {
+            if (error.response?.data?.message) {
                 toast.error(error.response.data.message);
             } else {
                 toast.error("Google Sign In failed");
@@ -68,19 +73,4 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ userType = 'user' }) => {
     );
 };
 
-const GoogleAuthWrapper: React.FC<GoogleAuthProps> = ({ userType = 'user' }) => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    
-    if (!clientId) {
-        console.error("Google Client ID is missing!");
-        return <div>Google Sign-In configuration error</div>;
-    }
-
-    return (
-        <GoogleOAuthProvider clientId={clientId}>
-            <GoogleAuth userType={userType} />
-        </GoogleOAuthProvider>
-    );
-};
-
-export default GoogleAuthWrapper;
+export default GoogleAuth;

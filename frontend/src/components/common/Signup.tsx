@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 
 import GoogleAuth from '../../features/user/components/GoogleAuth';
 import { signupAPI } from '../../api/auth';
+import { signupSchema, validateSchema } from '../../validation';
 // import FacebookAuth from '../components/FacebookAuth';
 
 interface SignUpProps {
@@ -34,56 +35,33 @@ const SignUp: React.FC<SignUpProps> = ({userType = 'user'}) => {
 
   // Validate form
   const validateForm = (): boolean => {
-    let valid = true;
-    const newErrors = {
+    const validation = validateSchema(signupSchema, {
+      ...formData,
+      userType
+    })
+    if(!validation.success && validation.errors) {
+      setError(prev => ({
+        ...prev,
+        ...validation.errors
+      }));
+      return false
+    }
+    setError({
       fullName: '',
       email: '',
       phone: '',
       password: '',
       confirmPassword: ''
-    };
-
-    const phoneRegex = /^\d{10}$/;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
-      valid = false;
-    }
-
-    // At least one of phone/email required
-    if (!formData.phone && !formData.email) {
-      newErrors.phone = "Enter phone or email";
-      newErrors.email = "Enter phone or email";
-      valid = false;
-    } else {
-      if (formData.phone && !phoneRegex.test(formData.phone)) {
-        newErrors.phone = "Enter valid phone number";
-        valid = false;
-      }
-      if (formData.email && !emailRegex.test(formData.email)) {
-        newErrors.email = "Enter valid email";
-        valid = false;
-      }
-    }
-
-    if (!formData.password || formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-      valid = false;
-    }
-
-    if (formData.confirmPassword !== formData.password) {
-      newErrors.confirmPassword = "Passwords do not match";
-      valid = false;
-    }
-
-    setError(newErrors);
-    return valid;
+    });
+    return true;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (error[name as keyof typeof error]) {
+      setError(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

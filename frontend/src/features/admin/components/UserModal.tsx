@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { CloseOutlined, CheckCircleOutlineOutlined } from '@mui/icons-material'
 import type { User } from '../pages/UserManagement'
-import { updateUser } from '../api/adminApi'
 import toast from 'react-hot-toast'
+import { adminAPI } from '../../../services/adminApi'
 
 type Status = "Active" | "Inactive" | "Blocked"
 
@@ -24,6 +24,7 @@ export const UserModal: React.FC<UserModalProps> = ({
   onUserUpdated
 }) => {
   const [editingMode, setEditingMode] = useState(isEditing)
+  const [isSaving, setIsSaving] = useState(false)
 
   const [formData, setFormData] = useState({
     fullName: user.fullName,
@@ -72,25 +73,44 @@ export const UserModal: React.FC<UserModalProps> = ({
   }
 
   const handleSave = async () => {
-  try {
-    console.log('Updating user with data:', { 
-      userId: user._id, 
-      updates: formData,
-      endpoint: `${import.meta.env.VITE_BASE_URL}/users/${user._id}/edit`
-    });
+    // Validation
+    if (!formData.fullName.trim()) {
+      toast.error("Full name is required")
+      return
+    }
     
-    const updatedUser = await updateUser(user._id, formData);
-    
-    console.log('User updated successfully:', updatedUser);
-    
-    onUserUpdated(updatedUser);
-    toast.success("User updated successfully!");
-    setEditingMode(false);
-  } catch (err) {
-    console.error("Error updating user:", err);
-    toast.error(err instanceof Error ? err.message : "Failed to update user");
+    if (!formData.phone.trim()) {
+      toast.error("Phone number is required")
+      return
+    }
+
+    if (isSaving) return
+
+    setIsSaving(true)
+    try {
+      console.log('Updating user with data:', { 
+        userId: user._id, 
+        updates: formData
+      })
+      
+      // Use adminAPI service instead of the old updateUser function
+      const response = await adminAPI.updateUser(user._id, formData)
+      
+      if (response.data.success && response.data.data) {
+        const updatedUser = response.data.data.user
+        onUserUpdated(updatedUser)
+        toast.success("User updated successfully!")
+        setEditingMode(false)
+      } else {
+        throw new Error(response.data.message || 'Failed to update user')
+      }
+    } catch (err) {
+      console.error("Error updating user:", err)
+      toast.error(err instanceof Error ? err.message : "Failed to update user")
+    } finally {
+      setIsSaving(false)
+    }
   }
-};
 
   return (
     <>
@@ -237,9 +257,12 @@ export const UserModal: React.FC<UserModalProps> = ({
             {editingMode && (
               <button
                 onClick={handleSave}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer"
+                disabled={isSaving}
+                className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer ${
+                  isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Save
+                {isSaving ? 'Saving...' : 'Save'}
               </button>
             )}
           </div>
