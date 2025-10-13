@@ -41,7 +41,6 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
 
   const handleFileChange = useCallback(
     (selectedFile: File | null) => {
-      console.log(`File selected for ${field}:`, selectedFile?.name);
       setCurrentFile(selectedFile);
       onFileChange(field)(selectedFile);
     },
@@ -49,7 +48,6 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
   );
 
   const handleRemoveFile = () => {
-    console.log(`Removing file for ${field}`);
     handleFileChange(null);
   };
 

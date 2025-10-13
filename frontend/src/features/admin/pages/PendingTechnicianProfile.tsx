@@ -77,7 +77,7 @@ const PendingApplicationProfile: React.FC = () => {
           throw new Error(response.data.message || "Application not found");
         }
       } catch (error) {
-        console.error("❌ Error fetching application details:", error);
+        console.error("Error fetching application details:", error);
       } finally {
         setLoading(false);
       }
@@ -202,7 +202,7 @@ const PendingApplicationProfile: React.FC = () => {
         setApplication(response.data.data.applications[0]);
       }
     } catch (error) {
-      console.error("❌ Error refreshing application details:", error);
+      console.error("Error refreshing application details:", error);
     }
   };
 

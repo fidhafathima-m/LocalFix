@@ -49,9 +49,7 @@ export const signupAPI = async (data: {
   password: string;
   userType: string;
 }) => {
-  console.log("Making signup API call with:", data);
   const response = await axios.post(`${BASE_URL}/auth/signup`, data);
-  console.log("Signup API response received:", response);
   return response.data;
 };
 

@@ -74,7 +74,6 @@ export const fetchTechnicians = async (
   filters: { status?: string } = {}
 ): Promise<Technician[]> => {
   try {
-    console.log("🔍 API: Fetching technicians with filters:", filters);
 
     const res = await api.get<ApiResponse<{ technicians: Technician[] }>>(
       "/admin/technicians",
@@ -83,15 +82,13 @@ export const fetchTechnicians = async (
       }
     );
 
-    console.log("🔍 API: Technicians response:", res.data);
-
     if (res.data.success && res.data.data && res.data.data.technicians) {
       return res.data.data.technicians;
     } else {
       throw new Error(res.data.message || "Failed to fetch technicians");
     }
   } catch (error) {
-    console.error("❌ Error fetching technicians:", error);
+    console.error("Error fetching technicians:", error);
     throw error;
   }
 };
@@ -113,7 +110,7 @@ export const fetchPendingApplications = async (): Promise<
       );
     }
   } catch (error) {
-    console.error("❌ Error fetching pending applications:", error);
+    console.error("Error fetching pending applications:", error);
     throw error;
   }
 };
@@ -139,16 +136,12 @@ export const rejectApplication = async (
   rejectionReason: string,
   emailNotification: boolean = true
 ): Promise<void> => {
-  console.log("🔍 API: Rejecting application:", applicationId);
-  console.log("🔍 API: Rejection reason:", rejectionReason);
-  console.log("🔍 API: Email notification:", emailNotification);
 
   const res = await api.patch<ApiResponse<void>>(
     `/admin/technicians/applications/${applicationId}/reject`,
     { rejectionReason, emailNotification }
   );
 
-  console.log("🔍 API Response:", res.data);
 
   if (!res.data.success) {
     throw new Error(res.data.message || "Failed to reject application");

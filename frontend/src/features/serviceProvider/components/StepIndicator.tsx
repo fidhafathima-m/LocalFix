@@ -12,8 +12,8 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
     <div className="w-full mb-8">
       <div className="flex justify-between items-center relative">
         {steps.map((_, index) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const isActive = currentStep === index + 1;
-          console.log(isActive);
           const isCompleted = index + 1 < currentStep;
           // Create connector lines between steps
           if (index < steps.length - 1) {

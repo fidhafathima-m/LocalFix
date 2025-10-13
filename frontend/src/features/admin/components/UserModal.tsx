@@ -88,10 +88,6 @@ export const UserModal: React.FC<UserModalProps> = ({
 
     setIsSaving(true);
     try {
-      console.log("Updating user with data:", {
-        userId: user._id,
-        updates: formData,
-      });
 
       const response = await adminAPI.updateUser(user._id, formData);
 

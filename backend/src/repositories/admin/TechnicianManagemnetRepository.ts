@@ -228,7 +228,7 @@ export class TechnicianManagementRepository {
 
       return address;
     } catch (error) {
-      console.error("❌ Error finding user address:", error);
+      console.error("Error finding user address:", error);
       return null;
     }
   }
@@ -345,7 +345,7 @@ export class TechnicianManagementRepository {
 
       return user;
     } catch (error) {
-      console.error("❌ Error finding user by ID:", error);
+      console.error("Error finding user by ID:", error);
       return null;
     }
   }
@@ -373,7 +373,7 @@ export class TechnicianManagementRepository {
 
       return application;
     } catch (error) {
-      console.error("❌ Error finding application by technician ID:", error);
+      console.error("Error finding application by technician ID:", error);
       return null;
     }
   }

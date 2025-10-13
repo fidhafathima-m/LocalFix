@@ -5,14 +5,6 @@ import technicianManagement from "../../controllers/admin/technicianManagement";
 
 const router = Router();
 
-router.get("/test", (req, res) => {
-  console.log("✅ /api/technicians/test route hit");
-  res.json({
-    message: "Test route working",
-    timestamp: new Date().toISOString(),
-  });
-});
-
 router.get("/", protect, admin, technicianManagement.getAllTechnicians);
 router.get("/stats", protect, admin, technicianManagement.getTechnicianStats);
 router.get("/:id", protect, admin, technicianManagement.getTechnicianById);

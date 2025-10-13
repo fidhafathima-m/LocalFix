@@ -137,7 +137,7 @@ const TechnicianManagement: React.FC = () => {
         );
       }
     } catch (error) {
-      console.error("❌ Error fetching data:", error);
+      console.error("Error fetching data:", error);
       dispatch(fetchTechniciansFailure("Failed to load technician data"));
       dispatch(fetchApplicationsFailure("Failed to load applications data"));
       toast.error("Failed to load technician data");

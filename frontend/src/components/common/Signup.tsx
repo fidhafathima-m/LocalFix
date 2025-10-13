@@ -69,13 +69,6 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
 
     setLoading(true);
     try {
-      console.log("Form data being sent:", {
-        fullName: formData.fullName,
-        phone: formData.phone,
-        email: formData.email,
-        userType: userType,
-      });
-
       const response = await signupAPI({
         fullName: formData.fullName,
         ...(formData.phone ? { phone: formData.phone } : {}),
@@ -83,8 +76,6 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
         password: formData.password,
         userType: userType,
       });
-
-      console.log("Signup API response:", response);
 
       localStorage.setItem(
         "signupData",
@@ -100,8 +91,6 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
 
       const otpRoute =
         userType === "serviceProvider" ? "/technicians/verify-otp" : "/otp";
-
-      console.log("Navigating to:", otpRoute, "with userType:", userType);
 
       navigate(otpRoute, {
         state: {

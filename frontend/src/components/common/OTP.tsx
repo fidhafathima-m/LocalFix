@@ -48,8 +48,6 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
     ...locationData,
   };
 
-  console.log("🔍 OTP Component - Final data:", finalData);
-
   // Countdown timer effect
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -88,16 +86,6 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
 
     try {
       if (context === "signup") {
-        console.log("🔍 Sending OTP verification with data:", {
-          otp,
-          userType,
-          context,
-          phone: finalData.phone,
-          email: finalData.email,
-          fullName: finalData.fullName,
-          password: finalData.password,
-        });
-
         const otpData: SignupOTPData = {
           otp,
           userType,
@@ -118,10 +106,7 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
           ...(otpData.password && { password: otpData.password }),
         };
 
-        console.log("🔍 Clean OTP data being sent:", cleanOtpData);
-
         const res = await authAPI.verifyOTP(cleanOtpData as OTPData);
-        console.log("🔍 API Response:", res);
 
         if (!res.success || !res.user || !res.token) {
           throw new Error(
@@ -158,9 +143,6 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
           redirectPath = "/admin/dashboard";
         }
 
-        console.log("🔍 User Role from API:", userRole);
-        console.log("🔍 Redirecting to:", redirectPath);
-
         localStorage.removeItem("signupData");
         navigate(redirectPath, { replace: true });
       } else {
@@ -174,7 +156,6 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
         };
 
         const res = await authAPI.verifyForgotPasswordOTP(data);
-        console.log("🔍 Forgot password OTP response:", res);
 
         if (!res.success) {
           throw new Error(res.message || "OTP verification failed");

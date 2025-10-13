@@ -52,8 +52,6 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
   });
 
   const extractAddressComponents = (data: any) => {
-    console.log("🔍 OSM Geocoding result:", data);
-
     const addressComponents: any = {
       street: "",
       city: "",
@@ -124,14 +122,11 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
       });
     }
 
-    console.log("🔍 Extracted address components:", addressComponents);
     return addressComponents;
   };
 
   const reverseGeocodeWithOSM = async (lat: number, lng: number) => {
     try {
-      console.log("🔍 Fetching address from OpenStreetMap...");
-
       // Add a small delay to respect OSM's usage policy
       await new Promise((resolve) => setTimeout(resolve, 1000));
 

@@ -13,15 +13,23 @@ export class TechnicianRepository {
 
   async create(technicianData: any): Promise<ITechnician> {
     try {
-      console.log("🔍 Creating technician with data:", {
-        personalInfo: technicianData.personalInfo,
-        addressType: typeof technicianData.personalInfo?.address,
-      });
+      // Ensure languages is properly formatted as array
+      const processedData = {
+        ...technicianData,
+        personalInfo: {
+          ...technicianData.personalInfo,
+          languages: Array.isArray(technicianData.personalInfo?.languages)
+            ? technicianData.personalInfo.languages
+            : [],
+        },
+      };
 
-      const technician = new Technician(technicianData);
-      return await technician.save();
+      const technician = new Technician(processedData);
+      const savedTechnician = await technician.save();
+
+      return savedTechnician;
     } catch (error) {
-      console.error("❌ Error creating technician:", error);
+      console.error("Error creating technician:", error);
       throw error;
     }
   }
@@ -31,30 +39,42 @@ export class TechnicianRepository {
     updateData: any
   ): Promise<ITechnician | null> {
     try {
-      console.log("🔍 Updating technician with data:", {
-        personalInfo: updateData.personalInfo,
-        addressType: typeof updateData.personalInfo?.address,
-      });
+      const processedUpdateData = {
+        ...updateData,
+        personalInfo: updateData.personalInfo
+          ? {
+              ...updateData.personalInfo,
+              languages: Array.isArray(updateData.personalInfo?.languages)
+                ? updateData.personalInfo.languages
+                : [],
+            }
+          : undefined,
+      };
 
-      return await Technician.findOneAndUpdate(
-        { userId },
-        { $set: updateData },
-        { new: true }
+      const technician = await Technician.findOneAndUpdate(
+        { userId: new Types.ObjectId(userId) },
+        { $set: processedUpdateData },
+        { new: true, runValidators: true }
       );
+
+      return technician;
     } catch (error) {
-      console.error("❌ Error updating technician:", error);
+      console.error("Error updating technician:", error);
       throw error;
     }
   }
 
   // In your TechnicianRepository
-async updateTechnicianStatus(id: string, updateData: any): Promise<ITechnician | null> {
-  return await Technician.findByIdAndUpdate(
-    id,
-    { $set: updateData },
-    { new: true }
-  );
-}
+  async updateTechnicianStatus(
+    id: string,
+    updateData: any
+  ): Promise<ITechnician | null> {
+    return await Technician.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
+  }
 
   async save(technician: any): Promise<ITechnician> {
     if (technician && typeof technician.save === "function") {

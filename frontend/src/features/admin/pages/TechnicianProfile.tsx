@@ -76,7 +76,7 @@ export const TechnicianProfile: React.FC = () => {
         );
       }
     } catch (error) {
-      console.error("❌ Error fetching technician details:", error);
+      console.error("Error fetching technician details:", error);
       setError(
         error instanceof Error
           ? error.message

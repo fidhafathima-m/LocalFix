@@ -64,9 +64,6 @@ export class TechnicianManagementController {
       const { id } = req.params;
       const { rejectionReason } = req.body;
 
-      console.log("🔍 Controller: Rejecting application:", id);
-      console.log("🔍 Controller: Rejection reason:", rejectionReason);
-
       if (!rejectionReason) {
         res.status(400).json({
           success: false,
@@ -79,11 +76,9 @@ export class TechnicianManagementController {
         rejectionReason,
       });
 
-      console.log("🔍 Controller: Result:", result);
-
       res.status(result.success ? 200 : 400).json(result);
     } catch (error) {
-      console.error("❌ Controller error:", error);
+      console.error("Controller error:", error);
       res.status(500).json({
         success: false,
         message: "Internal server error",

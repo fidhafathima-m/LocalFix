@@ -22,7 +22,7 @@ export interface ITechnician {
       state?: string;
       pincode?: string;
     };
-    languages?: string[];
+    languages?: [string];
   };
   displayName: string;
   bio: string;

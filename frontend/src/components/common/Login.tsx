@@ -60,9 +60,7 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
         role: userType,
       };
 
-      console.log("🔍 Sending login request...");
       const res = await authAPI.login(credentials);
-      console.log("🔍 Login API response:", res);
 
       if (res.success && res.user && res.token) {
         const userData = {
@@ -103,7 +101,6 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
           }
         }, 1000);
       } else {
-        console.log("❌ Login failed with message:", res.message);
         const errorMessage = res.message || "Login failed. Please try again.";
         dispatch(loginFailure(errorMessage));
         toast.error(errorMessage, {
@@ -111,7 +108,7 @@ const Login: React.FC<LoginProps> = ({ userType }) => {
         });
       }
     } catch (error: any) {
-      console.error("🔍 Login catch error:", error);
+      console.error("Login catch error:", error);
 
       let errorMessage = "Login failed. Please try again.";
 

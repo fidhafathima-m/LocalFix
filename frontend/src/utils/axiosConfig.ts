@@ -55,7 +55,6 @@ api.interceptors.response.use(
 
     // Handle specific error cases
     if (status === 401) {
-      console.log("Unauthorized - Clearing tokens");
 
       // Clear all possible auth storage
       localStorage.removeItem("token");

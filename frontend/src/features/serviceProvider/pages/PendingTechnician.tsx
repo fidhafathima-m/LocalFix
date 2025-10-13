@@ -92,7 +92,6 @@ const PendingTechnicianApplication: React.FC = () => {
 
   const fetchApplicationData = useCallback(async () => {
     if (!isLoggedIn || !token) {
-      console.log("🔐 User not logged in or token missing, skipping API call");
       setLoading(false);
       return;
     }
@@ -108,11 +107,6 @@ const PendingTechnicianApplication: React.FC = () => {
         setLoading(false);
         return;
       }
-
-      console.log(
-        "🔐 Making API call with token:",
-        token ? "Token exists" : "No token"
-      );
 
       const applicationResponse = await axios.get(
         `${
@@ -162,7 +156,6 @@ const PendingTechnicianApplication: React.FC = () => {
       console.error("Error fetching application data:", error);
 
       if (error.response?.status === 401) {
-        console.log("🔐 Unauthorized - Token expired or invalid");
         setError("Your session has expired. Please log in again.");
       } else {
         setError("Failed to load application data");
@@ -280,9 +273,6 @@ const PendingTechnicianApplication: React.FC = () => {
   useEffect(() => {
     const checkApplicationStatus = async () => {
       if (!isLoggedIn || !token) {
-        console.log(
-          "🔐 User not authenticated, skipping application status check"
-        );
         setLoading(false);
         return;
       }
@@ -377,7 +367,7 @@ const PendingTechnicianApplication: React.FC = () => {
         day: "numeric",
       });
     } catch (error) {
-      console.error("🔍 Error parsing rejectedAt:", error);
+      console.error("Error parsing rejectedAt:", error);
       return "Invalid Date";
     }
   };

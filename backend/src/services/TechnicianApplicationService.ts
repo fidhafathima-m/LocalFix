@@ -32,8 +32,6 @@ export class TechnicianApplicationService {
     try {
       const { email, userId } = data;
 
-      console.log("Starting application for email:", email, "user:", userId);
-
       if (!email || !userId) {
         return {
           success: false,
@@ -140,8 +138,6 @@ export class TechnicianApplicationService {
         documents: {},
         agreement: false,
       });
-
-      console.log("Created new application with ID:", application._id);
 
       return {
         success: true,
@@ -266,7 +262,7 @@ export class TechnicianApplicationService {
           try {
             addressData = JSON.parse(addressData);
           } catch (e) {
-            console.log("⚠️ Could not parse address as JSON");
+            console.error("Could not parse address as JSON");
           }
         }
 
@@ -274,7 +270,7 @@ export class TechnicianApplicationService {
           try {
             locationData = JSON.parse(locationData);
           } catch (e) {
-            console.log("⚠️ Could not parse location as JSON");
+            console.error("Could not parse location as JSON");
           }
         }
 
@@ -335,33 +331,14 @@ export class TechnicianApplicationService {
       "tradeLicense",
     ];
 
-    console.log("📁 Documents step - Received files:", files);
-
     for (const field of documentFields) {
       if (files && files[field]) {
         const file = files[field];
-        console.log(`📤 Processing ${field}:`, {
-          field: field,
-          file: file,
-          isArray: Array.isArray(file),
-          fileCount: Array.isArray(file) ? file.length : 1,
-        });
 
         try {
           let fileToUpload = Array.isArray(file) ? file[0] : file;
 
-          console.log(`📤 Uploading ${field} to Cloudinary:`, {
-            originalName: fileToUpload.originalname,
-            mimetype: fileToUpload.mimetype,
-            size: fileToUpload.size,
-          });
-
           const uploadResult = await uploadToCloudinary(fileToUpload);
-
-          console.log(
-            `✅ Cloudinary upload result for ${field}:`,
-            uploadResult
-          );
 
           if (uploadResult && uploadResult.secure_url) {
             documents[field] = {
@@ -374,11 +351,6 @@ export class TechnicianApplicationService {
               verified: false,
               uploadFailed: false,
             };
-
-            console.log(
-              `✅ Successfully saved ${field} document:`,
-              documents[field]
-            );
 
             await this.documentRepository.create({
               technicianId: application.technicianId,
@@ -395,7 +367,7 @@ export class TechnicianApplicationService {
               },
             });
           } else {
-            console.error(`❌ Cloudinary returned no secure_url for ${field}`);
+            console.error(`Cloudinary returned no secure_url for ${field}`);
             documents[field] = {
               url: "",
               filename: fileToUpload.originalname,
@@ -425,13 +397,10 @@ export class TechnicianApplicationService {
             verified: false,
           };
         }
-      } else {
-        console.log(`📭 No file provided for ${field}`);
       }
     }
 
     application.documents = documents;
-    console.log("📁 Final documents state:", application.documents);
   }
 
   private mapDocumentType(field: string): ITechnicianDocument["type"] {
@@ -497,13 +466,6 @@ export class TechnicianApplicationService {
         };
       }
 
-      console.log("🔍 Service - Application found:", {
-        id: application._id,
-        status: application.status,
-        rejectionReason: application.rejectionReason,
-        rejectedAt: application.rejectedAt,
-      });
-
       const applicationData = {
         _id: application._id,
         email: application.email,
@@ -523,8 +485,6 @@ export class TechnicianApplicationService {
         createdAt: application.createdAt,
         updatedAt: application.updatedAt,
       };
-
-      console.log("🔍 Service - Returning application data:", applicationData);
 
       return {
         success: true,
@@ -554,6 +514,32 @@ export class TechnicianApplicationService {
           success: false,
           message: "Application not found",
         };
+      }
+
+      let languagesArray: string[] = [];
+
+      if (Array.isArray(application.skills?.languages)) {
+        languagesArray = application.skills.languages.filter(
+          (lang) => lang && String(lang).trim() !== ""
+        );
+      } else if (
+        typeof application.skills?.languages === "string" &&
+        application.skills.languages.trim() !== ""
+      ) {
+        try {
+          const parsed = JSON.parse(application.skills.languages);
+          if (Array.isArray(parsed)) {
+            languagesArray = parsed.filter(
+              (lang) => lang && String(lang).trim() !== ""
+            );
+          }
+        } catch (e) {
+          // If not JSON, split by comma
+          languagesArray = application.skills.languages
+            .split(",")
+            .map((lang: string) => lang.trim())
+            .filter((lang) => lang !== "");
+        }
       }
 
       // Ownership validation
@@ -624,13 +610,6 @@ export class TechnicianApplicationService {
       // Create or update technician record
       let technician = await this.technicianRepository.findByUserId(userId);
 
-      const languages = application.personal?.languages || [];
-      const languagesArray = Array.isArray(languages)
-        ? languages
-        : typeof languages === "string"
-        ? [languages]
-        : [];
-
       let addressData = {};
       if (application.identity?.address) {
         if (typeof application.identity.address === "string") {
@@ -641,16 +620,9 @@ export class TechnicianApplicationService {
             addressData = {};
           }
         } else {
-          // If it's already an object, use it directly
           addressData = application.identity.address;
         }
       }
-
-      console.log("🔍 Address data for technician:", {
-        original: application.identity?.address,
-        parsed: addressData,
-        type: typeof application.identity?.address,
-      });
 
       if (!technician) {
         technician = await this.technicianRepository.create({
@@ -802,29 +774,18 @@ export class TechnicianApplicationService {
     userId: string
   ): Promise<ApplicationResponse> {
     try {
-      console.log("🔍 Resubmit - Starting for application:", applicationId);
-      console.log("🔍 Resubmit - User ID:", userId);
-
       const application = await this.applicationRepository.findById(
         applicationId
       );
       if (!application) {
-        console.log("❌ Resubmit - Application not found");
         return {
           success: false,
           message: "Application not found",
         };
       }
 
-      console.log("🔍 Resubmit - Found application:", {
-        id: application._id,
-        status: application.status,
-        technicianId: application.technicianId,
-      });
-
       // Ownership validation
       if (!application.technicianId) {
-        console.log("❌ Resubmit - No technicianId found in application");
         return {
           success: false,
           message: "Application has no technician assigned",
@@ -832,10 +793,6 @@ export class TechnicianApplicationService {
       }
 
       if (application.technicianId.toString() !== userId) {
-        console.log("❌ Resubmit - Ownership mismatch:", {
-          applicationTechnicianId: application.technicianId.toString(),
-          currentUserId: userId,
-        });
         return {
           success: false,
           message:
@@ -845,19 +802,11 @@ export class TechnicianApplicationService {
 
       // Check if application is rejected
       if (application.status !== "rejected") {
-        console.log(
-          "❌ Resubmit - Application status is not rejected:",
-          application.status
-        );
         return {
           success: false,
           message: "Only rejected applications can be resubmitted",
         };
       }
-
-      console.log(
-        "🔍 Resubmit - All validations passed, updating application..."
-      );
 
       // Update application status and clear rejection details
       application.status = "submitted";
@@ -867,25 +816,16 @@ export class TechnicianApplicationService {
       application.lastSubmittedAt = new Date();
       application.updatedAt = new Date();
 
-      console.log("🔍 Resubmit - Saving application...");
       await this.applicationRepository.save(application);
-      console.log("🔍 Resubmit - Application saved successfully");
 
-      // Update technician status if exists
-      console.log("🔍 Resubmit - Updating technician status...");
       const technician = await this.technicianRepository.findByUserId(userId);
       if (technician) {
-        console.log(
-          "🔍 Resubmit - Found technician, updating status to submitted"
-        );
         await this.technicianRepository.updateByUserId(userId, {
           status: "submitted",
         });
       } else {
-        console.log("🔍 Resubmit - No technician found for user");
+        console.log("Resubmit - No technician found for user");
       }
-
-      console.log("✅ Resubmit - Completed successfully");
 
       return {
         success: true,
@@ -895,7 +835,7 @@ export class TechnicianApplicationService {
         },
       };
     } catch (error) {
-      console.error("❌ Resubmit application error:", error);
+      console.error("Resubmit application error:", error);
       return {
         success: false,
         message: "Failed to resubmit application",
@@ -909,8 +849,6 @@ export class TechnicianApplicationService {
     email: string
   ): Promise<ApplicationResponse> {
     try {
-      console.log("Starting new application after rejection for user:", userId);
-
       // Find the rejected application
       const rejectedApplication =
         await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
@@ -945,11 +883,6 @@ export class TechnicianApplicationService {
         previousApplicationId: rejectedApplication._id, // Track the previous application
         resubmittedCount: (rejectedApplication.resubmittedCount || 0) + 1,
       });
-
-      console.log(
-        "Created new application after rejection:",
-        newApplication._id
-      );
 
       return {
         success: true,

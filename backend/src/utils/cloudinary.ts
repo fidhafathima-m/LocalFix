@@ -27,22 +27,13 @@ export const uploadToCloudinary = async (
   file: Express.Multer.File
 ): Promise<CloudinaryUploadResult> => {
   try {
-    console.log("☁️ Starting Cloudinary upload for file:", {
-      originalname: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size,
-      bufferLength: file.buffer?.length,
-    });
-
     if (!file.buffer || file.buffer.length === 0) {
-      console.error("❌ No file buffer found");
+      console.error("No file buffer found");
       throw new Error("File buffer is empty or corrupted");
     }
 
     const isPdf = file.mimetype === "application/pdf";
     const resourceType = isPdf ? "raw" : "image";
-
-    console.log(`📄 Resource type: ${resourceType}, PDF: ${isPdf}`);
 
     const uploadOptions: any = {
       resource_type: resourceType,
@@ -67,31 +58,25 @@ export const uploadToCloudinary = async (
         uploadOptions,
         (error, result) => {
           if (error) {
-            console.error("❌ Cloudinary upload error:", error);
+            console.error("Cloudinary upload error:", error);
             reject(error);
           } else if (!result) {
             reject(new Error("Cloudinary returned empty result"));
           } else {
-            console.log("✅ Cloudinary upload successful:", {
-              url: result.secure_url,
-              resource_type: result.resource_type,
-              format: result.format,
-              public_id: result.public_id,
-            });
             resolve(result as CloudinaryUploadResult);
           }
         }
       );
 
       uploadStream.on("error", (error) => {
-        console.error("❌ Upload stream error:", error);
+        console.error("Upload stream error:", error);
         reject(error);
       });
 
       uploadStream.end(file.buffer);
     });
   } catch (error) {
-    console.error("❌ Cloudinary upload failed:", error);
+    console.error("Cloudinary upload failed:", error);
     throw error;
   }
 };

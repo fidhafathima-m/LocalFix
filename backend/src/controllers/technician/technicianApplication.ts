@@ -77,10 +77,6 @@ export class TechnicianApplicationController {
     const { applicationId } = req.params;
     const userId = req.user?.id;
 
-    console.log("🔍 Controller - Resubmit params:", req.params);
-    console.log("🔍 Controller - Application ID:", applicationId);
-    console.log("🔍 Controller - User ID:", userId);
-
     if (!userId) {
       res
         .status(401)

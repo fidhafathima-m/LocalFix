@@ -18,8 +18,6 @@ export const protect = async (
 ) => {
   let token;
 
-  console.log("🔐 Auth Middleware - Headers:", req.headers.authorization);
-
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -28,7 +26,6 @@ export const protect = async (
   }
 
   if (!token) {
-    console.log("🔐 No token provided");
     return res.status(401).json({
       success: false,
       message: "Authentication required",
@@ -37,12 +34,10 @@ export const protect = async (
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
-    console.log("🔐 Token decoded:", decoded);
 
     const userId = decoded._id || decoded.id;
 
     if (!userId) {
-      console.log("🔐 No user ID found in token");
       return res.status(401).json({
         success: false,
         message: "Invalid token structure",
@@ -52,7 +47,6 @@ export const protect = async (
     const user = await User.findById(userId).select("-passwordHash");
 
     if (!user) {
-      console.log("🔐 User not found for ID:", userId);
       return res.status(401).json({
         success: false,
         message: "User not found",
@@ -65,7 +59,6 @@ export const protect = async (
       email: user.email,
     };
 
-    console.log("🔐 Auth successful for user:", req.user.id);
     next();
   } catch (error) {
     console.error("🔐 Token verification failed:", error);

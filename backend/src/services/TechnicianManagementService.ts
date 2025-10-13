@@ -74,9 +74,6 @@ export class TechnicianManagementService {
           rejected: "rejected",
         };
 
-        console.log("🔍 getAllTechnicians filters:", filters);
-        console.log("📊 Final MongoDB filter:", filter);
-
         const dbStatus = statusMap[status] || status;
         filter.status = dbStatus;
       } else {
@@ -369,100 +366,100 @@ export class TechnicianManagementService {
   }
 
   async updateTechnicianStatus(
-  id: string,
-  statusData: UpdateStatusRequest
-): Promise<SingleTechnicianResponse> {
-  try {
-    const { status, emailNotification = true, reason } = statusData;
+    id: string,
+    statusData: UpdateStatusRequest
+  ): Promise<SingleTechnicianResponse> {
+    try {
+      const { status, emailNotification = true, reason } = statusData;
 
-    if (!status || !["approved", "suspended", "rejected"].includes(status)) {
-      return {
-        success: false,
-        message: "Valid status is required (approved, suspended, rejected)",
-      };
-    }
-
-    // Prepare update data
-    const updateData: any = {};
-    
-    // Store suspension/rejection reason and timestamp
-    if (status === "suspended" || status === "rejected") {
-      updateData.suspensionReason = reason;
-      updateData.suspendedAt = new Date();
-    } else if (status === "approved") {
-      // Clear suspension data when approving/reactivating
-      updateData.suspensionReason = undefined;
-      updateData.suspendedAt = undefined;
-    }
-
-    // Update technician status - pass status separately and updateData for additional fields
-    const technician = await this.technicianRepository.updateTechnicianStatus(
-      id,
-      status,
-      updateData
-    );
-
-    if (!technician) {
-      return {
-        success: false,
-        message: "Technician not found",
-      };
-    }
-
-    // Get user data for email
-    const user = await this.technicianRepository.findUserById(
-      technician.userId as Types.ObjectId
-    );
-
-    let emailSent = false;
-    let emailMessage = "";
-
-    // Send email notification if requested and user email exists
-    if (emailNotification && user?.email) {
-      if (status === "approved") {
-        emailSent = await emailService.sendApplicationApprovalEmail(
-          user.email,
-          technician.displayName
-        );
-        emailMessage = emailSent
-          ? " and approval email sent to technician"
-          : " but failed to send email notification";
-
-        await this.technicianRepository.updateApplicationStatus(
-          id,
-          "approved"
-        );
-      } else {
-        emailSent = await emailService.sendStatusUpdateEmail(
-          user.email,
-          technician.displayName,
-          status,
-          reason
-        );
-        emailMessage = emailSent
-          ? ` and ${status} notification email sent to technician`
-          : ` but failed to send email notification`;
+      if (!status || !["approved", "suspended", "rejected"].includes(status)) {
+        return {
+          success: false,
+          message: "Valid status is required (approved, suspended, rejected)",
+        };
       }
+
+      // Prepare update data
+      const updateData: any = {};
+
+      // Store suspension/rejection reason and timestamp
+      if (status === "suspended" || status === "rejected") {
+        updateData.suspensionReason = reason;
+        updateData.suspendedAt = new Date();
+      } else if (status === "approved") {
+        // Clear suspension data when approving/reactivating
+        updateData.suspensionReason = undefined;
+        updateData.suspendedAt = undefined;
+      }
+
+      // Update technician status - pass status separately and updateData for additional fields
+      const technician = await this.technicianRepository.updateTechnicianStatus(
+        id,
+        status,
+        updateData
+      );
+
+      if (!technician) {
+        return {
+          success: false,
+          message: "Technician not found",
+        };
+      }
+
+      // Get user data for email
+      const user = await this.technicianRepository.findUserById(
+        technician.userId as Types.ObjectId
+      );
+
+      let emailSent = false;
+      let emailMessage = "";
+
+      // Send email notification if requested and user email exists
+      if (emailNotification && user?.email) {
+        if (status === "approved") {
+          emailSent = await emailService.sendApplicationApprovalEmail(
+            user.email,
+            technician.displayName
+          );
+          emailMessage = emailSent
+            ? " and approval email sent to technician"
+            : " but failed to send email notification";
+
+          await this.technicianRepository.updateApplicationStatus(
+            id,
+            "approved"
+          );
+        } else {
+          emailSent = await emailService.sendStatusUpdateEmail(
+            user.email,
+            technician.displayName,
+            status,
+            reason
+          );
+          emailMessage = emailSent
+            ? ` and ${status} notification email sent to technician`
+            : ` but failed to send email notification`;
+        }
+      }
+
+      const adminTechnician = await this.convertToAdminTechnician(technician);
+
+      return {
+        success: true,
+        message: `Technician status updated to ${status}${emailMessage}`,
+        data: {
+          technician: adminTechnician,
+        },
+      };
+    } catch (error) {
+      console.error("Update technician status error:", error);
+      return {
+        success: false,
+        message: "Failed to update technician status",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
-
-    const adminTechnician = await this.convertToAdminTechnician(technician);
-
-    return {
-      success: true,
-      message: `Technician status updated to ${status}${emailMessage}`,
-      data: {
-        technician: adminTechnician,
-      },
-    };
-  } catch (error) {
-    console.error("Update technician status error:", error);
-    return {
-      success: false,
-      message: "Failed to update technician status",
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
   }
-}
 
   async getTechnicianStats(): Promise<TechnicianStatsResponse> {
     try {
@@ -644,56 +641,31 @@ export class TechnicianManagementService {
     try {
       const { rejectionReason, emailNotification = true } = rejectData;
 
-      console.log("🔍 START rejectApplication for application ID:", id);
-
       const application = await this.technicianRepository.findApplicationById(
         id
       );
       if (!application) {
-        console.log("❌ Application not found");
         return {
           success: false,
           message: "Application not found",
         };
       }
 
-      console.log("📄 Application found:", {
-        applicationId: application._id,
-        technicianId: application.technicianId,
-        currentStatus: application.status,
-      });
-
       if (application.technicianId) {
-        console.log(
-          "👨‍💼 Looking for technician with technicianId:",
-          application.technicianId.toString()
-        );
-
         //Find by technicianId (from application)
         const technician = await this.technicianRepository.findTechnicianById(
           application.technicianId.toString()
         );
 
         if (technician) {
-          console.log("✅ Technician found by technicianId:", {
-            technicianId: technician._id,
-            currentStatus: technician.status,
-            displayName: technician.displayName,
-          });
-
           const updatedTechnician =
             await this.technicianRepository.updateTechnicianStatus(
               application.technicianId.toString(),
               "rejected"
             );
-
-          console.log("🔄 Technician status update result:", {
-            success: !!updatedTechnician,
-            newStatus: updatedTechnician?.status,
-          });
         } else {
           console.log(
-            "❌ Technician not found by technicianId, trying by userId..."
+            "Technician not found by technicianId, trying by userId..."
           );
 
           // Find by userId as fallback
@@ -702,32 +674,19 @@ export class TechnicianManagementService {
               application.technicianId.toString()
             );
           if (technicianByUser) {
-            console.log("✅ Technician found by userId:", {
-              technicianId: technicianByUser._id,
-              currentStatus: technicianByUser.status,
-              displayName: technicianByUser.displayName,
-            });
-
             const updatedTechnician =
               await this.technicianRepository.updateTechnicianStatus(
                 technicianByUser._id.toString(),
                 "rejected"
               );
-
-            console.log("🔄 Technician status update result:", {
-              success: !!updatedTechnician,
-              newStatus: updatedTechnician?.status,
-            });
           } else {
-            console.log("❌ Technician not found by userId either");
+            console.log("Technician not found by userId either");
           }
         }
       } else {
-        console.log("❌ No technicianId found in application");
+        console.log("No technicianId found in application");
       }
 
-      // Update application status
-      console.log("📝 Updating application status to rejected...");
       const updatedApplication =
         await this.technicianRepository.updateApplicationStatus(
           id,
@@ -738,13 +697,6 @@ export class TechnicianManagementService {
           }
         );
 
-      console.log("✅ Application status update result:", {
-        success: !!updatedApplication,
-        newStatus: updatedApplication?.status,
-      });
-
-      // Update user application status
-      console.log("👤 Updating user application status...");
       await this.technicianRepository.updateUserApplicationStatus(
         application.technicianId as Types.ObjectId,
         "rejected"
@@ -765,8 +717,6 @@ export class TechnicianManagementService {
           : " but failed to send email notification";
       }
 
-      console.log("🎉 Rejection process completed successfully");
-
       return {
         success: true,
         message: `Application rejected successfully${emailMessage}`,
@@ -781,7 +731,7 @@ export class TechnicianManagementService {
         },
       };
     } catch (error) {
-      console.error("❌ Reject application error:", error);
+      console.error("Reject application error:", error);
       return {
         success: false,
         message: "Failed to reject application",

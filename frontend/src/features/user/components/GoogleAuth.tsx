@@ -33,7 +33,6 @@ const GoogleAuth: React.FC<GoogleAuthProps> = () => {
         userType: currentUserType,
       });
 
-      console.log("🔍 Google auth response:", res);
 
       if (!res.success || !res.user || !res.token) {
         throw new Error(res.message || "Google authentication failed");

@@ -596,8 +596,6 @@ export const ApplicationForm: React.FC = () => {
           "address.landmark": formData.address.landmark,
         };
 
-        console.log("🔍 Step 2 validation data:", step2Data);
-
         const identityValidation = validateStepSchema<IdentityData>(
           stepSchemas[2],
           step2Data
@@ -625,8 +623,6 @@ export const ApplicationForm: React.FC = () => {
           availability: formData.availability,
         };
 
-        console.log("🔍 Step 4 data for validation:", step4Data);
-
         const availabilityValidation = validateStepSchema<AvailabilityData>(
           stepSchemas[4],
           step4Data
@@ -634,7 +630,6 @@ export const ApplicationForm: React.FC = () => {
 
         if (!availabilityValidation.success && availabilityValidation.errors) {
           stepErrors = availabilityValidation.errors;
-          console.log("🔍 Step 4 validation errors:", stepErrors);
         }
 
         const timeErrors = validateAvailability(formData.availability);
@@ -713,17 +708,13 @@ export const ApplicationForm: React.FC = () => {
 
   const handleNext = async () => {
     if (isLoading) return;
-    console.log("🔍 Step validation for step:", currentStep);
 
     const stepErrors = validateStepFields(currentStep);
-    console.log("🔍 Validation errors:", stepErrors);
 
     if (Object.keys(stepErrors).length > 0) {
-      console.log("❌ Validation failed, errors:", stepErrors);
       setErrors(stepErrors);
       return;
     } else {
-      console.log("✅ Validation passed, proceeding to next step");
       setErrors({});
     }
     setIsLoading(true);
@@ -747,25 +738,7 @@ export const ApplicationForm: React.FC = () => {
 
     const currentStepFields = stepFields[stepName] || [];
 
-    console.log("📁 Current step fields:", currentStepFields);
-    console.log("📁 Form data files:", {
-      idProof: formData.idProof,
-      addressProof: formData.addressProof,
-      policeVerification: formData.policeVerification,
-      tradeLicense: formData.tradeLicense,
-      certifications: formData.certifications,
-      passportPhoto: formData.passportPhoto,
-    });
-
     if (stepName === "Documents") {
-      console.log("📁 Documents step - Form data files:", {
-        idProof: formData.idProof,
-        addressProof: formData.addressProof,
-        policeVerification: formData.policeVerification,
-        tradeLicense: formData.tradeLicense,
-        certifications: formData.certifications,
-        passportPhoto: formData.passportPhoto,
-      });
       const documentFields = [
         "idProof",
         "addressProof",
@@ -778,14 +751,7 @@ export const ApplicationForm: React.FC = () => {
       documentFields.forEach((field) => {
         const file = (formData as any)[field];
         if (file instanceof File) {
-          console.log(`📤 Appending file for ${field}:`, {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-          });
           stepForm.append(field, file);
-        } else {
-          console.log(`📭 No file for ${field}`);
         }
       });
     } else {
@@ -795,7 +761,6 @@ export const ApplicationForm: React.FC = () => {
 
         if (value !== null && value !== undefined) {
           if (value instanceof File) {
-            console.log(`⏭️ Skipping file field ${field} in non-document step`);
             return;
           }
 
@@ -827,9 +792,7 @@ export const ApplicationForm: React.FC = () => {
     }
 
     try {
-      console.log("📤 Sending request for step:", stepName);
-
-      const response = await api.post(
+      await api.post(
         `${import.meta.env.VITE_BASE_URL}/technician-application/save-step`,
         stepForm,
         {
@@ -840,17 +803,15 @@ export const ApplicationForm: React.FC = () => {
         }
       );
 
-      console.log("✅ Step saved successfully:", response.data);
-
       // Move to next step
       if (currentStep < STEPS.length) {
         setCurrentStep((prev) => prev + 1);
       }
     } catch (err: unknown) {
-      console.error("❌ Error saving step:", err);
+      console.error("Error saving step:", err);
 
       if (axios.isAxiosError(err)) {
-        console.error("❌ Axios error details:", {
+        console.error("Axios error details:", {
           message: err.message,
           response: err.response?.data,
           status: err.response?.status,
@@ -1206,31 +1167,21 @@ export const ApplicationForm: React.FC = () => {
               <div className="border-t pt-6">
                 <OSMLocationPicker
                   onLocationSelect={(location) => {
-                    console.log("📍 Location selected:", location);
                     const locationData = {
                       coordinates: [location.lng, location.lat], // [longitude, latitude] format
                       formattedAddress: location.address || "",
                     };
 
-                    console.log("📍 Processed location data:", locationData);
-
+                    // Update location coordinates - FIXED structure
                     setFormData((prev) => ({
                       ...prev,
                       location: locationData,
                     }));
 
-                    // Auto-fill address fields
+                    // Auto-fill address fields with fallbacks for undefined
                     if (location.addressComponents) {
                       const { street, city, state, pincode, landmark } =
                         location.addressComponents;
-
-                      console.log("🏠 Auto-filling address:", {
-                        street,
-                        city,
-                        state,
-                        pincode,
-                        landmark,
-                      });
 
                       setFormData((prev) => ({
                         ...prev,
@@ -1581,7 +1532,7 @@ export const ApplicationForm: React.FC = () => {
                   <option value="10">10 km</option>
                   <option value="15">15 km</option>
                   <option value="20">20 km</option>
-                  <option value="25">25 km</option>
+                  <option value="25+">25+ km</option>
                 </select>
                 {errors.workRadius && (
                   <p className="text-red-500 text-sm mt-1">
@@ -1614,6 +1565,7 @@ export const ApplicationForm: React.FC = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {Object.entries(formData.availability)
                         .filter(([day]) => {
+                          // Only include the 7 days of the week
                           const validDays = [
                             "monday",
                             "tuesday",
@@ -1787,6 +1739,7 @@ export const ApplicationForm: React.FC = () => {
             nextButtonText={isLoading ? "Uploading Documents..." : undefined}
           >
             <div className="space-y-6">
+              {/* Move these from Step 2 to Step 6 */}
               <div>
                 <ImageUploadWithPreview
                   label="Government ID Proof (Aadhaar, Passport, etc.)"
@@ -1989,6 +1942,7 @@ export const ApplicationForm: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Scroll indicator (optional) */}
                 <div className="bg-gray-50 px-6 py-2 border-t border-gray-200">
                   <p className="text-xs text-gray-500 text-center">
                     ↑ Scroll to read all terms ↑
@@ -2296,6 +2250,14 @@ export const ApplicationForm: React.FC = () => {
                         {formData.agreement ? "Agreed" : "Not agreed"}
                       </span>
                     </div>
+                    {/* <div className="flex items-center">
+                <span className={`w-4 h-4 rounded-full mr-2 ${formData.verificationConsent ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <span>Verification Consent: {formData.verificationConsent ? 'Given' : 'Not given'}</span>
+              </div>
+              <div className="flex items-center">
+                <span className={`w-4 h-4 rounded-full mr-2 ${formData.marketingConsent ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                <span>Marketing Consent: {formData.marketingConsent ? 'Given' : 'Not given'}</span>
+              </div> */}
                   </div>
                 </div>
               </div>

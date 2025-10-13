@@ -59,24 +59,22 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         setError(null);
 
         const response = await technicianAPI.getProfile();
-        console.log("🔍 Full API Response:", response);
 
         if (!response.data.success) {
           throw new Error("Failed to fetch profile: API returned unsuccessful");
         }
 
         const profile = response.data.data.profile;
-        console.log("🔍 Profile data:", profile);
-        
+
         // Check if technician is suspended
-        const suspended = profile.status === "suspended" 
+        const suspended = profile.status === "suspended";
         setIsSuspended(suspended);
-        
+
         // Extract suspension info if available
         if (suspended) {
           setSuspensionInfo({
             reason: profile.suspensionReason || "Violation of terms of service",
-            suspendedAt: profile.suspendedAt || new Date().toISOString()
+            suspendedAt: profile.suspendedAt || new Date().toISOString(),
           });
         }
 
@@ -133,7 +131,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         setLoading(false);
       }
     };
-
     loadTechnicianData();
   }, []);
 
@@ -206,7 +203,9 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           {suspensionInfo.reason && (
             <div className="mt-2">
               <p className="text-red-600 text-xs font-medium">Reason:</p>
-              <p className="text-red-600 text-xs mt-1">{suspensionInfo.reason}</p>
+              <p className="text-red-600 text-xs mt-1">
+                {suspensionInfo.reason}
+              </p>
             </div>
           )}
           {suspensionInfo.suspendedAt && (
@@ -236,7 +235,13 @@ const ApprovedTechnicianDashboard: React.FC = () => {
   );
 
   // Disabled State Overlay for suspended technicians
-  const DisabledOverlay = ({ children, tab }: { children: React.ReactNode; tab: string }) => {
+  const DisabledOverlay = ({
+    children,
+    tab,
+  }: {
+    children: React.ReactNode;
+    tab: string;
+  }) => {
     if (!isSuspended || tab === "profile") return <>{children}</>;
 
     return (
@@ -261,13 +266,36 @@ const ApprovedTechnicianDashboard: React.FC = () => {
   };
 
   // Helper function to get languages as array
-  const getLanguagesArray = (languages: string[] | string): string[] => {
+  const getLanguagesArray = (languages: any): string[] => {
+    if (!languages) return [];
+
     if (Array.isArray(languages)) {
-      return languages;
+      return languages.filter((lang) => lang && String(lang).trim() !== "");
     }
-    if (typeof languages === "string" && languages.trim() !== "") {
-      return languages.split(",").map((lang) => lang.trim());
+
+    if (typeof languages === "string") {
+      if (languages.trim() === "") return [];
+
+      // Try to parse as JSON first
+      try {
+        const parsed = JSON.parse(languages);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((lang) => lang && String(lang).trim() !== "");
+        }
+      } catch (e) {
+        console.error(e);
+        // If not JSON, check if it's already a comma-separated string
+        if (languages.includes(",")) {
+          return languages
+            .split(",")
+            .map((lang) => lang.trim())
+            .filter((lang) => lang !== "");
+        }
+        // If it's a single language string
+        return [languages.trim()];
+      }
     }
+
     return [];
   };
 
@@ -344,7 +372,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         </span>
       );
     }
-    
+
     if (profile.isVerified) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -352,7 +380,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         </span>
       );
     }
-    
+
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
         Pending Verification
@@ -497,13 +525,15 @@ const ApprovedTechnicianDashboard: React.FC = () => {
             <div>
               <dt className="text-sm text-gray-500">Languages</dt>
               <dd className="text-sm font-medium">
-                {getLanguagesArray(
-                  dashboardData?.profile.personalInfo?.languages || []
-                ).length > 0
-                  ? getLanguagesArray(
-                      dashboardData?.profile.personalInfo?.languages || []
-                    ).join(", ")
-                  : "Not specified"}
+                {(() => {
+                  const languagesArray = getLanguagesArray(
+                    dashboardData?.profile.personalInfo?.languages
+                  );
+
+                  return languagesArray.length > 0
+                    ? languagesArray.join(", ")
+                    : "Not specified";
+                })()}
               </dd>
             </div>
           </dl>
@@ -632,7 +662,9 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-1">
-                    <div className="text-xl font-bold">{overview.totalJobs}</div>
+                    <div className="text-xl font-bold">
+                      {overview.totalJobs}
+                    </div>
                   </div>
                 </div>
                 <div className="bg-white rounded-lg shadow-sm p-3">
@@ -747,12 +779,14 @@ const ApprovedTechnicianDashboard: React.FC = () => {
 
       case "profile":
         return renderProfileTab();
-        
+
       default:
         return (
           <DisabledOverlay tab={activeTab}>
             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-              <p className="text-gray-500">This section is under development.</p>
+              <p className="text-gray-500">
+                This section is under development.
+              </p>
             </div>
           </DisabledOverlay>
         );
@@ -840,7 +874,9 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                       ? "text-blue-600 border-b-2 border-blue-600"
                       : "text-gray-500 hover:text-gray-700"
                   } ${
-                    isSuspended && tab.id !== "profile" ? "opacity-50 cursor-not-allowed" : ""
+                    isSuspended && tab.id !== "profile"
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                   }`}
                   disabled={isSuspended && tab.id !== "profile"}
                 >

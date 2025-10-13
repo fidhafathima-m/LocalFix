@@ -54,115 +54,148 @@ export class TechnicianDashboardService {
   }
 
   async getTechnicianProfile(technicianId: string): Promise<any> {
-  try {
-    const technician = await this.technicianRepository.findByUserId(
-      technicianId
-    );
-    const user = await this.userRepository.findById(technicianId);
+    try {
+      const technician = await this.technicianRepository.findByUserId(
+        technicianId
+      );
+      const user = await this.userRepository.findById(technicianId);
 
-    if (!technician || !user) {
-      return {
-        success: false,
-        message: "Technician profile not found",
+      if (!technician || !user) {
+        return {
+          success: false,
+          message: "Technician profile not found",
+        };
+      }
+      const userAddress = await this.userAddressRepository.findByUserId(
+        technician.userId as Types.ObjectId
+      );
+
+      // IMPROVED: Better languages formatting function
+      const formatLanguages = (languages: any): string[] => {
+        if (!languages) {
+          return [];
+        }
+
+        if (Array.isArray(languages)) {
+          const result = languages.filter(
+            (lang) => lang && String(lang).trim() !== ""
+          );
+          return result;
+        }
+
+        if (typeof languages === "string") {
+          if (languages.trim() === "") {
+            return [];
+          }
+
+          // Try to parse as JSON first
+          try {
+            const parsed = JSON.parse(languages);
+
+            if (Array.isArray(parsed)) {
+              const result = parsed.filter(
+                (lang) => lang && String(lang).trim() !== ""
+              );
+              return result;
+            }
+            // If it's a JSON string of a single value
+            if (parsed && typeof parsed === "string") {
+              return [parsed.trim()];
+            }
+          } catch (e) {
+            // If not JSON, split by comma or use as single language
+            if (languages.includes(",")) {
+              const result = languages
+                .split(",")
+                .map((lang: string) => lang.trim())
+                .filter((lang) => lang !== "");
+              return result;
+            }
+            return [languages.trim()];
+          }
+        }
+
+        return [];
       };
-    }
 
-    const userAddress = await this.userAddressRepository.findByUserId(
-      technician.userId as Types.ObjectId
-    );
-
-    const getPersonalInfo = (technician: any, userAddress?: any) => {
-      const hasRealTechnicianData =
-        technician.personalInfo &&
-        (technician.personalInfo.gender !== "Not specified" ||
-          technician.personalInfo.phoneNumber !== "Not provided" ||
-          technician.personalInfo.dateOfBirth !== "Not specified");
-
-      let personalInfo: any;
-
-      if (hasRealTechnicianData) {
-        personalInfo = {
-          fullName:
-            technician.personalInfo?.fullName || technician.displayName,
+      // SIMPLIFIED: Remove the complex hasRealTechnicianData logic
+      const getPersonalInfo = (technician: any, userAddress?: any) => {
+        // Always use technician.personalInfo if it exists
+        const personalInfo: any = {
+          fullName: technician.personalInfo?.fullName || technician.displayName,
           gender: technician.personalInfo?.gender || "Not specified",
           phoneNumber:
             technician.personalInfo?.phoneNumber ||
             technician.phone ||
             "Not provided",
-          dateOfBirth:
-            technician.personalInfo?.dateOfBirth || "Not specified",
-          languages: technician.personalInfo?.languages || [],
+          dateOfBirth: technician.personalInfo?.dateOfBirth || "Not specified",
+          languages: formatLanguages(technician.personalInfo?.languages),
         };
-      } else {
-        personalInfo = {
-          fullName: technician.displayName,
-          gender: "Not specified",
-          phoneNumber: technician.phone || "Not provided",
-          dateOfBirth: "Not specified",
-          languages: [],
-        };
-      }
 
-      if (userAddress) {
-        personalInfo.address = {
-          street: userAddress.street || "Not specified",
-          city: userAddress.city || "Not specified",
-          state: userAddress.state || "Not specified",
-          pincode: userAddress.pincode || "Not specified",
-        };
-      } else if (technician.personalInfo?.address) {
-        personalInfo.address = {
-          street: technician.personalInfo.address.street || "Not specified",
-          city: technician.personalInfo.address.city || "Not specified",
-          state: technician.personalInfo.address.state || "Not specified",
-          pincode: technician.personalInfo.address.pincode || "Not specified",
-        };
-      } else {
-        personalInfo.address = {
-          street: "Not specified",
-          city: "Not specified",
-          state: "Not specified",
-          pincode: "Not specified",
-        };
-      }
+        // Handle address
+        if (userAddress) {
+          personalInfo.address = {
+            street: userAddress.street || "Not specified",
+            city: userAddress.city || "Not specified",
+            state: userAddress.state || "Not specified",
+            pincode: userAddress.pincode || "Not specified",
+          };
+        } else if (technician.personalInfo?.address) {
+          personalInfo.address = {
+            street: technician.personalInfo.address.street || "Not specified",
+            city: technician.personalInfo.address.city || "Not specified",
+            state: technician.personalInfo.address.state || "Not specified",
+            pincode: technician.personalInfo.address.pincode || "Not specified",
+          };
+        } else {
+          personalInfo.address = {
+            street: "Not specified",
+            city: "Not specified",
+            state: "Not specified",
+            pincode: "Not specified",
+          };
+        }
 
-      return personalInfo;
-    };
+        return personalInfo;
+      };
 
-    const personalInfo = getPersonalInfo(technician, userAddress);
-    
-    // Include suspension information in the profile
-    const profile = {
-      displayName: technician.displayName,
-      email: user.email,
-      phone: user.phone || technician.phone,
-      services: technician.services || [],
-      experienceYears: technician.experienceYears || 0,
-      workAreas: technician.workAreas || [],
-      averageRating: technician.averageRating || 0,
-      ratingCount: technician.ratingCount || 0,
-      profilePictureUrl: technician.profilePictureUrl || "",
-      isVerified: technician.status === "approved",
-      bio: technician.bio || "",
-      status: technician.status,
-      // Add suspension data
-      suspensionReason: technician.suspensionReason,
-      suspendedAt: technician.suspendedAt,
-      personalInfo,
-    };
+      const personalInfo = getPersonalInfo(technician, userAddress);
 
-    return {
-      success: true,
-      message: "Technician profile retrieved successfully",
-      data: { profile },
-    };
-  } catch (error) {
-    console.error("Get technician profile error:", error);
-    return {
-      success: false,
-      message: "Failed to fetch technician profile",
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+      // IMPROVED: Include more fields in the profile
+      const profile = {
+        _id: technician._id?.toString(), // Add this
+        userId: technician.userId?.toString(), // Add this
+        displayName: technician.displayName,
+        email: user.email,
+        phone: user.phone || technician.phone,
+        services: technician.services || [],
+        experienceYears: technician.experienceYears || 0,
+        workAreas: technician.workAreas || [],
+        averageRating: technician.averageRating || 0,
+        ratingCount: technician.ratingCount || 0,
+        profilePictureUrl: technician.profilePictureUrl || "",
+        isVerified: technician.status === "approved",
+        bio: technician.bio || "",
+        status: technician.status,
+        suspensionReason: technician.suspensionReason,
+        suspendedAt: technician.suspendedAt,
+        personalInfo,
+        createdAt: technician.createdAt,
+        updatedAt: technician.updatedAt,
+      };
+
+      return {
+        success: true,
+        message: "Technician profile retrieved successfully",
+        data: { profile },
+      };
+    } catch (error) {
+      console.error("Get technician profile error:", error);
+      return {
+        success: false,
+        message: "Failed to fetch technician profile",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   }
-}
 }
