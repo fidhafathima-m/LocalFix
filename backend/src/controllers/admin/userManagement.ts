@@ -15,7 +15,10 @@ export class UserManagementController {
 
   updateUserStatus = async (req: Request, res: Response): Promise<void> => {
     const { userId } = req.params;
-    const result = await this.userManagementService.updateUserStatus(userId, req.body);
+    const result = await this.userManagementService.updateUserStatus(
+      userId,
+      req.body
+    );
     res.status(result.success ? 200 : 400).json(result);
   };
 

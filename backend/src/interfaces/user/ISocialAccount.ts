@@ -1,10 +1,9 @@
-// src/interfaces/user/ISocialAccount.ts
-import { Document, Types } from 'mongoose';
+import { Document, Types } from "mongoose";
 
 export interface ISocialAccount extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
-  provider: 'google' | 'facebook';
+  provider: "google" | "facebook";
   providerId: string;
   email: string;
   profilePictureUrl?: string;
@@ -14,7 +13,7 @@ export interface ISocialAccount extends Document {
 
 export interface ISocialAccountCreate {
   userId: Types.ObjectId;
-  provider: 'google' | 'facebook';
+  provider: "google" | "facebook";
   providerId: string;
   email: string;
   profilePictureUrl?: string;

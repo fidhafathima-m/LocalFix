@@ -1,5 +1,5 @@
 export interface IOtpVerification extends Document {
-  _id?: string
+  _id?: string;
   phone?: string;
   email?: string;
   otpHash: string;

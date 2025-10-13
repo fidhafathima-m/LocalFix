@@ -1,5 +1,5 @@
-import { IUser, IUserCreate, IUserUpdate } from '../../interfaces/user/IUser';
-import User from '../../models/UserSchema';
+import { IUser, IUserCreate, IUserUpdate } from "../../interfaces/user/IUser";
+import User from "../../models/UserSchema";
 
 export class UserRepository {
   async findByEmail(email: string): Promise<IUser | null> {
@@ -14,12 +14,15 @@ export class UserRepository {
     return await User.findById(id);
   }
 
-  async findByIdentifier(identifier: string, role?: string): Promise<IUser | null> {
+  async findByIdentifier(
+    identifier: string,
+    role?: string
+  ): Promise<IUser | null> {
     // Handle case where identifier might be an object instead of string
     let actualIdentifier = identifier;
-    
+
     // If identifier is an object, extract the email/phone from it
-    if (typeof identifier === 'object' && identifier !== null) {
+    if (typeof identifier === "object" && identifier !== null) {
       const identifierObj = identifier as any;
       if (identifierObj.email) {
         actualIdentifier = identifierObj.email;
@@ -30,16 +33,25 @@ export class UserRepository {
         return null;
       }
     }
-    
-    const query: any = /^\d{10}$/.test(actualIdentifier) 
-      ? { phone: actualIdentifier } 
-      : { email: actualIdentifier };
-    
-    if (role) {
-      query.role = role;
+
+    if (/^\d{10}$/.test(actualIdentifier)) {
+      const query: any = { phone: actualIdentifier };
+      if (role) {
+        query.role = role;
+      }
+      return await User.findOne(query);
     }
-    
-    return await User.findOne(query);
+    else {
+      const query: any = {
+        email: {
+          $regex: new RegExp(`^${actualIdentifier}$`, "i"),
+        },
+      };
+      if (role) {
+        query.role = role;
+      }
+      return await User.findOne(query);
+    }
   }
 
   async create(userData: IUserCreate): Promise<IUser> {
@@ -47,14 +59,21 @@ export class UserRepository {
   }
 
   async update(id: string, updateData: IUserUpdate): Promise<IUser | null> {
-    return await User.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+    return await User.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
   }
 
-  async updatePassword(identifier: string, passwordHash: string, userType?: string): Promise<IUser | null> {
-    // Handle object case for identifier here too
+  async updatePassword(
+    identifier: string,
+    passwordHash: string,
+    userType?: string
+  ): Promise<IUser | null> {
     let actualIdentifier = identifier;
-    
-    if (typeof identifier === 'object' && identifier !== null) {
+
+    if (typeof identifier === "object" && identifier !== null) {
       const identifierObj = identifier as any;
       if (identifierObj.email) {
         actualIdentifier = identifierObj.email;
@@ -64,23 +83,26 @@ export class UserRepository {
         return null;
       }
     }
-    
-    const query: any = /^\d{10}$/.test(actualIdentifier) 
-      ? { phone: actualIdentifier } 
+
+    const query: any = /^\d{10}$/.test(actualIdentifier)
+      ? { phone: actualIdentifier }
       : { email: actualIdentifier };
-    
-    if (userType === 'serviceProvider') {
-      query.role = 'serviceProvider';
+
+    if (userType === "serviceProvider") {
+      query.role = "serviceProvider";
     }
-    
+
     return await User.findOneAndUpdate(
-      query, 
-      { $set: { passwordHash } }, 
+      query,
+      { $set: { passwordHash } },
       { new: true }
     );
   }
 
-  async updateApplicationStatus(userId: string, applicationStatus: string): Promise<IUser | null> {
+  async updateApplicationStatus(
+    userId: string,
+    applicationStatus: string
+  ): Promise<IUser | null> {
     return await User.findByIdAndUpdate(
       userId,
       { $set: { applicationStatus } },

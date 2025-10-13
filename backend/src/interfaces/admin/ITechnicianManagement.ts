@@ -1,8 +1,5 @@
-// src/interfaces/admin/ITechnicianManagement.ts
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
-// ADMIN VIEW - For admin panel display (combines data from multiple sources)
-// In your ITechnicianManagement.ts file
 export interface IAdminTechnician {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
@@ -13,7 +10,7 @@ export interface IAdminTechnician {
   experienceYears: number;
   workAreas: string[];
   serviceRadiusKm: number;
-  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  status: "pending" | "approved" | "rejected" | "suspended";
   averageRating: number;
   ratingCount: number;
   totalJobs?: number;
@@ -42,16 +39,17 @@ export interface IAdminTechnician {
       pincode: string;
     };
   };
-  documents?: { // ✅ ADD THIS
+  documents?: {
     aadhaarCard?: { url: string; verified: boolean };
     panCard?: { url: string; verified: boolean };
     drivingLicense?: { url: string; verified: boolean };
     [key: string]: any;
   };
   availability?: any;
+  suspensionReason?: string;
+  suspendedAt?: Date;
 }
 
-// DATABASE SCHEMA - For the actual Technician model in database
 export interface ITechnician {
   _id: Types.ObjectId;
   phone?: string;
@@ -77,12 +75,20 @@ export interface ITechnician {
   workAreas: string[];
   serviceRadiusKm: number;
   currentLocation?: {
-    type: 'Point';
+    type: "Point";
     coordinates: [number, number];
   };
   averageRating: number;
   ratingCount: number;
-  status: 'not-applied' | 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+  status:
+    | "not-applied"
+    | "draft"
+    | "submitted"
+    | "under_review"
+    | "approved"
+    | "rejected";
+  suspensionReason?: string;
+  suspendedAt?: Date;
   rejectionReason?: string;
   resubmittedCount: number;
   profilePictureUrl?: string;
@@ -94,7 +100,7 @@ export interface ITechnicianApplication {
   _id: Types.ObjectId;
   technicianId?: Types.ObjectId;
   email: string;
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+  status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
   stepsCompleted: string[];
   personal: {
     fullName?: string;
@@ -125,7 +131,7 @@ export interface ITechnicianApplication {
   submittedAt?: Date;
   reviewNotes?: string;
   rejectionReason?: string;
-  rejectedAt?: string
+  rejectedAt?: string;
   resubmittedCount: number;
   lastSubmittedAt?: Date;
   createdAt: Date;
@@ -133,12 +139,11 @@ export interface ITechnicianApplication {
   user?: any;
 }
 
-// Update response interfaces to use IAdminTechnician for admin views
 export interface TechnicianListResponse {
   success: boolean;
   message: string;
   data?: {
-    technicians: IAdminTechnician[]; // Changed from ITechnician to IAdminTechnician
+    technicians: IAdminTechnician[];
     pagination: {
       page: number;
       limit: number;
@@ -153,7 +158,7 @@ export interface SingleTechnicianResponse {
   success: boolean;
   message: string;
   data?: {
-    technician: IAdminTechnician; // Single technician for get by ID
+    technician: IAdminTechnician;
   };
   error?: string;
 }
@@ -200,9 +205,9 @@ export interface ApplicationStatsResponse {
 }
 
 export interface UpdateStatusRequest {
-  status: 'approved' | 'suspended' | 'rejected';
-  emailNotification?: boolean
-  reason?: string
+  status: "approved" | "suspended" | "rejected";
+  emailNotification?: boolean;
+  reason?: string;
 }
 
 export interface ApproveApplicationRequest {
@@ -211,7 +216,7 @@ export interface ApproveApplicationRequest {
 
 export interface RejectApplicationRequest {
   rejectionReason: string;
-  emailNotification?: boolean
+  emailNotification?: boolean;
 }
 
 export interface TechnicianFilters {

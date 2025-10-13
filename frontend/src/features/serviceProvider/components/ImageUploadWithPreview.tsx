@@ -1,4 +1,3 @@
-// components/ImageUploadWithPreview.tsx
 import React, { useCallback, useState, useEffect } from "react";
 import { FileUpload } from "./FileUpload";
 
@@ -17,12 +16,11 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
   file,
   required = false,
   onFileChange,
-  accept = 'image/*'
+  accept = "image/*",
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [currentFile, setCurrentFile] = useState<File | null>(file);
 
-  // Update local state when prop changes
   useEffect(() => {
     setCurrentFile(file);
   }, [file]);
@@ -32,8 +30,7 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
     if (currentFile instanceof File) {
       const url = URL.createObjectURL(currentFile);
       setPreviewUrl(url);
-      
-      // Clean up the URL when component unmounts or file changes
+
       return () => {
         URL.revokeObjectURL(url);
       };
@@ -41,7 +38,6 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
       setPreviewUrl(null);
     }
   }, [currentFile]);
-  
 
   const handleFileChange = useCallback(
     (selectedFile: File | null) => {
@@ -103,7 +99,7 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
           onFileChange={handleFileChange}
           required={required}
           accept={accept}
-          fieldName={field} // Pass field name to FileUpload
+          fieldName={field}
         />
       )}
     </div>

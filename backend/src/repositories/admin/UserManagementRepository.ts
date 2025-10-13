@@ -1,6 +1,9 @@
-import User from '../../models/UserSchema';
-import { IUser, IUserWithAddress } from '../../interfaces/admin/IUserManagements';
-import { Types } from 'mongoose';
+import User from "../../models/UserSchema";
+import {
+  IUser,
+  IUserWithAddress,
+} from "../../interfaces/admin/IUserManagements";
+import { Types } from "mongoose";
 
 export class UserManagementRepository {
   async findAllUsers(): Promise<IUserWithAddress[]> {
@@ -33,23 +36,29 @@ export class UserManagementRepository {
   }
 
   async findUserById(userId: string): Promise<IUser | null> {
-    return await User.findById(userId).select('-passwordHash');
+    return await User.findById(userId).select("-passwordHash");
   }
 
-  async updateUserStatus(userId: string, status: 'Active' | 'Inactive' | 'Blocked'): Promise<IUser | null> {
+  async updateUserStatus(
+    userId: string,
+    status: "Active" | "Inactive" | "Blocked"
+  ): Promise<IUser | null> {
     return await User.findByIdAndUpdate(
       userId,
       { $set: { status } },
       { new: true }
-    ).select('-passwordHash');
+    ).select("-passwordHash");
   }
 
-  async updateUser(userId: string, updateData: Partial<IUser>): Promise<IUser | null> {
+  async updateUser(
+    userId: string,
+    updateData: Partial<IUser>
+  ): Promise<IUser | null> {
     return await User.findByIdAndUpdate(
       userId,
       { $set: updateData },
       { new: true }
-    ).select('-passwordHash');
+    ).select("-passwordHash");
   }
 
   async softDeleteUser(userId: string): Promise<IUser | null> {
@@ -57,7 +66,7 @@ export class UserManagementRepository {
       userId,
       { $set: { isDeleted: true } },
       { new: true }
-    ).select('-passwordHash');
+    ).select("-passwordHash");
   }
 
   async getUserStats(): Promise<{
@@ -66,16 +75,31 @@ export class UserManagementRepository {
     inactiveUsers: number;
     blockedUsers: number;
   }> {
-    const totalUsers = await User.countDocuments({ role: "user", isDeleted: { $ne: true } });
-    const activeUsers = await User.countDocuments({ role: "user", status: "Active", isDeleted: { $ne: true } });
-    const inactiveUsers = await User.countDocuments({ role: "user", status: "Inactive", isDeleted: { $ne: true } });
-    const blockedUsers = await User.countDocuments({ role: "user", status: "Blocked", isDeleted: { $ne: true } });
+    const totalUsers = await User.countDocuments({
+      role: "user",
+      isDeleted: { $ne: true },
+    });
+    const activeUsers = await User.countDocuments({
+      role: "user",
+      status: "Active",
+      isDeleted: { $ne: true },
+    });
+    const inactiveUsers = await User.countDocuments({
+      role: "user",
+      status: "Inactive",
+      isDeleted: { $ne: true },
+    });
+    const blockedUsers = await User.countDocuments({
+      role: "user",
+      status: "Blocked",
+      isDeleted: { $ne: true },
+    });
 
     return {
       totalUsers,
       activeUsers,
       inactiveUsers,
-      blockedUsers
+      blockedUsers,
     };
   }
 }

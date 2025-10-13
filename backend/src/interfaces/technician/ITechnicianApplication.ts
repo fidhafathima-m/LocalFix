@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
 export interface StartApplicationRequest {
   email: string;
@@ -27,7 +27,7 @@ export interface ITechnicianApplicationData {
   _id: Types.ObjectId;
   technicianId?: Types.ObjectId;
   email: string;
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+  status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
   stepsCompleted: string[];
   personal: Record<string, any>;
   identity: Record<string, any>;
@@ -38,7 +38,7 @@ export interface ITechnicianApplicationData {
   agreement: boolean;
   submittedAt?: Date;
   reviewNotes?: string;
-  rejectedAt?: Date
+  rejectedAt?: Date;
   rejectionReason?: string;
   resubmittedCount: number;
   lastSubmittedAt?: Date;

@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 import {
   DashboardOutlined,
   SellOutlined,
@@ -9,24 +9,30 @@ import {
   CreditCardOutlined,
   BarChartOutlined,
   StarBorderOutlined,
-  LogoutOutlined, 
-} from '@mui/icons-material';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAppDispatch } from '../../../hooks/redux';
-import { logout } from '../../../store/slices/authSlice';
-import { clearAdminData } from '../../../store/slices/adminSlice';
+  LogoutOutlined,
+} from "@mui/icons-material";
+import { useNavigate, Link } from "react-router-dom";
+import { useAppDispatch } from "../../../hooks/redux";
+import { logout } from "../../../store/slices/authSlice";
+import { clearAdminData } from "../../../store/slices/adminSlice";
 
 interface SidebarItemProps {
-  icon: React.ReactNode
-  label: string
-  active?: boolean
-  to?: string
-  onClick?: () => void
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  to?: string;
+  onClick?: () => void;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, to, onClick }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({
+  icon,
+  label,
+  active,
+  to,
+  onClick,
+}) => {
   const baseClasses = `flex items-center px-4 py-3 rounded-md transition-colors cursor-pointer ${
-    active ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
+    active ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-gray-100"
   }`;
 
   if (to) {
@@ -44,22 +50,21 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, to, onCl
       <span className="ml-3">{label}</span>
     </div>
   );
-}
-
+};
 
 interface AdminSidebarProps {
-  activePage: string
+  activePage: string;
 }
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
-  const dispatch = useAppDispatch()
-  const navigate = useNavigate()
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    dispatch(logout())
-    dispatch(clearAdminData()); // Clear admin data on logout
-    navigate('/admin/login');
-};
+    dispatch(logout());
+    dispatch(clearAdminData());
+    navigate("/admin/login");
+  };
 
   return (
     <div className="w-[240px] bg-white shadow-md fixed left-0 top-0 bottom-0 z-20 overflow-y-auto flex flex-col justify-between">
@@ -74,60 +79,60 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
         <nav className="p-3">
           <div className="space-y-1">
             <SidebarItem
-              to='/admin/dashboard'
+              to="/admin/dashboard"
               icon={<DashboardOutlined className="h-5 w-5" />}
               label="Dashboard"
-              active={activePage === 'Dashboard'}
+              active={activePage === "Dashboard"}
             />
-              <SidebarItem
-                to='/admin/user-management'
-                icon={<PeopleAltOutlined className="h-5 w-5" />}
-                label="Users"
-                active={activePage === 'Users'}
-                onClick={() => navigate("/admin/user-management")}
-              />
-            
             <SidebarItem
-              to='/admin/technician-management'
+              to="/admin/user-management"
+              icon={<PeopleAltOutlined className="h-5 w-5" />}
+              label="Users"
+              active={activePage === "Users"}
+              onClick={() => navigate("/admin/user-management")}
+            />
+
+            <SidebarItem
+              to="/admin/technician-management"
               icon={<ConstructionOutlined className="h-5 w-5" />}
               label="Technicians"
-              active={activePage === 'Technicians'}
+              active={activePage === "Technicians"}
             />
             <SidebarItem
-              to='/admin/category-management'
+              to="/admin/category-management"
               icon={<SellOutlined className="h-5 w-5" />}
               label="Category"
-              active={activePage === 'Category'}
+              active={activePage === "Category"}
             />
             <SidebarItem
-              to='/admin/subscription-management'
+              to="/admin/subscription-management"
               icon={<CreditCardOutlined className="h-5 w-5" />}
               label="Subscription Plans"
-              active={activePage === 'Subscription Plans'}
+              active={activePage === "Subscription Plans"}
             />
             <SidebarItem
-              to='/admin/bookings-management'
+              to="/admin/bookings-management"
               icon={<EventAvailableOutlined className="h-5 w-5" />}
               label="Bookings"
-              active={activePage === 'Bookings'}
+              active={activePage === "Bookings"}
             />
             <SidebarItem
-              to='/admin/payments-management'
+              to="/admin/payments-management"
               icon={<AccountBalanceWalletOutlined className="h-5 w-5" />}
               label="Payments"
-              active={activePage === 'Payments'}
+              active={activePage === "Payments"}
             />
             <SidebarItem
-              to='/admin/reviews-management'
+              to="/admin/reviews-management"
               icon={<StarBorderOutlined className="h-5 w-5" />}
               label="Reviews"
-              active={activePage === 'Reviews'}
+              active={activePage === "Reviews"}
             />
             <SidebarItem
-              to='/admin/reports-management'
+              to="/admin/reports-management"
               icon={<BarChartOutlined className="h-5 w-5" />}
               label="Reports"
-              active={activePage === 'Reports'}
+              active={activePage === "Reports"}
             />
           </div>
         </nav>
@@ -135,12 +140,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
 
       <div className="p-3 border-t border-gray-200">
         <SidebarItem
-          to=''
+          to=""
           icon={<LogoutOutlined className="h-5 w-5 text-red-500" />}
           label="Logout"
           onClick={handleLogout}
         />
       </div>
     </div>
-  )
-}
+  );
+};

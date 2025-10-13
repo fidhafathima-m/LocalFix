@@ -1,14 +1,14 @@
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
 export interface IUser {
   _id: Types.ObjectId;
   fullName: string;
   email?: string;
   phone?: string;
-  role: 'user' | 'serviceProvider' | 'admin';
-  status: 'Active' | 'Inactive' | 'Blocked';
+  role: "user" | "serviceProvider" | "admin";
+  status: "Active" | "Inactive" | "Blocked";
   isVerified: boolean;
-  applicationStatus: 'not-applied' | 'pending' | 'approved' | 'rejected';
+  applicationStatus: "not-applied" | "pending" | "approved" | "rejected";
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -22,14 +22,14 @@ export interface IUserWithAddress extends IUser {
 }
 
 export interface UpdateUserStatusRequest {
-  status: 'Active' | 'Inactive' | 'Blocked';
+  status: "Active" | "Inactive" | "Blocked";
 }
 
 export interface EditUserRequest {
   fullName?: string;
   email?: string;
   phone?: string;
-  status?: 'Active' | 'Inactive' | 'Blocked';
+  status?: "Active" | "Inactive" | "Blocked";
 }
 
 export interface UserManagementResponse {

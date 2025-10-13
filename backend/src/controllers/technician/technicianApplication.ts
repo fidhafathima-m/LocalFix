@@ -25,70 +25,98 @@ export class TechnicianApplicationController {
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  submitApplication = async (req: AuthRequest, res: Response): Promise<void> => {
+  submitApplication = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { applicationId } = req.body;
     const userId = req.user?.id;
-    
+
     if (!userId) {
-      res.status(401).json({ success: false, message: 'Authentication required' });
+      res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
       return;
     }
 
-    const result = await this.applicationService.submitApplication(applicationId, userId);
+    const result = await this.applicationService.submitApplication(
+      applicationId,
+      userId
+    );
     res.status(result.success ? 200 : 400).json(result);
   };
 
   getApplicationStatus = async (req: Request, res: Response): Promise<void> => {
     const { applicationId } = req.params;
-    const result = await this.applicationService.getApplicationStatus(applicationId);
+    const result = await this.applicationService.getApplicationStatus(
+      applicationId
+    );
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  getUserApplications = async (req: AuthRequest, res: Response): Promise<void> => {
+  getUserApplications = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const userId = req.user?.id;
-    
+
     if (!userId) {
-      res.status(401).json({ success: false, message: 'Authentication required' });
+      res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
       return;
     }
 
     const result = await this.applicationService.getUserApplications(userId);
     res.status(result.success ? 200 : 400).json(result);
   };
-  // In TechnicianApplicationController - resubmitApplication method
-resubmitApplication = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { applicationId } = req.params; // Make sure it's from params, not body
-  const userId = req.user?.id;
-  
-  console.log("🔍 Controller - Resubmit params:", req.params);
-  console.log("🔍 Controller - Application ID:", applicationId);
-  console.log("🔍 Controller - User ID:", userId);
-  
-  if (!userId) {
-    res.status(401).json({ success: false, message: 'Authentication required' });
-    return;
-  }
+  resubmitApplication = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
+    const { applicationId } = req.params;
+    const userId = req.user?.id;
 
-  const result = await this.applicationService.resubmitApplication(applicationId, userId);
-  res.status(result.success ? 200 : 400).json(result);
-};
+    console.log("🔍 Controller - Resubmit params:", req.params);
+    console.log("🔍 Controller - Application ID:", applicationId);
+    console.log("🔍 Controller - User ID:", userId);
 
-// In TechnicianApplicationController - add this method
-startNewAfterRejection = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { email } = req.body;
-  const userId = req.user?.id;
-  
-  if (!userId || !email) {
-    res.status(400).json({ 
-      success: false, 
-      message: 'User ID and email are required' 
-    });
-    return;
-  }
+    if (!userId) {
+      res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
+      return;
+    }
 
-  const result = await this.applicationService.startNewApplicationAfterRejection(userId, email);
-  res.status(result.success ? 200 : 400).json(result);
-};
+    const result = await this.applicationService.resubmitApplication(
+      applicationId,
+      userId
+    );
+    res.status(result.success ? 200 : 400).json(result);
+  };
+
+  startNewAfterRejection = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
+    const { email } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId || !email) {
+      res.status(400).json({
+        success: false,
+        message: "User ID and email are required",
+      });
+      return;
+    }
+
+    const result =
+      await this.applicationService.startNewApplicationAfterRejection(
+        userId,
+        email
+      );
+    res.status(result.success ? 200 : 400).json(result);
+  };
 }
 
 export default new TechnicianApplicationController();

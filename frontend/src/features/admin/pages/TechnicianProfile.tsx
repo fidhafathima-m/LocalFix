@@ -1,53 +1,55 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react'
-import { useParams, useLocation } from 'react-router-dom'
-import { AdminSidebar } from '../components/AdminSidebar'
-import { TechnicianProfileHeader } from '../components/technicianManagement/TechnicianProfileHeader'
-import { TechnicianProfileTabs } from '../components/technicianManagement/TechnicianProfileTabs'
-import { AdminActions } from '../components/technicianManagement/AdminActions'
-import { useAppSelector } from '../../../hooks/redux'
-import { adminAPI } from '../../../services/adminApi'
-import PersonalInfoTab from '../components/technicianManagement/tabs/PersonalInfoTab'
-import ServicesSkillsTab from '../components/technicianManagement/tabs/ServicesSkillsTab'
-import VerificationDocumentsTab from '../components/technicianManagement/tabs/VerificationDocumentsTab'
-import AvailabilityTab from '../components/technicianManagement/tabs/AvailabilityTab'
-import EarningsJobsTab from '../components/technicianManagement/tabs/EarningJobsTab'
-import ReviewsRatingsTab from '../components/technicianManagement/tabs/ReviewsRatingsTab'
-import ActiveBookingsTab from '../components/technicianManagement/tabs/ActiveBookingsTab'
-import type { TechnicianDetails } from '../../../validation/types/technicianTypes'
+import React, { useState, useEffect } from "react";
+import { useParams, useLocation } from "react-router-dom";
+import { AdminSidebar } from "../components/AdminSidebar";
+import { TechnicianProfileHeader } from "../components/technicianManagement/TechnicianProfileHeader";
+import { TechnicianProfileTabs } from "../components/technicianManagement/TechnicianProfileTabs";
+import { AdminActions } from "../components/technicianManagement/AdminActions";
+import { useAppSelector } from "../../../hooks/redux";
+import { adminAPI } from "../../../services/adminApi";
+import PersonalInfoTab from "../components/technicianManagement/tabs/PersonalInfoTab";
+import ServicesSkillsTab from "../components/technicianManagement/tabs/ServicesSkillsTab";
+import VerificationDocumentsTab from "../components/technicianManagement/tabs/VerificationDocumentsTab";
+import AvailabilityTab from "../components/technicianManagement/tabs/AvailabilityTab";
+import EarningsJobsTab from "../components/technicianManagement/tabs/EarningJobsTab";
+import ReviewsRatingsTab from "../components/technicianManagement/tabs/ReviewsRatingsTab";
+import ActiveBookingsTab from "../components/technicianManagement/tabs/ActiveBookingsTab";
+import type { TechnicianDetails } from "../../../validation/types/technicianTypes";
 
 export const TechnicianProfile: React.FC = () => {
-  const { technicianId } = useParams<{ technicianId: string }>()
-  const location = useLocation()
-  const [technician, setTechnician] = useState<TechnicianDetails | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const {technicians} = useAppSelector((state) => state.admin)
+  const { technicianId } = useParams<{ technicianId: string }>();
+  const location = useLocation();
+  const [technician, setTechnician] = useState<TechnicianDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { technicians } = useAppSelector((state) => state.admin);
 
-  // Determine active tab from URL
   const getActiveTab = () => {
-    const pathSegments = location.pathname.split('/')
-    return pathSegments[pathSegments.length - 1] || 'personal-info'
-  }
+    const pathSegments = location.pathname.split("/");
+    return pathSegments[pathSegments.length - 1] || "personal-info";
+  };
 
-  const activeTab = getActiveTab()
+  const activeTab = getActiveTab();
 
-  // Determine admin actions type and availability based on technician status
- const getAdminActionsType = () => {
-  if (!technician) return 'approved'
-  
-  // Return the actual status for proper handling
-  return technician.status as 'approved' | 'pending' | 'suspended' | 'rejected'
-}
+  const getAdminActionsType = () => {
+    if (!technician) return "approved";
+
+    return technician.status as
+      | "approved"
+      | "pending"
+      | "suspended"
+      | "rejected";
+  };
 
   // Check if technician is currently suspended
-  const isSuspended = technician?.status === 'suspended'
+  const isSuspended = technician?.status === "suspended";
 
-   useEffect(() => {
+  useEffect(() => {
     if (technicianId && technicians.length > 0) {
-      const existingTechnician = technicians.find(t => t._id === technicianId);
+      const existingTechnician = technicians.find(
+        (t) => t._id === technicianId
+      );
       if (existingTechnician) {
-        // Convert to TechnicianDetails format if needed
         setTechnician(existingTechnician as any);
         setLoading(false);
         return;
@@ -57,34 +59,40 @@ export const TechnicianProfile: React.FC = () => {
 
   const fetchTechnicianDetails = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      
+      setLoading(true);
+      setError(null);
+
       if (!technicianId) {
-        throw new Error('Technician ID is required')
+        throw new Error("Technician ID is required");
       }
-      
-      const response = await adminAPI.getTechnicianById(technicianId)
-      
+
+      const response = await adminAPI.getTechnicianById(technicianId);
+
       if (response.data.success && response.data.data) {
         setTechnician(response.data.data.technician);
       } else {
-        throw new Error(response.data.message || 'Failed to load technician details');
+        throw new Error(
+          response.data.message || "Failed to load technician details"
+        );
       }
     } catch (error) {
-      console.error('❌ Error fetching technician details:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load technician details')
-      setTechnician(null)
+      console.error("❌ Error fetching technician details:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load technician details"
+      );
+      setTechnician(null);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-   if (technicianId && !technician) {
-      fetchTechnicianDetails()
+    if (technicianId && !technician) {
+      fetchTechnicianDetails();
     }
-  }, [technicianId, technician])
+  }, [technicianId, technician]);
 
   if (error && !loading) {
     return (
@@ -93,7 +101,7 @@ export const TechnicianProfile: React.FC = () => {
         <div className="flex-1 overflow-y-auto ml-[240px] flex items-center justify-center">
           <div className="text-center">
             <p className="text-red-600 mb-4">{error}</p>
-            <button 
+            <button
               onClick={fetchTechnicianDetails}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
@@ -102,7 +110,7 @@ export const TechnicianProfile: React.FC = () => {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (loading) {
@@ -116,7 +124,7 @@ export const TechnicianProfile: React.FC = () => {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!technician) {
@@ -129,30 +137,30 @@ export const TechnicianProfile: React.FC = () => {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar activePage="Technicians" />
-      
+
       <div className="flex-1 overflow-y-auto ml-[240px]">
         <TechnicianProfileHeader
           name={technician.displayName}
           technicianId={technician._id.slice(-8).toUpperCase()}
           joinDate={new Date(technician.createdAt).toLocaleDateString()}
-          isActive={technician.status === 'approved'}
-          isApproved={technician.status === 'approved'}
-          isRejected={technician.status === 'rejected'}
-          isSuspended={technician.status === 'suspended'}
+          isActive={technician.status === "approved"}
+          isApproved={technician.status === "approved"}
+          isRejected={technician.status === "rejected"}
+          isSuspended={technician.status === "suspended"}
           rating={technician.averageRating}
           jobsCompleted={technician.completedJobs || 0}
           totalEarnings={technician.totalEarnings || 0}
           activeBookings={technician.ongoingJobs || 0}
           profilePictureUrl={technician.profilePictureUrl}
         />
-        
-        <TechnicianProfileTabs 
+
+        <TechnicianProfileTabs
           technicianId={technicianId!}
           activeTab={activeTab}
         />
@@ -179,9 +187,12 @@ export const TechnicianProfile: React.FC = () => {
                   <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
                 <div>
-                  <h3 className="text-red-800 font-medium">Technician Suspended</h3>
+                  <h3 className="text-red-800 font-medium">
+                    Technician Suspended
+                  </h3>
                   <p className="text-red-600 text-sm">
-                    This technician is currently suspended and cannot accept new bookings.
+                    This technician is currently suspended and cannot accept new
+                    bookings.
                   </p>
                 </div>
               </div>
@@ -189,42 +200,57 @@ export const TechnicianProfile: React.FC = () => {
           )}
 
           {/* Tab Content */}
-          {activeTab === 'personal-info' && (
-            <PersonalInfoTab technician={technician} isSuspended={isSuspended} />
+          {activeTab === "personal-info" && (
+            <PersonalInfoTab
+              technician={technician}
+              isSuspended={isSuspended}
+            />
           )}
-          {activeTab === 'services-skills' && (
-            <ServicesSkillsTab technician={technician} isSuspended={isSuspended} />
+          {activeTab === "services-skills" && (
+            <ServicesSkillsTab
+              technician={technician}
+              isSuspended={isSuspended}
+            />
           )}
-          {activeTab === 'verification-documents' && (
-            <VerificationDocumentsTab technician={technician} isSuspended={isSuspended} />
+          {activeTab === "verification-documents" && (
+            <VerificationDocumentsTab
+              technician={technician}
+              isSuspended={isSuspended}
+            />
           )}
-          {activeTab === 'availability' && (
-            <AvailabilityTab technician={technician} isSuspended={isSuspended} />
+          {activeTab === "availability" && (
+            <AvailabilityTab
+              technician={technician}
+              isSuspended={isSuspended}
+            />
           )}
-          {activeTab === 'earnings-jobs' && (
-            <EarningsJobsTab technician={technician} isSuspended={isSuspended} />
+          {activeTab === "earnings-jobs" && (
+            <EarningsJobsTab
+              technician={technician}
+              isSuspended={isSuspended}
+            />
           )}
-          {activeTab === 'reviews-ratings' && (
+          {activeTab === "reviews-ratings" && (
             <ReviewsRatingsTab technician={technician} />
           )}
-          {activeTab === 'active-bookings' && (
-            <ActiveBookingsTab technician={technician}  />
+          {activeTab === "active-bookings" && (
+            <ActiveBookingsTab technician={technician} />
           )}
 
           {/* Admin Actions - Dynamic based on status */}
           <AdminActions
             type={getAdminActionsType()}
             technicianId={technician?._id}
-            technicianName={technician?.displayName || 'Technician'}
+            technicianName={technician?.displayName || "Technician"}
             onStatusUpdate={() => {
               // Refresh technician data
-              fetchTechnicianDetails()
+              fetchTechnicianDetails();
             }}
           />
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default TechnicianProfile
+export default TechnicianProfile;

@@ -1,26 +1,26 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import ChevronLeftOutlinedIcon from '@mui/icons-material/ChevronLeftOutlined';
+import React from "react";
+import { Link } from "react-router-dom";
+import ChevronLeftOutlinedIcon from "@mui/icons-material/ChevronLeftOutlined";
 interface TechnicianProfileHeaderProps {
-  name: string
-  technicianId: string
-  joinDate: string
-  isActive: boolean
-  isApproved: boolean
-  isRejected?: boolean
-  isSuspended?: boolean
-  rating?: number
-  jobsCompleted?: number
-  totalEarnings?: number
-  activeBookings?: number
-  profilePictureUrl?: string
+  name: string;
+  technicianId: string;
+  joinDate: string;
+  isActive: boolean;
+  isApproved: boolean;
+  isRejected?: boolean;
+  isSuspended?: boolean;
+  rating?: number;
+  jobsCompleted?: number;
+  totalEarnings?: number;
+  activeBookings?: number;
+  profilePictureUrl?: string;
 }
 export const TechnicianProfileHeader: React.FC<
   TechnicianProfileHeaderProps
-> = ({ 
-  name, 
-  technicianId, 
-  joinDate, 
+> = ({
+  name,
+  technicianId,
+  joinDate,
   rating = 0,
   jobsCompleted = 0,
   totalEarnings = 0,
@@ -29,37 +29,36 @@ export const TechnicianProfileHeader: React.FC<
   isRejected,
   isApproved,
   isActive,
-  isSuspended
+  isSuspended,
 }) => {
-
   const getStatusBadge = () => {
     if (isRejected) {
       return (
         <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
           Rejected
         </span>
-      )
+      );
     }
     if (isSuspended) {
       return (
         <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
           Suspended
         </span>
-      )
+      );
     }
     if (isApproved) {
       return (
         <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-          {isActive ? 'Active' : 'InActive'}
+          {isActive ? "Active" : "InActive"}
         </span>
-      )
+      );
     }
     return (
       <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
         Pending
       </span>
-    )
-  }
+    );
+  };
 
   return (
     <div className="bg-white p-6 border-b border-gray-200">
@@ -74,8 +73,8 @@ export const TechnicianProfileHeader: React.FC<
       </div>
       <div className="flex items-center">
         {profilePictureUrl ? (
-          <img 
-            src={profilePictureUrl} 
+          <img
+            src={profilePictureUrl}
             alt={name}
             className="h-16 w-16 rounded-full object-cover mr-4 border border-gray-300"
           />
@@ -99,14 +98,17 @@ export const TechnicianProfileHeader: React.FC<
           </div>
         )}
         <div>
-          <h1 className="text-xl font-medium">{name}{isSuspended && ' (Suspended)'}</h1>
+          <h1 className="text-xl font-medium">
+            {name}
+            {isSuspended && " (Suspended)"}
+          </h1>
           <div className="flex items-center text-sm text-gray-500 mt-1">
             <span>Technician ID: {technicianId}</span>
             <span className="mx-2">|</span>
             <span>Joined: {joinDate}</span>
             <div className="flex items-center space-x-2 mt-1 ml-3">
-                {getStatusBadge()}
-              </div>
+              {getStatusBadge()}
+            </div>
           </div>
         </div>
       </div>
@@ -201,5 +203,5 @@ export const TechnicianProfileHeader: React.FC<
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

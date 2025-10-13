@@ -1,11 +1,11 @@
-import React from 'react'
+import React from "react";
 interface ActivityItemProps {
-  name: string
-  action: string
-  time: string
-  icon: React.ReactNode
-  iconBg: string
-  rating?: number
+  name: string;
+  action: string;
+  time: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  rating?: number;
 }
 export const ActivityItem: React.FC<ActivityItemProps> = ({
   name,
@@ -29,7 +29,9 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
             {[...Array(5)].map((_, i) => (
               <svg
                 key={i}
-                className={`w-4 h-4 ${i < rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                className={`w-4 h-4 ${
+                  i < rating ? "text-yellow-400" : "text-gray-300"
+                }`}
                 fill="currentColor"
                 viewBox="0 0 20 20"
                 xmlns="http://www.w3.org/2000/svg"
@@ -41,5 +43,5 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};

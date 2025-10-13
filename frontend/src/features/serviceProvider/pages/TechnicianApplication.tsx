@@ -1,11 +1,11 @@
-import React from 'react'
-import Header from '../../../components/common/Header'
-import { ApplicationForm } from '../components/ApplicationForm'
-import Footer from '../../../components/common/Footer'
+import React from "react";
+import Header from "../../../components/common/Header";
+import { ApplicationForm } from "../components/ApplicationForm";
+import Footer from "../../../components/common/Footer";
 const TechnicianApplication: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header userType='serviceProvider' isApproved={false}/>
+      <Header userType="serviceProvider" isApproved={false} />
       <main className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold">Technician Application</h1>
@@ -17,9 +17,9 @@ const TechnicianApplication: React.FC = () => {
           <ApplicationForm />
         </div>
       </main>
-      <Footer/>
+      <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default TechnicianApplication
+export default TechnicianApplication;

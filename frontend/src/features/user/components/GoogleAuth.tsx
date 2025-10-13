@@ -6,71 +6,104 @@ import { authAPI } from "../../../services/authApi";
 import { useNavigate, useLocation } from "react-router-dom";
 
 interface GoogleAuthProps {
-  userType?: 'user' | 'serviceProvider' | 'admin';
+  userType?: "user" | "serviceProvider" | "admin";
 }
 
 const GoogleAuth: React.FC<GoogleAuthProps> = () => {
-    const dispatch = useAppDispatch();
-    const navigate = useNavigate();
-    const location = useLocation();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-    // Determine userType based on current route
-    const currentUserType = location.pathname.includes('/technicians') ? 'serviceProvider' : 'user';
+  // Determine userType based on current route
+  const currentUserType = location.pathname.includes("/technicians")
+    ? "serviceProvider"
+    : "user";
 
-    const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-        if (!credentialResponse.credential) {
-            toast.error("No credential received from Google");
-            return;
+  const handleGoogleSuccess = async (
+    credentialResponse: CredentialResponse
+  ) => {
+    if (!credentialResponse.credential) {
+      toast.error("No credential received from Google");
+      return;
+    }
+
+    try {
+      const res = await authAPI.googleAuth({
+        token: credentialResponse.credential,
+        userType: currentUserType,
+      });
+
+      console.log("🔍 Google auth response:", res);
+
+      if (!res.success || !res.user || !res.token) {
+        throw new Error(res.message || "Google authentication failed");
+      }
+
+      dispatch(
+        loginSuccess({
+          user: res.user as User,
+          token: res.token,
+        })
+      );
+
+      toast.success(res.message || "Signed in with Google!");
+
+      // Redirect based on userType and application status
+      if (res.user.role === "serviceProvider") {
+        if (res.user.applicationStatus === "approved") {
+          navigate("/technician/dashboard");
+        } else if (
+          res.user.applicationStatus === "submitted" ||
+          res.user.applicationStatus === "under_review"
+        ) {
+          navigate("/pending-technician/dashboard");
+        } else if (res.user.applicationStatus === "rejected") {
+          navigate("/pending-technician/dashboard");
+        } else if (res.user.applicationStatus === "draft") {
+          navigate("/technician/apply");
+        } else {
+          navigate("/technicians");
         }
+      } else if (res.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/");
+      }
 
-        try {
-            const res = await authAPI.googleAuth({
-                token: credentialResponse.credential,
-                userType: currentUserType 
-            });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Google auth error:", error);
 
-            dispatch(loginSuccess({
-                user: res.data.user as User,
-                token: res.data.token
-            }));
-            
-            toast.success("Signed in with Google!");
-            
-            // Redirect based on userType
-            if (res.data.user.role === 'serviceProvider') {
-                navigate("/technicians");
-            } else {
-                navigate("/");
-            }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (error: any) {
-            console.error("Google auth error:", error);
-            if (error.response?.data?.message) {
-                toast.error(error.response.data.message);
-            } else {
-                toast.error("Google Sign In failed");
-            }
-        }
-    };
+      let errorMessage = "Google Sign In failed";
 
-    const handleGoogleError = () => {
-        console.error("Google Login Failed - check console for details");
-        toast.error("Google Login Failed. Please check your browser console.");
-    };
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
 
-    return (
-        <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
-            theme="outline"
-            size="large"
-            shape="rectangular"
-            text="signin_with"
-            logo_alignment="center"
-            width={300}
-            useOneTap={false} 
-        />
-    );
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.error("Google Login Failed - check console for details");
+    toast.error("Google Login Failed. Please check your browser console.");
+  };
+
+  return (
+    <GoogleLogin
+      onSuccess={handleGoogleSuccess}
+      onError={handleGoogleError}
+      theme="outline"
+      size="large"
+      shape="rectangular"
+      text="signin_with"
+      logo_alignment="center"
+      width={300}
+      useOneTap={false}
+    />
+  );
 };
 
 export default GoogleAuth;

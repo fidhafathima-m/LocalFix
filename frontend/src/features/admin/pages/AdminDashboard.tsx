@@ -1,27 +1,26 @@
-import React from 'react'
-import { AdminSidebar } from '../components/AdminSidebar'
-import { StatsCard } from '../components/StatsCard'
-import { ApprovalCard } from '../components/ApprovalCard'
-import { ActivityItem } from '../components/ActivityItem'
+import React from "react";
+import { AdminSidebar } from "../components/AdminSidebar";
+import { StatsCard } from "../components/StatsCard";
+import { ApprovalCard } from "../components/ApprovalCard";
+import { ActivityItem } from "../components/ActivityItem";
 import {
   PeopleAltOutlined,
   CalendarMonthOutlined,
   ManageAccountsOutlined,
   CurrencyRupeeOutlined,
-  
   ErrorOutlineOutlined,
   CheckCircleOutlined,
   QueryBuilderOutlined,
-} from '@mui/icons-material';
-import Search from '../components/Search'
+} from "@mui/icons-material";
+import Search from "../components/Search";
 const AdminDashboard: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-50">
-      <AdminSidebar activePage='Dashboard'/>
+      <AdminSidebar activePage="Dashboard" />
       {/* Main content  */}
       <div className="flex-1 overflow-y-auto ml-[240px]">
         {/* Header with search */}
-       <Search />
+        <Search />
 
         {/* Dashboard content */}
         <div className="p-6">
@@ -39,7 +38,9 @@ const AdminDashboard: React.FC = () => {
             <StatsCard
               title="Active Bookings"
               value="42"
-              icon={<CalendarMonthOutlined className="h-6 w-6 text-green-500" />}
+              icon={
+                <CalendarMonthOutlined className="h-6 w-6 text-green-500" />
+              }
               linkText="View active bookings"
               linkUrl="#"
               color="green"
@@ -47,7 +48,9 @@ const AdminDashboard: React.FC = () => {
             <StatsCard
               title="Technicians"
               value="128"
-              icon={<ManageAccountsOutlined className="h-6 w-6 text-yellow-500" />}
+              icon={
+                <ManageAccountsOutlined className="h-6 w-6 text-yellow-500" />
+              }
               linkText="View all technicians"
               linkUrl="#"
               color="yellow"
@@ -55,7 +58,9 @@ const AdminDashboard: React.FC = () => {
             <StatsCard
               title="Monthly Revenue"
               value="₹125,000"
-              icon={<CurrencyRupeeOutlined className="h-6 w-6 text-purple-500" />}
+              icon={
+                <CurrencyRupeeOutlined className="h-6 w-6 text-purple-500" />
+              }
               linkText="View financial reports"
               linkUrl="#"
               color="purple"
@@ -71,7 +76,9 @@ const AdminDashboard: React.FC = () => {
                 countLabel="pending approvals"
                 actionText="Review applications"
                 actionUrl="#"
-                icon={<ManageAccountsOutlined className="h-5 w-5 text-yellow-500" />}
+                icon={
+                  <ManageAccountsOutlined className="h-5 w-5 text-yellow-500" />
+                }
                 color="yellow"
               />
               <ApprovalCard
@@ -80,7 +87,9 @@ const AdminDashboard: React.FC = () => {
                 countLabel="pending assignments"
                 actionText="Assign technicians"
                 actionUrl="#"
-                icon={<CalendarMonthOutlined className="h-5 w-5 text-blue-500" />}
+                icon={
+                  <CalendarMonthOutlined className="h-5 w-5 text-blue-500" />
+                }
                 color="blue"
               />
               <ApprovalCard
@@ -89,7 +98,9 @@ const AdminDashboard: React.FC = () => {
                 countLabel="pending verifications"
                 actionText="Process payments"
                 actionUrl="#"
-                icon={<CurrencyRupeeOutlined className="h-5 w-5 text-green-500" />}
+                icon={
+                  <CurrencyRupeeOutlined className="h-5 w-5 text-green-500" />
+                }
                 color="green"
               />
               <ApprovalCard
@@ -111,21 +122,27 @@ const AdminDashboard: React.FC = () => {
                 name="Amit Sharma"
                 action="booked a AC Repair service"
                 time="2 hours ago"
-                icon={<CalendarMonthOutlined className="h-5 w-5 text-blue-500" />}
+                icon={
+                  <CalendarMonthOutlined className="h-5 w-5 text-blue-500" />
+                }
                 iconBg="bg-blue-100"
               />
               <ActivityItem
                 name="Sakshi Kumar"
                 action="applied as a Plumbing technician"
                 time="3 hours ago"
-                icon={<ManageAccountsOutlined className="h-5 w-5 text-yellow-500" />}
+                icon={
+                  <ManageAccountsOutlined className="h-5 w-5 text-yellow-500" />
+                }
                 iconBg="bg-yellow-100"
               />
               <ActivityItem
                 name="Priya Patel"
                 action="reviewed: Refrigerator Repair"
                 time="5 hours ago"
-                icon={<CheckCircleOutlined className="h-5 w-5 text-green-500" />}
+                icon={
+                  <CheckCircleOutlined className="h-5 w-5 text-green-500" />
+                }
                 iconBg="bg-green-100"
                 rating={4}
               />
@@ -133,7 +150,9 @@ const AdminDashboard: React.FC = () => {
                 name="Vikram Malhotra"
                 action="paid ₹1,200 for AC Repair"
                 time="6 hours ago"
-                icon={<CurrencyRupeeOutlined className="h-5 w-5 text-purple-500" />}
+                icon={
+                  <CurrencyRupeeOutlined className="h-5 w-5 text-purple-500" />
+                }
                 iconBg="bg-purple-100"
               />
               <ActivityItem
@@ -148,7 +167,7 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AdminDashboard
+export default AdminDashboard;

@@ -1,4 +1,3 @@
-// services/emailService.ts
 import nodemailer from "nodemailer";
 
 export interface EmailOptions {
@@ -16,7 +15,7 @@ class EmailService {
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
-      }
+      },
     });
   }
 
@@ -26,16 +25,19 @@ class EmailService {
         from: `"LocalFix Admin" <${process.env.EMAIL_USER}>`,
         to: options.to,
         subject: options.subject,
-        html: options.html
+        html: options.html,
       });
       return true;
     } catch (error) {
-      console.error('Email sending failed:', error);
+      console.error("Email sending failed:", error);
       return false;
     }
   }
 
-  async sendApplicationApprovalEmail(technicianEmail: string, technicianName: string): Promise<boolean> {
+  async sendApplicationApprovalEmail(
+    technicianEmail: string,
+    technicianName: string
+  ): Promise<boolean> {
     const subject = "🎉 Your Technician Application Has Been Approved!";
     const html = `
       <!DOCTYPE html>
@@ -89,7 +91,11 @@ class EmailService {
     return await this.sendEmail({ to: technicianEmail, subject, html });
   }
 
-  async sendApplicationRejectionEmail(technicianEmail: string, technicianName: string, rejectionReason: string): Promise<boolean> {
+  async sendApplicationRejectionEmail(
+    technicianEmail: string,
+    technicianName: string,
+    rejectionReason: string
+  ): Promise<boolean> {
     const subject = "📋 Update on Your Technician Application";
     const html = `
       <!DOCTYPE html>
@@ -117,7 +123,10 @@ class EmailService {
             
             <div class="reason-box">
               <h3>Reason for Rejection:</h3>
-              <p><em>"${rejectionReason || 'Application does not meet our current requirements.'}"</em></p>
+              <p><em>"${
+                rejectionReason ||
+                "Application does not meet our current requirements."
+              }"</em></p>
             </div>
 
             <h3>What Can You Do?</h3>
@@ -131,11 +140,15 @@ class EmailService {
             <p>We encourage you to review our technician requirements and consider applying again in the future.</p>
 
             <div style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL}/technician/application" class="button">Review Requirements</a>
+              <a href="${
+                process.env.FRONTEND_URL
+              }/technician/application" class="button">Review Requirements</a>
             </div>
 
             <p><strong>Have questions?</strong><br>
-            Contact our support team at ${process.env.SUPPORT_EMAIL} for more information.</p>
+            Contact our support team at ${
+              process.env.SUPPORT_EMAIL
+            } for more information.</p>
           </div>
           <div class="footer">
             <p>&copy; 2024 LocalFix. All rights reserved.</p>
@@ -149,13 +162,21 @@ class EmailService {
     return await this.sendEmail({ to: technicianEmail, subject, html });
   }
 
-  async sendStatusUpdateEmail(technicianEmail: string, technicianName: string, newStatus: string, reason?: string): Promise<boolean> {
+  async sendStatusUpdateEmail(
+    technicianEmail: string,
+    technicianName: string,
+    newStatus: string,
+    reason?: string
+  ): Promise<boolean> {
     const subject = `🔄 Account Status Update: ${newStatus.toUpperCase()}`;
-    
+
     const statusMessages: any = {
-      'suspended': `Your technician account has been temporarily suspended. ${reason ? `Reason: ${reason}` : ''}`,
-      'approved': 'Your technician account suspension has been lifted and is now active again.',
-      'active': 'Your technician account is now active and visible to customers.'
+      suspended: `Your technician account has been temporarily suspended. ${
+        reason ? `Reason: ${reason}` : ""
+      }`,
+      approved:
+        "Your technician account suspension has been lifted and is now active again.",
+      active: "Your technician account is now active and visible to customers.",
     };
 
     const html = `
@@ -167,7 +188,9 @@ class EmailService {
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
           .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
           .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .status-badge { display: inline-block; padding: 5px 15px; background: #${newStatus === 'suspended' ? 'ff6b6b' : '4ecdc4'}; color: white; border-radius: 20px; font-weight: bold; }
+          .status-badge { display: inline-block; padding: 5px 15px; background: #${
+            newStatus === "suspended" ? "ff6b6b" : "4ecdc4"
+          }; color: white; border-radius: 20px; font-weight: bold; }
           .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
         </style>
       </head>
@@ -185,12 +208,19 @@ class EmailService {
               <span class="status-badge">${newStatus.toUpperCase()}</span>
             </div>
 
-            <p>${statusMessages[newStatus] || `Your account status has been changed to: ${newStatus}`}</p>
+            <p>${
+              statusMessages[newStatus] ||
+              `Your account status has been changed to: ${newStatus}`
+            }</p>
 
-            ${reason ? `<div style="background: #fff; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            ${
+              reason
+                ? `<div style="background: #fff; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <strong>Additional Information:</strong>
               <p>${reason}</p>
-            </div>` : ''}
+            </div>`
+                : ""
+            }
 
             <p>If you believe this is a mistake or have any questions, please contact our support team.</p>
 

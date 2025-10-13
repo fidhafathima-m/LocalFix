@@ -1,54 +1,61 @@
-import React from 'react'
-import type { TechnicianDetails } from '../../../../../validation/types/technicianTypes';
+import React from "react";
+import type { TechnicianDetails } from "../../../../../validation/types/technicianTypes";
 
 interface PersonalInfoTabProps {
-  technician: TechnicianDetails
-  isSuspended?: boolean
+  technician: TechnicianDetails;
+  isSuspended?: boolean;
 }
 
-const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ technician, isSuspended }) => {
-
+const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({
+  technician,
+  isSuspended,
+}) => {
   // Helper function to get phone number from multiple possible sources
   const getPhoneNumber = () => {
-    return technician.personalInfo?.phoneNumber || 
-           technician.user?.phone || 
-           technician.phone || 
-           'Not provided';
+    return (
+      technician.personalInfo?.phoneNumber ||
+      technician.user?.phone ||
+      technician.phone ||
+      "Not provided"
+    );
   };
 
   // Helper function to format address
   const getFormattedAddress = () => {
     if (!technician.personalInfo?.address) {
-      return 'Not specified';
+      return "Not specified";
     }
-    
+
     const { street, city, state, pincode } = technician.personalInfo.address;
-    const addressParts = [street, city, state, pincode].filter(part => part && part.trim() !== '');
-    return addressParts.length > 0 ? addressParts.join(', ') : 'Not specified';
+    const addressParts = [street, city, state, pincode].filter(
+      (part) => part && part.trim() !== ""
+    );
+    return addressParts.length > 0 ? addressParts.join(", ") : "Not specified";
   };
 
-  // ✅ FIXED: Helper to get gender with proper fallback
   const getGender = () => {
-    return technician.personalInfo?.gender || 'Not specified';
+    return technician.personalInfo?.gender || "Not specified";
   };
 
-  // ✅ FIXED: Helper to get date of birth with proper formatting
   const getDateOfBirth = () => {
-    if (!technician.personalInfo?.dateOfBirth || technician.personalInfo.dateOfBirth === 'Not specified') {
-      return 'Not specified';
+    if (
+      !technician.personalInfo?.dateOfBirth ||
+      technician.personalInfo.dateOfBirth === "Not specified"
+    ) {
+      return "Not specified";
     }
-    
+
     try {
-      // Check if it's already a valid date string
       const date = new Date(technician.personalInfo.dateOfBirth);
-      return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'Not specified';
+      return !isNaN(date.getTime())
+        ? date.toLocaleDateString()
+        : "Not specified";
     } catch (error) {
-      console.error(error)
-      return 'Not specified';
+      console.error(error);
+      return "Not specified";
     }
   };
 
-  // ✅ FIXED: Helper to get languages
   const getLanguages = () => {
     return technician.personalInfo?.languages || [];
   };
@@ -58,7 +65,8 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ technician, isSuspend
       {isSuspended && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-700 text-sm">
-            <strong>Note:</strong> Personal information is view-only while technician is suspended.
+            <strong>Note:</strong> Personal information is view-only while
+            technician is suspended.
           </p>
         </div>
       )}
@@ -85,7 +93,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ technician, isSuspend
           </button>
         )}
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
         {/* Full Name */}
         <div>
@@ -112,7 +120,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ technician, isSuspend
           </p>
         </div>
 
-        {/* Gender - ✅ FIXED */}
+        {/* Gender */}
         <div>
           <div className="flex items-center mb-1">
             <svg
@@ -135,7 +143,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ technician, isSuspend
           <p className="font-medium">{getGender()}</p>
         </div>
 
-        {/* Date of Birth - ✅ FIXED */}
+        {/* Date of Birth */}
         <div>
           <div className="flex items-center mb-1">
             <svg
@@ -157,12 +165,10 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ technician, isSuspend
             </svg>
             <p className="text-sm text-gray-500">Date of Birth</p>
           </div>
-          <p className="font-medium">
-            {getDateOfBirth()}
-          </p>
+          <p className="font-medium">{getDateOfBirth()}</p>
         </div>
 
-        {/* Phone Number - ✅ FIXED */}
+        {/* Phone Number */}
         <div>
           <div className="flex items-center mb-1">
             <svg
@@ -204,10 +210,12 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ technician, isSuspend
             </svg>
             <p className="text-sm text-gray-500">Email Address</p>
           </div>
-          <p className="font-medium">{technician.user?.email || technician.email || 'Not provided'}</p>
+          <p className="font-medium">
+            {technician.user?.email || technician.email || "Not provided"}
+          </p>
         </div>
 
-        {/* Address - ✅ FIXED */}
+        {/* Address */}
         <div>
           <div className="flex items-center mb-1">
             <svg
@@ -227,19 +235,17 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ technician, isSuspend
             </svg>
             <p className="text-sm text-gray-500">Address</p>
           </div>
-          <p className="font-medium">
-            {getFormattedAddress()}
-          </p>
+          <p className="font-medium">{getFormattedAddress()}</p>
         </div>
       </div>
 
-      {/* Languages Spoken - ✅ FIXED */}
+      {/* Languages Spoken */}
       {getLanguages().length > 0 && (
         <div className="mt-8">
           <h3 className="text-base font-medium mb-4">Languages Spoken</h3>
           <div className="flex flex-wrap gap-2">
             {getLanguages().map((language, index) => (
-              <span 
+              <span
                 key={index}
                 className="px-3 py-1 bg-gray-100 rounded-full text-sm border border-gray-200"
               >
@@ -250,7 +256,7 @@ const PersonalInfoTab: React.FC<PersonalInfoTabProps> = ({ technician, isSuspend
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default PersonalInfoTab
+export default PersonalInfoTab;

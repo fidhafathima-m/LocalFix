@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL,
@@ -8,12 +8,14 @@ const api = axios.create({
 // Helper function to get current token with better error handling
 const getCurrentToken = (): string | null => {
   try {
-    return localStorage.getItem('token') || 
-           localStorage.getItem('authToken') ||
-           sessionStorage.getItem('token') ||
-           sessionStorage.getItem('authToken');
+    return (
+      localStorage.getItem("token") ||
+      localStorage.getItem("authToken") ||
+      sessionStorage.getItem("token") ||
+      sessionStorage.getItem("authToken")
+    );
   } catch (error) {
-    console.error('Error reading token from storage:', error);
+    console.error("Error reading token from storage:", error);
     return null;
   }
 };
@@ -22,15 +24,15 @@ const getCurrentToken = (): string | null => {
 api.interceptors.request.use(
   (config) => {
     const token = getCurrentToken();
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
-    console.error("❌ Axios Interceptor - Request error:", error);
+    console.error("Axios Interceptor - Request error:", error);
     return Promise.reject(error);
   }
 );
@@ -44,42 +46,38 @@ api.interceptors.response.use(
     const url = error.config?.url;
     const status = error.response?.status;
     const message = error.response?.data?.message;
-    
-    console.error("❌ Axios Interceptor - Response error:", {
+
+    console.error("Axios Interceptor - Response error:", {
       url,
       status,
-      message
+      message,
     });
-    
+
     // Handle specific error cases
     if (status === 401) {
-      console.log("🔐 Unauthorized - Clearing tokens");
-      
+      console.log("Unauthorized - Clearing tokens");
+
       // Clear all possible auth storage
-      localStorage.removeItem('token');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('authToken');
-      sessionStorage.removeItem('user');
-      
-      
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("authToken");
+      sessionStorage.removeItem("user");
     }
-    
+
     if (status === 403) {
-      console.log("🚫 Access denied - Insufficient permissions");
+      console.log("Access denied - Insufficient permissions");
     }
-    
+
     if (status === 500) {
-      console.log("🔥 Server error - Please try again later");
+      console.log("Server error - Please try again later");
     }
-    
-    // Return a more user-friendly error message
+
     const userFriendlyError = new Error(
-      message || 
-      `Request failed${status ? ` with status ${status}` : ''}`
+      message || `Request failed${status ? ` with status ${status}` : ""}`
     );
-    
+
     return Promise.reject(userFriendlyError);
   }
 );

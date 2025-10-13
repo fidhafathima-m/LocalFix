@@ -18,7 +18,6 @@ export class AuthController {
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  // MISSING METHOD: Verify Reset OTP
   verifyResetOtp = async (req: Request, res: Response): Promise<void> => {
     const result = await this.authService.verifyResetOtp(req.body);
     res.status(result.success ? 200 : 400).json(result);
@@ -31,7 +30,11 @@ export class AuthController {
 
   forgotPassword = async (req: Request, res: Response): Promise<void> => {
     const { phone, email, userType } = req.body;
-    const result = await this.authService.forgotPassword(phone, email, userType);
+    const result = await this.authService.forgotPassword(
+      phone,
+      email,
+      userType
+    );
     res.status(result.success ? 200 : 400).json(result);
   };
 
@@ -40,10 +43,14 @@ export class AuthController {
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  // MISSING METHOD: Resend OTP
   resendOTP = async (req: Request, res: Response): Promise<void> => {
     const { phone, email, purpose, userType } = req.body;
-    const result = await this.authService.resendOTP(phone, email, purpose, userType);
+    const result = await this.authService.resendOTP(
+      phone,
+      email,
+      purpose,
+      userType
+    );
     res.status(result.success ? 200 : 400).json(result);
   };
 
@@ -52,7 +59,6 @@ export class AuthController {
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  // MISSING METHOD: Facebook Login
   facebookLogin = async (req: Request, res: Response): Promise<void> => {
     const { accessToken, userID } = req.body;
     const result = await this.authService.facebookLogin(accessToken, userID);

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// In your technician API file
-import api from '../utils/axiosConfig';
+import api from "../utils/axiosConfig";
 
 export interface TechnicianProfile {
   _id: string;
@@ -15,7 +14,7 @@ export interface TechnicianProfile {
   ratingCount: number;
   profilePictureUrl: string;
   isVerified: boolean;
-  status: 'pending' | 'active' | 'inactive' | 'suspended';
+  status: "pending" | "active" | "inactive" | "suspended";
   isApproved: boolean;
   personalInfo?: {
     fullName?: string;
@@ -33,6 +32,8 @@ export interface TechnicianProfile {
   bio?: string;
   createdAt: string;
   updatedAt: string;
+  suspensionReason?: string; 
+  suspendedAt?: string;
 }
 
 export interface ApplicationData {
@@ -68,42 +69,67 @@ export interface ApplicationData {
 }
 
 export const technicianAPI = {
-  // Profile - Updated to include address
-  getProfile: () => api.get<{ success: boolean; data: { profile: TechnicianProfile } }>('/technician/profile'),
-  
-  // Update profile with address support
-  updateProfile: (data: Partial<TechnicianProfile>) => 
-    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>('/technician/profile', data),
-  
-  // Get address specifically
-  getAddress: () => 
-    api.get<{ success: boolean; data: { address: any } }>('/technician/address'),
-  
-  // Update address
-  updateAddress: (addressData: any) => 
-    api.put<{ success: boolean; data: { address: any } }>('/technician/address', addressData),
+  getProfile: () =>
+    api.get<{ success: boolean; data: { profile: TechnicianProfile } }>(
+      "/technician/profile"
+    ),
 
-  // Applications
-  getApplication: (applicationId: string) => 
-    api.get<{ success: boolean; data: { application: ApplicationData } }>(`/technician-application/${applicationId}`),
-  
-  getUserApplications: () => 
-    api.get<{ success: boolean; data: { applications: ApplicationData[] } }>('/technician-application/user/applications'),
-  
-  startApplication: (data: { email: string; userId: string }) => 
-    api.post<{ success: boolean; data: { applicationId: string; redirectTo?: string } }>('/technician-application/start', data),
-  
-  saveStep: (formData: FormData) => 
-    api.post<{ success: boolean }>('/technician-application/save-step', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    }),
-  
-  submitApplication: (data: { applicationId: string }) => 
-    api.post<{ success: boolean; data?: { user: any } }>('/technician-application/submit', data),
-  
-  resubmitApplication: (applicationId: string) => 
-    api.patch<{ success: boolean }>(`/technician-application/${applicationId}/resubmit`),
-  
-  startNewAfterRejection: (data: { email: string }) => 
-    api.post<{ success: boolean; data: { applicationId: string } }>('/technician-application/start-new-after-rejection', data),
+  updateProfile: (data: Partial<TechnicianProfile>) =>
+    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
+      "/technician/profile",
+      data
+    ),
+
+  getAddress: () =>
+    api.get<{ success: boolean; data: { address: any } }>(
+      "/technician/address"
+    ),
+
+  updateAddress: (addressData: any) =>
+    api.put<{ success: boolean; data: { address: any } }>(
+      "/technician/address",
+      addressData
+    ),
+
+  getApplication: (applicationId: string) =>
+    api.get<{ success: boolean; data: { application: ApplicationData } }>(
+      `/technician-application/${applicationId}`
+    ),
+
+  getUserApplications: () =>
+    api.get<{ success: boolean; data: { applications: ApplicationData[] } }>(
+      "/technician-application/user/applications"
+    ),
+
+  startApplication: (data: { email: string; userId: string }) =>
+    api.post<{
+      success: boolean;
+      data: { applicationId: string; redirectTo?: string };
+    }>("/technician-application/start", data),
+
+  saveStep: (formData: FormData) =>
+    api.post<{ success: boolean }>(
+      "/technician-application/save-step",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    ),
+
+  submitApplication: (data: { applicationId: string }) =>
+    api.post<{ success: boolean; data?: { user: any } }>(
+      "/technician-application/submit",
+      data
+    ),
+
+  resubmitApplication: (applicationId: string) =>
+    api.patch<{ success: boolean }>(
+      `/technician-application/${applicationId}/resubmit`
+    ),
+
+  startNewAfterRejection: (data: { email: string }) =>
+    api.post<{ success: boolean; data: { applicationId: string } }>(
+      "/technician-application/start-new-after-rejection",
+      data
+    ),
 };

@@ -1,12 +1,18 @@
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
 export interface ITechnicianDocument {
   _id: Types.ObjectId;
   technicianId?: Types.ObjectId;
   applicationId?: Types.ObjectId;
-  type: 'idProof' | 'addressProof' | 'experienceCertificate' | 'policeVerification' | 'tradeLicense' | 'other';
+  type:
+    | "idProof"
+    | "addressProof"
+    | "experienceCertificate"
+    | "policeVerification"
+    | "tradeLicense"
+    | "other";
   fileUrl: string;
-  status: 'pending' | 'verified' | 'rejected';
+  status: "pending" | "verified" | "rejected";
   uploadedAt: Date;
   verifiedAt?: Date;
   metadata: Record<string, any>;

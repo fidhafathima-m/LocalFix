@@ -1,9 +1,7 @@
-// src/interfaces/technician/ITechnician.ts
-
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
 export interface IGeoPoint {
-  type: 'Point';
+  type: "Point";
   coordinates: [number, number];
 }
 
@@ -12,7 +10,7 @@ export type ServiceRates = Record<string, number>;
 export interface ITechnician {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
-  phone?: string
+  phone?: string;
   personalInfo?: {
     fullName: string;
     gender?: string;
@@ -36,12 +34,20 @@ export interface ITechnician {
   currentLocation?: IGeoPoint;
   averageRating: number;
   ratingCount: number;
-  status: 'not-applied' | 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+  status:
+    | "not-applied"
+    | "draft"
+    | "submitted"
+    | "under_review"
+    | "approved"
+    | "rejected";
   rejectionReason?: string;
   resubmittedCount: number;
-  rejectedAt?: Date
+  rejectedAt?: Date;
   profilePictureUrl?: string;
   previousApplicationId?: Types.ObjectId;
+  suspensionReason?: string;
+  suspendedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

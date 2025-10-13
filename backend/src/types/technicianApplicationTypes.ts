@@ -1,9 +1,15 @@
-import { Document, Types } from 'mongoose';
+import { Document, Types } from "mongoose";
 
 export interface ITechnicianApplication extends Document {
   technicianId?: Types.ObjectId;
   phone: string;
-  status: 'not-applied' | 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+  status:
+    | "not-applied"
+    | "draft"
+    | "submitted"
+    | "under_review"
+    | "approved"
+    | "rejected";
   stepsCompleted: string[];
   personal: Record<string, any>;
   identity: Record<string, any>;
@@ -23,7 +29,7 @@ export interface ITechnicianApplication extends Document {
 export interface ITimeSlot {
   start: string;
   end: string;
-  status: 'available' | 'booked' | 'blocked';
+  status: "available" | "booked" | "blocked";
 }
 
 export interface ITechnicianAvailability extends Document {
@@ -37,16 +43,22 @@ export interface ITechnicianAvailability extends Document {
 export interface ITechnicianDocument extends Document {
   technicianId?: Types.ObjectId;
   applicationId?: Types.ObjectId;
-  type: 'idProof' | 'addressProof' | 'experienceCertificate' | 'policeVerification' | 'tradeLicense' | 'other';
+  type:
+    | "idProof"
+    | "addressProof"
+    | "experienceCertificate"
+    | "policeVerification"
+    | "tradeLicense"
+    | "other";
   fileUrl: string;
-  status: 'pending' | 'verified' | 'rejected';
+  status: "pending" | "verified" | "rejected";
   uploadedAt: Date;
   verifiedAt?: Date;
   metadata: Record<string, any>;
 }
 
 export interface IGeoPoint {
-  type: 'Point';
+  type: "Point";
   coordinates: [number, number];
 }
 
@@ -62,7 +74,13 @@ export interface ITechnician extends Document {
   currentLocation?: IGeoPoint;
   averageRating: number;
   ratingCount: number;
-  status: 'not-applied' | 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+  status:
+    | "not-applied"
+    | "draft"
+    | "submitted"
+    | "under_review"
+    | "approved"
+    | "rejected";
   rejectionReason?: string;
   resubmittedCount: number;
   profilePictureUrl?: string;
@@ -70,9 +88,8 @@ export interface ITechnician extends Document {
   updatedAt: Date;
 }
 
-// Request and Response types
 export interface StartApplicationRequest {
-  userId: string
+  userId: string;
   email: string;
 }
 

@@ -1,20 +1,20 @@
-import { ZodError } from 'zod';
-import type { ValidationResult } from '../types/authTypes';
+import { ZodError } from "zod";
+import type { ValidationResult } from "../types/authTypes";
 
 export function formatZodError(error: ZodError): Record<string, string> {
   const errors: Record<string, string> = {};
-  
+
   error.issues.forEach((err) => {
     const path = err.path[0] as string;
     if (path) {
       errors[path] = err.message;
     }
   });
-  
+
   return errors;
 }
 
-import type { ZodSchema } from 'zod';
+import type { ZodSchema } from "zod";
 
 export function validateSchema<T>(
   schema: ZodSchema<T>,
@@ -27,12 +27,12 @@ export function validateSchema<T>(
     if (error instanceof ZodError) {
       return {
         success: false,
-        errors: formatZodError(error)
+        errors: formatZodError(error),
       };
     }
     return {
       success: false,
-      errors: { general: 'Validation failed' }
+      errors: { general: "Validation failed" },
     };
   }
 }
@@ -48,12 +48,12 @@ export function validateStepSchema<T>(
     if (error instanceof ZodError) {
       return {
         success: false,
-        errors: formatZodError(error)
+        errors: formatZodError(error),
       };
     }
     return {
       success: false,
-      errors: { general: 'Validation failed' }
+      errors: { general: "Validation failed" },
     };
   }
 }
@@ -63,18 +63,17 @@ export function validateNestedFields(
   prefix: string
 ): Record<string, string> {
   const nestedErrors: Record<string, string> = {};
-  
+
   Object.entries(errors).forEach(([key, value]) => {
     if (key.startsWith(prefix)) {
-      const fieldName = key.replace(`${prefix}.`, '');
+      const fieldName = key.replace(`${prefix}.`, "");
       nestedErrors[fieldName] = value;
     }
   });
-  
+
   return nestedErrors;
 }
 
-// Special validator for availability with time validation
 type AvailabilityDay = {
   available: boolean;
   startTime?: string;
@@ -83,9 +82,11 @@ type AvailabilityDay = {
 
 type Availability = Record<string, AvailabilityDay>;
 
-export function validateAvailability(availability: Availability): Record<string, string> {
+export function validateAvailability(
+  availability: Availability
+): Record<string, string> {
   const errors: Record<string, string> = {};
-  
+
   Object.entries(availability).forEach(([day, dayData]) => {
     if (dayData.available) {
       if (!dayData.startTime) {
@@ -94,11 +95,15 @@ export function validateAvailability(availability: Availability): Record<string,
       if (!dayData.endTime) {
         errors[`endTime-${day}`] = `End time required for ${day}`;
       }
-      if (dayData.startTime && dayData.endTime && dayData.startTime >= dayData.endTime) {
+      if (
+        dayData.startTime &&
+        dayData.endTime &&
+        dayData.startTime >= dayData.endTime
+      ) {
         errors[`time-${day}`] = `End time must be after start time for ${day}`;
       }
     }
   });
-  
+
   return errors;
 }

@@ -1,18 +1,17 @@
-// components/FileUpload.tsx
-import React, { useRef } from 'react';
+import React, { useRef } from "react";
 
 interface FileUploadProps {
   onFileChange: (file: File | null) => void;
   required?: boolean;
   accept?: string;
-  fieldName?: string; // Add this prop
+  fieldName?: string;
 }
 
-export const FileUpload: React.FC<FileUploadProps> = ({ 
-  onFileChange, 
-  required = false, 
-  accept = 'image/*',
-  fieldName = 'file' 
+export const FileUpload: React.FC<FileUploadProps> = ({
+  onFileChange,
+  required = false,
+  accept = "image/*",
+  fieldName = "file",
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -64,7 +63,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         </svg>
         <p className="mt-1">Click to upload or drag and drop</p>
         <p className="text-sm text-gray-500 mt-1">
-          {accept.includes('pdf') ? 'PDF, JPG, JPEG, PNG' : 'Images'} up to 10MB
+          {accept.includes("pdf") ? "PDF, JPG, JPEG, PNG" : "Images"} up to 10MB
         </p>
       </div>
     </div>

@@ -1,5 +1,4 @@
-// src/interfaces/user/IUser.ts
-import { Document, Types } from 'mongoose';
+import { Document, Types } from "mongoose";
 
 interface IWalletTransaction {
   txId: string;
@@ -10,7 +9,13 @@ interface IWalletTransaction {
   createdAt: Date;
 }
 
-type ApplicationStatus = 'not-applied' | 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+type ApplicationStatus =
+  | "not-applied"
+  | "draft"
+  | "submitted"
+  | "under_review"
+  | "approved"
+  | "rejected";
 
 export interface IUser extends Document {
   _id: Types.ObjectId;

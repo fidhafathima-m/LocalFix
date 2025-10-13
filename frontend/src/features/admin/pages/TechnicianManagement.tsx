@@ -1,105 +1,113 @@
-import React, { useState, useEffect } from 'react'
-import { AdminSidebar } from '../components/AdminSidebar'
-import { 
-  SearchOutlined, 
-  ExpandMoreOutlined, 
-  FileDownloadOutlined, 
+import React, { useState, useEffect } from "react";
+import { AdminSidebar } from "../components/AdminSidebar";
+import {
+  SearchOutlined,
+  ExpandMoreOutlined,
+  FileDownloadOutlined,
   PeopleAltOutlined,
   VerifiedUserOutlined,
   PersonOffOutlined,
   PersonAddAltOutlined,
-} from '@mui/icons-material'
-import Search from '../components/Search'
-import {useNavigate } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { useAppDispatch, useAppSelector } from '../../../hooks/redux'
-import { 
-  fetchApplicationsFailure, 
-  fetchApplicationsStart, 
-  fetchApplicationsSuccess, 
-  fetchTechniciansFailure, 
-  fetchTechniciansStart, 
-  fetchTechniciansSuccess, 
-} from '../../../store/slices/adminSlice'
-import { adminAPI } from '../../../services/adminApi'
-import { useAdminActions } from '../../../hooks/useAdminActions'
-import { QuickActionButtons, type ActionType } from '../components/technicianManagement/ActionButtons'
+} from "@mui/icons-material";
+import Search from "../components/Search";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
+import {
+  fetchApplicationsFailure,
+  fetchApplicationsStart,
+  fetchApplicationsSuccess,
+  fetchTechniciansFailure,
+  fetchTechniciansStart,
+  fetchTechniciansSuccess,
+} from "../../../store/slices/adminSlice";
+import { adminAPI } from "../../../services/adminApi";
+import { useAdminActions } from "../../../hooks/useAdminActions";
+import {
+  QuickActionButtons,
+  type ActionType,
+} from "../components/technicianManagement/ActionButtons";
 
 interface Technician {
-  _id: string
-  userId: string
-  displayName: string
-  email?: string
-  phone?: string
-  services: string[]
-  experienceYears: number
-  workAreas: string[]
-  serviceRadiusKm: number
-  status: 'pending' | 'approved' | 'rejected' | 'suspended'
-  averageRating: number
-  ratingCount: number
-  totalJobs?: number
-  profilePictureUrl?: string
-  createdAt: string
-  updatedAt: string
+  _id: string;
+  userId: string;
+  displayName: string;
+  email?: string;
+  phone?: string;
+  services: string[];
+  experienceYears: number;
+  workAreas: string[];
+  serviceRadiusKm: number;
+  status: "pending" | "approved" | "rejected" | "suspended";
+  averageRating: number;
+  ratingCount: number;
+  totalJobs?: number;
+  profilePictureUrl?: string;
+  createdAt: string;
+  updatedAt: string;
   user?: {
-    email: string
-    phone: string
-    fullName: string
-  }
+    email: string;
+    phone: string;
+    fullName: string;
+  };
 }
 
 interface TechnicianApplication {
-  _id: string
-  technicianId: string
-  email: string
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected'
+  _id: string;
+  technicianId: string;
+  email: string;
+  status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
   personal: {
-    fullName?: string
-    phoneNumber?: string
-    email?: string
-  }
+    fullName?: string;
+    phoneNumber?: string;
+    email?: string;
+  };
   skills: {
-    services?: string[]
-    yearsOfExperience?: number
-  }
-  submittedAt?: string
-  createdAt: string
+    services?: string[];
+    yearsOfExperience?: number;
+  };
+  submittedAt?: string;
+  createdAt: string;
 }
 
 // Type guards to distinguish between Technician and TechnicianApplication
-const isTechnician = (item: Technician | TechnicianApplication): item is Technician => {
-  return 'displayName' in item && 'services' in item && 'experienceYears' in item;
-}
+const isTechnician = (
+  item: Technician | TechnicianApplication
+): item is Technician => {
+  return (
+    "displayName" in item && "services" in item && "experienceYears" in item
+  );
+};
 
-const isTechnicianApplication = (item: Technician | TechnicianApplication): item is TechnicianApplication => {
-  return 'personal' in item && 'skills' in item;
-}
+const isTechnicianApplication = (
+  item: Technician | TechnicianApplication
+): item is TechnicianApplication => {
+  return "personal" in item && "skills" in item;
+};
 
 const TechnicianManagement: React.FC = () => {
   const navigate = useNavigate();
-  const { technicians, applications, techniciansLoading, applicationsLoading } = useAppSelector((state) => state.admin)
-  const dispatch = useAppDispatch()
+  const { technicians, applications, techniciansLoading, applicationsLoading } =
+    useAppSelector((state) => state.admin);
+  const dispatch = useAppDispatch();
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [serviceFilter, setServiceFilter] = useState('All Services')
-  const [ratingFilter, setRatingFilter] = useState('All Ratings')
-  const [activeTab, setActiveTab] = useState('active') 
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+  const [searchQuery, setSearchQuery] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("All Services");
+  const [ratingFilter, setRatingFilter] = useState("All Ratings");
+  const [activeTab, setActiveTab] = useState("active");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
-  // Custom hook for admin actions with success callbacks
-  const { 
-    actionInProgress, 
-    handleStatusChange, 
-    handleApproveApplication, 
-    handleRejectApplication 
+  const {
+    actionInProgress,
+    handleStatusChange,
+    handleApproveApplication,
+    handleRejectApplication,
   } = useAdminActions({
     onStatusUpdate: () => {
-      // Refresh data after actions
       fetchData();
     },
-    redirectOnSuccess: false // Don't redirect from the management page
+    redirectOnSuccess: false,
   });
 
   // Fetch technicians and applications
@@ -107,26 +115,33 @@ const TechnicianManagement: React.FC = () => {
     try {
       dispatch(fetchTechniciansStart());
       dispatch(fetchApplicationsStart());
-      
+
       const [techniciansResponse, applicationsResponse] = await Promise.all([
         adminAPI.getTechnicians(),
-        adminAPI.getPendingApplications()
+        adminAPI.getPendingApplications(),
       ]);
 
       if (techniciansResponse.data.success && techniciansResponse.data.data) {
-        dispatch(fetchTechniciansSuccess(techniciansResponse.data.data.technicians || []));
+        dispatch(
+          fetchTechniciansSuccess(
+            techniciansResponse.data.data.technicians || []
+          )
+        );
       }
 
       if (applicationsResponse.data.success && applicationsResponse.data.data) {
-        dispatch(fetchApplicationsSuccess(applicationsResponse.data.data.applications || []));
+        dispatch(
+          fetchApplicationsSuccess(
+            applicationsResponse.data.data.applications || []
+          )
+        );
       }
-      
     } catch (error) {
-      console.error('❌ Error fetching data:', error);
-      dispatch(fetchTechniciansFailure('Failed to load technician data'));
-      dispatch(fetchApplicationsFailure('Failed to load applications data'));
-      toast.error('Failed to load technician data');
-    } 
+      console.error("❌ Error fetching data:", error);
+      dispatch(fetchTechniciansFailure("Failed to load technician data"));
+      dispatch(fetchApplicationsFailure("Failed to load applications data"));
+      toast.error("Failed to load technician data");
+    }
   };
 
   useEffect(() => {
@@ -134,63 +149,73 @@ const TechnicianManagement: React.FC = () => {
   }, [dispatch]);
 
   // Filter technicians based on active tab
-  const filteredTechnicians = technicians.filter(tech => {
-    if (activeTab === 'pending') {
-      return false // Pending applications are handled separately
-    } else if (activeTab === 'suspended') {
-      return tech.status === 'suspended'
-    } else if (activeTab === 'active') {
-      return tech.status === 'approved'
-    } else if (activeTab === 'rejected') {
-      return tech.status === 'rejected'
+  const filteredTechnicians = technicians.filter((tech) => {
+    if (activeTab === "pending") {
+      return false;
+    } else if (activeTab === "suspended") {
+      return tech.status === "suspended";
+    } else if (activeTab === "active") {
+      return tech.status === "approved";
+    } else if (activeTab === "rejected") {
+      return tech.status === "rejected";
     }
-    return true
-  })
+    return true;
+  });
 
   // Filter applications for pending tab
-  const filteredApplications = applications.filter(app => {
-    const matchesSearch = app.personal?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         app.personal?.phoneNumber?.includes(searchQuery)
-    
-    const matchesService = serviceFilter === 'All Services' || 
-                          (app.skills?.services?.includes(serviceFilter) ?? false)
-    
-    return matchesSearch && matchesService
-  })
+  const filteredApplications = applications.filter((app) => {
+    const matchesSearch =
+      app.personal?.fullName
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.personal?.phoneNumber?.includes(searchQuery);
 
-  // Filter technicians with all filters (excluding status since we have separate tabs)
-  const filteredTechs = filteredTechnicians.filter(tech => {
-    const matchesSearch = tech.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       tech.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       tech.user?.phone?.includes(searchQuery) ||
-                       tech.workAreas.some(area => area.toLowerCase().includes(searchQuery.toLowerCase()))
-  
-    const matchesService = serviceFilter === 'All Services' || 
-                        tech.services.includes(serviceFilter)
-  
-    const matchesRating = ratingFilter === 'All Ratings' || 
-                       (ratingFilter === '5 Star' && tech.averageRating >= 4.8) ||
-                       (ratingFilter === '4+ Star' && tech.averageRating >= 4.0) ||
-                       (ratingFilter === '3+ Star' && tech.averageRating >= 3.0)
+    const matchesService =
+      serviceFilter === "All Services" ||
+      (app.skills?.services?.includes(serviceFilter) ?? false);
 
-    return matchesSearch && matchesService && matchesRating
-  })
+    return matchesSearch && matchesService;
+  });
 
-  // Get current items based on active tab
+  // Filter technicians with all filters
+  const filteredTechs = filteredTechnicians.filter((tech) => {
+    const matchesSearch =
+      tech.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tech.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tech.user?.phone?.includes(searchQuery) ||
+      tech.workAreas.some((area) =>
+        area.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+    const matchesService =
+      serviceFilter === "All Services" || tech.services.includes(serviceFilter);
+
+    const matchesRating =
+      ratingFilter === "All Ratings" ||
+      (ratingFilter === "5 Star" && tech.averageRating >= 4.8) ||
+      (ratingFilter === "4+ Star" && tech.averageRating >= 4.0) ||
+      (ratingFilter === "3+ Star" && tech.averageRating >= 3.0);
+
+    return matchesSearch && matchesService && matchesRating;
+  });
+
   const getCurrentItems = (): (Technician | TechnicianApplication)[] => {
-    if (activeTab === 'pending') {
+    if (activeTab === "pending") {
       return filteredApplications;
     } else {
       return filteredTechs;
     }
-  }
+  };
 
   // Pagination calculations
   const currentItems = getCurrentItems();
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItemsPage = currentItems.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItemsPage = currentItems.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(currentItems.length / itemsPerPage);
 
   // Reset to page 1 when filters or tab change
@@ -198,61 +223,73 @@ const TechnicianManagement: React.FC = () => {
     setCurrentPage(1);
   }, [searchQuery, serviceFilter, ratingFilter, activeTab]);
 
-  // Count calculations based on real data
+  // Count calculations
   const allTechnicians = technicians.length;
   const pendingApplications = applications.length;
-  const suspendedTechnicians = technicians.filter(t => t.status === 'suspended').length;
-  const approvedTechnicians = technicians.filter(t => t.status === 'approved').length;
-  const rejectedTechnicians = technicians.filter(t => t.status === 'rejected').length;
+  const suspendedTechnicians = technicians.filter(
+    (t) => t.status === "suspended"
+  ).length;
+  const approvedTechnicians = technicians.filter(
+    (t) => t.status === "approved"
+  ).length;
+  const rejectedTechnicians = technicians.filter(
+    (t) => t.status === "rejected"
+  ).length;
 
   // Service badge colors
   const getServiceColor = (service: string): string => {
     const colors: Record<string, string> = {
-      'AC Repair': 'bg-blue-100 text-blue-800',
-      'AC Installation': 'bg-blue-100 text-blue-800',
-      'Refrigerator': 'bg-green-100 text-green-800',
-      'Washing Machine': 'bg-indigo-100 text-indigo-800',
-      'Fan Repair': 'bg-purple-100 text-purple-800',
-      'TV Repair': 'bg-pink-100 text-pink-800',
-      'Microwave Oven': 'bg-orange-100 text-orange-800',
-      'Water Purifier': 'bg-cyan-100 text-cyan-800',
-      'Geyser/Water Heater': 'bg-red-100 text-red-800',
-      'Plumbing': 'bg-teal-100 text-teal-800',
-      'Electrical': 'bg-amber-100 text-amber-800',
+      "AC Repair": "bg-blue-100 text-blue-800",
+      "AC Installation": "bg-blue-100 text-blue-800",
+      Refrigerator: "bg-green-100 text-green-800",
+      "Washing Machine": "bg-indigo-100 text-indigo-800",
+      "Fan Repair": "bg-purple-100 text-purple-800",
+      "TV Repair": "bg-pink-100 text-pink-800",
+      "Microwave Oven": "bg-orange-100 text-orange-800",
+      "Water Purifier": "bg-cyan-100 text-cyan-800",
+      "Geyser/Water Heater": "bg-red-100 text-red-800",
+      Plumbing: "bg-teal-100 text-teal-800",
+      Electrical: "bg-amber-100 text-amber-800",
     };
-    return colors[service] || 'bg-gray-100 text-gray-800';
+    return colors[service] || "bg-gray-100 text-gray-800";
   };
 
   // Status badge colors
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      'approved': 'bg-green-100 text-green-800',
-      'pending': 'bg-yellow-100 text-yellow-800',
-      'suspended': 'bg-red-100 text-red-800',
-      'rejected': 'bg-gray-100 text-gray-800',
-      'active': 'bg-green-100 text-green-800',
-      'inactive': 'bg-gray-100 text-gray-800'
+      approved: "bg-green-100 text-green-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      suspended: "bg-red-100 text-red-800",
+      rejected: "bg-gray-100 text-gray-800",
+      active: "bg-green-100 text-green-800",
+      inactive: "bg-gray-100 text-gray-800",
     };
-    
+
     const labels: Record<string, string> = {
-      'approved': 'Active',
-      'pending': 'Pending',
-      'suspended': 'Suspended',
-      'rejected': 'Rejected',
-      'active': 'Active',
-      'inactive': 'Inactive'
+      approved: "Active",
+      pending: "Pending",
+      suspended: "Suspended",
+      rejected: "Rejected",
+      active: "Active",
+      inactive: "Inactive",
     };
 
     return (
-      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+      <span
+        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+          styles[status] || "bg-gray-100 text-gray-800"
+        }`}
+      >
         {labels[status] || status}
       </span>
     );
   };
 
-  // Handle view details navigation
-  const handleViewDetails = (id: string, type: 'technician' | 'application') => {
-    if (type === 'technician') {
+  const handleViewDetails = (
+    id: string,
+    type: "technician" | "application"
+  ) => {
+    if (type === "technician") {
       navigate(`/admin/technicians/${id}/personal-info`);
     } else {
       navigate(`/admin/pending-applications/${id}`);
@@ -260,27 +297,29 @@ const TechnicianManagement: React.FC = () => {
   };
 
   // Handle edit technician
-  const handleEditTechnician = (technicianId: string, technicianName: string) => {
+  const handleEditTechnician = (
+    technicianId: string,
+    technicianName: string
+  ) => {
     toast.success(`Edit details for ${technicianName}`);
-    // Implement edit logic here
+    // edit logic
   };
 
-  // Render table rows based on item type
   const renderTableRows = () => {
     return currentItemsPage.map((item) => {
-      if (activeTab === 'pending' && isTechnicianApplication(item)) {
+      if (activeTab === "pending" && isTechnicianApplication(item)) {
         return (
           <tr key={item._id} className="hover:bg-gray-50">
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="flex items-center">
                 <div className="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-blue-600 text-sm font-medium">
-                    {item.personal?.fullName?.charAt(0) || 'A'}
+                    {item.personal?.fullName?.charAt(0) || "A"}
                   </span>
                 </div>
                 <div className="ml-4">
                   <div className="text-sm font-medium text-gray-900">
-                    {item.personal?.fullName || 'N/A'}
+                    {item.personal?.fullName || "N/A"}
                   </div>
                   <div className="text-sm text-gray-500">
                     #{item._id.slice(-6)}
@@ -290,18 +329,18 @@ const TechnicianManagement: React.FC = () => {
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="text-sm text-gray-900">
-                {item.personal?.phoneNumber || 'N/A'}
+                {item.personal?.phoneNumber || "N/A"}
               </div>
-              <div className="text-sm text-gray-500">
-                {item.email}
-              </div>
+              <div className="text-sm text-gray-500">{item.email}</div>
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="flex flex-wrap gap-1">
                 {item.skills?.services?.slice(0, 2).map((service: string) => (
                   <span
                     key={service}
-                    className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(service)}`}
+                    className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(
+                      service
+                    )}`}
                   >
                     {service}
                   </span>
@@ -317,30 +356,40 @@ const TechnicianManagement: React.FC = () => {
               {item.skills?.yearsOfExperience || 0} years
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {new Date(item.submittedAt || item.createdAt).toLocaleDateString()}
+              {new Date(
+                item.submittedAt || item.createdAt
+              ).toLocaleDateString()}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
               <QuickActionButtons
                 type="icon"
                 actions={[
                   {
-                    type: 'approve',
-                    onClick: () => handleApproveApplication(item._id, item.personal?.fullName || 'Applicant'),
+                    type: "approve",
+                    onClick: () =>
+                      handleApproveApplication(
+                        item._id,
+                        item.personal?.fullName || "Applicant"
+                      ),
                     disabled: actionInProgress,
                     loading: actionInProgress,
-                    title: 'Approve Application'
+                    title: "Approve Application",
                   },
                   {
-                    type: 'reject',
-                    onClick: () => handleRejectApplication(item._id, item.personal?.fullName || 'Applicant'),
+                    type: "reject",
+                    onClick: () =>
+                      handleRejectApplication(
+                        item._id,
+                        item.personal?.fullName || "Applicant"
+                      ),
                     disabled: actionInProgress,
-                    title: 'Reject Application'
+                    title: "Reject Application",
                   },
                   {
-                    type: 'view',
-                    onClick: () => handleViewDetails(item._id, 'application'),
-                    title: 'View Application Details'
-                  }
+                    type: "view",
+                    onClick: () => handleViewDetails(item._id, "application"),
+                    title: "View Application Details",
+                  },
                 ]}
               />
             </td>
@@ -368,7 +417,7 @@ const TechnicianManagement: React.FC = () => {
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="text-sm text-gray-900">
-                {item.user?.phone || 'N/A'}
+                {item.user?.phone || "N/A"}
               </div>
               <div className="text-sm text-gray-500">
                 {item.user?.email || item.email}
@@ -379,7 +428,9 @@ const TechnicianManagement: React.FC = () => {
                 {item.services.slice(0, 2).map((service: string) => (
                   <span
                     key={service}
-                    className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(service)}`}
+                    className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(
+                      service
+                    )}`}
                   >
                     {service}
                   </span>
@@ -402,29 +453,48 @@ const TechnicianManagement: React.FC = () => {
                 type="icon"
                 actions={[
                   {
-                    type: 'view' as ActionType,
-                    onClick: () => handleViewDetails(item._id, 'technician'),
-                    title: 'View Technician Details'
+                    type: "view" as ActionType,
+                    onClick: () => handleViewDetails(item._id, "technician"),
+                    title: "View Technician Details",
                   },
                   {
-                    type: 'edit' as ActionType,
-                    onClick: () => handleEditTechnician(item._id, item.displayName),
-                    title: 'Edit Technician'
+                    type: "edit" as ActionType,
+                    onClick: () =>
+                      handleEditTechnician(item._id, item.displayName),
+                    title: "Edit Technician",
                   },
-                  ...(item.status === 'approved' ? [{
-                    type: 'suspend' as ActionType,
-                    onClick: () => handleStatusChange(item._id, 'suspended', item.displayName),
-                    disabled: actionInProgress,
-                    loading: actionInProgress,
-                    title: 'Suspend Technician'
-                  }] : []),
-                  ...(item.status === 'suspended' ? [{
-                    type: 'activate' as ActionType,
-                    onClick: () => handleStatusChange(item._id, 'approved', item.displayName),
-                    disabled: actionInProgress,
-                    loading: actionInProgress,
-                    title: 'Activate Technician'
-                  }] : [])
+                  ...(item.status === "approved"
+                    ? [
+                        {
+                          type: "suspend" as ActionType,
+                          onClick: () =>
+                            handleStatusChange(
+                              item._id,
+                              "suspended",
+                              item.displayName
+                            ),
+                          disabled: actionInProgress,
+                          loading: actionInProgress,
+                          title: "Suspend Technician",
+                        },
+                      ]
+                    : []),
+                  ...(item.status === "suspended"
+                    ? [
+                        {
+                          type: "activate" as ActionType,
+                          onClick: () =>
+                            handleStatusChange(
+                              item._id,
+                              "approved",
+                              item.displayName
+                            ),
+                          disabled: actionInProgress,
+                          loading: actionInProgress,
+                          title: "Activate Technician",
+                        },
+                      ]
+                    : []),
                 ]}
               />
             </td>
@@ -453,19 +523,20 @@ const TechnicianManagement: React.FC = () => {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <AdminSidebar activePage="Technicians" />
-      
+
       {/* Main content */}
       <div className="flex-1 overflow-y-auto ml-[240px]">
         {/* Header with search */}
-        <Search/>
-        
+        <Search />
+
         {/* Dashboard content */}
         <div className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-start mb-6">
             <div>
               <h1 className="text-2xl font-bold mb-1">Technician Management</h1>
               <p className="text-gray-600">
-                Manage technicians, review applications, and monitor performance.
+                Manage technicians, review applications, and monitor
+                performance.
               </p>
             </div>
             <button className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
@@ -518,12 +589,12 @@ const TechnicianManagement: React.FC = () => {
           <div className="mb-6 border-b border-gray-200">
             <div className="flex space-x-8">
               <button
-                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors ${
-                  activeTab === 'active' 
-                    ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
-                    : 'text-gray-500 hover:text-gray-700'
+                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors cursor-pointer ${
+                  activeTab === "active"
+                    ? "border-b-2 border-blue-500 text-blue-600 font-medium"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
-                onClick={() => setActiveTab('active')}
+                onClick={() => setActiveTab("active")}
               >
                 <span>Active Technicians</span>
                 <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
@@ -531,12 +602,12 @@ const TechnicianManagement: React.FC = () => {
                 </span>
               </button>
               <button
-                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors ${
-                  activeTab === 'pending' 
-                    ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
-                    : 'text-gray-500 hover:text-gray-700'
+                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors  cursor-pointer ${
+                  activeTab === "pending"
+                    ? "border-b-2 border-blue-500 text-blue-600 font-medium"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
-                onClick={() => setActiveTab('pending')}
+                onClick={() => setActiveTab("pending")}
               >
                 <span>Pending Applications</span>
                 <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">
@@ -544,12 +615,12 @@ const TechnicianManagement: React.FC = () => {
                 </span>
               </button>
               <button
-                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors ${
-                  activeTab === 'suspended' 
-                    ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
-                    : 'text-gray-500 hover:text-gray-700'
+                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors  cursor-pointer ${
+                  activeTab === "suspended"
+                    ? "border-b-2 border-blue-500 text-blue-600 font-medium"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
-                onClick={() => setActiveTab('suspended')}
+                onClick={() => setActiveTab("suspended")}
               >
                 <span>Suspended Technicians</span>
                 <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">
@@ -557,12 +628,12 @@ const TechnicianManagement: React.FC = () => {
                 </span>
               </button>
               <button
-                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors ${
-                  activeTab === 'rejected' 
-                    ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
-                    : 'text-gray-500 hover:text-gray-700'
+                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors  cursor-pointer ${
+                  activeTab === "rejected"
+                    ? "border-b-2 border-blue-500 text-blue-600 font-medium"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
-                onClick={() => setActiveTab('rejected')}
+                onClick={() => setActiveTab("rejected")}
               >
                 <span>Rejected Technicians</span>
                 <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs">
@@ -650,23 +721,47 @@ const TechnicianManagement: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
-                  {activeTab === 'pending' ? (
+                  {activeTab === "pending" ? (
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Services</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Applicant
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Contact
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Services
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Experience
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Applied On
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   ) : (
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Technician</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Services</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Technician
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Contact
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Services
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Experience
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   )}
                 </thead>
@@ -678,10 +773,13 @@ const TechnicianManagement: React.FC = () => {
                       <td colSpan={6} className="px-6 py-8 text-center">
                         <div className="flex flex-col items-center justify-center text-gray-500">
                           <div className="text-lg font-medium mb-2">
-                            {activeTab === 'pending' ? 'No pending applications found' : 
-                             activeTab === 'active' ? 'No active technicians found' : 
-                             activeTab === 'suspended' ? 'No suspended technicians found' :
-                             'No rejected technicians found'}
+                            {activeTab === "pending"
+                              ? "No pending applications found"
+                              : activeTab === "active"
+                              ? "No active technicians found"
+                              : activeTab === "suspended"
+                              ? "No suspended technicians found"
+                              : "No rejected technicians found"}
                           </div>
                           <div className="text-sm">
                             Try adjusting your search filters
@@ -698,7 +796,9 @@ const TechnicianManagement: React.FC = () => {
             {currentItems.length > 0 && (
               <div className="flex justify-between items-center px-6 py-4 border-t border-gray-200 bg-gray-50">
                 <span className="text-sm text-gray-600">
-                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, currentItems.length)} of {currentItems.length} entries
+                  Showing {indexOfFirstItem + 1} to{" "}
+                  {Math.min(indexOfLastItem, currentItems.length)} of{" "}
+                  {currentItems.length} entries
                 </span>
 
                 <div className="flex space-x-2">
@@ -746,7 +846,7 @@ const TechnicianManagement: React.FC = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default TechnicianManagement
+export default TechnicianManagement;

@@ -5,7 +5,7 @@ interface SearchProps {
   onChange?: (val: string) => void;
 }
 
-const Search: React.FC<SearchProps> = ({ value = '', onChange = () => {} }) => {
+const Search: React.FC<SearchProps> = ({ value = "", onChange = () => {} }) => {
   return (
     <div className="bg-white p-4 sticky top-0 z-10 shadow-sm">
       <div className="flex items-center space-x-2">

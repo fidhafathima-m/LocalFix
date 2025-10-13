@@ -1,13 +1,14 @@
-// repositories/user/UserAddressRepository.ts
-import { Types } from 'mongoose';
-import UserAddress, { IUserAddress } from '../../models/UserAddressSchema';
+import { Types } from "mongoose";
+import UserAddress, { IUserAddress } from "../../models/UserAddressSchema";
 
 export class UserAddressRepository {
   async findByUserId(userId: Types.ObjectId): Promise<IUserAddress | null> {
     return await UserAddress.findOne({ userId });
   }
 
-  async findDefaultByUserId(userId: Types.ObjectId): Promise<IUserAddress | null> {
+  async findDefaultByUserId(
+    userId: Types.ObjectId
+  ): Promise<IUserAddress | null> {
     return await UserAddress.findOne({ userId, isDefault: true });
   }
 
@@ -15,7 +16,10 @@ export class UserAddressRepository {
     return await UserAddress.create(userAddressData);
   }
 
-  async updateByUserId(userId: Types.ObjectId, updateData: Partial<IUserAddress>): Promise<IUserAddress | null> {
+  async updateByUserId(
+    userId: Types.ObjectId,
+    updateData: Partial<IUserAddress>
+  ): Promise<IUserAddress | null> {
     return await UserAddress.findOneAndUpdate(
       { userId },
       { $set: updateData },

@@ -1,10 +1,10 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface ITechnicianApplication extends Document {
   _id: Types.ObjectId;
   technicianId?: Types.ObjectId;
   email: string;
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+  status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
   stepsCompleted: string[];
   personal: Record<string, any>;
   identity: Record<string, any>;
@@ -16,7 +16,7 @@ export interface ITechnicianApplication extends Document {
   submittedAt?: Date;
   reviewNotes?: string;
   rejectionReason?: string;
-  rejectedAt?: string
+  rejectedAt?: string;
   resubmittedCount: number;
   lastSubmittedAt?: Date;
   createdAt: Date;
@@ -26,12 +26,12 @@ export interface ITechnicianApplication extends Document {
 
 const TechnicianApplicationSchema = new Schema<ITechnicianApplication>(
   {
-    technicianId: { type: Schema.Types.ObjectId, ref: 'User' },
+    technicianId: { type: Schema.Types.ObjectId, ref: "User" },
     email: { type: String, required: true, lowercase: true, trim: true },
     status: {
       type: String,
-      enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected'],
-      default: 'draft',
+      enum: ["draft", "submitted", "under_review", "approved", "rejected"],
+      default: "draft",
     },
     stepsCompleted: { type: [String], default: [] },
     personal: { type: Schema.Types.Mixed, default: {} },
@@ -52,6 +52,6 @@ const TechnicianApplicationSchema = new Schema<ITechnicianApplication>(
 );
 
 export const TechnicianApplication = mongoose.model<ITechnicianApplication>(
-  'TechnicianApplication',
+  "TechnicianApplication",
   TechnicianApplicationSchema
 );

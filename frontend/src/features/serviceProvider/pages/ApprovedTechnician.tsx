@@ -1,117 +1,141 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from "react";
 import {
   CalendarTodayOutlined,
   FmdGoodOutlined,
   StarBorderOutlined,
   Star,
-} from '@mui/icons-material'
-import Header from '../../../components/common/Header'
-import Footer from '../../../components/common/Footer'
-import { technicianAPI, type TechnicianProfile } from '../../../services/technicianApi' // Use consistent API
+  WarningOutlined,
+  BlockOutlined,
+} from "@mui/icons-material";
+import Header from "../../../components/common/Header";
+import Footer from "../../../components/common/Footer";
+import {
+  technicianAPI,
+  type TechnicianProfile,
+} from "../../../services/technicianApi";
 
 interface DashboardData {
   overview: {
-    upcomingBookings: number
-    monthlyEarnings: number
-    totalJobs: number
-    averageRating: number
-  }
+    upcomingBookings: number;
+    monthlyEarnings: number;
+    totalJobs: number;
+    averageRating: number;
+  };
   bookings: {
-    bookings: any[]
-    isNewTechnician?: boolean
-  }
+    bookings: any[];
+    isNewTechnician?: boolean;
+  };
   earnings: {
-    earnings: any[]
-    isNewTechnician?: boolean
-  }
+    earnings: any[];
+    isNewTechnician?: boolean;
+  };
   reviews: {
-    reviews: any[]
-    isNewTechnician?: boolean
-  }
-  profile: TechnicianProfile
+    reviews: any[];
+    isNewTechnician?: boolean;
+  };
+  profile: TechnicianProfile;
+  suspensionReason?: string; // Add suspension reason
+  suspendedAt?: string; // Add suspension date
 }
 
 const ApprovedTechnicianDashboard: React.FC = () => {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isSuspended, setIsSuspended] = useState(false);
+  const [suspensionInfo, setSuspensionInfo] = useState<{
+    reason?: string;
+    suspendedAt?: string;
+  }>({});
 
   useEffect(() => {
     const loadTechnicianData = async () => {
       try {
-        setLoading(true)
-        setError(null)
-        
-        // ✅ USE CONSISTENT technicianAPI INSTEAD OF SEPARATE FUNCTION
-        const response = await technicianAPI.getProfile()
-        console.log('🔍 Full API Response:', response)
-        
+        setLoading(true);
+        setError(null);
+
+        const response = await technicianAPI.getProfile();
+        console.log("🔍 Full API Response:", response);
+
         if (!response.data.success) {
-          throw new Error('Failed to fetch profile: API returned unsuccessful')
+          throw new Error("Failed to fetch profile: API returned unsuccessful");
         }
 
-        const profile = response.data.data.profile
-        console.log('🔍 Profile data:', profile)
-        console.log('🔍 Personal info:', profile?.personalInfo)
-        console.log('🔍 Address data:', profile?.personalInfo?.address)
-
-        if (!profile.personalInfo?.address) {
-          console.log('🔍 Checking for address in different structures:')
-          console.log('🔍 Profile keys:', Object.keys(profile))
-          console.log('🔍 PersonalInfo keys:', profile.personalInfo ? Object.keys(profile.personalInfo) : 'No personalInfo')
-        }
+        const profile = response.data.data.profile;
+        console.log("🔍 Profile data:", profile);
         
+        // Check if technician is suspended
+        const suspended = profile.status === "suspended" 
+        setIsSuspended(suspended);
+        
+        // Extract suspension info if available
+        if (suspended) {
+          setSuspensionInfo({
+            reason: profile.suspensionReason || "Violation of terms of service",
+            suspendedAt: profile.suspendedAt || new Date().toISOString()
+          });
+        }
+
         setDashboardData({
           overview: {
-            upcomingBookings: 0, // Will be populated when bookings are implemented
-            monthlyEarnings: 0,  // Will be populated when earnings are implemented
-            totalJobs: 0,        // Will be populated when jobs are implemented
-            averageRating: profile.averageRating || 0
+            upcomingBookings: 0,
+            monthlyEarnings: 0,
+            totalJobs: 0,
+            averageRating: profile.averageRating || 0,
           },
           bookings: {
             bookings: [],
-            isNewTechnician: true
+            isNewTechnician: true,
           },
           earnings: {
             earnings: [],
-            isNewTechnician: true
+            isNewTechnician: true,
           },
           reviews: {
             reviews: [],
-            isNewTechnician: true
+            isNewTechnician: true,
           },
           profile: {
             ...profile,
-            // Ensure personalInfo structure is consistent
             personalInfo: {
               fullName: profile.personalInfo?.fullName || profile.displayName,
-              gender: profile.personalInfo?.gender || 'Not specified',
-              phoneNumber: profile.personalInfo?.phoneNumber || profile.phone || 'Not provided',
-              dateOfBirth: profile.personalInfo?.dateOfBirth || 'Not specified',
+              gender: profile.personalInfo?.gender || "Not specified",
+              phoneNumber:
+                profile.personalInfo?.phoneNumber ||
+                profile.phone ||
+                "Not provided",
+              dateOfBirth: profile.personalInfo?.dateOfBirth || "Not specified",
               address: profile.personalInfo?.address || {
-                street: 'Not specified',
-                city: 'Not specified', 
-                state: 'Not specified',
-                pincode: 'Not specified'
+                street: "Not specified",
+                city: "Not specified",
+                state: "Not specified",
+                pincode: "Not specified",
               },
               languages: profile.personalInfo?.languages || [],
-            }
-          }
-        })
+            },
+          },
+          suspensionReason: profile.suspensionReason,
+          suspendedAt: profile.suspendedAt,
+        });
       } catch (err) {
-        console.error('Failed to load technician data:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load technician profile')
-        // Fallback to empty data
-        setDashboardData(getEmptyDashboardData())
+        console.error("Failed to load technician data:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load technician profile"
+        );
+        setDashboardData(getEmptyDashboardData());
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadTechnicianData()
-  }, [])
+    loadTechnicianData();
+  }, []);
 
   const getEmptyDashboardData = (): DashboardData => {
     return {
@@ -119,19 +143,19 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         upcomingBookings: 0,
         monthlyEarnings: 0,
         totalJobs: 0,
-        averageRating: 0
+        averageRating: 0,
       },
       bookings: {
         bookings: [],
-        isNewTechnician: true
+        isNewTechnician: true,
       },
       earnings: {
         earnings: [],
-        isNewTechnician: true
+        isNewTechnician: true,
       },
       reviews: {
         reviews: [],
-        isNewTechnician: true
+        isNewTechnician: true,
       },
       profile: {
         _id: "",
@@ -151,99 +175,195 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         createdAt: "",
         updatedAt: "",
         personalInfo: {
-          fullName: '',
-          gender: 'Not specified',
-          phoneNumber: '',
-          dateOfBirth: '',
+          fullName: "",
+          gender: "Not specified",
+          phoneNumber: "",
+          dateOfBirth: "",
           address: {
-            street: 'Not specified',
-            city: 'Not specified',
-            state: 'Not specified',
-            pincode: 'Not specified'
+            street: "Not specified",
+            city: "Not specified",
+            state: "Not specified",
+            pincode: "Not specified",
           },
-          languages: []
-        }
-      }
-    }
-  }
+          languages: [],
+        },
+      },
+    };
+  };
 
-  // Helper function to get formatted address - CONSISTENT with admin
-  const getFormattedAddress = (profile: TechnicianProfile) => {
-    if (!profile.personalInfo?.address) {
-      return 'Not specified'
-    }
-    
-    const { street, city, state, pincode } = profile.personalInfo.address
-    const addressParts = [street, city, state, pincode].filter(part => part && part.trim() !== '' && part !== 'Not specified')
-    return addressParts.length > 0 ? addressParts.join(', ') : 'Not specified'
-  }
+  // Suspension Banner Component
+  const SuspensionBanner = () => (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <div className="flex items-start">
+        <BlockOutlined className="h-5 w-5 text-red-500 mr-3 mt-0.5" />
+        <div className="flex-1">
+          <h3 className="text-red-800 font-medium text-sm">
+            Account Suspended
+          </h3>
+          <p className="text-red-700 text-sm mt-1">
+            Your technician account has been suspended by the administrator.
+          </p>
+          {suspensionInfo.reason && (
+            <div className="mt-2">
+              <p className="text-red-600 text-xs font-medium">Reason:</p>
+              <p className="text-red-600 text-xs mt-1">{suspensionInfo.reason}</p>
+            </div>
+          )}
+          {suspensionInfo.suspendedAt && (
+            <p className="text-red-600 text-xs mt-2">
+              Suspended on: {formatDate(suspensionInfo.suspendedAt)}
+            </p>
+          )}
+          <div className="mt-3">
+            <p className="text-red-600 text-xs">
+              <strong>What this means:</strong>
+            </p>
+            <ul className="text-red-600 text-xs list-disc list-inside mt-1 space-y-1">
+              <li>You cannot accept new bookings</li>
+              <li>Your profile is not visible to customers</li>
+              <li>You cannot access earnings or booking features</li>
+              <li>You can still view your profile and contact support</li>
+            </ul>
+          </div>
+          <div className="mt-3">
+            <button className="bg-red-600 text-white px-4 py-2 rounded text-xs font-medium hover:bg-red-700 mr-2">
+              Contact Support
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Disabled State Overlay for suspended technicians
+  const DisabledOverlay = ({ children, tab }: { children: React.ReactNode; tab: string }) => {
+    if (!isSuspended || tab === "profile") return <>{children}</>;
+
+    return (
+      <div className="relative">
+        {children}
+        <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center rounded-lg">
+          <div className="text-center p-6">
+            <BlockOutlined className="h-12 w-12 text-red-400 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Feature Unavailable
+            </h3>
+            <p className="text-gray-500 mb-4">
+              This feature is temporarily disabled due to account suspension.
+            </p>
+            <p className="text-gray-400 text-sm">
+              Please contact support to resolve this issue.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Helper function to get languages as array
   const getLanguagesArray = (languages: string[] | string): string[] => {
     if (Array.isArray(languages)) {
-      return languages
+      return languages;
     }
-    if (typeof languages === 'string' && languages.trim() !== '') {
-      return languages.split(',').map(lang => lang.trim())
+    if (typeof languages === "string" && languages.trim() !== "") {
+      return languages.split(",").map((lang) => lang.trim());
     }
-    return []
-  }
+    return [];
+  };
 
   const renderStars = (rating: number, filled = false) => {
     return (
       <div className="flex">
         {[...Array(5)].map((_, i) => {
-          const StarIcon = filled && i < Math.floor(rating) ? Star : StarBorderOutlined
+          const StarIcon =
+            filled && i < Math.floor(rating) ? Star : StarBorderOutlined;
           return (
             <StarIcon
               key={i}
-              className={`h-4 w-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+              className={`h-4 w-4 ${
+                i < Math.floor(rating)
+                  ? "text-yellow-400 fill-yellow-400"
+                  : "text-gray-300"
+              }`}
             />
-          )
+          );
         })}
       </div>
-    )
-  }
+    );
+  };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount)
-  }
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   const formatDate = (dateString: string) => {
-    if (!dateString || dateString === 'Not specified') return 'Not specified'
-    
+    if (!dateString || dateString === "Not specified") return "Not specified";
+
     try {
-      const date = new Date(dateString)
-      return !isNaN(date.getTime()) ? date.toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      }) : 'Not specified'
+      const date = new Date(dateString);
+      return !isNaN(date.getTime())
+        ? date.toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+        : "Not specified";
     } catch (error) {
-      console.error(error)
-      return 'Not specified'
+      console.error(error);
+      return "Not specified";
     }
-  }
+  };
 
   const getLocation = (profile: TechnicianProfile) => {
-    const address = profile.personalInfo?.address
-    if (address?.city && address?.state && address.city !== 'Not specified' && address.state !== 'Not specified') {
-      return `${address.city}, ${address.state}`
+    const address = profile.personalInfo?.address;
+    if (
+      address?.city &&
+      address?.state &&
+      address.city !== "Not specified" &&
+      address.state !== "Not specified"
+    ) {
+      return `${address.city}, ${address.state}`;
     }
     if (profile.workAreas && profile.workAreas.length > 0) {
-      return profile.workAreas[0]
+      return profile.workAreas[0];
     }
-    return 'Location not set'
-  }
+    return "Location not set";
+  };
+
+  // Update status display in profile header
+  const getStatusBadge = (profile: TechnicianProfile) => {
+    if (isSuspended) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <WarningOutlined className="h-3 w-3 mr-1" />
+          Suspended
+        </span>
+      );
+    }
+    
+    if (profile.isVerified) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          Verified
+        </span>
+      );
+    }
+    
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+        Pending Verification
+      </span>
+    );
+  };
 
   if (loading) {
     return (
       <>
-        <Header userType='serviceProvider' isApproved={true} />
+        <Header userType="serviceProvider" isApproved={true} />
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -252,17 +372,17 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         </div>
         <Footer />
       </>
-    )
+    );
   }
 
   if (error && (!dashboardData || !dashboardData.profile.displayName)) {
     return (
       <>
-        <Header userType='serviceProvider' isApproved={true} />
+        <Header userType="serviceProvider" isApproved={true} />
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <p className="text-red-600 mb-4">Error: {error}</p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
             >
@@ -272,17 +392,17 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         </div>
         <Footer />
       </>
-    )
+    );
   }
 
   if (!dashboardData) {
     return (
       <>
-        <Header userType='serviceProvider' isApproved={true} />
+        <Header userType="serviceProvider" isApproved={true} />
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <p className="text-red-600">Failed to load dashboard data</p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
             >
@@ -292,20 +412,39 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         </div>
         <Footer />
       </>
-    )
+    );
   }
 
-  const { overview, profile } = dashboardData
+  const { overview, profile } = dashboardData;
 
-   const renderProfileTab = () => (
+  const renderProfileTab = () => (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium">Profile Information</h3>
-        <button className="text-blue-600 text-sm font-medium hover:text-blue-700">
-          Edit Profile
-        </button>
+        {!isSuspended && (
+          <button className="text-blue-600 text-sm font-medium hover:text-blue-700">
+            Edit Profile
+          </button>
+        )}
       </div>
-      
+
+      {/* Account Status Warning for suspended technicians */}
+      {isSuspended && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <WarningOutlined className="h-5 w-5 text-yellow-600 mr-2" />
+            <div>
+              <h4 className="text-yellow-800 font-medium text-sm">
+                Profile Editing Disabled
+              </h4>
+              <p className="text-yellow-700 text-sm">
+                You cannot edit your profile while your account is suspended.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bio Section */}
       {dashboardData?.profile.bio && (
         <div className="mb-6">
@@ -322,38 +461,49 @@ const ApprovedTechnicianDashboard: React.FC = () => {
             <div>
               <dt className="text-sm text-gray-500">Full Name</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.personalInfo?.fullName || dashboardData?.profile.displayName || 'Not specified'}
+                {dashboardData?.profile.personalInfo?.fullName ||
+                  dashboardData?.profile.displayName ||
+                  "Not specified"}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Email</dt>
-              <dd className="text-sm font-medium">{dashboardData?.profile.email}</dd>
+              <dd className="text-sm font-medium">
+                {dashboardData?.profile.email}
+              </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Phone</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.personalInfo?.phoneNumber || dashboardData?.profile.phone || 'Not provided'}
+                {dashboardData?.profile.personalInfo?.phoneNumber ||
+                  dashboardData?.profile.phone ||
+                  "Not provided"}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Gender</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.personalInfo?.gender || 'Not specified'}
+                {dashboardData?.profile.personalInfo?.gender || "Not specified"}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Date of Birth</dt>
               <dd className="text-sm font-medium">
-                {formatDate(dashboardData?.profile.personalInfo?.dateOfBirth || '')}
+                {formatDate(
+                  dashboardData?.profile.personalInfo?.dateOfBirth || ""
+                )}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Languages</dt>
               <dd className="text-sm font-medium">
-                {getLanguagesArray(dashboardData?.profile.personalInfo?.languages || []).length > 0 
-                  ? getLanguagesArray(dashboardData?.profile.personalInfo?.languages || []).join(', ')
-                  : 'Not specified'
-                }
+                {getLanguagesArray(
+                  dashboardData?.profile.personalInfo?.languages || []
+                ).length > 0
+                  ? getLanguagesArray(
+                      dashboardData?.profile.personalInfo?.languages || []
+                    ).join(", ")
+                  : "Not specified"}
               </dd>
             </div>
           </dl>
@@ -361,223 +511,261 @@ const ApprovedTechnicianDashboard: React.FC = () => {
 
         {/* Professional Details */}
         <div>
-          <h4 className="font-medium text-gray-900 mb-4">Professional Details</h4>
+          <h4 className="font-medium text-gray-900 mb-4">
+            Professional Details
+          </h4>
           <dl className="space-y-3">
             <div>
               <dt className="text-sm text-gray-500">Experience</dt>
-              <dd className="text-sm font-medium">{dashboardData?.profile.experienceYears} years</dd>
+              <dd className="text-sm font-medium">
+                {dashboardData?.profile.experienceYears} years
+              </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Services</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.services.length > 0 
-                  ? dashboardData.profile.services.join(', ') 
-                  : 'No services specified'
-                }
+                {dashboardData?.profile.services.length > 0
+                  ? dashboardData.profile.services.join(", ")
+                  : "No services specified"}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Work Areas</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.workAreas.length > 0 
-                  ? dashboardData.profile.workAreas.join(', ') 
-                  : 'No work areas specified'
-                }
+                {dashboardData?.profile.workAreas.length > 0
+                  ? dashboardData.profile.workAreas.join(", ")
+                  : "No work areas specified"}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Rating</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.averageRating.toFixed(1)} ({dashboardData?.profile.ratingCount} reviews)
+                {dashboardData?.profile.averageRating.toFixed(1)} (
+                {dashboardData?.profile.ratingCount} reviews)
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Status</dt>
               <dd className="text-sm font-medium">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  dashboardData?.profile.isVerified 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {dashboardData?.profile.isVerified ? 'Verified' : 'Pending Verification'}
-                </span>
+                {getStatusBadge(dashboardData.profile)}
               </dd>
             </div>
           </dl>
         </div>
       </div>
 
-      {/* Address Section - USING CONSISTENT FORMATTING */}
+      {/* Address Section*/}
       <div className="mt-6 pt-6 border-t border-gray-200">
         <h4 className="font-medium text-gray-900 mb-4">Address</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <dt className="text-sm text-gray-500">Street</dt>
             <dd className="text-sm font-medium">
-              {dashboardData?.profile.personalInfo?.address?.street || 'Not specified'}
+              {dashboardData?.profile.personalInfo?.address?.street ||
+                "Not specified"}
             </dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">City</dt>
             <dd className="text-sm font-medium">
-              {dashboardData?.profile.personalInfo?.address?.city || 'Not specified'}
+              {dashboardData?.profile.personalInfo?.address?.city ||
+                "Not specified"}
             </dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">State</dt>
             <dd className="text-sm font-medium">
-              {dashboardData?.profile.personalInfo?.address?.state || 'Not specified'}
+              {dashboardData?.profile.personalInfo?.address?.state ||
+                "Not specified"}
             </dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">Pincode</dt>
             <dd className="text-sm font-medium">
-              {dashboardData?.profile.personalInfo?.address?.pincode || 'Not specified'}
-            </dd>
-          </div>
-          {/* Full Address Display */}
-          <div className="md:col-span-2">
-            <dt className="text-sm text-gray-500">Full Address</dt>
-            <dd className="text-sm font-medium mt-1 p-3 bg-gray-50 rounded-md">
-              {getFormattedAddress(dashboardData!.profile)}
+              {dashboardData?.profile.personalInfo?.address?.pincode ||
+                "Not specified"}
             </dd>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'overview':
+      case "overview":
         return (
           <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg shadow-sm p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <CalendarTodayOutlined className="h-5 w-5 text-blue-500 mr-2" />
-                    <span className="text-xs text-gray-500">Upcoming</span>
+            <DisabledOverlay tab="overview">
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg shadow-sm p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <CalendarTodayOutlined className="h-5 w-5 text-blue-500 mr-2" />
+                      <span className="text-xs text-gray-500">Upcoming</span>
+                    </div>
+                  </div>
+                  <div className="mt-1">
+                    <div className="text-xl font-bold">
+                      {overview.upcomingBookings}
+                    </div>
                   </div>
                 </div>
-                <div className="mt-1">
-                  <div className="text-xl font-bold">{overview.upcomingBookings}</div>
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <span className="text-green-500 text-lg mr-1">₹</span>
-                    <span className="text-xs text-gray-500">This Month</span>
+                <div className="bg-white rounded-lg shadow-sm p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="text-green-500 text-lg mr-1">₹</span>
+                      <span className="text-xs text-gray-500">This Month</span>
+                    </div>
+                  </div>
+                  <div className="mt-1">
+                    <div className="text-xl font-bold">
+                      {formatCurrency(overview.monthlyEarnings)}
+                    </div>
                   </div>
                 </div>
-                <div className="mt-1">
-                  <div className="text-xl font-bold">{formatCurrency(overview.monthlyEarnings)}</div>
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <span className="text-purple-500 text-xs mr-1">Jobs</span>
+                <div className="bg-white rounded-lg shadow-sm p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="text-purple-500 text-xs mr-1">Jobs</span>
+                    </div>
+                  </div>
+                  <div className="mt-1">
+                    <div className="text-xl font-bold">{overview.totalJobs}</div>
                   </div>
                 </div>
-                <div className="mt-1">
-                  <div className="text-xl font-bold">{overview.totalJobs}</div>
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <StarBorderOutlined className="h-5 w-5 text-yellow-500 mr-1" />
-                    <span className="text-xs text-gray-500">Average</span>
+                <div className="bg-white rounded-lg shadow-sm p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <StarBorderOutlined className="h-5 w-5 text-yellow-500 mr-1" />
+                      <span className="text-xs text-gray-500">Average</span>
+                    </div>
+                  </div>
+                  <div className="mt-1">
+                    <div className="text-xl font-bold">
+                      {overview.averageRating.toFixed(1)}
+                    </div>
                   </div>
                 </div>
-                <div className="mt-1">
-                  <div className="text-xl font-bold">{overview.averageRating.toFixed(1)}</div>
-                </div>
               </div>
-            </div>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Upcoming Bookings */}
+              {/* Main Content Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Upcoming Bookings */}
+                <div className="bg-white rounded-lg shadow-sm p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-medium flex items-center">
+                      <CalendarTodayOutlined className="h-4 w-4 text-blue-500 mr-2" />
+                      Upcoming Bookings
+                    </h3>
+                  </div>
+                  <div className="text-center py-8">
+                    <CalendarTodayOutlined className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">Bookings section</p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Currently unavailable - Under development
+                    </p>
+                  </div>
+                </div>
+
+                {/* Recent Earnings */}
+                <div className="bg-white rounded-lg shadow-sm p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-medium flex items-center">
+                      <span className="text-green-500 text-lg mr-2">₹</span>
+                      Recent Earnings
+                    </h3>
+                  </div>
+                  <div className="text-center py-8">
+                    <span className="text-green-500 text-2xl mx-auto mb-3">
+                      ₹
+                    </span>
+                    <p className="text-gray-500 text-sm">Earnings section</p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Currently unavailable - Under development
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Reviews */}
               <div className="bg-white rounded-lg shadow-sm p-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-medium flex items-center">
-                    <CalendarTodayOutlined className="h-4 w-4 text-blue-500 mr-2" />
-                    Upcoming Bookings
+                    <StarBorderOutlined className="h-4 w-4 text-yellow-500 mr-2 fill-yellow-400" />
+                    Recent Reviews
                   </h3>
                 </div>
                 <div className="text-center py-8">
-                  <CalendarTodayOutlined className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">Bookings section</p>
-                  <p className="text-gray-400 text-xs mt-1">Currently unavailable - Under development</p>
+                  <StarBorderOutlined className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">Reviews section</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Currently unavailable - Under development
+                  </p>
                 </div>
               </div>
-
-              {/* Recent Earnings */}
-              <div className="bg-white rounded-lg shadow-sm p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-sm font-medium flex items-center">
-                    <span className="text-green-500 text-lg mr-2">₹</span>
-                    Recent Earnings
-                  </h3>
-                </div>
-                <div className="text-center py-8">
-                  <span className="text-green-500 text-2xl mx-auto mb-3">₹</span>
-                  <p className="text-gray-500 text-sm">Earnings section</p>
-                  <p className="text-gray-400 text-xs mt-1">Currently unavailable - Under development</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Reviews */}
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-sm font-medium flex items-center">
-                  <StarBorderOutlined className="h-4 w-4 text-yellow-500 mr-2 fill-yellow-400" />
-                  Recent Reviews
-                </h3>
-              </div>
-              <div className="text-center py-8">
-                <StarBorderOutlined className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">Reviews section</p>
-                <p className="text-gray-400 text-xs mt-1">Currently unavailable - Under development</p>
-              </div>
-            </div>
+            </DisabledOverlay>
           </div>
-        )
+        );
 
-      case 'bookings':
+      case "bookings":
         return (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <CalendarTodayOutlined className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Bookings Section</h3>
-            <p className="text-gray-500 mb-4">This section is currently being developed.</p>
-            <p className="text-gray-400 text-sm">You'll be able to manage your bookings here soon.</p>
-          </div>
-        )
+          <DisabledOverlay tab="bookings">
+            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+              <CalendarTodayOutlined className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Bookings Section
+              </h3>
+              <p className="text-gray-500 mb-4">
+                This section is currently being developed.
+              </p>
+              <p className="text-gray-400 text-sm">
+                You'll be able to manage your bookings here soon.
+              </p>
+            </div>
+          </DisabledOverlay>
+        );
 
-      case 'earnings':
+      case "earnings":
         return (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <span className="text-green-500 text-4xl mx-auto mb-4">₹</span>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Earnings Section</h3>
-            <p className="text-gray-500 mb-4">This section is currently being developed.</p>
-            <p className="text-gray-400 text-sm">Detailed earnings reports will be available here soon.</p>
-          </div>
-        )
+          <DisabledOverlay tab="earnings">
+            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+              <span className="text-green-500 text-4xl mx-auto mb-4">₹</span>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Earnings Section
+              </h3>
+              <p className="text-gray-500 mb-4">
+                This section is currently being developed.
+              </p>
+              <p className="text-gray-400 text-sm">
+                Detailed earnings reports will be available here soon.
+              </p>
+            </div>
+          </DisabledOverlay>
+        );
 
-      case 'profile':
-        return renderProfileTab()
+      case "profile":
+        return renderProfileTab();
+        
+      default:
+        return (
+          <DisabledOverlay tab={activeTab}>
+            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+              <p className="text-gray-500">This section is under development.</p>
+            </div>
+          </DisabledOverlay>
+        );
     }
-  }
+  };
 
   return (
     <>
-      <Header userType='serviceProvider' isApproved={true} />
+      <Header userType="serviceProvider" isApproved={!isSuspended} />
       <div className="min-h-screen bg-gray-50">
+        {/* Suspension Banner - Show at the top if suspended */}
+        {isSuspended && <SuspensionBanner />}
+
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-3xl mx-auto px-4 py-4">
@@ -585,8 +773,8 @@ const ApprovedTechnicianDashboard: React.FC = () => {
               <div className="flex items-center">
                 <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
                   {profile.profilePictureUrl ? (
-                    <img 
-                      src={profile.profilePictureUrl} 
+                    <img
+                      src={profile.profilePictureUrl}
                       alt={profile.displayName}
                       className="h-12 w-12 rounded-full object-cover"
                     />
@@ -598,18 +786,17 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                 </div>
                 <div>
                   <div className="flex items-center">
-                    <h1 className="text-lg font-semibold mr-2">{profile.displayName}</h1>
-                    {profile.isVerified && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Verified
-                      </span>
-                    )}
+                    <h1 className="text-lg font-semibold mr-2">
+                      {profile.displayName}
+                    </h1>
+                    {getStatusBadge(profile)}
                   </div>
                   <div className="flex items-center mt-1">
                     <div className="flex items-center">
                       {renderStars(profile.averageRating, true)}
                       <span className="ml-1 text-sm text-gray-600">
-                        {profile.averageRating.toFixed(1)} ({profile.ratingCount})
+                        {profile.averageRating.toFixed(1)} (
+                        {profile.ratingCount})
                       </span>
                     </div>
                     <span className="mx-2 text-gray-300">|</span>
@@ -621,9 +808,11 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                 </div>
               </div>
               <div>
-                <button className="text-blue-600 text-sm font-medium hover:text-blue-700">
-                  Edit Profile
-                </button>
+                {!isSuspended && (
+                  <button className="text-blue-600 text-sm font-medium hover:text-blue-700">
+                    Edit Profile
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -634,23 +823,26 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           <div className="max-w-3xl mx-auto px-4">
             <nav className="flex overflow-x-auto">
               {[
-                { id: 'overview', label: 'Overview' },
-                { id: 'bookings', label: 'Bookings' },
-                { id: 'earnings', label: 'Earnings' },
-                { id: 'profile', label: 'Profile' },
-                { id: 'settings', label: 'Settings' },
-                { id: 'documents', label: 'Documents' },
-                { id: 'messages', label: 'Messages' },
-                { id: 'notifications', label: 'Notifications' },
+                { id: "overview", label: "Overview" },
+                { id: "bookings", label: "Bookings" },
+                { id: "earnings", label: "Earnings" },
+                { id: "profile", label: "Profile" },
+                { id: "settings", label: "Settings" },
+                { id: "documents", label: "Documents" },
+                { id: "messages", label: "Messages" },
+                { id: "notifications", label: "Notifications" },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-3 py-4 text-sm font-medium whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  } ${
+                    isSuspended && tab.id !== "profile" ? "opacity-50 cursor-not-allowed" : ""
                   }`}
+                  disabled={isSuspended && tab.id !== "profile"}
                 >
                   {tab.label}
                 </button>
@@ -660,13 +852,11 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         </div>
 
         {/* Dashboard Content */}
-        <div className="max-w-3xl mx-auto px-4 py-6">
-          {renderTabContent()}
-        </div>
+        <div className="max-w-3xl mx-auto px-4 py-6">{renderTabContent()}</div>
       </div>
       <Footer />
     </>
-  )
-}
+  );
+};
 
-export default ApprovedTechnicianDashboard
+export default ApprovedTechnicianDashboard;

@@ -14,27 +14,30 @@ const FacebookAuth: React.FC = () => {
     if (response.accessToken) {
       try {
         // Send token to backend
-        const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/facebook`, {
-          accessToken: response.accessToken,
-          userID: response.userID,
-        });
+        const res = await axios.post(
+          `${import.meta.env.VITE_BASE_URL}/auth/facebook`,
+          {
+            accessToken: response.accessToken,
+            userID: response.userID,
+          }
+        );
 
         // Store auth in context
         login(res.data.user, res.data.token);
         toast.success("Logged in with Facebook!");
       } catch (error: unknown) {
-    if (axios.isAxiosError(error) && error.response?.data?.message) {
-      toast.error(error.response.data.message);
-    } else {
-      toast.error("Facebook Login failed");
-    }
-  }
+        if (axios.isAxiosError(error) && error.response?.data?.message) {
+          toast.error(error.response.data.message);
+        } else {
+          toast.error("Facebook Login failed");
+        }
+      }
     }
   };
 
   return (
     <FacebookLogin
-      appId={import.meta.env.VITE_FACEBOOK_APP_ID}   
+      appId={import.meta.env.VITE_FACEBOOK_APP_ID}
       autoLoad={false}
       fields="name,email,picture"
       callback={responseFacebook}

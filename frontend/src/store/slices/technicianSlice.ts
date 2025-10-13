@@ -1,4 +1,4 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export interface TechnicianProfile {
   _id: string;
@@ -13,7 +13,7 @@ export interface TechnicianProfile {
   ratingCount: number;
   profilePictureUrl: string;
   isVerified: boolean;
-  status: 'pending' | 'active' | 'inactive' | 'suspended';
+  status: "pending" | "active" | "inactive" | "suspended";
   isApproved: boolean;
   personalInfo?: {
     fullName?: string;
@@ -79,7 +79,7 @@ const initialState: TechnicianState = {
 };
 
 const technicianSlice = createSlice({
-  name: 'technician',
+  name: "technician",
   initialState,
   reducers: {
     // Profile actions
@@ -102,7 +102,10 @@ const technicianSlice = createSlice({
       state.applicationLoading = true;
       state.applicationError = null;
     },
-    fetchApplicationSuccess: (state, action: PayloadAction<ApplicationData>) => {
+    fetchApplicationSuccess: (
+      state,
+      action: PayloadAction<ApplicationData>
+    ) => {
       state.applicationLoading = false;
       state.application = action.payload;
       state.applicationError = null;
@@ -113,7 +116,10 @@ const technicianSlice = createSlice({
     },
 
     // Update application status
-    updateApplicationStatus: (state, action: PayloadAction<ApplicationData['status']>) => {
+    updateApplicationStatus: (
+      state,
+      action: PayloadAction<ApplicationData["status"]>
+    ) => {
       if (state.application) {
         state.application.status = action.payload;
       }
@@ -147,13 +153,25 @@ export const {
 } = technicianSlice.actions;
 
 // Selectors
-export const selectTechnicianProfile = (state: { technician: TechnicianState }) => state.technician.profile;
-export const selectTechnicianApplication = (state: { technician: TechnicianState }) => state.technician.application;
-export const selectTechnicianLoading = (state: { technician: TechnicianState }) => state.technician.loading;
-export const selectTechnicianError = (state: { technician: TechnicianState }) => state.technician.error;
-export const selectApplicationLoading = (state: { technician: TechnicianState }) => state.technician.applicationLoading;
-export const selectApplicationError = (state: { technician: TechnicianState }) => state.technician.applicationError;
-export const selectIsTechnicianApproved = (state: { technician: TechnicianState }) => 
-  state.technician.profile?.isApproved || false;
+export const selectTechnicianProfile = (state: {
+  technician: TechnicianState;
+}) => state.technician.profile;
+export const selectTechnicianApplication = (state: {
+  technician: TechnicianState;
+}) => state.technician.application;
+export const selectTechnicianLoading = (state: {
+  technician: TechnicianState;
+}) => state.technician.loading;
+export const selectTechnicianError = (state: { technician: TechnicianState }) =>
+  state.technician.error;
+export const selectApplicationLoading = (state: {
+  technician: TechnicianState;
+}) => state.technician.applicationLoading;
+export const selectApplicationError = (state: {
+  technician: TechnicianState;
+}) => state.technician.applicationError;
+export const selectIsTechnicianApproved = (state: {
+  technician: TechnicianState;
+}) => state.technician.profile?.isApproved || false;
 
 export default technicianSlice.reducer;

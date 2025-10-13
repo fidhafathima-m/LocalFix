@@ -20,9 +20,15 @@ export class TechnicianManagementController {
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  updateTechnicianStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  updateTechnicianStatus = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { id } = req.params;
-    const result = await this.technicianService.updateTechnicianStatus(id, req.body);
+    const result = await this.technicianService.updateTechnicianStatus(
+      id,
+      req.body
+    );
     res.status(result.success ? 200 : 400).json(result);
   };
 
@@ -31,48 +37,60 @@ export class TechnicianManagementController {
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  getPendingApplications = async (req: Request, res: Response): Promise<void> => {
-    const result = await this.technicianService.getPendingApplications(req.query);
+  getPendingApplications = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    const result = await this.technicianService.getPendingApplications(
+      req.query
+    );
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  approveApplication = async (req: AuthRequest, res: Response): Promise<void> => {
+  approveApplication = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { id } = req.params;
     const result = await this.technicianService.approveApplication(id);
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  // In your technicianManagement controller
-rejectApplication = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { rejectionReason } = req.body;
+  rejectApplication = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { rejectionReason } = req.body;
 
-    console.log('🔍 Controller: Rejecting application:', id);
-    console.log('🔍 Controller: Rejection reason:', rejectionReason);
+      console.log("🔍 Controller: Rejecting application:", id);
+      console.log("🔍 Controller: Rejection reason:", rejectionReason);
 
-    if (!rejectionReason) {
-      res.status(400).json({
-        success: false,
-        message: 'Rejection reason is required'
+      if (!rejectionReason) {
+        res.status(400).json({
+          success: false,
+          message: "Rejection reason is required",
+        });
+        return;
+      }
+
+      const result = await this.technicianService.rejectApplication(id, {
+        rejectionReason,
       });
-      return;
-    }
 
-    const result = await this.technicianService.rejectApplication(id, { rejectionReason });
-    
-    console.log('🔍 Controller: Result:', result);
-    
-    res.status(result.success ? 200 : 400).json(result);
-  } catch (error) {
-    console.error('❌ Controller error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-};
+      console.log("🔍 Controller: Result:", result);
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      console.error("❌ Controller error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
 
   getApplicationById = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
@@ -85,9 +103,14 @@ rejectApplication = async (req: AuthRequest, res: Response): Promise<void> => {
     res.status(result.success ? 200 : 400).json(result);
   };
 
-  getTechnicianByApplicationId = async (req: Request, res: Response): Promise<void> => {
+  getTechnicianByApplicationId = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     const { applicationId } = req.params;
-    const result = await this.technicianService.getTechnicianByApplicationId(applicationId);
+    const result = await this.technicianService.getTechnicianByApplicationId(
+      applicationId
+    );
     res.status(result.success ? 200 : 400).json(result);
   };
 }

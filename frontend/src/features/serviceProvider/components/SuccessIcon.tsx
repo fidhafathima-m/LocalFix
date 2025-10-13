@@ -1,11 +1,11 @@
-import React from 'react'
+import React from "react";
 interface SuccessIconProps {
-  size?: string
-  className?: string
+  size?: string;
+  className?: string;
 }
 export const SuccessIcon: React.FC<SuccessIconProps> = ({
-  size = 'h-16 w-16',
-  className = '',
+  size = "h-16 w-16",
+  className = "",
 }) => {
   return (
     <div
@@ -25,5 +25,5 @@ export const SuccessIcon: React.FC<SuccessIconProps> = ({
         />
       </svg>
     </div>
-  )
-}
+  );
+};

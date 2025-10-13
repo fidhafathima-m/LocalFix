@@ -1,28 +1,31 @@
-import React, { useState } from 'react';
-import { AxiosError } from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
-import { sendOTP } from '../../api/auth';
-import toast from 'react-hot-toast';
-import { forgotPasswordSchema, validateSchema } from '../../validation';
+import React, { useState } from "react";
+import { AxiosError } from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import { sendOTP } from "../../api/auth";
+import toast from "react-hot-toast";
+import { forgotPasswordSchema, validateSchema } from "../../validation";
 
-type UserType = 'user' | 'serviceProvider' | 'admin';
+type UserType = "user" | "serviceProvider" | "admin";
 
 interface ForgetPasswordProps {
   userType: UserType;
 }
 
 const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const getTitle = () => {
     switch (userType) {
-      case 'user': return 'User Forgot Password';
-      case 'serviceProvider': return 'Technician Forgot Password';
-      case 'admin': return 'Admin Forgot Password';
+      case "user":
+        return "User Forgot Password";
+      case "serviceProvider":
+        return "Technician Forgot Password";
+      case "admin":
+        return "Admin Forgot Password";
     }
   };
 
@@ -32,47 +35,52 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
     const validation = validateSchema(forgotPasswordSchema, {
       phone,
       email,
-      userType
-    })
+      userType,
+    });
 
-    if(!validation.success && validation.errors) {
-      setError(validation.errors?.phone || validation.errors?.email || 'Validation failed');
+    if (!validation.success && validation.errors) {
+      setError(
+        validation.errors?.phone ||
+          validation.errors?.email ||
+          "Validation failed"
+      );
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      await sendOTP({ phone: phone || undefined, email: email || undefined, userType });
+      await sendOTP({
+        phone: phone || undefined,
+        email: email || undefined,
+        userType,
+      });
 
       // Save to localStorage as fallback
       localStorage.setItem(
-        'forgotData',
+        "forgotData",
         JSON.stringify({ phone: phone || undefined, email: email || undefined })
       );
 
-      // Determine the correct verify OTP route
-      let verifyPath = '/verify-otp';
-      if (userType === 'admin') {
-        verifyPath = '/admin/verify-otp';
-      } else if (userType === 'serviceProvider') {
-        verifyPath = '/technicians/verify-otp';
+      let verifyPath = "/verify-otp";
+      if (userType === "admin") {
+        verifyPath = "/admin/verify-otp";
+      } else if (userType === "serviceProvider") {
+        verifyPath = "/technicians/verify-otp";
       }
 
-      // Navigate with state containing the data
-      navigate(verifyPath, { 
-        state: { 
-          phone: phone || undefined, 
-          email: email || undefined, 
-          userType, 
-          context: 'forgot' 
-        } 
+      navigate(verifyPath, {
+        state: {
+          phone: phone || undefined,
+          email: email || undefined,
+          userType,
+          context: "forgot",
+        },
       });
-
     } catch (err: unknown) {
       const error = err as AxiosError<{ message: string }>;
-      toast.error(error.response?.data?.message || 'Failed to send OTP');
+      toast.error(error.response?.data?.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
@@ -116,20 +124,20 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
           type="submit"
           disabled={loading}
           className={`w-full bg-blue-700 text-white p-2 rounded ${
-            loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-800'
+            loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-800"
           }`}
         >
-          {loading ? 'Sending...' : 'Send Verification Code'}
+          {loading ? "Sending..." : "Send Verification Code"}
         </button>
 
         <button className="w-full text-blue-600 p-2 rounded">
           <Link
             to={
-              userType === 'serviceProvider'
-                ? '/technicians/login'
-                : userType === 'admin'
-                ? '/admin/login'
-                : '/login'
+              userType === "serviceProvider"
+                ? "/technicians/login"
+                : userType === "admin"
+                ? "/admin/login"
+                : "/login"
             }
           >
             Back to login

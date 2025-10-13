@@ -1,4 +1,4 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export interface User {
   _id: string;
@@ -28,7 +28,7 @@ export interface Technician {
   experienceYears: number;
   workAreas: string[];
   serviceRadiusKm: number;
-  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  status: "pending" | "approved" | "rejected" | "suspended";
   averageRating: number;
   ratingCount: number;
   totalJobs?: number;
@@ -46,7 +46,7 @@ export interface TechnicianApplication {
   _id: string;
   technicianId: string;
   email: string;
-  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+  status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
   personal: {
     fullName?: string;
     phoneNumber?: string;
@@ -83,7 +83,7 @@ const initialState: AdminState = {
 };
 
 const adminSlice = createSlice({
-  name: 'admin',
+  name: "admin",
   initialState,
   reducers: {
     // Users actions
@@ -121,7 +121,10 @@ const adminSlice = createSlice({
       state.applicationsLoading = true;
       state.error = null;
     },
-    fetchApplicationsSuccess: (state, action: PayloadAction<TechnicianApplication[]>) => {
+    fetchApplicationsSuccess: (
+      state,
+      action: PayloadAction<TechnicianApplication[]>
+    ) => {
       state.applicationsLoading = false;
       state.applications = action.payload;
       state.error = null;
@@ -132,31 +135,50 @@ const adminSlice = createSlice({
     },
 
     updateUser: (state, action: PayloadAction<User>) => {
-      const index = state.users.findIndex(u => u._id === action.payload._id);
+      const index = state.users.findIndex((u) => u._id === action.payload._id);
       if (index !== -1) {
         state.users[index] = action.payload;
       }
     },
 
     // Update user status
-    updateUserStatus: (state, action: PayloadAction<{ userId: string; status: User['status'] }>) => {
-      const user = state.users.find(u => u._id === action.payload.userId);
+    updateUserStatus: (
+      state,
+      action: PayloadAction<{ userId: string; status: User["status"] }>
+    ) => {
+      const user = state.users.find((u) => u._id === action.payload.userId);
       if (user) {
         user.status = action.payload.status;
       }
     },
 
     // Update technician status
-    updateTechnicianStatus: (state, action: PayloadAction<{ technicianId: string; status: Technician['status'] }>) => {
-      const technician = state.technicians.find(t => t._id === action.payload.technicianId);
+    updateTechnicianStatus: (
+      state,
+      action: PayloadAction<{
+        technicianId: string;
+        status: Technician["status"];
+      }>
+    ) => {
+      const technician = state.technicians.find(
+        (t) => t._id === action.payload.technicianId
+      );
       if (technician) {
         technician.status = action.payload.status;
       }
     },
 
     // Update application status
-    updateApplicationStatus: (state, action: PayloadAction<{ applicationId: string; status: TechnicianApplication['status'] }>) => {
-      const application = state.applications.find(a => a._id === action.payload.applicationId);
+    updateApplicationStatus: (
+      state,
+      action: PayloadAction<{
+        applicationId: string;
+        status: TechnicianApplication["status"];
+      }>
+    ) => {
+      const application = state.applications.find(
+        (a) => a._id === action.payload.applicationId
+      );
       if (application) {
         application.status = action.payload.status;
       }
@@ -164,12 +186,14 @@ const adminSlice = createSlice({
 
     // Remove user
     removeUser: (state, action: PayloadAction<string>) => {
-      state.users = state.users.filter(u => u._id !== action.payload);
+      state.users = state.users.filter((u) => u._id !== action.payload);
     },
 
     // Remove application
     removeApplication: (state, action: PayloadAction<string>) => {
-      state.applications = state.applications.filter(a => a._id !== action.payload);
+      state.applications = state.applications.filter(
+        (a) => a._id !== action.payload
+      );
     },
 
     // Clear admin data
@@ -208,13 +232,21 @@ export const {
 } = adminSlice.actions;
 
 // Selectors
-export const selectAdminUsers = (state: { admin: AdminState }) => state.admin.users;
-export const selectAdminTechnicians = (state: { admin: AdminState }) => state.admin.technicians;
-export const selectAdminApplications = (state: { admin: AdminState }) => state.admin.applications;
-export const selectAdminLoading = (state: { admin: AdminState }) => state.admin.loading;
-export const selectAdminError = (state: { admin: AdminState }) => state.admin.error;
-export const selectUsersLoading = (state: { admin: AdminState }) => state.admin.usersLoading;
-export const selectTechniciansLoading = (state: { admin: AdminState }) => state.admin.techniciansLoading;
-export const selectApplicationsLoading = (state: { admin: AdminState }) => state.admin.applicationsLoading;
+export const selectAdminUsers = (state: { admin: AdminState }) =>
+  state.admin.users;
+export const selectAdminTechnicians = (state: { admin: AdminState }) =>
+  state.admin.technicians;
+export const selectAdminApplications = (state: { admin: AdminState }) =>
+  state.admin.applications;
+export const selectAdminLoading = (state: { admin: AdminState }) =>
+  state.admin.loading;
+export const selectAdminError = (state: { admin: AdminState }) =>
+  state.admin.error;
+export const selectUsersLoading = (state: { admin: AdminState }) =>
+  state.admin.usersLoading;
+export const selectTechniciansLoading = (state: { admin: AdminState }) =>
+  state.admin.techniciansLoading;
+export const selectApplicationsLoading = (state: { admin: AdminState }) =>
+  state.admin.applicationsLoading;
 
 export default adminSlice.reducer;
