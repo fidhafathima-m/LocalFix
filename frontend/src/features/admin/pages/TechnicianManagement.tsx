@@ -4,23 +4,26 @@ import {
   SearchOutlined, 
   ExpandMoreOutlined, 
   FileDownloadOutlined, 
-  RemoveRedEyeOutlined, 
-  EditOutlined, 
-  BlockOutlined,
-  CheckCircleOutlined,
   PeopleAltOutlined,
   VerifiedUserOutlined,
   PersonOffOutlined,
   PersonAddAltOutlined,
-  // CancelOutlined
 } from '@mui/icons-material'
 import Search from '../components/Search'
-import { Link } from 'react-router-dom'
-import Swal from 'sweetalert2'
+import {useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAppDispatch, useAppSelector } from '../../../hooks/redux'
-import { fetchApplicationsFailure, fetchApplicationsStart, fetchApplicationsSuccess, fetchTechniciansFailure, fetchTechniciansStart, fetchTechniciansSuccess, removeApplication, updateApplicationStatus, updateTechnicianStatus } from '../../../store/slices/adminSlice'
+import { 
+  fetchApplicationsFailure, 
+  fetchApplicationsStart, 
+  fetchApplicationsSuccess, 
+  fetchTechniciansFailure, 
+  fetchTechniciansStart, 
+  fetchTechniciansSuccess, 
+} from '../../../store/slices/adminSlice'
 import { adminAPI } from '../../../services/adminApi'
+import { useAdminActions } from '../../../hooks/useAdminActions'
+import { QuickActionButtons, type ActionType } from '../components/technicianManagement/ActionButtons'
 
 interface Technician {
   _id: string
@@ -74,46 +77,59 @@ const isTechnicianApplication = (item: Technician | TechnicianApplication): item
 }
 
 const TechnicianManagement: React.FC = () => {
-
-  const {technicians, applications, techniciansLoading, applicationsLoading} = useAppSelector((state) => state.admin)
+  const navigate = useNavigate();
+  const { technicians, applications, techniciansLoading, applicationsLoading } = useAppSelector((state) => state.admin)
   const dispatch = useAppDispatch()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [serviceFilter, setServiceFilter] = useState('All Services')
   const [ratingFilter, setRatingFilter] = useState('All Ratings')
   const [activeTab, setActiveTab] = useState('active') 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
 
+  // Custom hook for admin actions with success callbacks
+  const { 
+    actionInProgress, 
+    handleStatusChange, 
+    handleApproveApplication, 
+    handleRejectApplication 
+  } = useAdminActions({
+    onStatusUpdate: () => {
+      // Refresh data after actions
+      fetchData();
+    },
+    redirectOnSuccess: false // Don't redirect from the management page
+  });
+
   // Fetch technicians and applications
+  const fetchData = async () => {
+    try {
+      dispatch(fetchTechniciansStart());
+      dispatch(fetchApplicationsStart());
+      
+      const [techniciansResponse, applicationsResponse] = await Promise.all([
+        adminAPI.getTechnicians(),
+        adminAPI.getPendingApplications()
+      ]);
+
+      if (techniciansResponse.data.success && techniciansResponse.data.data) {
+        dispatch(fetchTechniciansSuccess(techniciansResponse.data.data.technicians || []));
+      }
+
+      if (applicationsResponse.data.success && applicationsResponse.data.data) {
+        dispatch(fetchApplicationsSuccess(applicationsResponse.data.data.applications || []));
+      }
+      
+    } catch (error) {
+      console.error('❌ Error fetching data:', error);
+      dispatch(fetchTechniciansFailure('Failed to load technician data'));
+      dispatch(fetchApplicationsFailure('Failed to load applications data'));
+      toast.error('Failed to load technician data');
+    } 
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        dispatch(fetchTechniciansStart());
-        dispatch(fetchApplicationsStart());
-        
-        const [techniciansResponse, applicationsResponse] = await Promise.all([
-          adminAPI.getTechnicians(),
-          adminAPI.getPendingApplications()
-        ]);
-
-        if (techniciansResponse.data.success && techniciansResponse.data.data) {
-          dispatch(fetchTechniciansSuccess(techniciansResponse.data.data.technicians || []));
-        }
-
-        if (applicationsResponse.data.success && applicationsResponse.data.data) {
-          dispatch(fetchApplicationsSuccess(applicationsResponse.data.data.applications || []));
-        }
-        
-      } catch (error) {
-        console.error('❌ Error fetching data:', error);
-        dispatch(fetchTechniciansFailure('Failed to load technician data'));
-        dispatch(fetchApplicationsFailure('Failed to load applications data'));
-        toast.error('Failed to load technician data');
-      } 
-    };
-
     fetchData();
   }, [dispatch]);
 
@@ -234,281 +250,189 @@ const TechnicianManagement: React.FC = () => {
     );
   };
 
-  // Handle application approval with confirmation
-  const handleApproveApplication = async (applicationId: string, applicantName: string) => {
-    const result = await Swal.fire({
-      title: 'Approve Application?',
-      html: `Are you sure you want to approve <strong>${applicantName}</strong>'s application?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#10B981',
-      cancelButtonColor: '#6B7280',
-      confirmButtonText: 'Yes, Approve!',
-      cancelButtonText: 'Cancel',
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await adminAPI.approveApplication(applicationId);
-        dispatch(updateApplicationStatus({ applicationId, status: 'approved' }));
-        toast.success(`Application approved! ${applicantName} is now an active technician.`);
-        
-      } catch (error) {
-        console.error('Error approving application:', error);
-        toast.error('Failed to approve application. Please try again.');
-      }
+  // Handle view details navigation
+  const handleViewDetails = (id: string, type: 'technician' | 'application') => {
+    if (type === 'technician') {
+      navigate(`/admin/technicians/${id}/personal-info`);
+    } else {
+      navigate(`/admin/pending-applications/${id}`);
     }
   };
 
-const handleRejectApplication = async (applicationId: string, applicantName: string) => {
-  const { value: reason } = await Swal.fire({
-    title: 'Reject Application?',
-    html: `Please provide a reason for rejecting <strong>${applicantName}</strong>'s application:`,
-    icon: 'warning',
-    input: 'textarea',
-    inputLabel: 'Rejection Reason',
-    inputPlaceholder: 'Enter the reason for rejection...',
-    showCancelButton: true,
-    confirmButtonColor: '#EF4444',
-    cancelButtonColor: '#6B7280',
-    confirmButtonText: 'Reject Application',
-    cancelButtonText: 'Cancel',
-    inputValidator: (value) => {
-      if (!value) return 'Please provide a rejection reason!';
-      if (value.length < 10) return 'Reason must be at least 10 characters long';
-    }
-  });
-
-  if (reason) {
-    try {
-      await adminAPI.rejectApplication(applicationId, reason);
-      dispatch(removeApplication(applicationId));
-      toast.success(`Application rejected. ${applicantName} has been notified.`);
-      
-    } catch (error) {
-      console.error('Error rejecting application:', error);
-      toast.error('Failed to reject application. Please try again.');
-    }
-  }
-};
-  // Updated status change function
-  const handleStatusChange = async (technicianId: string, newStatus: string, technicianName: string) => {
-    const action = newStatus === 'suspended' ? 'suspend' : 'activate';
-    const actionTitle = newStatus === 'suspended' ? 'Suspend Technician?' : 'Activate Technician?';
-    const actionText = newStatus === 'suspended' 
-      ? `Are you sure you want to suspend ${technicianName}? They will not be able to accept new jobs.`
-      : `Are you sure you want to activate ${technicianName}? They will be able to accept new jobs.`;
-
-    const result = await Swal.fire({
-      title: actionTitle,
-      html: actionText,
-      icon: newStatus === 'suspended' ? 'warning' : 'question',
-      showCancelButton: true,
-      confirmButtonColor: newStatus === 'suspended' ? '#EF4444' : '#10B981',
-      cancelButtonColor: '#6B7280',
-      confirmButtonText: newStatus === 'suspended' ? 'Yes, Suspend!' : 'Yes, Activate!',
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await adminAPI.updateTechnicianStatus(technicianId, newStatus);
-        
-        const successMessage = newStatus === 'suspended' 
-          ? `${technicianName} has been suspended successfully.`
-          : `${technicianName} has been activated successfully.`;
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dispatch(updateTechnicianStatus({ technicianId, status: newStatus as any }));
-        
-        toast.success(successMessage);
-        
-        
-      } catch (error) {
-        console.error('Error updating technician status:', error);
-        toast.error(`Failed to ${action} technician. Please try again.`);
-      }
-    }
+  // Handle edit technician
+  const handleEditTechnician = (technicianId: string, technicianName: string) => {
+    toast.success(`Edit details for ${technicianName}`);
+    // Implement edit logic here
   };
 
   // Render table rows based on item type
   const renderTableRows = () => {
-    if (activeTab === 'pending') {
-      return currentItemsPage.map((item) => {
-        if (isTechnicianApplication(item)) {
-          return (
-            <tr key={item._id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 text-sm font-medium">
-                      {item.personal?.fullName?.charAt(0) || 'A'}
-                    </span>
+    return currentItemsPage.map((item) => {
+      if (activeTab === 'pending' && isTechnicianApplication(item)) {
+        return (
+          <tr key={item._id} className="hover:bg-gray-50">
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="flex items-center">
+                <div className="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 text-sm font-medium">
+                    {item.personal?.fullName?.charAt(0) || 'A'}
+                  </span>
+                </div>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-gray-900">
+                    {item.personal?.fullName || 'N/A'}
                   </div>
-                  <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-900">
-                      {item.personal?.fullName || 'N/A'}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      #{item._id.slice(-6)}
-                    </div>
+                  <div className="text-sm text-gray-500">
+                    #{item._id.slice(-6)}
                   </div>
                 </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {item.personal?.phoneNumber || 'N/A'}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {item.email}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex flex-wrap gap-1">
-                  {item.skills?.services?.slice(0, 2).map((service: string) => (
-                    <span
-                      key={service}
-                      className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(service)}`}
-                    >
-                      {service}
-                    </span>
-                  ))}
-                  {item.skills?.services && item.skills.services.length > 2 && (
-                    <span className="px-2 py-1 text-xs text-gray-500">
-                      +{item.skills.services.length - 2} more
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {item.skills?.yearsOfExperience || 0} years
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {new Date(item.submittedAt || item.createdAt).toLocaleDateString()}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div className="flex justify-end space-x-2">
-                  <button 
-                    onClick={() => handleApproveApplication(item._id, item.personal?.fullName || 'Applicant')}
-                    className="p-1 rounded-full text-green-600 hover:bg-green-100 transition-colors"
-                    title="Approve"
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="text-sm text-gray-900">
+                {item.personal?.phoneNumber || 'N/A'}
+              </div>
+              <div className="text-sm text-gray-500">
+                {item.email}
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="flex flex-wrap gap-1">
+                {item.skills?.services?.slice(0, 2).map((service: string) => (
+                  <span
+                    key={service}
+                    className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(service)}`}
                   >
-                    <CheckCircleOutlined className="h-5 w-5" />
-                  </button>
-                  <button 
-                    onClick={() => handleRejectApplication(item._id, item.personal?.fullName || 'Applicant')}
-                    className="p-1 rounded-full text-red-600 hover:bg-red-100 transition-colors"
-                    title="Reject"
-                  >
-                    <BlockOutlined className="h-5 w-5" />
-                  </button>
-                  <Link 
-                    to={`/admin/pending-applications/${item._id}`}
-                    className="p-1 rounded-full text-blue-600 hover:bg-blue-100 transition-colors"
-                    title="View Details"
-                  >
-                    <RemoveRedEyeOutlined className="h-5 w-5" />
-                  </Link>
+                    {service}
+                  </span>
+                ))}
+                {item.skills?.services && item.skills.services.length > 2 && (
+                  <span className="px-2 py-1 text-xs text-gray-500">
+                    +{item.skills.services.length - 2} more
+                  </span>
+                )}
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {item.skills?.yearsOfExperience || 0} years
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {new Date(item.submittedAt || item.createdAt).toLocaleDateString()}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <QuickActionButtons
+                type="icon"
+                actions={[
+                  {
+                    type: 'approve',
+                    onClick: () => handleApproveApplication(item._id, item.personal?.fullName || 'Applicant'),
+                    disabled: actionInProgress,
+                    loading: actionInProgress,
+                    title: 'Approve Application'
+                  },
+                  {
+                    type: 'reject',
+                    onClick: () => handleRejectApplication(item._id, item.personal?.fullName || 'Applicant'),
+                    disabled: actionInProgress,
+                    title: 'Reject Application'
+                  },
+                  {
+                    type: 'view',
+                    onClick: () => handleViewDetails(item._id, 'application'),
+                    title: 'View Application Details'
+                  }
+                ]}
+              />
+            </td>
+          </tr>
+        );
+      } else if (isTechnician(item)) {
+        return (
+          <tr key={item._id} className="hover:bg-gray-50">
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="flex items-center">
+                <div className="h-10 w-10 flex-shrink-0 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <span className="text-yellow-600 text-sm font-medium">
+                    {item.displayName.charAt(0)}
+                  </span>
                 </div>
-              </td>
-            </tr>
-          );
-        }
-        return null;
-      });
-    } else {
-      return currentItemsPage.map((item) => {
-        if (isTechnician(item)) {
-          return (
-            <tr key={item._id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="h-10 w-10 flex-shrink-0 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <span className="text-yellow-600 text-sm font-medium">
-                      {item.displayName.charAt(0)}
-                    </span>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-gray-900">
+                    {item.displayName}
                   </div>
-                  <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-900">
-                      {item.displayName}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      #{item._id.slice(-6)}
-                    </div>
+                  <div className="text-sm text-gray-500">
+                    #{item._id.slice(-6)}
                   </div>
                 </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {item.user?.phone || 'N/A'}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {item.user?.email || item.email}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex flex-wrap gap-1">
-                  {item.services.slice(0, 2).map((service: string) => (
-                    <span
-                      key={service}
-                      className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(service)}`}
-                    >
-                      {service}
-                    </span>
-                  ))}
-                  {item.services.length > 2 && (
-                    <span className="px-2 py-1 text-xs text-gray-500">
-                      +{item.services.length - 2} more
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {item.experienceYears} years
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {getStatusBadge(item.status)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div className="flex justify-end space-x-2">
-                  <Link 
-                    to={`/admin/technicians/${item._id}/personal-info`}
-                    className="p-1 rounded-full text-blue-600 hover:bg-blue-100 transition-colors"
-                    title="View Details"
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="text-sm text-gray-900">
+                {item.user?.phone || 'N/A'}
+              </div>
+              <div className="text-sm text-gray-500">
+                {item.user?.email || item.email}
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="flex flex-wrap gap-1">
+                {item.services.slice(0, 2).map((service: string) => (
+                  <span
+                    key={service}
+                    className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(service)}`}
                   >
-                    <RemoveRedEyeOutlined className="h-5 w-5" />
-                  </Link>
-                  <button 
-                    className="p-1 rounded-full text-green-600 hover:bg-green-100 transition-colors"
-                    title="Edit"
-                  >
-                    <EditOutlined className="h-5 w-5" />
-                  </button>
-                  {item.status === 'approved' && (
-                    <button 
-                      onClick={() => handleStatusChange(item._id, 'suspended', item.displayName)}
-                      className="p-1 rounded-full text-red-600 hover:bg-red-100 transition-colors"
-                      title="Suspend"
-                    >
-                      <BlockOutlined className="h-5 w-5" />
-                    </button>
-                  )}
-                  {item.status === 'suspended' && (
-                    <button 
-                      onClick={() => handleStatusChange(item._id, 'approved', item.displayName)}
-                      className="p-1 rounded-full text-green-600 hover:bg-green-100 transition-colors"
-                      title="Activate"
-                    >
-                      <CheckCircleOutlined className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          );
-        }
-        return null;
-      });
-    }
+                    {service}
+                  </span>
+                ))}
+                {item.services.length > 2 && (
+                  <span className="px-2 py-1 text-xs text-gray-500">
+                    +{item.services.length - 2} more
+                  </span>
+                )}
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {item.experienceYears} years
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              {getStatusBadge(item.status)}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <QuickActionButtons
+                type="icon"
+                actions={[
+                  {
+                    type: 'view' as ActionType,
+                    onClick: () => handleViewDetails(item._id, 'technician'),
+                    title: 'View Technician Details'
+                  },
+                  {
+                    type: 'edit' as ActionType,
+                    onClick: () => handleEditTechnician(item._id, item.displayName),
+                    title: 'Edit Technician'
+                  },
+                  ...(item.status === 'approved' ? [{
+                    type: 'suspend' as ActionType,
+                    onClick: () => handleStatusChange(item._id, 'suspended', item.displayName),
+                    disabled: actionInProgress,
+                    loading: actionInProgress,
+                    title: 'Suspend Technician'
+                  }] : []),
+                  ...(item.status === 'suspended' ? [{
+                    type: 'activate' as ActionType,
+                    onClick: () => handleStatusChange(item._id, 'approved', item.displayName),
+                    disabled: actionInProgress,
+                    loading: actionInProgress,
+                    title: 'Activate Technician'
+                  }] : [])
+                ]}
+              />
+            </td>
+          </tr>
+        );
+      }
+      return null;
+    });
   };
 
   if (techniciansLoading || applicationsLoading) {
@@ -544,7 +468,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                 Manage technicians, review applications, and monitor performance.
               </p>
             </div>
-            <button className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            <button className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
               <FileDownloadOutlined className="h-4 w-4 mr-2" />
               Export Technicians
             </button>
@@ -552,7 +476,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
 
           {/* Stats cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-blue-50 p-4 rounded-lg flex items-start">
+            <div className="bg-blue-50 p-4 rounded-lg flex items-start border border-blue-100">
               <div className="p-2 bg-blue-100 rounded-md mr-3">
                 <PeopleAltOutlined className="h-5 w-5 text-blue-600" />
               </div>
@@ -561,7 +485,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                 <p className="text-xl font-bold">{allTechnicians}</p>
               </div>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg flex items-start">
+            <div className="bg-green-50 p-4 rounded-lg flex items-start border border-green-100">
               <div className="p-2 bg-green-100 rounded-md mr-3">
                 <VerifiedUserOutlined className="h-5 w-5 text-green-600" />
               </div>
@@ -570,7 +494,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                 <p className="text-xl font-bold">{approvedTechnicians}</p>
               </div>
             </div>
-            <div className="bg-red-50 p-4 rounded-lg flex items-start">
+            <div className="bg-red-50 p-4 rounded-lg flex items-start border border-red-100">
               <div className="p-2 bg-red-100 rounded-md mr-3">
                 <PersonOffOutlined className="h-5 w-5 text-red-600" />
               </div>
@@ -579,24 +503,26 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                 <p className="text-xl font-bold">{suspendedTechnicians}</p>
               </div>
             </div>
-            <div className="bg-yellow-50 p-4 rounded-lg flex items-start">
+            <div className="bg-yellow-50 p-4 rounded-lg flex items-start border border-yellow-100">
               <div className="p-2 bg-yellow-100 rounded-md mr-3">
                 <PersonAddAltOutlined className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">
-                  Pending Applications
-                </p>
+                <p className="text-sm text-gray-600">Pending Applications</p>
                 <p className="text-xl font-bold">{pendingApplications}</p>
               </div>
             </div>
           </div>
 
-          {/* Tabs - Now with 4 tabs: Active, Pending, Suspended, Rejected */}
+          {/* Tabs */}
           <div className="mb-6 border-b border-gray-200">
             <div className="flex space-x-8">
               <button
-                className={`py-2 px-1 -mb-px flex items-center space-x-1 ${activeTab === 'active' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors ${
+                  activeTab === 'active' 
+                    ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
                 onClick={() => setActiveTab('active')}
               >
                 <span>Active Technicians</span>
@@ -605,7 +531,11 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                 </span>
               </button>
               <button
-                className={`py-2 px-1 -mb-px flex items-center space-x-1 ${activeTab === 'pending' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors ${
+                  activeTab === 'pending' 
+                    ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
                 onClick={() => setActiveTab('pending')}
               >
                 <span>Pending Applications</span>
@@ -614,7 +544,11 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                 </span>
               </button>
               <button
-                className={`py-2 px-1 -mb-px flex items-center space-x-1 ${activeTab === 'suspended' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors ${
+                  activeTab === 'suspended' 
+                    ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
                 onClick={() => setActiveTab('suspended')}
               >
                 <span>Suspended Technicians</span>
@@ -623,7 +557,11 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                 </span>
               </button>
               <button
-                className={`py-2 px-1 -mb-px flex items-center space-x-1 ${activeTab === 'rejected' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`py-2 px-1 -mb-px flex items-center space-x-1 transition-colors ${
+                  activeTab === 'rejected' 
+                    ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
                 onClick={() => setActiveTab('rejected')}
               >
                 <span>Rejected Technicians</span>
@@ -634,15 +572,15 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
             </div>
           </div>
 
-          {/* Search and filters - Removed status filter */}
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          {/* Search and filters */}
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-4 border border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="col-span-1 md:col-span-2">
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Search by name, email, phone, or location"
-                    className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -652,7 +590,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
               <div>
                 <div className="relative">
                   <select
-                    className="appearance-none w-full pl-4 pr-10 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="appearance-none w-full pl-4 pr-10 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
                     value={serviceFilter}
                     onChange={(e) => setServiceFilter(e.target.value)}
                   >
@@ -675,7 +613,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                   <div className="flex-1">
                     <div className="relative">
                       <select
-                        className="appearance-none w-full pl-4 pr-10 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="appearance-none w-full pl-4 pr-10 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
                         value={ratingFilter}
                         onChange={(e) => setRatingFilter(e.target.value)}
                       >
@@ -689,7 +627,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                   </div>
                   <div className="flex-1">
                     <div className="relative">
-                      <select className="appearance-none w-full pl-4 pr-10 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      <select className="appearance-none w-full pl-4 pr-10 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white">
                         <option>All Locations</option>
                         <option>Kannur</option>
                         <option>Kochi</option>
@@ -707,28 +645,28 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
             </div>
           </div>
 
-          {/* Content based on active tab */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          {/* Content table */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   {activeTab === 'pending' ? (
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applicant</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Services</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Experience</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applied On</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Services</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   ) : (
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Technician</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Services</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Experience</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Technician</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Services</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   )}
                 </thead>
@@ -737,11 +675,18 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                     renderTableRows()
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                        {activeTab === 'pending' ? 'No pending applications found' : 
-                         activeTab === 'active' ? 'No active technicians found' : 
-                         activeTab === 'suspended' ? 'No suspended technicians found' :
-                         'No rejected technicians found'}
+                      <td colSpan={6} className="px-6 py-8 text-center">
+                        <div className="flex flex-col items-center justify-center text-gray-500">
+                          <div className="text-lg font-medium mb-2">
+                            {activeTab === 'pending' ? 'No pending applications found' : 
+                             activeTab === 'active' ? 'No active technicians found' : 
+                             activeTab === 'suspended' ? 'No suspended technicians found' :
+                             'No rejected technicians found'}
+                          </div>
+                          <div className="text-sm">
+                            Try adjusting your search filters
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -751,16 +696,16 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
 
             {/* Pagination */}
             {currentItems.length > 0 && (
-              <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
+              <div className="flex justify-between items-center px-6 py-4 border-t border-gray-200 bg-gray-50">
                 <span className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
+                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, currentItems.length)} of {currentItems.length} entries
                 </span>
 
                 <div className="flex space-x-2">
                   <button
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((prev) => prev - 1)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium ${
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                       currentPage === 1
                         ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                         : "bg-white border border-gray-300 hover:bg-gray-100 text-gray-700"
@@ -773,7 +718,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                     <button
                       key={index + 1}
                       onClick={() => setCurrentPage(index + 1)}
-                      className={`px-3 py-1 rounded-md text-sm font-medium ${
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                         currentPage === index + 1
                           ? "bg-blue-600 text-white"
                           : "bg-white border border-gray-300 hover:bg-gray-100 text-gray-700"
@@ -786,7 +731,7 @@ const handleRejectApplication = async (applicationId: string, applicantName: str
                   <button
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage((prev) => prev + 1)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium ${
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                       currentPage === totalPages
                         ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                         : "bg-white border border-gray-300 hover:bg-gray-100 text-gray-700"

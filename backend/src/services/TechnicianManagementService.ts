@@ -16,6 +16,7 @@ import {
 } from '../interfaces/admin/ITechnicianManagement';
 import { Types } from 'mongoose';
 import { Technician } from '../models/technician/TechnicianSchema';
+import { emailService } from './EmailService';
 
 export class TechnicianManagementService {
   private technicianRepository: TechnicianManagementRepository;
@@ -354,53 +355,72 @@ const status = mapStatus(technician.status, application);
   return adminTechnician;
 }
 
-  async updateTechnicianStatus(id: string, statusData: UpdateStatusRequest): Promise<SingleTechnicianResponse> { // ✅ Change return type
-  try {
-    const { status } = statusData;
+  async updateTechnicianStatus(id: string, statusData: UpdateStatusRequest): Promise<SingleTechnicianResponse> {
+    try {
+      const { status, emailNotification = true, reason } = statusData; // Add emailNotification and reason
 
-    if (!status || !['approved', 'suspended', 'rejected'].includes(status)) {
-      return {
-        success: false,
-        message: 'Valid status is required (approved, suspended, rejected)'
-      };
-    }
-
-    const technician = await this.technicianRepository.updateTechnicianStatus(id, status);
-
-    if (!technician) {
-      return {
-        success: false,
-        message: 'Technician not found'
-      };
-    }
-
-    const adminTechnician = await this.convertToAdminTechnician(technician);
-
-    // If approving a technician, also update their application status
-    if (status === 'approved') {
-      await this.technicianRepository.updateApplicationStatus(
-        id,
-        'approved'
-      );
-    }
-
-    // ✅ FIXED: Return single technician response
-    return {
-      success: true,
-      message: `Technician status updated to ${status}`,
-      data: {
-        technician: adminTechnician // ✅ Single technician object
+      if (!status || !['approved', 'suspended', 'rejected'].includes(status)) {
+        return {
+          success: false,
+          message: 'Valid status is required (approved, suspended, rejected)'
+        };
       }
-    };
-  } catch (error) {
-    console.error('Update technician status error:', error);
-    return {
-      success: false,
-      message: 'Failed to update technician status',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
+
+      const technician = await this.technicianRepository.updateTechnicianStatus(id, status);
+
+      if (!technician) {
+        return {
+          success: false,
+          message: 'Technician not found'
+        };
+      }
+
+      // Get user data for email
+      const user = await this.technicianRepository.findUserById(technician.userId as Types.ObjectId);
+      
+      let emailSent = false;
+      let emailMessage = '';
+
+      // Send email notification if requested and user email exists
+      if (emailNotification && user?.email) {
+        if (status === 'approved') {
+          emailSent = await emailService.sendApplicationApprovalEmail(
+            user.email, 
+            technician.displayName
+          );
+          emailMessage = emailSent ? ' and approval email sent to technician' : ' but failed to send email notification';
+          
+          // Also update application status
+          await this.technicianRepository.updateApplicationStatus(id, 'approved');
+        } else {
+          emailSent = await emailService.sendStatusUpdateEmail(
+            user.email,
+            technician.displayName,
+            status,
+            reason
+          );
+          emailMessage = emailSent ? ` and ${status} notification email sent to technician` : ` but failed to send email notification`;
+        }
+      }
+
+      const adminTechnician = await this.convertToAdminTechnician(technician);
+
+      return {
+        success: true,
+        message: `Technician status updated to ${status}${emailMessage}`,
+        data: {
+          technician: adminTechnician
+        }
+      };
+    } catch (error) {
+      console.error('Update technician status error:', error);
+      return {
+        success: false,
+        message: 'Failed to update technician status',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
-}
 
   async getTechnicianStats(): Promise<TechnicianStatsResponse> {
     try {
@@ -530,9 +550,22 @@ const status = mapStatus(technician.status, application);
       );
     }
 
+    // Send approval email
+      let emailSent = false;
+      let emailMessage = '';
+      
+      if (application.email) {
+        emailSent = await emailService.sendApplicationApprovalEmail(
+          application.email,
+          application.personal?.fullName || 'Technician'
+        );
+        emailMessage = emailSent ? ' and approval email sent to technician' : ' but failed to send email notification';
+      }
+
+
       return {
         success: true,
-        message: 'Application approved successfully',
+        message: `Application approved successfully${emailMessage}`,
         data: {
           applications: [updatedApplication as ITechnicianApplication],
           pagination: {
@@ -557,7 +590,7 @@ const status = mapStatus(technician.status, application);
   // In your rejectApplication method in TechnicianManagementService
 async rejectApplication(id: string, rejectData: RejectApplicationRequest): Promise<ApplicationListResponse> {
   try {
-    const { rejectionReason } = rejectData;
+    const { rejectionReason, emailNotification = true } = rejectData;
 
     console.log('🔍 START rejectApplication for application ID:', id);
     
@@ -651,11 +684,24 @@ async rejectApplication(id: string, rejectData: RejectApplicationRequest): Promi
       'rejected'
     );
 
+     // Send rejection email
+      let emailSent = false;
+      let emailMessage = '';
+      
+      if (emailNotification && application.email) {
+        emailSent = await emailService.sendApplicationRejectionEmail(
+          application.email,
+          application.personal?.fullName || 'Applicant',
+          rejectionReason
+        );
+        emailMessage = emailSent ? ' and rejection email sent to applicant' : ' but failed to send email notification';
+      }
+
     console.log('🎉 Rejection process completed successfully');
 
     return {
       success: true,
-      message: 'Application rejected successfully',
+      message: `Application rejected successfully${emailMessage}`,
       data: {
         applications: [updatedApplication as ITechnicianApplication],
         pagination: {

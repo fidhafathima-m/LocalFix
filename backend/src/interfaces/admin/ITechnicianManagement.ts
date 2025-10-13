@@ -201,6 +201,8 @@ export interface ApplicationStatsResponse {
 
 export interface UpdateStatusRequest {
   status: 'approved' | 'suspended' | 'rejected';
+  emailNotification?: boolean
+  reason?: string
 }
 
 export interface ApproveApplicationRequest {
@@ -209,6 +211,7 @@ export interface ApproveApplicationRequest {
 
 export interface RejectApplicationRequest {
   rejectionReason: string;
+  emailNotification?: boolean
 }
 
 export interface TechnicianFilters {

@@ -90,8 +90,8 @@ export const fetchPendingApplications = async (): Promise<TechnicianApplication[
 };
 
 // Approve application - UPDATED ENDPOINT
-export const approveApplication = async (applicationId: string): Promise<void> => {
-  const res = await api.patch<ApiResponse<void>>(`/admin/technicians/applications/${applicationId}/approve`);
+export const approveApplication = async (applicationId: string, emailNotification: boolean = true): Promise<void> => {
+  const res = await api.patch<ApiResponse<void>>(`/admin/technicians/applications/${applicationId}/approve`, {emailNotification});
   
   if (!res.data.success) {
     throw new Error(res.data.message || 'Failed to approve application');
@@ -100,13 +100,14 @@ export const approveApplication = async (applicationId: string): Promise<void> =
 
 // Reject application - UPDATED ENDPOINT
 // In technicianApi.ts - FIX THE ENDPOINT
-export const rejectApplication = async (applicationId: string, rejectionReason: string): Promise<void> => {
+export const rejectApplication = async (applicationId: string, rejectionReason: string, emailNotification: boolean = true): Promise<void> => {
   console.log('🔍 API: Rejecting application:', applicationId);
   console.log('🔍 API: Rejection reason:', rejectionReason);
+  console.log('🔍 API: Email notification:', emailNotification);
   
   const res = await api.patch<ApiResponse<void>>(
     `/admin/technicians/applications/${applicationId}/reject`, 
-    { rejectionReason }
+    { rejectionReason, emailNotification }
   );
   
   console.log('🔍 API Response:', res.data);
@@ -117,8 +118,8 @@ export const rejectApplication = async (applicationId: string, rejectionReason: 
 };
 
 // Update technician status - UPDATED ENDPOINT
-export const updateTechnicianStatus = async (technicianId: string, status: string): Promise<Technician> => {
-  const res = await api.patch<ApiResponse<{ technician: Technician }>>(`/admin/technicians/${technicianId}/status`, { status });
+export const updateTechnicianStatus = async (technicianId: string, status: string, emailNotification: boolean = true, reason?: string): Promise<Technician> => {
+  const res = await api.patch<ApiResponse<{ technician: Technician }>>(`/admin/technicians/${technicianId}/status`, { status, emailNotification, reason });
   
   if (res.data.success && res.data.data && res.data.data.technician) {
     return res.data.data.technician;

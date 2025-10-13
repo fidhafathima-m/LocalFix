@@ -56,34 +56,34 @@ const PendingApplicationProfile: React.FC = () => {
   const { applications, applicationsLoading } = useAppSelector((state) => state.admin)
 
   useEffect(() => {
-    const fetchApplicationDetails = async () => {
-  try {
-    setLoading(true)
-    
-    if (!applicationId) {
-      throw new Error('Application ID is required')
-    }
+  const fetchApplicationDetails = async () => {
+    try {
+      setLoading(true)
+      
+      if (!applicationId) {
+        throw new Error('Application ID is required')
+      }
 
-    const response = await adminAPI.getApplicationDetails(applicationId)
-    
-    if (response.data.success && response.data.data?.applications?.[0]) {
-      // ✅ FIX: Get the application from the applications array
-      const applicationData = response.data.data.applications[0]
-      setApplication(applicationData)
-    } else {
-      throw new Error(response.data.message || 'Application not found')
+      const response = await adminAPI.getApplicationDetails(applicationId)
+      
+      if (response.data.success && response.data.data?.applications?.[0]) {
+        const applicationData = response.data.data.applications[0]
+        setApplication(applicationData)
+      } else {
+        throw new Error(response.data.message || 'Application not found')
+      }
+      
+    } catch (error) {
+      console.error('❌ Error fetching application details:', error)
+    } finally {
+      setLoading(false)
     }
-    
-  } catch (error) {
-    console.error('❌ Error fetching application details:', error)
-  } finally {
-    setLoading(false)
   }
-}
-    if (applicationId) {
-      fetchApplicationDetails()
-    }
-  }, [applicationId])
+
+  if (applicationId) {
+    fetchApplicationDetails()
+  }
+}, [applicationId]) 
 
   // Alternative: If you want to use Redux store instead of local state
   useEffect(() => {
@@ -182,6 +182,19 @@ const PendingApplicationProfile: React.FC = () => {
         };
       });
   };
+
+  const refreshApplicationData = async () => {
+  if (!applicationId) return;
+  
+  try {
+    const response = await adminAPI.getApplicationDetails(applicationId)
+    if (response.data.success && response.data.data?.applications?.[0]) {
+      setApplication(response.data.data.applications[0])
+    }
+  } catch (error) {
+    console.error('❌ Error refreshing application details:', error)
+  }
+}
 
   // Function to handle document viewing with Cloudinary-specific handling
   const handleViewDocument = (url: string, isPdf: boolean) => {
@@ -472,6 +485,7 @@ const PendingApplicationProfile: React.FC = () => {
               type="pending"
               applicationId={application._id}
               technicianName={application.personal?.fullName || 'Applicant'}
+              onStatusUpdate={refreshApplicationData}
             />
           </div>
         </div>

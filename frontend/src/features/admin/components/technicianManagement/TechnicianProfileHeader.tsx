@@ -104,8 +104,7 @@ export const TechnicianProfileHeader: React.FC<
             <span>Technician ID: {technicianId}</span>
             <span className="mx-2">|</span>
             <span>Joined: {joinDate}</span>
-            <div className="flex items-center space-x-2 mt-1">
-                <span className="text-gray-600">ID: {technicianId}</span>
+            <div className="flex items-center space-x-2 mt-1 ml-3">
                 {getStatusBadge()}
               </div>
           </div>
