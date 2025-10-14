@@ -17,7 +17,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
-    console.log(`FileUpload: Selected file for ${fieldName}:`, file?.name);
     onFileChange(file);
   };
 

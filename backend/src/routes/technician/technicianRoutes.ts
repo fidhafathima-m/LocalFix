@@ -36,7 +36,7 @@ const uploadFields = upload.fields([
 ]);
 
 // Application routes
-router.post("/start", TechnicianApplicationController.startApplication);
+router.post("/start", protect, TechnicianApplicationController.startApplication);
 router.post(
   "/save-step",
   protect,

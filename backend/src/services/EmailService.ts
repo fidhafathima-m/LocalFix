@@ -64,10 +64,10 @@ class EmailService {
             
             <h3>What's Next?</h3>
             <ul>
-              <li>- Your profile is now active on LocalFix</li>
-              <li>- Start receiving service requests from customers</li>
-              <li>- Build your reputation with reviews and ratings</li>
-              <li>- Earn money by providing quality services</li>
+              <li>Your profile is now active on LocalFix</li>
+              <li>Start receiving service requests from customers</li>
+              <li>Build your reputation with reviews and ratings</li>
+              <li>Earn money by providing quality services</li>
             </ul>
 
             <p>You can now log in to your technician dashboard and start accepting jobs immediately.</p>
@@ -131,10 +131,10 @@ class EmailService {
 
             <h3>What Can You Do?</h3>
             <ul>
-              <li>- Review the provided reason above</li>
-              <li>- Update your application with additional information</li>
-              <li>- Contact support if you need clarification</li>
-              <li>- Reapply after addressing the concerns</li>
+              <li>Review the provided reason above</li>
+              <li>Update your application with additional information</li>
+              <li>Contact support if you need clarification</li>
+              <li>Reapply after addressing the concerns</li>
             </ul>
 
             <p>We encourage you to review our technician requirements and consider applying again in the future.</p>

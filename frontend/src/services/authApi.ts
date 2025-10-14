@@ -183,7 +183,6 @@ export const authAPI = {
 
   resetPassword: async (resetData: ResetPasswordData): Promise<AuthResponse> => {
   try {
-    console.log("Sending reset password data:", resetData); // Add this line
     
     const response = await api.post<AuthResponse>(
       "/auth/reset-password",
@@ -191,7 +190,6 @@ export const authAPI = {
     );
     return response.data;
   } catch (error: any) {
-    console.error("Reset password API error:", error); // Add this line
     if (error.response?.data) {
       return error.response.data;
     }
