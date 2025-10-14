@@ -1,6 +1,6 @@
 import { Router } from "express";
 import TechnicianDashboardController from "../../controllers/technician/technicianDashboard";
-import { protect, serviceProvider } from "../../middleware/authMiddleware"; // Import both
+import { protect, serviceProvider } from "../../middleware/authMiddleware";
 
 const router = Router();
 

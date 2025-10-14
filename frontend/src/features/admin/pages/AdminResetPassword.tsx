@@ -4,7 +4,7 @@ import NewPassword from "../../../components/common/NewPassword";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
 import toast from "react-hot-toast";
-import { authAPI } from "../../../services/authApi"; // Updated import
+import { authAPI } from "../../../services/authApi"; 
 
 const AdminResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();

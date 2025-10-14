@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import GoogleAuth from "../../features/user/components/GoogleAuth";
-import { authAPI } from "../../services/authApi"; // Updated import
+import { authAPI } from "../../services/authApi"; 
 import { signupSchema, validateSchema } from "../../validation";
 // import FacebookAuth from '../components/FacebookAuth';
 
@@ -70,7 +70,6 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
 
     setLoading(true);
     try {
-      // Use the new authAPI service
       const response = await authAPI.signup({
         fullName: formData.fullName,
         email: formData.email || undefined,
@@ -103,10 +102,8 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
           replace: true,
         });
       } else {
-        // Handle API error response
         toast.error(response.message || "Sign up failed");
         
-        // Optionally set specific field errors if provided by API
         if (response.error) {
           console.error("Signup API error:", response.error);
         }

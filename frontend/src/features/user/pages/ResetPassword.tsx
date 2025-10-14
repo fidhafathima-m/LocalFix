@@ -20,7 +20,6 @@ const ResetPasswordPage: React.FC = () => {
   };
 
   useEffect(() => {
-    // Check if we have the necessary data (either phone or email + (otp OR token) + userType)
     const hasIdentifier = state?.phone || state?.email;
     const hasVerification = state?.otp || state?.token;
     const hasUserType = state?.userType;

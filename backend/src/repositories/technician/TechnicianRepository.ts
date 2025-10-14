@@ -64,7 +64,6 @@ export class TechnicianRepository {
     }
   }
 
-  // In your TechnicianRepository
   async updateTechnicianStatus(
     id: string,
     updateData: any

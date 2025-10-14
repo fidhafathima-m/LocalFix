@@ -1,10 +1,10 @@
 import { Router } from "express";
-import UserManagementController from "../../controllers/admin/userManagement"; // Fixed import name
+import UserManagementController from "../../controllers/admin/userManagement"; 
 import { admin, protect } from "../../middleware/authMiddleware";
 
 const router = Router();
 
-// USER MANAGEMENT ROUTES - FIXED VERSION
+// USER MANAGEMENT ROUTES
 router.get("/", protect, admin, UserManagementController.getUsers);
 router.get("/stats", protect, admin, UserManagementController.getUserStats);
 router.get("/:userId", protect, admin, UserManagementController.getUserById);

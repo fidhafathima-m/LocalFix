@@ -341,7 +341,6 @@ export class AuthService {
   try {
     const { phone, email, otp, token, password, userType } = resetData; // Change newPassword to password
 
-    // Validate that we have a password
     if (!password) {
       return { success: false, message: "Password is required" };
     }
@@ -393,7 +392,7 @@ export class AuthService {
       return { success: false, message: "Either OTP or token is required" };
     }
 
-    const passwordHash = await bcrypt.hash(password, 10); // Use password instead of newPassword
+    const passwordHash = await bcrypt.hash(password, 10);
     const identifier = phone || email!;
 
     await this.userRepository.updatePassword(
@@ -460,7 +459,7 @@ export class AuthService {
           timestamp: Date.now(),
         },
         process.env.JWT_SECRET as string,
-        { expiresIn: "15m" } // Short-lived token for security
+        { expiresIn: "15m" } 
       );
 
       return {

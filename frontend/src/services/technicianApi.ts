@@ -61,7 +61,7 @@ export interface ApplicationData {
     currentAddress?: string;
   };
   documents?: Record<string, any>;
-  availability: { // Remove the optional ? and define the exact type
+  availability: { 
     monday: {
       available: boolean;
       startTime: string;

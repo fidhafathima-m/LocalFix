@@ -70,7 +70,6 @@ export class TechnicianDashboardService {
         technician.userId as Types.ObjectId
       );
 
-      // IMPROVED: Better languages formatting function
       const formatLanguages = (languages: any): string[] => {
         if (!languages) {
           return [];
@@ -88,7 +87,6 @@ export class TechnicianDashboardService {
             return [];
           }
 
-          // Try to parse as JSON first
           try {
             const parsed = JSON.parse(languages);
 
@@ -118,9 +116,7 @@ export class TechnicianDashboardService {
         return [];
       };
 
-      // SIMPLIFIED: Remove the complex hasRealTechnicianData logic
       const getPersonalInfo = (technician: any, userAddress?: any) => {
-        // Always use technician.personalInfo if it exists
         const personalInfo: any = {
           fullName: technician.personalInfo?.fullName || technician.displayName,
           gender: technician.personalInfo?.gender || "Not specified",
@@ -129,7 +125,7 @@ export class TechnicianDashboardService {
             technician.phone ||
             "Not provided",
           dateOfBirth: technician.personalInfo?.dateOfBirth || "Not specified",
-          languages: formatLanguages(technician.personalInfo?.languages),
+          languages: formatLanguages(technician.skills?.languages),
         };
 
         // Handle address
@@ -161,10 +157,9 @@ export class TechnicianDashboardService {
 
       const personalInfo = getPersonalInfo(technician, userAddress);
 
-      // IMPROVED: Include more fields in the profile
       const profile = {
-        _id: technician._id?.toString(), // Add this
-        userId: technician.userId?.toString(), // Add this
+        _id: technician._id?.toString(), 
+        userId: technician.userId?.toString(), 
         displayName: technician.displayName,
         email: user.email,
         phone: user.phone || technician.phone,

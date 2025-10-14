@@ -45,8 +45,6 @@ export class TechnicianManagementRepository {
       Object.assign(updateData, additionalData);
     }
 
-    console.log("🔄 Updating technician with data:", updateData);
-
     const technician = await Technician.findByIdAndUpdate(
       id,
       { $set: updateData },
@@ -54,20 +52,12 @@ export class TechnicianManagementRepository {
     );
 
     if (!technician) {
-      console.log("❌ Technician not found with ID:", id);
       return null;
     }
 
-    console.log("✅ Technician status updated successfully:", {
-      id: technician._id,
-      newStatus: technician.status,
-      suspensionReason: technician.suspensionReason,
-      suspendedAt: technician.suspendedAt
-    });
-
     return technician;
   } catch (error) {
-    console.error("❌ Repository: Error updating technician status:", error);
+    console.error("Repository: Error updating technician status:", error);
     throw error;
   }
 }
@@ -174,7 +164,7 @@ export class TechnicianManagementRepository {
 
       return result;
     } catch (error) {
-      console.error("❌ Error in updateApplicationStatus:", error);
+      console.error("Error in updateApplicationStatus:", error);
       throw error;
     }
   }

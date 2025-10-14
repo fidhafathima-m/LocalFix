@@ -125,7 +125,6 @@ const ForgetPassword: React.FC<ForgetPasswordProps> = ({ userType }) => {
           replace: true,
         });
       } else {
-        // Show API errors as toast only
         toast.error(response.message || "Failed to send OTP");
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

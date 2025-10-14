@@ -35,8 +35,8 @@ interface DashboardData {
     isNewTechnician?: boolean;
   };
   profile: TechnicianProfile;
-  suspensionReason?: string; // Add suspension reason
-  suspendedAt?: string; // Add suspension date
+  suspensionReason?: string; 
+  suspendedAt?: string; 
 }
 
 const ApprovedTechnicianDashboard: React.FC = () => {
@@ -276,7 +276,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     if (typeof languages === "string") {
       if (languages.trim() === "") return [];
 
-      // Try to parse as JSON first
       try {
         const parsed = JSON.parse(languages);
         if (Array.isArray(parsed)) {
@@ -284,14 +283,12 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         }
       } catch (e) {
         console.error(e);
-        // If not JSON, check if it's already a comma-separated string
         if (languages.includes(",")) {
           return languages
             .split(",")
             .map((lang) => lang.trim())
             .filter((lang) => lang !== "");
         }
-        // If it's a single language string
         return [languages.trim()];
       }
     }

@@ -1,4 +1,3 @@
-// src/modules/admin/admin.technicianRoutes.ts
 import { admin, protect } from "../../middleware/authMiddleware";
 import { Router } from "express";
 import technicianManagement from "../../controllers/admin/technicianManagement";

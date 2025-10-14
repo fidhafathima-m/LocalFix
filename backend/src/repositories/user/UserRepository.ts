@@ -18,7 +18,6 @@ export class UserRepository {
     identifier: string,
     role?: string
   ): Promise<IUser | null> {
-    // Handle case where identifier might be an object instead of string
     let actualIdentifier = identifier;
 
     // If identifier is an object, extract the email/phone from it
