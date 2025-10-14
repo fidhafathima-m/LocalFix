@@ -33,14 +33,16 @@ export interface ResendOTPData {
 }
 
 export interface ForgotPasswordData {
-  identifier: string;
+  phone?: string;
+  email?: string;
   userType: "user" | "serviceProvider" | "admin";
 }
 
 export interface ResetPasswordData {
   password: string;
   confirmPassword: string;
-  otp: string;
+  otp?: string;
+  token?: string;
   userType: "user" | "serviceProvider" | "admin";
   phone?: string;
   email?: string;
@@ -51,7 +53,6 @@ export interface GoogleAuthData {
   userType: "user" | "serviceProvider";
 }
 
-// ✅ CORRECTED AuthResponse to match ACTUAL backend structure
 export interface AuthResponse {
   success: boolean;
   message: string;
@@ -83,14 +84,14 @@ export const authAPI = {
       return {
         success: false,
         message: error.message || "Login failed",
-        error: "Network error"
+        error: "Network error",
       };
     }
   },
 
   signup: async (userData: SignupData): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/register", userData);
+      const response = await api.post<AuthResponse>("/auth/signup", userData);
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
@@ -99,14 +100,17 @@ export const authAPI = {
       return {
         success: false,
         message: error.message || "Signup failed",
-        error: "Network error"
+        error: "Network error",
       };
     }
   },
 
   verifyOTP: async (otpData: OTPData): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/verify-otp", otpData);
+      const response = await api.post<AuthResponse>(
+        "/auth/verify-otp",
+        otpData
+      );
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
@@ -115,7 +119,7 @@ export const authAPI = {
       return {
         success: false,
         message: error.message || "OTP verification failed",
-        error: "Network error"
+        error: "Network error",
       };
     }
   },
@@ -124,7 +128,7 @@ export const authAPI = {
     try {
       const response = await api.post<AuthResponse>("/auth/verify-reset-otp", {
         ...otpData,
-        context: "forgot"
+        context: "forgot",
       });
       return response.data;
     } catch (error: any) {
@@ -134,14 +138,17 @@ export const authAPI = {
       return {
         success: false,
         message: error.message || "OTP verification failed",
-        error: "Network error"
+        error: "Network error",
       };
     }
   },
 
   resendOTP: async (otpData: ResendOTPData): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/resend-otp", otpData);
+      const response = await api.post<AuthResponse>(
+        "/auth/resend-otp",
+        otpData
+      );
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
@@ -150,14 +157,17 @@ export const authAPI = {
       return {
         success: false,
         message: error.message || "Failed to resend OTP",
-        error: "Network error"
+        error: "Network error",
       };
     }
   },
 
   forgotPassword: async (data: ForgotPasswordData): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/forgot-password", data);
+      const response = await api.post<AuthResponse>(
+        "/auth/forgot-password",
+        data
+      );
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
@@ -166,26 +176,32 @@ export const authAPI = {
       return {
         success: false,
         message: error.message || "Failed to send OTP",
-        error: "Network error"
+        error: "Network error",
       };
     }
   },
 
   resetPassword: async (resetData: ResetPasswordData): Promise<AuthResponse> => {
-    try {
-      const response = await api.post<AuthResponse>("/auth/reset-password", resetData);
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      return {
-        success: false,
-        message: error.message || "Password reset failed",
-        error: "Network error"
-      };
+  try {
+    console.log("Sending reset password data:", resetData); // Add this line
+    
+    const response = await api.post<AuthResponse>(
+      "/auth/reset-password",
+      resetData
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Reset password API error:", error); // Add this line
+    if (error.response?.data) {
+      return error.response.data;
     }
-  },
+    return {
+      success: false,
+      message: error.message || "Password reset failed",
+      error: "Network error",
+    };
+  }
+},
 
   googleAuth: async (tokenData: GoogleAuthData): Promise<AuthResponse> => {
     try {
@@ -198,7 +214,7 @@ export const authAPI = {
       return {
         success: false,
         message: error.message || "Google authentication failed",
-        error: "Network error"
+        error: "Network error",
       };
     }
   },
@@ -214,7 +230,7 @@ export const authAPI = {
       return {
         success: false,
         message: error.message || "Failed to get profile",
-        error: "Network error"
+        error: "Network error",
       };
     }
   },

@@ -3,11 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
-import {
-  approveApplication,
-  rejectApplication,
-  updateTechnicianStatus,
-} from "../features/admin/api/technicianApi";
+import { adminAPI } from "../services/adminApi";
 
 interface UseAdminActionsProps {
   onStatusUpdate?: () => void;
@@ -134,12 +130,7 @@ export const useAdminActions = ({
       const { emailNotification } = result.value;
       setActionInProgress(true);
 
-      const statusPromise = updateTechnicianStatus(
-        technicianId,
-        newStatus,
-        emailNotification,
-        reason
-      );
+      const statusPromise = adminAPI.updateTechnicianStatus(technicianId, newStatus);
 
       const successMessage =
         newStatus === "suspended"
@@ -157,8 +148,12 @@ export const useAdminActions = ({
             loading: `${
               action === "suspend" ? "Suspending" : "Activating"
             } ${technicianName}...`,
-            success: () => {
-              return handleSuccess(successMessage);
+            success: (response) => {
+              if (response.data.success) {
+                return handleSuccess(successMessage);
+              } else {
+                throw new Error(response.data.message || `Failed to ${action} technician`);
+              }
             },
             error: (error) => {
               return handleError(
@@ -220,10 +215,7 @@ export const useAdminActions = ({
       const { emailNotification } = result.value;
       setActionInProgress(true);
 
-      const approvePromise = approveApplication(
-        applicationId,
-        emailNotification
-      );
+      const approvePromise = adminAPI.approveApplication(applicationId);
 
       const successMessage = `Application approved! ${technicianName} is now an active technician.${
         emailNotification ? " Email sent." : ""
@@ -234,8 +226,12 @@ export const useAdminActions = ({
           approvePromise,
           {
             loading: `Approving ${technicianName}'s application...`,
-            success: () => {
-              return handleSuccess(successMessage);
+            success: (response) => {
+              if (response.data.success) {
+                return handleSuccess(successMessage);
+              } else {
+                throw new Error(response.data.message || "Failed to approve application");
+              }
             },
             error: (error) => {
               return handleError(
@@ -322,11 +318,7 @@ export const useAdminActions = ({
       setActionInProgress(true);
 
       try {
-        const rejectPromise = rejectApplication(
-          applicationId,
-          rejectionReason,
-          emailNotification
-        );
+        const rejectPromise = adminAPI.rejectApplication(applicationId, rejectionReason);
 
         const successMessage = `Application rejected.${
           emailNotification ? " Email sent to applicant." : ""
@@ -337,8 +329,12 @@ export const useAdminActions = ({
             rejectPromise,
             {
               loading: `Rejecting ${technicianName}'s application...`,
-              success: () => {
-                return handleSuccess(successMessage);
+              success: (response) => {
+                if (response.data.success) {
+                  return handleSuccess(successMessage);
+                } else {
+                  throw new Error(response.data.message || "Failed to reject application");
+                }
               },
               error: (error) => {
                 return handleError(

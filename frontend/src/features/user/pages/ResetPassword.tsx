@@ -1,11 +1,10 @@
 import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
 import NewPassword from "../../../components/common/NewPassword";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
 import toast from "react-hot-toast";
-import { resetPassword, type ResetPasswordData } from "../../../api/auth";
+import { authAPI, type ResetPasswordData } from "../../../services/authApi";
 
 const ResetPasswordPage: React.FC = () => {
   const location = useLocation();
@@ -15,13 +14,18 @@ const ResetPasswordPage: React.FC = () => {
   const state = location.state as {
     phone?: string;
     email?: string;
-    otp: string;
+    otp?: string;
+    token?: string;
     userType: "user" | "serviceProvider" | "admin";
   };
 
   useEffect(() => {
-    // Check if we have the necessary data (either phone or email + otp + userType)
-    if ((!state?.phone && !state?.email) || !state?.otp || !state?.userType) {
+    // Check if we have the necessary data (either phone or email + (otp OR token) + userType)
+    const hasIdentifier = state?.phone || state?.email;
+    const hasVerification = state?.otp || state?.token;
+    const hasUserType = state?.userType;
+
+    if (!hasIdentifier || !hasVerification || !hasUserType) {
       console.error("Missing required data for password reset:", state);
       toast.error("Invalid reset password request");
       navigate("/forgot-password");
@@ -29,16 +33,20 @@ const ResetPasswordPage: React.FC = () => {
     }
   }, [state, navigate]);
 
-  if ((!state?.phone && !state?.email) || !state?.otp || !state?.userType) {
+  const hasIdentifier = state?.phone || state?.email;
+  const hasVerification = state?.otp || state?.token;
+  const hasUserType = state?.userType;
+
+  if (!hasIdentifier || !hasVerification || !hasUserType) {
     return null;
   }
 
   const handleResetPassword = async (newPassword: string) => {
     try {
-      // Use the data from location state instead of localStorage
+      // Use the data from location state
       const payload: ResetPasswordData = {
-        newPassword,
-        otp: state.otp,
+        password: newPassword,
+        confirmPassword: newPassword,
         userType: state.userType,
       };
 
@@ -49,28 +57,35 @@ const ResetPasswordPage: React.FC = () => {
         payload.email = state.email;
       }
 
-      await resetPassword(payload);
+      // Add OTP or token based on what's available
+      if (state.otp) {
+        payload.otp = state.otp;
+      } else if (state.token) {
+        payload.token = state.token;
+      }
 
-      toast.success("Password reset successfully");
+      const response = await authAPI.resetPassword(payload);
 
-      localStorage.removeItem("forgotData");
+      if (response.success) {
+        toast.success("Password reset successfully");
 
-      setTimeout(() => {
-        let loginPath = "/login";
-        if (state.userType === "admin") {
-          loginPath = "/admin/login";
-        } else if (state.userType === "serviceProvider") {
-          loginPath = "/technicians/login";
-        }
-        navigate(loginPath, { replace: true });
-      }, 1000);
+        localStorage.removeItem("forgotData");
+
+        setTimeout(() => {
+          let loginPath = "/login";
+          if (state.userType === "admin") {
+            loginPath = "/admin/login";
+          } else if (state.userType === "serviceProvider") {
+            loginPath = "/technicians/login";
+          }
+          navigate(loginPath, { replace: true });
+        }, 1000);
+      } else {
+        toast.error(response.message || "Reset password failed");
+      }
     } catch (error: unknown) {
       console.error("Reset password error:", error);
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error("Reset password failed");
-      }
+      toast.error("Reset password failed");
     }
   };
 

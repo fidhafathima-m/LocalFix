@@ -59,6 +59,7 @@ export const forgotPasswordSchema = z
   })
   .refine((data) => data.phone || data.email, {
     message: "Please enter either phone number or email",
+    path: ["_errors"], 
   });
 
 export const otpSchema = z.object({

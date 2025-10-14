@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import GoogleAuth from "../../features/user/components/GoogleAuth";
-import { signupAPI } from "../../api/auth";
+import { authAPI } from "../../services/authApi"; // Updated import
 import { signupSchema, validateSchema } from "../../validation";
 // import FacebookAuth from '../components/FacebookAuth';
 
@@ -30,6 +29,8 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
   // Validate form
@@ -69,54 +70,69 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
 
     setLoading(true);
     try {
-      const response = await signupAPI({
+      // Use the new authAPI service
+      const response = await authAPI.signup({
         fullName: formData.fullName,
-        ...(formData.phone ? { phone: formData.phone } : {}),
-        ...(formData.email ? { email: formData.email } : {}),
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
         password: formData.password,
         userType: userType,
       });
 
-      localStorage.setItem(
-        "signupData",
-        JSON.stringify({
-          ...formData,
-          userType: userType,
-        })
-      );
+      if (response.success) {
+        localStorage.setItem(
+          "signupData",
+          JSON.stringify({
+            ...formData,
+            userType: userType,
+          })
+        );
 
-      toast.success(
-        response.message || response.data?.message || "OTP sent successfully"
-      );
+        toast.success(response.message || "OTP sent successfully");
 
-      const otpRoute =
-        userType === "serviceProvider" ? "/technicians/verify-otp" : "/otp";
+        const otpRoute =
+          userType === "serviceProvider" ? "/technicians/verify-otp" : "/otp";
 
-      navigate(otpRoute, {
-        state: {
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          userType: userType,
-        },
-        replace: true,
-      });
-    } catch (error: unknown) {
-      console.error("Signup error details:", error);
-
-      if (axios.isAxiosError(error)) {
-        console.error("Axios error response:", error.response);
-        if (error.response?.data?.message) {
-          toast.error(error.response.data.message);
-        } else {
-          toast.error("Sign Up failed - Network error");
-        }
+        navigate(otpRoute, {
+          state: {
+            fullName: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            userType: userType,
+          },
+          replace: true,
+        });
       } else {
-        toast.error("Sign Up failed - Unexpected error");
+        // Handle API error response
+        toast.error(response.message || "Sign up failed");
+        
+        // Optionally set specific field errors if provided by API
+        if (response.error) {
+          console.error("Signup API error:", response.error);
+        }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Signup error details:", error);
+      
+      // Handle unexpected errors
+      const errorMessage = error?.message || "Sign up failed - Unexpected error";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
+  const getLoginPath = () => {
+    return userType === "serviceProvider" ? "/technicians/login" : "/login";
   };
 
   return (
@@ -192,14 +208,57 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
 
           <div>
             <label className="block text-sm mb-1">Password</label>
-            <input
-              type="password"
-              name="password"
-              placeholder="******"
-              className="w-full border p-2 rounded"
-              value={formData.password}
-              onChange={handleChange}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="******"
+                className="w-full border p-2 rounded pr-10"
+                value={formData.password}
+                onChange={handleChange}
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 cursor-pointer"
+                onClick={togglePasswordVisibility}
+              >
+                {showPassword ? (
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
             {error.password && (
               <p className="text-sm text-red-500 mt-1">{error.password}</p>
             )}
@@ -207,14 +266,57 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
 
           <div>
             <label className="block text-sm mb-1">Confirm Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              placeholder="******"
-              className="w-full border p-2 rounded"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="******"
+                className="w-full border p-2 rounded pr-10"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 cursor-pointer"
+                onClick={toggleConfirmPasswordVisibility}
+              >
+                {showConfirmPassword ? (
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
             {error.confirmPassword && (
               <p className="text-sm text-red-500 mt-1">
                 {error.confirmPassword}
@@ -225,8 +327,8 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full bg-blue-600 text-white py-2 rounded cursor-pointer ${
-              loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+            className={`w-full bg-blue-600 text-white py-2 rounded transition-colors ${
+              loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700 cursor-pointer"
             }`}
           >
             {loading ? "Creating Account..." : "Create Account"}
@@ -246,10 +348,8 @@ const SignUp: React.FC<SignUpProps> = ({ userType = "user" }) => {
           <p className="text-gray-500">
             Already have an account?{" "}
             <Link
-              to={
-                userType === "serviceProvider" ? "/technicians/login" : "/login"
-              }
-              className="text-[#1877F2]"
+              to={getLoginPath()}
+              className="text-[#1877F2] hover:text-[#1669D6]"
             >
               Login
             </Link>

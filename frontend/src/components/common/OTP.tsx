@@ -284,8 +284,8 @@ const OTP: React.FC<OTPProps> = ({ userType, context }) => {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full bg-blue-700 text-white p-2 rounded cursor-pointer ${
-            loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-800"
+          className={`w-full bg-blue-700 text-white p-2 rounded${
+            loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-800 cursor-pointer "
           }`}
         >
           {loading ? "Verifying..." : "Verify"}

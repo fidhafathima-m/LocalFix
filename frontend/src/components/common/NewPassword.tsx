@@ -5,13 +5,14 @@ type UserType = "user" | "serviceProvider" | "admin";
 
 interface NewPasswordProps {
   userType: UserType;
-  onSubmit: (password: string) => void;
+  onSubmit: (password: string, confirmPassword: string) => void;
 }
 
 const NewPassword: React.FC<NewPasswordProps> = ({ userType, onSubmit }) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const validation = validateSchema(newPasswordSchema, {
@@ -28,7 +29,7 @@ const NewPassword: React.FC<NewPasswordProps> = ({ userType, onSubmit }) => {
       return;
     }
     setError("");
-    onSubmit(password);
+    onSubmit(password, confirmPassword);
   };
 
   const getTitle = () => {
@@ -39,8 +40,11 @@ const NewPassword: React.FC<NewPasswordProps> = ({ userType, onSubmit }) => {
         return "Technician Create New Password";
       case "admin":
         return "Admin Create New Password";
+      default:
+        return "Create New Password";
     }
   };
+
   return (
     <>
       <div className="max-w-md mx-auto p-6 shadow-md mt-10">
@@ -54,36 +58,51 @@ const NewPassword: React.FC<NewPasswordProps> = ({ userType, onSubmit }) => {
 
         {/* Form */}
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="p-5">
-            <label htmlFor="">New Password</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="Enter new password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <label htmlFor="">Confirm Password</label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              required
-              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="Confirm new password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                New Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Enter new password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                required
+                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
           </div>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600 text-center">{error}</p>
+            </div>
+          )}
+          
           <button
             type="submit"
-            className="w-full bg-blue-700 text-white p-2 rounded cursor-pointer"
+            className="w-full bg-blue-700 text-white p-3 rounded cursor-pointer hover:bg-blue-800 transition-colors font-medium"
           >
             Reset Password
           </button>

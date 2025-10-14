@@ -1,11 +1,10 @@
 import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
 import NewPassword from "../../../components/common/NewPassword";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
 import toast from "react-hot-toast";
-import { resetPassword, type ResetPasswordData } from "../../../api/auth";
+import { authAPI } from "../../../services/authApi"; // Updated import
 
 const AdminResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,42 +30,55 @@ const AdminResetPasswordPage: React.FC = () => {
     }
   }, [resetData, navigate]);
 
-  const handleResetPassword = async (newPassword: string) => {
+  const handleResetPassword = async (newPassword: string, confirmPassword: string) => {
     try {
-      const payload: ResetPasswordData = {
-        newPassword,
+      // Validate passwords match
+      if (newPassword !== confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+
+      // Prepare payload using the new service interface
+      const payload = {
+        password: newPassword,
+        confirmPassword: confirmPassword,
         otp: resetData.otp,
-        userType: "admin",
+        userType: "admin" as const,
+        phone: resetData.phone,
+        email: resetData.email,
       };
 
-      if (resetData.phone) {
-        payload.phone = resetData.phone;
-      } else if (resetData.email) {
-        payload.email = resetData.email;
+      // Use the new authAPI service
+      const response = await authAPI.resetPassword(payload);
+
+      if (response.success) {
+        toast.success(response.message || "Password reset successfully");
+
+        // Clear any stored reset data
+        localStorage.removeItem("forgotData");
+
+        // Navigate to login after success
+        setTimeout(() => navigate("/admin/login", { replace: true }), 1000);
       } else {
-        throw new Error("Missing contact info for password reset");
+        toast.error(response.message || "Password reset failed");
       }
-
-      await resetPassword(payload);
-
-      toast.success("Password reset successful");
-
-      localStorage.removeItem("forgotData");
-
-      setTimeout(() => navigate("/admin/login", { replace: true }), 1000);
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error("Reset password failed");
-      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      
+      // Handle error from the service
+      const errorMessage = error.response?.data?.message || error.message || "Reset password failed";
+      toast.error(errorMessage);
     }
   };
 
   return (
     <>
       <Header userType="admin" />
-      <NewPassword userType="admin" onSubmit={handleResetPassword} />
+      <NewPassword 
+        userType="admin" 
+        onSubmit={handleResetPassword} 
+      />
       <Footer />
     </>
   );

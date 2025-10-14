@@ -6,7 +6,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import axios from "axios";
 import { ImageUploadWithPreview } from "../components/ImageUploadWithPreview";
 import { ApplicationSubmitted } from "../pages/ApplicationSubmitted";
-import api from "../../../utils/axiosConfig";
 import { validateAvailability, validateStepSchema } from "../../../validation";
 import {
   stepSchemas,
@@ -25,6 +24,7 @@ import {
   updateApplicationStatus,
   updateUser,
 } from "../../../store/slices/authSlice";
+import { technicianAPI } from "../../../services/technicianApi";
 
 const STEPS = [
   "Personal Information",
@@ -187,32 +187,33 @@ export const ApplicationForm: React.FC = () => {
     }
 
     try {
-      const resp = await api.post(
-        `${import.meta.env.VITE_BASE_URL}/technician-application/start`,
-        {
-          email: formData.email.trim(),
-          userId: user._id,
+      const response = await technicianAPI.startApplication({
+        email: formData.email.trim(),
+        userId: user._id,
+      });
+
+      if (response.data.success) {
+        const responseData = response.data.data;
+        const newApplicationId = responseData?.applicationId;
+
+        if (responseData?.redirectTo) {
+          const currentPath = window.location.pathname;
+          if (!currentPath.includes(responseData.redirectTo)) {
+            window.location.href = responseData.redirectTo;
+          }
+          return null;
         }
-      );
-
-      const responseData = resp.data.data;
-      const newApplicationId = responseData?.applicationId;
-
-      if (responseData?.redirectTo) {
-        const currentPath = window.location.pathname;
-        if (!currentPath.includes(responseData.redirectTo)) {
-          window.location.href = responseData.redirectTo;
+        if (newApplicationId) {
+          setApplicationId(newApplicationId);
+          localStorage.setItem("applicationId", newApplicationId);
+          localStorage.setItem("currentTechnicianApplication", user._id);
+          return newApplicationId;
+        } else {
+          toast.error("Failed to get application ID from server");
+          return null;
         }
-        return null;
-      }
-
-      if (newApplicationId) {
-        setApplicationId(newApplicationId);
-        localStorage.setItem("applicationId", newApplicationId);
-        localStorage.setItem("currentTechnicianApplication", user._id);
-        return newApplicationId;
       } else {
-        alert("Failed to get application ID from server");
+         toast.error("Failed to start application");
         return null;
       }
     } catch (err: unknown) {
@@ -262,13 +263,9 @@ export const ApplicationForm: React.FC = () => {
         setApplicationId(savedAppId);
 
         try {
-          const response = await api.get(
-            `${
-              import.meta.env.VITE_BASE_URL
-            }/technician-application/${savedAppId}`
-          );
+          const response = await technicianAPI.getApplication(savedAppId)
 
-          if (response.data.data?.application) {
+          if (response.data.success && response.data.data?.application) {
             const appData = response.data.data.application;
             setApplicationStatus(appData.status);
 
@@ -301,18 +298,14 @@ export const ApplicationForm: React.FC = () => {
   }, [user?._id, token]);
 
   useEffect(() => {
-    const fetchSavedApplication = async () => {
-      if (!applicationId) return;
+  const fetchSavedApplication = async () => {
+    if (!applicationId) return;
 
-      try {
-        const resp = await api.get(
-          `${
-            import.meta.env.VITE_BASE_URL
-          }/technician-application/${applicationId}`
-        );
+    try {
+      const response = await technicianAPI.getApplication(applicationId);
 
-        const application =
-          resp.data.data?.application || resp.data.application;
+      if (response.data.success && response.data.data?.application) {
+        const application = response.data.data.application;
 
         if (!application) {
           console.error("No application data in response");
@@ -362,13 +355,14 @@ export const ApplicationForm: React.FC = () => {
           (s) => !completedSteps.includes(s)
         );
         setCurrentStep(nextStepIndex === -1 ? STEPS.length : nextStepIndex + 1);
-      } catch (error) {
-        console.error("Failed to load saved application:", error);
       }
-    };
+    } catch (error) {
+      console.error("Failed to load saved application:", error);
+    }
+  };
 
-    fetchSavedApplication();
-  }, [applicationId, token]);
+  fetchSavedApplication();
+}, [applicationId, token]);
 
   // Save formData locally on every change
   useEffect(() => {
@@ -792,16 +786,7 @@ export const ApplicationForm: React.FC = () => {
     }
 
     try {
-      await api.post(
-        `${import.meta.env.VITE_BASE_URL}/technician-application/save-step`,
-        stepForm,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          timeout: 30000, // 30 second timeout for file uploads
-        }
-      );
+      await technicianAPI.saveStep(stepForm)
 
       // Move to next step
       if (currentStep < STEPS.length) {
@@ -879,17 +864,14 @@ export const ApplicationForm: React.FC = () => {
     }
 
     try {
-      const submitResponse = await api.post(
-        `${import.meta.env.VITE_BASE_URL}/technician-application/submit`,
-        {
-          applicationId: applicationId,
-        }
-      );
+      const response = await technicianAPI.submitApplication({
+        applicationId: applicationId
+      })
 
-      if (submitResponse.status === 200) {
+      if (response.data.success) {
         dispatch(updateApplicationStatus("submitted"));
 
-        if (submitResponse.data.data?.user) {
+        if (response.data.data?.user) {
           dispatch(
             updateUser({
               ...user,

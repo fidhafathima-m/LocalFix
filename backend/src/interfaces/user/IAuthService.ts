@@ -37,7 +37,8 @@ export interface ResetPasswordData {
   email?: string;
   phone?: string;
   otp: string;
-  newPassword: string;
+  token?: string;
+  password: string;
   userType?: string;
 }
 

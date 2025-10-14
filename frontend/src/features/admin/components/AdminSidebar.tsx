@@ -15,6 +15,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAppDispatch } from "../../../hooks/redux";
 import { logout } from "../../../store/slices/authSlice";
 import { clearAdminData } from "../../../store/slices/adminSlice";
+import Swal from "sweetalert2";
+import toast from "react-hot-toast";
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -60,10 +62,22 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    dispatch(logout());
-    dispatch(clearAdminData());
-    navigate("/admin/login");
+  const handleLogout = async() => {
+    const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "You will be logged out.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, logout!",
+        cancelButtonText: "Cancel",
+      });
+
+      if(result.isConfirmed) {
+        dispatch(logout());
+        dispatch(clearAdminData());
+        navigate("/admin/login");
+      }
+    toast.success("You have been logged out!");
   };
 
   return (

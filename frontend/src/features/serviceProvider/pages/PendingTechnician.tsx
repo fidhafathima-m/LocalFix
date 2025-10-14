@@ -13,6 +13,9 @@ import {
   CancelOutlined,
   RefreshOutlined,
   AddCircleOutlineOutlined,
+  PictureAsPdfOutlined,
+  ImageOutlined,
+  DescriptionOutlined,
 } from "@mui/icons-material";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
@@ -30,6 +33,7 @@ interface DocumentInfo {
   size?: number;
   uploadedAt?: string;
   uploadFailed?: boolean;
+  type?: string;
 }
 
 interface ApplicationData {
@@ -77,12 +81,22 @@ interface TechnicianData {
   updatedAt: string;
 }
 
+interface AvailableDocument {
+  key: string;
+  displayName: string;
+  url: string;
+  verified: boolean;
+  type: string;
+  isPdf: boolean;
+  isImage: boolean;
+  uploadedAt?: string;
+  filename?: string;
+  mimetype?: string;
+}
+
 const PendingTechnicianApplication: React.FC = () => {
-  const [applicationData, setApplicationData] =
-    useState<ApplicationData | null>(null);
-  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(
-    null
-  );
+  const [applicationData, setApplicationData] = useState<ApplicationData | null>(null);
+  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(null);
   const [applicationStatus, setApplicationStatus] = useState<string>("pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -164,6 +178,158 @@ const PendingTechnicianApplication: React.FC = () => {
       setLoading(false);
     }
   }, [token, isLoggedIn, navigate]);
+
+  // Function to get all available documents dynamically
+  const getAvailableDocuments = (): AvailableDocument[] => {
+    if (!applicationData?.documents) return [];
+
+    const documentTypes: Record<string, string> = {
+      idProof: "ID Proof",
+      addressProof: "Address Proof",
+      passportPhoto: "Passport Photo",
+      profilePhoto: "Profile Photo",
+      policeVerification: "Police Verification",
+      tradeLicense: "Trade License",
+      certifications: "Certifications",
+      drivingLicense: "Driving License",
+      voterId: "Voter ID",
+      passport: "Passport",
+      aadhaar: "Aadhaar Card",
+      nationalId: "National ID",
+      experienceCertificate: "Experience Certificate",
+      educationCertificate: "Education Certificate",
+      other: "Other Document",
+    };
+
+    const pdfDocumentTypes = [
+      "idProof",
+      "addressProof",
+      "policeVerification",
+      "drivingLicense",
+      "tradeLicense",
+      "certifications",
+      "experienceCertificate",
+      "educationCertificate",
+      "voterId",
+      "passport",
+      "aadhaar",
+      "nationalId",
+      "other",
+    ];
+
+    const imageDocumentTypes = ["passportPhoto", "profilePhoto"];
+
+    return Object.entries(applicationData.documents)
+      .filter(
+        ([, doc]) =>
+          doc && doc.url && typeof doc.url === "string" && doc.url.trim() !== "" && !doc.uploadFailed
+      )
+      .map(([key, doc]) => {
+        // Determine file type based on document type and URL analysis
+        let isPdf = false;
+        let isImage = false;
+
+        // Check by document type
+        if (pdfDocumentTypes.includes(key)) {
+          isPdf = true;
+        } else if (imageDocumentTypes.includes(key)) {
+          isImage = true;
+        }
+        // Check Cloudinary URL structure
+        else if (doc.url.includes("/raw/upload/")) {
+          isPdf = true;
+        } else if (doc.url.includes("/image/upload/")) {
+          isImage = true;
+        }
+        // Check file extension as fallback
+        else if (doc.url.toLowerCase().match(/\.(pdf)$/)) {
+          isPdf = true;
+        } else if (doc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/)) {
+          isImage = true;
+        }
+
+        // Default to PDF if we can't determine
+        if (!isPdf && !isImage) {
+          isPdf = true;
+        }
+
+        return {
+          key,
+          displayName:
+            documentTypes[key] ||
+            key
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, (str) => str.toUpperCase()),
+          url: doc.url,
+          verified: doc.verified || false,
+          type: doc.type || key,
+          isPdf,
+          isImage,
+          uploadedAt: doc.uploadedAt,
+          filename: doc.filename,
+          mimetype: doc.mimetype,
+        };
+      })
+      .sort((a, b) => a.displayName.localeCompare(b.displayName)); // Sort alphabetically
+  };
+
+  const handleViewDocument = (url: string, isPdf: boolean, filename?: string) => {
+    if (isPdf) {
+      let viewUrl = url;
+
+      // If this is a Cloudinary raw file, use Google Docs Viewer for better compatibility
+      if (url.includes("res.cloudinary.com") && url.includes("/raw/upload/")) {
+        viewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(
+          url
+        )}&embedded=true`;
+      }
+
+      window.open(viewUrl, "_blank", `noopener,noreferrer,width=800,height=600,title=${filename || 'Document'}`);
+    } else {
+      // For images, open in new tab
+      window.open(url, "_blank", `noopener,noreferrer,title=${filename || 'Image'}`);
+    }
+  };
+
+  const getFileIcon = (isPdf: boolean, isImage: boolean) => {
+    if (isPdf) {
+      return <PictureAsPdfOutlined className="h-5 w-5 text-red-500" />;
+    } else if (isImage) {
+      return <ImageOutlined className="h-5 w-5 text-blue-500" />;
+    } else {
+      return <DescriptionOutlined className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  const getFileTypeText = (isPdf: boolean, isImage: boolean) => {
+    if (isPdf) return "PDF Document";
+    if (isImage) return "Image";
+    return "Document";
+  };
+
+  const getDocumentStatus = (
+    documentType: string
+  ): { verified: boolean; submitted: boolean; uploadFailed: boolean } => {
+    if (!applicationData || !applicationData.documents) {
+      return { verified: false, submitted: false, uploadFailed: false };
+    }
+
+    const doc = applicationData.documents[documentType];
+
+    if (!doc) {
+      return { verified: false, submitted: false, uploadFailed: false };
+    }
+
+    const hasDocument = !!doc.url && doc.url.trim().length > 0;
+    const isVerified = doc.verified || false;
+    const uploadFailed = doc.uploadFailed || false;
+
+    return {
+      verified: isVerified,
+      submitted: hasDocument && !uploadFailed,
+      uploadFailed: uploadFailed,
+    };
+  };
 
   const handleResubmitApplication = async () => {
     if (!isLoggedIn || !token) {
@@ -382,30 +548,6 @@ const PendingTechnicianApplication: React.FC = () => {
       : "U";
   };
 
-  const getDocumentStatus = (
-    documentType: string
-  ): { verified: boolean; submitted: boolean; uploadFailed: boolean } => {
-    if (!applicationData || !applicationData.documents) {
-      return { verified: false, submitted: false, uploadFailed: false };
-    }
-
-    const doc = applicationData.documents[documentType];
-
-    if (!doc) {
-      return { verified: false, submitted: false, uploadFailed: false };
-    }
-
-    const hasDocument = !!doc.url && doc.url.trim().length > 0;
-    const isVerified = doc.verified || false;
-    const uploadFailed = doc.uploadFailed || false;
-
-    return {
-      verified: isVerified,
-      submitted: hasDocument && !uploadFailed,
-      uploadFailed: uploadFailed,
-    };
-  };
-
   const getStatusBadge = () => {
     const status = applicationData?.status;
 
@@ -454,7 +596,6 @@ const PendingTechnicianApplication: React.FC = () => {
     window.location.href = "/technician/dashboard";
     return null;
   }
-
 
   if (loading) {
     return (
@@ -522,6 +663,7 @@ const PendingTechnicianApplication: React.FC = () => {
   }
 
   const statusBadge = getStatusBadge();
+  const availableDocuments = getAvailableDocuments();
 
   return (
     <>
@@ -639,193 +781,87 @@ const PendingTechnicianApplication: React.FC = () => {
               </div>
             </div>
           )}
-          {/* Application Status */}
-          {applicationData.status !== "rejected" && (
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h2 className="font-medium mb-4">Application Status</h2>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
-                      applicationData.stepsCompleted.includes(
-                        "Personal Information"
-                      )
-                        ? "bg-green-100 text-green-500"
-                        : "bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    <CheckCircleOutlineOutlined className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs text-gray-600 text-center">
-                    Profile Completed
-                  </span>
-                </div>
-                <div
-                  className={`flex-1 h-1 mx-2 ${
-                    applicationData.stepsCompleted.includes(
-                      "Identity & Verification"
-                    )
-                      ? "bg-green-200"
-                      : "bg-gray-200"
-                  }`}
-                ></div>
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
-                      applicationData.stepsCompleted.includes("Documents")
-                        ? "bg-green-100 text-green-500"
-                        : "bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    <CheckCircleOutlineOutlined className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs text-gray-600 text-center">
-                    Documents Submitted
-                  </span>
-                </div>
-                <div
-                  className={`flex-1 h-1 mx-2 ${
-                    applicationData.status === "under_review"
-                      ? "bg-yellow-200"
-                      : "bg-gray-200"
-                  }`}
-                ></div>
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
-                      applicationData.status === "under_review"
-                        ? "bg-yellow-100 text-yellow-500"
-                        : "bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    <AccessTimeOutlined className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs text-gray-600 text-center">
-                    Admin Verification
-                  </span>
-                </div>
-                <div className="flex-1 h-1 mx-2 bg-gray-200"></div>
-                <div className="flex flex-col items-center">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-2">
-                    <CircleOutlined className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs text-gray-600 text-center">
-                    Start Accepting Jobs
-                  </span>
-                </div>
-              </div>
 
-              {/* Status Message */}
-              <div
-                className={`border rounded-lg p-4 mb-4 ${
-                  applicationData.status === "submitted"
-                    ? "bg-blue-50 border-blue-100"
-                    : applicationData.status === "under_review"
-                    ? "bg-yellow-50 border-yellow-100"
-                    : "bg-gray-50 border-gray-100"
-                }`}
-              >
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <ErrorOutlineOutlined
-                      className={`h-5 w-5 ${
-                        applicationData.status === "submitted"
-                          ? "text-blue-500"
-                          : applicationData.status === "under_review"
-                          ? "text-yellow-500"
-                          : "text-gray-500"
-                      }`}
-                    />
-                  </div>
-                  <div className="ml-3">
-                    <h3
-                      className={`text-sm font-medium ${
-                        applicationData.status === "submitted"
-                          ? "text-blue-800"
-                          : applicationData.status === "under_review"
-                          ? "text-yellow-800"
-                          : "text-gray-800"
-                      }`}
-                    >
-                      {applicationData.status === "submitted"
-                        ? "Verification Pending"
-                        : applicationData.status === "under_review"
-                        ? "Under Review"
-                        : "Application Status"}
-                    </h3>
-                    <div className="mt-2 text-sm text-gray-700">
-                      <p>
-                        {applicationData.status === "submitted"
-                          ? "Your application has been submitted and is waiting for admin review. This typically takes 24-48 hours."
-                          : applicationData.status === "under_review"
-                          ? "Your application is currently being reviewed by our admin team. You will be notified once the review is complete."
-                          : "Your application is being processed."}
-                      </p>
-                      {applicationData.reviewNotes && (
-                        <p className="mt-2 text-sm text-gray-600">
-                          <strong>Admin Note:</strong>{" "}
-                          {applicationData.reviewNotes}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Document Status */}
+          {/* Dynamic Documents Section */}
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <h2 className="font-medium mb-4">Document Status</h2>
-            <div className="space-y-3">
-              {[
-                { key: "idProof", label: "ID Proof" },
-                { key: "addressProof", label: "Address Proof" },
-                { key: "policeVerification", label: "Police Verification" },
-                { key: "passportPhoto", label: "Passport Photo" },
-              ].map((doc) => {
-                const status = getDocumentStatus(doc.key);
+            <h2 className="font-medium mb-4">
+              Uploaded Documents ({availableDocuments.length})
+            </h2>
 
-                return (
+            {availableDocuments.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {availableDocuments.map((doc) => (
                   <div
                     key={doc.key}
-                    className="flex items-center justify-between"
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex items-center">
-                      {status.verified ? (
-                        <CheckCircleOutlineOutlined className="w-5 h-5 text-green-500 mr-2" />
-                      ) : status.uploadFailed ? (
-                        <ErrorOutlineOutlined className="w-5 h-5 text-red-500 mr-2" />
-                      ) : status.submitted ? (
-                        <CheckCircleOutlineOutlined className="w-5 h-5 text-blue-500 mr-2" />
-                      ) : (
-                        <CircleOutlined className="w-5 h-5 text-gray-400 mr-2" />
-                      )}
-                      <span className="text-sm">{doc.label}</span>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        {getFileIcon(doc.isPdf, doc.isImage)}
+                        <div>
+                          <h4 className="font-medium text-gray-800">
+                            {doc.displayName}
+                          </h4>
+                          {doc.filename && (
+                            <p className="text-xs text-gray-500 truncate max-w-[200px]">
+                              {doc.filename}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          doc.verified
+                            ? "bg-green-100 text-green-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {doc.verified ? "Verified" : "Submitted"}
+                      </span>
                     </div>
-                    <span
-                      className={`text-xs ${
-                        status.verified
-                          ? "text-green-600"
-                          : status.uploadFailed
-                          ? "text-red-600"
-                          : status.submitted
-                          ? "text-blue-600"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      {status.verified
-                        ? "Verified"
-                        : status.uploadFailed
-                        ? "Upload Failed"
-                        : status.submitted
-                        ? "Submitted"
-                        : "Not submitted"}
-                    </span>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">
+                          {getFileTypeText(doc.isPdf, doc.isImage)}
+                        </span>
+                        <button
+                          onClick={() =>
+                            handleViewDocument(doc.url, doc.isPdf, doc.filename)
+                          }
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1 cursor-pointer"
+                        >
+                          <span>
+                            {doc.isPdf ? "View PDF" : "View Image"}
+                          </span>
+                        </button>
+                      </div>
+
+                      {doc.uploadedAt && (
+                        <div className="text-xs text-gray-400">
+                          Uploaded:{" "}
+                          {new Date(doc.uploadedAt).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                <ImageOutlined className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">No documents uploaded yet</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Upload documents in your application to proceed with verification
+                </p>
+                <button
+                  onClick={() => (window.location.href = "/technician/apply")}
+                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
+                >
+                  Upload Documents
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons for Rejected Applications */}

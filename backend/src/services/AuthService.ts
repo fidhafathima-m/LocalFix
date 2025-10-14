@@ -179,12 +179,15 @@ export class AuthService {
       const { identifier, password, role } = credentials;
 
       let normalizedIdentifier = identifier;
-    
-      if (identifier.includes('@')) {
+
+      if (identifier.includes("@")) {
         normalizedIdentifier = identifier.toLowerCase();
       }
 
-      const user = await this.userRepository.findByIdentifier(normalizedIdentifier, role);
+      const user = await this.userRepository.findByIdentifier(
+        normalizedIdentifier,
+        role
+      );
 
       if (!user) {
         return { success: false, message: "User not found" };
@@ -254,21 +257,54 @@ export class AuthService {
         return { success: false, message: "Provide phone or email" };
       }
 
-      // Build query based on userType
-      const query: any = phone ? { phone } : { email };
-      if (userType) {
-        query.role =
-          userType === "serviceProvider" ? "serviceProvider" : "user";
+      // Find user by phone or email
+      let user;
+      if (phone) {
+        user = await this.userRepository.findByPhone(phone);
+      } else if (email) {
+        user = await this.userRepository.findByEmail(email);
       }
 
-      const user =
-        (await this.userRepository.findByPhone(phone!)) ||
-        (await this.userRepository.findByEmail(email!));
-
+      // Check if user exists
       if (!user) {
         return { success: false, message: "User not found" };
       }
 
+      // Check user type if provided
+      if (userType) {
+        const expectedRole =
+          userType === "serviceProvider" ? "serviceProvider" : "user";
+        if (user.role !== expectedRole) {
+          return {
+            success: false,
+            message: `User not found for ${userType} role`,
+          };
+        }
+      }
+
+      // Check if user is active and not blocked
+      if (user.isDeleted) {
+        return {
+          success: false,
+          message: "Your account has been deleted. Please contact support.",
+        };
+      }
+
+      if (user.status === "Blocked") {
+        return {
+          success: false,
+          message: "Your account is blocked by admin. Please contact support.",
+        };
+      }
+
+      if (user.status !== "Active") {
+        return {
+          success: false,
+          message: "Your account is not active. Please contact support.",
+        };
+      }
+
+      // Generate and send OTP only if user exists and is valid
       const otp = generateOTP();
       const otpHash = await bcrypt.hash(otp, 10);
 
@@ -302,11 +338,20 @@ export class AuthService {
   }
 
   async resetPassword(resetData: ResetPasswordData): Promise<AuthResponse> {
-    try {
-      const { phone, email, otp, newPassword, userType } = resetData;
+  try {
+    const { phone, email, otp, token, password, userType } = resetData; // Change newPassword to password
 
-      const record = await this.otpRepository.findLatest(phone, email, "reset");
+    // Validate that we have a password
+    if (!password) {
+      return { success: false, message: "Password is required" };
+    }
 
+    let record;
+    
+    // Handle OTP-based reset
+    if (otp) {
+      record = await this.otpRepository.findLatest(phone, email, "reset");
+      
       if (!record) {
         return { success: false, message: "No OTP request found" };
       }
@@ -319,22 +364,55 @@ export class AuthService {
       if (!isMatch) {
         return { success: false, message: "Invalid OTP" };
       }
-
-      const passwordHash = await bcrypt.hash(newPassword, 10);
-      const identifier = phone || email!;
-
-      await this.userRepository.updatePassword(
-        identifier,
-        passwordHash,
-        userType
-      );
-      await this.otpRepository.deleteMany(phone, email, "reset");
-
-      return { success: true, message: "Password reset successfully" };
-    } catch (error: any) {
-      return { success: false, message: error.message };
+    } 
+    // Handle token-based reset
+    else if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+        
+        // Verify token purpose and expiration
+        if (decoded.purpose !== "password_reset") {
+          return { success: false, message: "Invalid reset token" };
+        }
+        
+        // Verify identifier matches
+        const tokenIdentifier = decoded.identifier;
+        const providedIdentifier = phone || email;
+        if (tokenIdentifier !== providedIdentifier) {
+          return { success: false, message: "Token mismatch" };
+        }
+        
+        // Verify user type matches
+        if (decoded.userType !== userType) {
+          return { success: false, message: "User type mismatch" };
+        }
+      } catch (error) {
+        return { success: false, message: "Invalid or expired token" };
+      }
+    } else {
+      return { success: false, message: "Either OTP or token is required" };
     }
+
+    const passwordHash = await bcrypt.hash(password, 10); // Use password instead of newPassword
+    const identifier = phone || email!;
+
+    await this.userRepository.updatePassword(
+      identifier,
+      passwordHash,
+      userType
+    );
+    
+    // Delete OTP record if OTP was used
+    if (otp) {
+      await this.otpRepository.deleteMany(phone, email, "reset");
+    }
+
+    return { success: true, message: "Password reset successfully" };
+  } catch (error: any) {
+    console.error("Reset password error:", error);
+    return { success: false, message: error.message };
   }
+}
 
   async verifyResetOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
     try {

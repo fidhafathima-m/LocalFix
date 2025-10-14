@@ -42,24 +42,65 @@ export interface ApplicationData {
   status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
   stepsCompleted: string[];
   personal: {
-    fullName?: string;
-    phoneNumber?: string;
-    email?: string;
-    dateOfBirth?: string;
-    gender?: string;
-    address?: {
-      street?: string;
-      city?: string;
-      state?: string;
-      pincode?: string;
+    fullName: string;
+    phoneNumber: string;
+    email: string;
+    dateOfBirth: string;
+    gender: string;
+    address: {
+      street: string;
+      city: string;
+      state: string;
+      pincode: string;
+      landmark: string;
     };
   };
   identity: {
-    idType?: string;
-    idNumber?: string;
+    idType: string;
+    idNumber: string;
     currentAddress?: string;
   };
   documents?: Record<string, any>;
+  availability: { // Remove the optional ? and define the exact type
+    monday: {
+      available: boolean;
+      startTime: string;
+      endTime: string;
+    };
+    tuesday: {
+      available: boolean;
+      startTime: string;
+      endTime: string;
+    };
+    wednesday: {
+      available: boolean;
+      startTime: string;
+      endTime: string;
+    };
+    thursday: {
+      available: boolean;
+      startTime: string;
+      endTime: string;
+    };
+    friday: {
+      available: boolean;
+      startTime: string;
+      endTime: string;
+    };
+    saturday: {
+      available: boolean;
+      startTime: string;
+      endTime: string;
+    };
+    sunday: {
+      available: boolean;
+      startTime: string;
+      endTime: string;
+    };
+  };
+  skills?: Record<string, any>;
+  agreement: boolean;
+  bank?: Record<string,any>;
   submittedAt?: string;
   reviewNotes?: string;
   rejectionReason?: string;
