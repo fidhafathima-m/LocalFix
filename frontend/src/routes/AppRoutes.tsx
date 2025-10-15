@@ -11,92 +11,37 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// Mock delay function for development
-const addDelay = <T,>(promise: Promise<T>, delay = 2000): Promise<T> => {
-  if (import.meta.env.VITE_NODE_ENV === "development") {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(promise), delay);
-    });
-  }
-  return promise;
-};
 
 // User Routes imports
-const Home = lazy(() => addDelay(import("../features/user/pages/Home")));
-const SignUpForm = lazy(() =>
-  addDelay(import("../features/user/pages/SignUpForm"))
-);
-const UserLogin = lazy(() =>
-  addDelay(import("../features/user/pages/LoginForm"))
-);
-const ForgetPassword = lazy(() =>
-  addDelay(import("../features/user/pages/ForgotPassword"))
-);
-const UserOTP = lazy(() => addDelay(import("../features/user/pages/UserOTP")));
-const ResetPasswordPage = lazy(() =>
-  addDelay(import("../features/user/pages/ResetPassword"))
-);
-const ForgetOTP = lazy(() =>
-  addDelay(import("../features/user/pages/ForgertOtp"))
-);
+const Home = lazy(() => import("../features/user/pages/Home"));
+const SignUpForm = lazy(() => import("../features/user/pages/SignUpForm"));
+const UserLogin = lazy(() => import("../features/user/pages/LoginForm"));
+const ForgetPassword = lazy(() => import("../features/user/pages/ForgotPassword"));
+const UserOTP = lazy(() => import("../features/user/pages/UserOTP"));
+const ResetPasswordPage = lazy(() => import("../features/user/pages/ResetPassword"));
+const ForgetOTP = lazy(() => import("../features/user/pages/ForgertOtp"));
 
 // Service Provider Routes imports
-const TechHome = lazy(() =>
-  addDelay(import("../features/serviceProvider/pages/TechHome"))
-);
-const TechSignUp = lazy(() =>
-  addDelay(import("../features/serviceProvider/pages/TechSignUp"))
-);
-const TechnicianApplication = lazy(() =>
-  addDelay(import("../features/serviceProvider/pages/TechnicianApplication"))
-);
-const TechLogin = lazy(() =>
-  addDelay(import("../features/serviceProvider/pages/TechLogin"))
-);
-const TechForgotPassword = lazy(() =>
-  addDelay(import("../features/serviceProvider/pages/TechForgotPassword"))
-);
-const TechOTP = lazy(() =>
-  addDelay(import("../features/serviceProvider/pages/TechOTP"))
-);
-const PendingTechnicianApplication = lazy(() =>
-  addDelay(import("../features/serviceProvider/pages/PendingTechnician"))
-);
-const ApprovedTechnicianDashboard = lazy(() =>
-  addDelay(import("../features/serviceProvider/pages/ApprovedTechnician"))
-);
+const TechHome = lazy(() => import("../features/serviceProvider/pages/TechHome"));
+const TechSignUp = lazy(() => import("../features/serviceProvider/pages/TechSignUp"));
+const TechnicianApplication = lazy(() => import("../features/serviceProvider/pages/TechnicianApplication"));
+const TechLogin = lazy(() => import("../features/serviceProvider/pages/TechLogin"));
+const TechForgotPassword = lazy(() => import("../features/serviceProvider/pages/TechForgotPassword"));
+const TechOTP = lazy(() => import("../features/serviceProvider/pages/TechOTP"));
+const PendingTechnicianApplication = lazy(() => import("../features/serviceProvider/pages/PendingTechnician"));
+const ApprovedTechnicianDashboard = lazy(() => import("../features/serviceProvider/pages/ApprovedTechnician"));
 
 // AdminRoutes imports
-const AdminLogin = lazy(() =>
-  addDelay(import("../features/admin/pages/AdminLogin"))
-);
-const AdminDashboard = lazy(() =>
-  addDelay(import("../features/admin/pages/AdminDashboard"))
-);
-const ProtectedRoute = lazy(() =>
-  addDelay(import("../components/ProtectedRoute"))
-);
-const AdminForgotPassword = lazy(() =>
-  addDelay(import("../features/admin/pages/AdminForgotPassword"))
-);
-const AdminForgotOTP = lazy(() =>
-  addDelay(import("../features/admin/pages/AdminForgotOTP"))
-);
-const UserManagement = lazy(() =>
-  addDelay(import("../features/admin/pages/UserManagement"))
-);
-const AdminResetPasswordPage = lazy(() =>
-  addDelay(import("../features/admin/pages/AdminResetPassword"))
-);
-const TechnicianManagement = lazy(() =>
-  addDelay(import("../features/admin/pages/TechnicianManagement"))
-);
-const TechnicianProfile = lazy(() =>
-  addDelay(import("../features/admin/pages/TechnicianProfile"))
-);
-const PendingApplicationProfile = lazy(() =>
-  addDelay(import("../features/admin/pages/PendingTechnicianProfile"))
-);
+const AdminLogin = lazy(() => import("../features/admin/pages/AdminLogin"));
+const AdminDashboard = lazy(() => import("../features/admin/pages/AdminDashboard"));
+const ProtectedRoute = lazy(() => import("../components/ProtectedRoute"));
+const AdminForgotPassword = lazy(() => import("../features/admin/pages/AdminForgotPassword"));
+const AdminForgotOTP = lazy(() => import("../features/admin/pages/AdminForgotOTP"));
+const UserManagement = lazy(() => import("../features/admin/pages/UserManagement"));
+const AdminResetPasswordPage = lazy(() => import("../features/admin/pages/AdminResetPassword"));
+const TechnicianManagement = lazy(() => import("../features/admin/pages/TechnicianManagement"));
+const TechnicianProfile = lazy(() => import("../features/admin/pages/TechnicianProfile"));
+const PendingApplicationProfile = lazy(() => import("../features/admin/pages/PendingTechnicianProfile"));
 
 const AppRoutes = () => {
   return (
