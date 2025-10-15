@@ -2,10 +2,10 @@ import {
   TechnicianApplication,
   ITechnicianApplication,
 } from "../../models/technician/TechnicianApplicationSchema";
-import { ITechnicianApplicationData } from "../../interfaces/technician/ITechnicianApplication";
 import { Types } from "mongoose";
+import { ITechnicianApplicationRepository } from "../../interfaces/repository/technician/ITechnicianApplicationRepository";
 
-export class TechnicianApplicationRepository {
+export class TechnicianApplicationRepository implements ITechnicianApplicationRepository {
   async findById(
     applicationId: string
   ): Promise<ITechnicianApplication | null> {

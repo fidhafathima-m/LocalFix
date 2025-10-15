@@ -1,10 +1,11 @@
+import { ITechnicianDocumentRepository } from "../../interfaces/repository/technician/ITechnicianDocumentRepository";
 import {
   TechnicianDocument,
   ITechnicianDocument,
 } from "../../models/technician/TechnicianDocumentSchema";
 import { Types } from "mongoose";
 
-export class TechnicianDocumentRepository {
+export class TechnicianDocumentRepository implements ITechnicianDocumentRepository {
   async create(
     documentData: Partial<ITechnicianDocument>
   ): Promise<ITechnicianDocument> {

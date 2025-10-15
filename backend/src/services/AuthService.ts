@@ -17,17 +17,25 @@ import { SocialAccountRepository } from "../repositories/user/SocialAccountRepos
 import { generateOTP } from "../utils/generateOTP";
 import { sendPhoneOTP } from "../utils/sendPhoneOTP";
 import { sendEmailOTP } from "../utils/sendEmailOTP";
+import { IAuthService } from "@/interfaces/services/user/IAuthService";
+import { IUserRepository } from "@/interfaces/repository/user/IUserRepository";
+import { IOTPRepository } from "@/interfaces/repository/user/IOTPRepository";
+import { ISocialAccountRepository } from "@/interfaces/repository/user/ISocialAccountRepository";
 
-export class AuthService {
-  private userRepository: UserRepository;
-  private otpRepository: OTPRepository;
-  private socialAccountRepository: SocialAccountRepository;
+export class AuthService implements IAuthService {
+  private userRepository: IUserRepository;
+  private otpRepository: IOTPRepository;
+  private socialAccountRepository: ISocialAccountRepository;
   private googleClient: OAuth2Client;
 
-  constructor() {
-    this.userRepository = new UserRepository();
-    this.otpRepository = new OTPRepository();
-    this.socialAccountRepository = new SocialAccountRepository();
+  constructor(
+    userRepository: IUserRepository,
+    otpRepository: IOTPRepository,
+    socialAccountRepository: ISocialAccountRepository,
+  ) {
+    this.userRepository = userRepository;
+    this.otpRepository = otpRepository;
+    this.socialAccountRepository = socialAccountRepository;
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
 

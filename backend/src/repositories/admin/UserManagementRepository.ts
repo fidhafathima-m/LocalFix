@@ -4,8 +4,9 @@ import {
   IUserWithAddress,
 } from "../../interfaces/admin/IUserManagements";
 import { Types } from "mongoose";
+import { IUserManagementRepository } from "../../interfaces/repository/admin/IUserManagementRepository";
 
-export class UserManagementRepository {
+export class UserManagementRepository implements IUserManagementRepository {
   async findAllUsers(): Promise<IUserWithAddress[]> {
     return await User.aggregate([
       { $match: { role: "user", isDeleted: { $ne: true } } },

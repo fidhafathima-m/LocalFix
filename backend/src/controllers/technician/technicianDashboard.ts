@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import { AuthRequest } from "../../middleware/authMiddleware";
-import { TechnicianDashboardService } from "../../services/TechnicianDashboardService";
+import { ITechnicianDashboardService } from "../../interfaces/services/technician/ITechnicianDashboardService";
 
 export class TechnicianDashboardController {
-  private dashboardService: TechnicianDashboardService;
+  private dashboardService: ITechnicianDashboardService;
 
-  constructor() {
-    this.dashboardService = new TechnicianDashboardService();
+  constructor(dashboardService: ITechnicianDashboardService) {
+    this.dashboardService = dashboardService;
   }
 
   getDashboardOverview = async (
@@ -64,4 +64,3 @@ export class TechnicianDashboardController {
   };
 }
 
-export default new TechnicianDashboardController();

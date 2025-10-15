@@ -1,8 +1,9 @@
-import { ITechnician } from "@/interfaces/technician/ITechnician";
+import { ITechnician } from "../../interfaces/technician/ITechnician";
 import { Technician } from "../../models/technician/TechnicianSchema";
 import { Types } from "mongoose";
+import { ITechnicianRepository } from "../../interfaces/repository/technician/ITechnicianRepository";
 
-export class TechnicianRepository {
+export class TechnicianRepository implements ITechnicianRepository {
   async findByUserId(userId: string): Promise<ITechnician | null> {
     return await Technician.findOne({ userId: new Types.ObjectId(userId) });
   }

@@ -1,16 +1,16 @@
 import { Router } from "express";
-import AuthController from "../controllers/user/authController";
+import {authController} from "../config/container";
 
 const router = Router();
 
-router.post("/signup", AuthController.signup);
-router.post("/verify-otp", AuthController.verifyOtp);
-router.post("/verify-reset-otp", AuthController.verifyResetOtp);
-router.post("/login", AuthController.login);
-router.post("/forgot-password", AuthController.forgotPassword);
-router.post("/reset-password", AuthController.resetPassword);
-router.post("/resend-otp", AuthController.resendOTP);
-router.post("/google", AuthController.googleAuth);
-router.post("/facebook", AuthController.facebookLogin);
+router.post("/signup", authController.signup);
+router.post("/verify-otp", authController.verifyOtp);
+router.post("/verify-reset-otp", authController.verifyResetOtp);
+router.post("/login", authController.login);
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/reset-password", authController.resetPassword);
+router.post("/resend-otp", authController.resendOTP);
+router.post("/google", authController.googleAuth);
+router.post("/facebook", authController.facebookLogin);
 
 export default router;

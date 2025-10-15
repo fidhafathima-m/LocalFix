@@ -12,18 +12,28 @@ import {
 import { uploadToCloudinary } from "../utils/cloudinary";
 import UserAddressSchema from "../models/UserAddressSchema";
 import { ITechnicianDocument } from "../interfaces/technician/ITechnicianDocuments";
+import { ITechnicianApplicationRepository } from "../interfaces/repository/technician/ITechnicianApplicationRepository";
+import { ITechnicianApplicationService } from "../interfaces/services/technician/ITechnicianApplicationService";
+import { ITechnicianRepository } from "../interfaces/repository/technician/ITechnicianRepository";
+import { ITechnicianDocumentRepository } from "../interfaces/repository/technician/ITechnicianDocumentRepository";
+import { IUserRepository } from "../interfaces/repository/user/IUserRepository";
 
-export class TechnicianApplicationService {
-  private applicationRepository: TechnicianApplicationRepository;
-  private technicianRepository: TechnicianRepository;
-  private documentRepository: TechnicianDocumentRepository;
-  private userRepository: UserRepository;
+export class TechnicianApplicationService implements ITechnicianApplicationService {
+  private applicationRepository: ITechnicianApplicationRepository;
+  private technicianRepository: ITechnicianRepository;
+  private documentRepository: ITechnicianDocumentRepository;
+  private userRepository: IUserRepository;
 
-  constructor() {
-    this.applicationRepository = new TechnicianApplicationRepository();
-    this.technicianRepository = new TechnicianRepository();
-    this.documentRepository = new TechnicianDocumentRepository();
-    this.userRepository = new UserRepository();
+  constructor(
+    applicationRepository: ITechnicianApplicationRepository,
+    technicianRepository: ITechnicianRepository,
+    documentRepository: ITechnicianDocumentRepository,
+    userRepository: IUserRepository
+  ) {
+    this.applicationRepository = applicationRepository;
+    this.technicianRepository = technicianRepository;
+    this.documentRepository = documentRepository;
+    this.userRepository = userRepository;
   }
 
   async startApplication(

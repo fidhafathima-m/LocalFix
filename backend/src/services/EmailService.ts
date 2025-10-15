@@ -1,12 +1,8 @@
 import nodemailer from "nodemailer";
+import {IEmailOptions} from '../interfaces/IEmailOptions'
+import { IEmailService } from "../interfaces/services/IEmailService";
 
-export interface EmailOptions {
-  to: string;
-  subject: string;
-  html: string;
-}
-
-class EmailService {
+class EmailService implements IEmailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
@@ -19,7 +15,7 @@ class EmailService {
     });
   }
 
-  async sendEmail(options: EmailOptions): Promise<boolean> {
+  async sendEmail(options: IEmailOptions): Promise<boolean> {
     try {
       await this.transporter.sendMail({
         from: `"LocalFix Admin" <${process.env.EMAIL_USER}>`,

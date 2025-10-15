@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import TechnicianApplicationController from "../../controllers/technician/technicianApplication";
+import {technicianApplicationController} from "../../config/container";
 import { protect } from "../../middleware/authMiddleware";
 
 const router = express.Router();
@@ -36,41 +36,41 @@ const uploadFields = upload.fields([
 ]);
 
 // Application routes
-router.post("/start", protect, TechnicianApplicationController.startApplication);
+router.post("/start", protect, technicianApplicationController.startApplication);
 router.post(
   "/save-step",
   protect,
   uploadFields,
-  TechnicianApplicationController.saveStep
+  technicianApplicationController.saveStep
 );
 router.get(
   "/:applicationId",
   protect,
-  TechnicianApplicationController.getApplication
+  technicianApplicationController.getApplication
 );
 router.post(
   "/submit",
   protect,
-  TechnicianApplicationController.submitApplication
+  technicianApplicationController.submitApplication
 );
 router.get(
   "/status/:email",
-  TechnicianApplicationController.getApplicationStatus
+  technicianApplicationController.getApplicationStatus
 );
 router.get(
   "/user/applications",
   protect,
-  TechnicianApplicationController.getUserApplications
+  technicianApplicationController.getUserApplications
 );
 router.patch(
   "/:applicationId/resubmit",
   protect,
-  TechnicianApplicationController.resubmitApplication
+  technicianApplicationController.resubmitApplication
 );
 router.post(
   "/start-new-after-rejection",
   protect,
-  TechnicianApplicationController.startNewAfterRejection
+  technicianApplicationController.startNewAfterRejection
 );
 
 export default router;

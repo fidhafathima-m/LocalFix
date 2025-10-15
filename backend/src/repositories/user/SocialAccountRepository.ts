@@ -1,3 +1,4 @@
+import { ISocialAccountRepository } from "../../interfaces/repository/user/ISocialAccountRepository";
 import {
   ISocialAccount,
   ISocialAccountCreate,
@@ -5,7 +6,7 @@ import {
 import { SocialAccount } from "../../models/SocialAccountSchema";
 import { Types } from "mongoose";
 
-export class SocialAccountRepository {
+export class SocialAccountRepository implements ISocialAccountRepository {
   async findByProviderId(providerId: string): Promise<ISocialAccount | null> {
     return await SocialAccount.findOne({ providerId });
   }

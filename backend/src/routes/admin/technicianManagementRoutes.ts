@@ -1,17 +1,17 @@
 import { admin, protect } from "../../middleware/authMiddleware";
 import { Router } from "express";
-import technicianManagement from "../../controllers/admin/technicianManagement";
+import {technicianManagementController} from "../../config/container";
 
 const router = Router();
 
-router.get("/", protect, admin, technicianManagement.getAllTechnicians);
-router.get("/stats", protect, admin, technicianManagement.getTechnicianStats);
-router.get("/:id", protect, admin, technicianManagement.getTechnicianById);
+router.get("/", protect, admin, technicianManagementController.getAllTechnicians);
+router.get("/stats", protect, admin, technicianManagementController.getTechnicianStats);
+router.get("/:id", protect, admin, technicianManagementController.getTechnicianById);
 router.patch(
   "/:id/status",
   protect,
   admin,
-  technicianManagement.updateTechnicianStatus
+  technicianManagementController.updateTechnicianStatus
 );
 
 // APPLICATION MANAGEMENT ROUTES
@@ -19,31 +19,31 @@ router.get(
   "/applications/pending",
   protect,
   admin,
-  technicianManagement.getPendingApplications
+  technicianManagementController.getPendingApplications
 );
 router.get(
   "/applications/stats",
   protect,
   admin,
-  technicianManagement.getApplicationStats
+  technicianManagementController.getApplicationStats
 );
 router.get(
   "/applications/:id",
   protect,
   admin,
-  technicianManagement.getApplicationById
+  technicianManagementController.getApplicationById
 );
 router.patch(
   "/applications/:id/approve",
   protect,
   admin,
-  technicianManagement.approveApplication
+  technicianManagementController.approveApplication
 );
 router.patch(
   "/applications/:id/reject",
   protect,
   admin,
-  technicianManagement.rejectApplication
+  technicianManagementController.rejectApplication
 );
 
 export default router;

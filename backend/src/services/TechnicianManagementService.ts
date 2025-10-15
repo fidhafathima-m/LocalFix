@@ -17,12 +17,14 @@ import {
 import { Types } from "mongoose";
 import { Technician } from "../models/technician/TechnicianSchema";
 import { emailService } from "./EmailService";
+import { ITechnicianManagementService } from "../interfaces/services/admin/ITechnicianManagementService";
+import { ITechnicianManagementRepository } from "../interfaces/repository/admin/ITechnicianManagementRepository";
 
-export class TechnicianManagementService {
-  private technicianRepository: TechnicianManagementRepository;
+export class TechnicianManagementService implements ITechnicianManagementService {
+  private technicianRepository: ITechnicianManagementRepository;
 
-  constructor() {
-    this.technicianRepository = new TechnicianManagementRepository();
+  constructor(technicianRepository: ITechnicianManagementRepository) {
+    this.technicianRepository = technicianRepository;
   }
 
   // Helper function to format documents from TechnicianApplication.documents

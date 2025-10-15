@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
 import { TechnicianManagementService } from "../../services/TechnicianManagementService";
 import { AuthRequest } from "../../middleware/authMiddleware";
+import { ITechnicianManagementService } from "../../interfaces/services/admin/ITechnicianManagementService";
 
 export class TechnicianManagementController {
-  private technicianService: TechnicianManagementService;
+  private technicianService: ITechnicianManagementService;
 
-  constructor() {
-    this.technicianService = new TechnicianManagementService();
+  constructor(technicianService: ITechnicianManagementService) {
+    this.technicianService = technicianService;
   }
 
   getAllTechnicians = async (req: Request, res: Response): Promise<void> => {
@@ -110,4 +111,3 @@ export class TechnicianManagementController {
   };
 }
 
-export default new TechnicianManagementController();

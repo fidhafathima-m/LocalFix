@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import { AuthService } from "../../services/AuthService";
+import { IAuthService } from "../../interfaces/services/user/IAuthService";
 
 export class AuthController {
-  private authService: AuthService;
+  private authService: IAuthService;
 
-  constructor() {
-    this.authService = new AuthService();
+  constructor( authService: IAuthService) {
+    this.authService = authService;
   }
 
   signup = async (req: Request, res: Response): Promise<void> => {
@@ -66,4 +66,3 @@ export class AuthController {
   };
 }
 
-export default new AuthController();

@@ -6,9 +6,10 @@ import {
 import User from "../../models/UserSchema";
 import UserAddressSchema from "../../models/UserAddressSchema";
 import { Types } from "mongoose";
-import { ITechnician } from "@/interfaces/admin/ITechnicianManagement";
+import { ITechnician } from "../../interfaces/admin/ITechnicianManagement";
+import { ITechnicianManagementRepository } from "../../interfaces/repository/admin/ITechnicianManagementRepository";
 
-export class TechnicianManagementRepository {
+export class TechnicianManagementRepository implements ITechnicianManagementRepository {
   async findAllTechnicians(
     filter: any,
     skip: number,

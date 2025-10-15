@@ -1,5 +1,5 @@
 import { Router } from "express";
-import TechnicianDashboardController from "../../controllers/technician/technicianDashboard";
+import {technicianDashboardController} from "../../config/container";
 import { protect, serviceProvider } from "../../middleware/authMiddleware";
 
 const router = Router();
@@ -10,11 +10,11 @@ router.use(serviceProvider);
 // Dashboard routes
 router.get(
   "/dashboard/overview", protect,
-  TechnicianDashboardController.getDashboardOverview
+  technicianDashboardController.getDashboardOverview
 );
-// router.get('/dashboard/bookings/upcoming', TechnicianDashboardController.getUpcomingBookings);
-// router.get('/dashboard/earnings/recent', TechnicianDashboardController.getRecentEarnings);
-// router.get('/dashboard/reviews/recent', TechnicianDashboardController.getRecentReviews);
-router.get("/profile", protect, TechnicianDashboardController.getTechnicianProfile);
+// router.get('/dashboard/bookings/upcoming', technicianDashboardController.getUpcomingBookings);
+// router.get('/dashboard/earnings/recent', technicianDashboardController.getRecentEarnings);
+// router.get('/dashboard/reviews/recent', technicianDashboardController.getRecentReviews);
+router.get("/profile", protect, technicianDashboardController.getTechnicianProfile);
 
 export default router;

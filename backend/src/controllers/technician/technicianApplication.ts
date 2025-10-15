@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
 import { TechnicianApplicationService } from "../../services/TechnicianApplicationService";
 import { AuthRequest } from "../../middleware/authMiddleware";
+import { ITechnicianApplicationService } from "../../interfaces/services/technician/ITechnicianApplicationService";
 
 export class TechnicianApplicationController {
-  private applicationService: TechnicianApplicationService;
+  private applicationService: ITechnicianApplicationService;
 
-  constructor() {
-    this.applicationService = new TechnicianApplicationService();
+  constructor(applicationService: ITechnicianApplicationService) {
+    this.applicationService = applicationService;
   }
 
   startApplication = async (req: Request, res: Response): Promise<void> => {
@@ -114,5 +115,3 @@ export class TechnicianApplicationController {
     res.status(result.success ? 200 : 400).json(result);
   };
 }
-
-export default new TechnicianApplicationController();

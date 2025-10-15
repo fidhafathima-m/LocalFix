@@ -2,6 +2,10 @@ import { Types } from "mongoose";
 import { TechnicianRepository } from "../repositories/technician/TechnicianRepository";
 import { UserRepository } from "../repositories/user/UserRepository";
 import { UserAddressRepository } from "../repositories/user/UserAddressRepository";
+import { ITechnicianDashboardService } from "../interfaces/services/technician/ITechnicianDashboardService";
+import { ITechnicianRepository } from "../interfaces/repository/technician/ITechnicianRepository";
+import { IUserRepository } from "../interfaces/repository/user/IUserRepository";
+import { IUserAddressRepository } from "../interfaces/repository/user/IUserAddressRepository";
 
 interface DashboardOverview {
   upcomingBookings?: number;
@@ -10,15 +14,19 @@ interface DashboardOverview {
   averageRating: number;
 }
 
-export class TechnicianDashboardService {
-  private technicianRepository: TechnicianRepository;
-  private userRepository: UserRepository;
-  private userAddressRepository: UserAddressRepository;
+export class TechnicianDashboardService implements ITechnicianDashboardService {
+  private technicianRepository: ITechnicianRepository;
+  private userRepository: IUserRepository;
+  private userAddressRepository: IUserAddressRepository;
 
-  constructor() {
-    this.technicianRepository = new TechnicianRepository();
-    this.userRepository = new UserRepository();
-    this.userAddressRepository = new UserAddressRepository();
+  constructor(
+    technicianRepository: ITechnicianRepository,
+    userRepository: IUserRepository,
+    userAddressRepository: IUserAddressRepository
+  ) {
+    this.technicianRepository = technicianRepository;
+    this.userRepository = userRepository;
+    this.userAddressRepository = userAddressRepository;
   }
 
   async getDashboardOverview(technicianId: string): Promise<any> {

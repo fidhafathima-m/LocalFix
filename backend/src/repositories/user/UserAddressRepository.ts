@@ -1,7 +1,8 @@
 import { Types } from "mongoose";
 import UserAddress, { IUserAddress } from "../../models/UserAddressSchema";
+import { IUserAddressRepository } from "../../interfaces/repository/user/IUserAddressRepository";
 
-export class UserAddressRepository {
+export class UserAddressRepository implements IUserAddressRepository {
   async findByUserId(userId: Types.ObjectId): Promise<IUserAddress | null> {
     return await UserAddress.findOne({ userId });
   }

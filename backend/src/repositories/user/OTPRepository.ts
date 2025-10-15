@@ -1,7 +1,8 @@
+import { IOTPRepository } from "../../interfaces/repository/user/IOTPRepository";
 import { IOTPCreate, IOtpVerification } from "../../interfaces/user/IOTP";
 import OTPVerificationSchema from "../../models/OTPVerificationSchema";
 
-export class OTPRepository {
+export class OTPRepository implements IOTPRepository {
   async create(otpData: IOTPCreate): Promise<IOtpVerification> {
     return await OTPVerificationSchema.create(otpData);
   }

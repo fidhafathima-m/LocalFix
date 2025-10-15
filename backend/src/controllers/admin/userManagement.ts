@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import { UserManagementService } from "../../services/UserManagementService";
+import { IUserManagementService } from "../../interfaces/services/admin/IUserManagementService";
 
 export class UserManagementController {
-  private userManagementService: UserManagementService;
+  private userManagementService: IUserManagementService;
 
-  constructor() {
-    this.userManagementService = new UserManagementService();
+  constructor(userManagementService: IUserManagementService) {
+    this.userManagementService = userManagementService;
   }
 
   getUsers = async (req: Request, res: Response): Promise<void> => {
@@ -45,5 +45,3 @@ export class UserManagementController {
     res.status(result.success ? 200 : 400).json(result);
   };
 }
-
-export default new UserManagementController();

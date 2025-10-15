@@ -7,13 +7,12 @@ import {
   UserManagementResponse,
   UsersListResponse,
 } from "../interfaces/admin/IUserManagements";
+import { IUserManagementService } from "../interfaces/services/admin/IUserManagementService";
+import { IUserManagementRepository } from "../interfaces/repository/admin/IUserManagementRepository";
 
-export class UserManagementService {
-  private userManagementRepository: UserManagementRepository;
+export class UserManagementService implements IUserManagementService {
 
-  constructor() {
-    this.userManagementRepository = new UserManagementRepository();
-  }
+  constructor(private userManagementRepository: IUserManagementRepository) {}
 
   async getUsers(): Promise<UsersListResponse> {
     try {

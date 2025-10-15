@@ -97,6 +97,7 @@ export interface ITechnician {
 }
 
 export interface ITechnicianApplication {
+  toObject(): ITechnicianApplication;
   _id: Types.ObjectId;
   technicianId?: Types.ObjectId;
   email: string;
