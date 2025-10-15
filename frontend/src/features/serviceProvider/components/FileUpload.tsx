@@ -5,25 +5,65 @@ interface FileUploadProps {
   required?: boolean;
   accept?: string;
   fieldName?: string;
+  error?: string;
+  maxSize?: number;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
   onFileChange,
   required = false,
   accept = "image/*",
-  fieldName = "file",
+  error,
+  maxSize = 5 * 1024 * 1024,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const validateFile = (file: File): string | null => {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "application/pdf",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      return "File must be JPG, PNG, or PDF";
+    }
+
+    if (file.size > maxSize) {
+      const sizeInMB = (maxSize / (1024 * 1024)).toFixed(0);
+      return `File size must be less than ${sizeInMB}MB`;
+    }
+
+    return null;
+  };
+
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
+
+    if (file) {
+      const validationError = validateFile(file);
+      if (validationError) {
+        alert(validationError);
+        event.target.value = ""; 
+        onFileChange(null);
+        return;
+      }
+    }
     onFileChange(file);
   };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const file = event.dataTransfer.files?.[0] || null;
-    console.log(`FileUpload: Dropped file for ${fieldName}:`, file?.name);
+    if (file) {
+      const validationError = validateFile(file);
+      if (validationError) {
+        alert(validationError);
+        return;
+      }
+    }
     onFileChange(file);
   };
 
@@ -32,8 +72,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   return (
-    <div
-      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors"
+    <div>
+      <div
+      className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors ${
+        error
+        ? "border-red-300 bg-red-50" 
+        : "border-gray-300 hover:border-gray-400"
+      }`}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onClick={() => fileInputRef.current?.click()}
@@ -62,9 +107,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         </svg>
         <p className="mt-1">Click to upload or drag and drop</p>
         <p className="text-sm text-gray-500 mt-1">
-          {accept.includes("pdf") ? "PDF, JPG, JPEG, PNG" : "Images"} up to 10MB
+          {accept.includes("pdf") ? "PDF, JPG, JPEG, PNG" : "Images"} up to 5MB
         </p>
+        {error && (
+            <p className="text-red-500 text-sm mt-2 font-medium">{error}</p>
+          )}
       </div>
     </div>
+    </div>
+    
   );
 };

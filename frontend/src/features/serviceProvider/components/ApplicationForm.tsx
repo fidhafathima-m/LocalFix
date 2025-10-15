@@ -213,7 +213,7 @@ export const ApplicationForm: React.FC = () => {
           return null;
         }
       } else {
-         toast.error("Failed to start application");
+        toast.error("Failed to start application");
         return null;
       }
     } catch (err: unknown) {
@@ -263,7 +263,7 @@ export const ApplicationForm: React.FC = () => {
         setApplicationId(savedAppId);
 
         try {
-          const response = await technicianAPI.getApplication(savedAppId)
+          const response = await technicianAPI.getApplication(savedAppId);
 
           if (response.data.success && response.data.data?.application) {
             const appData = response.data.data.application;
@@ -298,71 +298,86 @@ export const ApplicationForm: React.FC = () => {
   }, [user?._id, token]);
 
   useEffect(() => {
-  const fetchSavedApplication = async () => {
-    if (!applicationId) return;
+    const fetchSavedApplication = async () => {
+      if (!applicationId) return;
 
-    try {
-      const response = await technicianAPI.getApplication(applicationId);
+      try {
+        const response = await technicianAPI.getApplication(applicationId);
 
-      if (response.data.success && response.data.data?.application) {
-        const application = response.data.data.application;
+        if (response.data.success && response.data.data?.application) {
+          const application = response.data.data.application;
 
-        if (!application) {
-          console.error("No application data in response");
-          return;
-        }
-
-        const defaultAvailability = {
-          monday: { available: false, startTime: "09:00", endTime: "18:00" },
-          tuesday: { available: false, startTime: "09:00", endTime: "18:00" },
-          wednesday: { available: false, startTime: "09:00", endTime: "18:00" },
-          thursday: { available: false, startTime: "09:00", endTime: "18:00" },
-          friday: { available: false, startTime: "09:00", endTime: "18:00" },
-          saturday: { available: false, startTime: "09:00", endTime: "18:00" },
-          sunday: { available: false, startTime: "09:00", endTime: "18:00" },
-        };
-
-        let availabilityData = application.availability || defaultAvailability;
-
-        if (typeof availabilityData === "string") {
-          try {
-            availabilityData = JSON.parse(availabilityData);
-          } catch (e) {
-            console.error("Error parsing availability:", e);
-            availabilityData = defaultAvailability;
+          if (!application) {
+            console.error("No application data in response");
+            return;
           }
+
+          const defaultAvailability = {
+            monday: { available: false, startTime: "09:00", endTime: "18:00" },
+            tuesday: { available: false, startTime: "09:00", endTime: "18:00" },
+            wednesday: {
+              available: false,
+              startTime: "09:00",
+              endTime: "18:00",
+            },
+            thursday: {
+              available: false,
+              startTime: "09:00",
+              endTime: "18:00",
+            },
+            friday: { available: false, startTime: "09:00", endTime: "18:00" },
+            saturday: {
+              available: false,
+              startTime: "09:00",
+              endTime: "18:00",
+            },
+            sunday: { available: false, startTime: "09:00", endTime: "18:00" },
+          };
+
+          let availabilityData =
+            application.availability || defaultAvailability;
+
+          if (typeof availabilityData === "string") {
+            try {
+              availabilityData = JSON.parse(availabilityData);
+            } catch (e) {
+              console.error("Error parsing availability:", e);
+              availabilityData = defaultAvailability;
+            }
+          }
+
+          availabilityData = {
+            ...defaultAvailability,
+            ...availabilityData,
+          };
+
+          // Populate formData with saved values
+          setFormData((prev) => ({
+            ...prev,
+            ...application.personal,
+            ...application.identity,
+            ...application.skills,
+            availability: availabilityData,
+            ...application.bank,
+            ...application.documents,
+            agreement: application.agreement,
+          }));
+
+          const completedSteps = application.stepsCompleted || [];
+          const nextStepIndex = STEPS.findIndex(
+            (s) => !completedSteps.includes(s)
+          );
+          setCurrentStep(
+            nextStepIndex === -1 ? STEPS.length : nextStepIndex + 1
+          );
         }
-
-        availabilityData = {
-          ...defaultAvailability,
-          ...availabilityData,
-        };
-
-        // Populate formData with saved values
-        setFormData((prev) => ({
-          ...prev,
-          ...application.personal,
-          ...application.identity,
-          ...application.skills,
-          availability: availabilityData,
-          ...application.bank,
-          ...application.documents,
-          agreement: application.agreement,
-        }));
-
-        const completedSteps = application.stepsCompleted || [];
-        const nextStepIndex = STEPS.findIndex(
-          (s) => !completedSteps.includes(s)
-        );
-        setCurrentStep(nextStepIndex === -1 ? STEPS.length : nextStepIndex + 1);
+      } catch (error) {
+        console.error("Failed to load saved application:", error);
       }
-    } catch (error) {
-      console.error("Failed to load saved application:", error);
-    }
-  };
+    };
 
-  fetchSavedApplication();
-}, [applicationId, token]);
+    fetchSavedApplication();
+  }, [applicationId, token]);
 
   // Save formData locally on every change
   useEffect(() => {
@@ -406,6 +421,20 @@ export const ApplicationForm: React.FC = () => {
       }
     }
   }, [applicationId]);
+
+  const validateFileSize = (
+    file: File | null,
+    fieldName: string
+  ): string | null => {
+    if (!file) return null;
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return `${fieldName} must be smaller than 5MB`;
+    }
+
+    return null;
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -649,6 +678,25 @@ export const ApplicationForm: React.FC = () => {
         if (!documentsValidation.success && documentsValidation.errors) {
           stepErrors = documentsValidation.errors;
         }
+
+        const fileFields = [
+          { field: "idProof", name: "ID Proof" },
+          { field: "addressProof", name: "Address Proof" },
+          { field: "policeVerification", name: "Police Verification" },
+          { field: "tradeLicense", name: "Trade License" },
+          { field: "certifications", name: "Certifications" },
+          { field: "passportPhoto", name: "Passport Photo" },
+        ];
+
+        fileFields.forEach(({ field, name }) => {
+          const file = (formData as any)[field];
+          if (file instanceof File) {
+            const sizeError = validateFileSize(file, name);
+            if (sizeError) {
+              stepErrors[field] = sizeError;
+            }
+          }
+        });
         break;
       }
       case 7: {
@@ -786,7 +834,7 @@ export const ApplicationForm: React.FC = () => {
     }
 
     try {
-      await technicianAPI.saveStep(stepForm)
+      await technicianAPI.saveStep(stepForm);
 
       // Move to next step
       if (currentStep < STEPS.length) {
@@ -865,8 +913,8 @@ export const ApplicationForm: React.FC = () => {
 
     try {
       const response = await technicianAPI.submitApplication({
-        applicationId: applicationId
-      })
+        applicationId: applicationId,
+      });
 
       if (response.data.success) {
         dispatch(updateApplicationStatus("submitted"));
@@ -1730,6 +1778,7 @@ export const ApplicationForm: React.FC = () => {
                   required={true}
                   onFileChange={handleFileChange}
                   accept=".pdf,.jpg,.jpeg,.png"
+                  error={errors.idProof}
                 />
                 {errors.idProof && (
                   <p className="text-red-500 text-sm mt-1">{errors.idProof}</p>
@@ -1744,6 +1793,7 @@ export const ApplicationForm: React.FC = () => {
                   required={true}
                   onFileChange={handleFileChange}
                   accept=".pdf,.jpg,.jpeg,.png"
+                  error={errors.addressProof}
                 />
                 {errors.addressProof && (
                   <p className="text-red-500 text-sm mt-1">
@@ -1759,6 +1809,7 @@ export const ApplicationForm: React.FC = () => {
                   file={formData.policeVerification}
                   onFileChange={handleFileChange}
                   accept=".pdf,.jpg,.jpeg,.png"
+                  error={errors.policeVerification}
                 />
               </div>
 
@@ -1768,6 +1819,7 @@ export const ApplicationForm: React.FC = () => {
                   field="certifications"
                   file={formData.certifications}
                   onFileChange={handleFileChange}
+                  error={errors.certifications}
                 />
                 {errors.certifications && (
                   <p className="text-red-500 text-sm mt-1">
@@ -1783,6 +1835,7 @@ export const ApplicationForm: React.FC = () => {
                   file={formData.tradeLicense}
                   onFileChange={handleFileChange}
                   accept=".pdf,.jpg,.jpeg,.png"
+                  error={errors.tradeLicense}
                 />
               </div>
 
@@ -1794,6 +1847,7 @@ export const ApplicationForm: React.FC = () => {
                   required={true}
                   onFileChange={handleFileChange}
                   accept="image/*"
+                  error={errors.passportPhoto}
                 />
                 {errors.passportPhoto && (
                   <p className="text-red-500 text-sm mt-1">

@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { FileUpload } from "./FileUpload";
+import toast from "react-hot-toast";
 
 interface Props {
   label: string;
@@ -8,6 +9,8 @@ interface Props {
   required?: boolean;
   onFileChange: (field: string) => (file: File | null) => void;
   accept?: string;
+  error?: string;
+  maxSize?: number;
 }
 
 export const ImageUploadWithPreview: React.FC<Props> = ({
@@ -17,6 +20,8 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
   required = false,
   onFileChange,
   accept = "image/*",
+  error,
+  maxSize = 5 * 1024 * 1024,
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [currentFile, setCurrentFile] = useState<File | null>(file);
@@ -39,12 +44,44 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
     }
   }, [currentFile]);
 
+  // Add file validation function
+  const validateFile = useCallback((selectedFile: File | null): string | null => {
+    if (!selectedFile) return null;
+    
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "application/pdf",
+    ];
+
+    if (!allowedTypes.includes(selectedFile.type)) {
+      return "File must be JPG, PNG, or PDF";
+    }
+
+    if (selectedFile.size > maxSize) {
+      const sizeInMB = (maxSize / (1024 * 1024)).toFixed(0);
+      return `File size must be less than ${sizeInMB}MB`;
+    }
+
+    return null;
+  }, [maxSize]);
+
   const handleFileChange = useCallback(
     (selectedFile: File | null) => {
+      // Validate file before setting it
+      if (selectedFile) {
+        const validationError = validateFile(selectedFile);
+        if (validationError) {
+          toast.error(validationError);
+          return; // Don't update if validation fails
+        }
+      }
+      
       setCurrentFile(selectedFile);
       onFileChange(field)(selectedFile);
     },
-    [onFileChange, field]
+    [onFileChange, field, validateFile]
   );
 
   const handleRemoveFile = () => {
@@ -98,7 +135,14 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
           required={required}
           accept={accept}
           fieldName={field}
+          error={error} // ✅ Pass error prop
+          maxSize={maxSize} // ✅ Pass maxSize prop
         />
+      )}
+      
+      {/* Show error message if exists */}
+      {error && (
+        <p className="text-red-500 text-sm mt-1">{error}</p>
       )}
     </div>
   );
