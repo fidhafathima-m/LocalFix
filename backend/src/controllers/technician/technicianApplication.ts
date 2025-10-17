@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { TechnicianApplicationService } from "../../services/TechnicianApplicationService";
 import { AuthRequest } from "../../middleware/authMiddleware";
 import { ITechnicianApplicationService } from "../../interfaces/services/technician/ITechnicianApplicationService";
+import { ResponseHelper } from "../../utils/responseHelper";
 
 export class TechnicianApplicationController {
   private applicationService: ITechnicianApplicationService;
@@ -11,107 +12,151 @@ export class TechnicianApplicationController {
   }
 
   startApplication = async (req: Request, res: Response): Promise<void> => {
-    const result = await this.applicationService.startApplication(req.body);
-    res.status(result.success ? 200 : 400).json(result);
+    try {
+      const result = await this.applicationService.startApplication(req.body);
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Start application controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
   };
 
   saveStep = async (req: AuthRequest, res: Response): Promise<void> => {
-    const result = await this.applicationService.saveStep(req.body, req.files);
-    res.status(result.success ? 200 : 400).json(result);
+    try {
+      const result = await this.applicationService.saveStep(req.body, req.files);
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Save step controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
   };
 
   getApplication = async (req: Request, res: Response): Promise<void> => {
-    const { applicationId } = req.params;
-    const result = await this.applicationService.getApplication(applicationId);
-    res.status(result.success ? 200 : 400).json(result);
+    try {
+      const { applicationId } = req.params;
+      const result = await this.applicationService.getApplication(applicationId);
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Get application controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
   };
 
   submitApplication = async (
     req: AuthRequest,
     res: Response
   ): Promise<void> => {
-    const { applicationId } = req.body;
-    const userId = req.user?.id;
+    try {
+      const { applicationId } = req.body;
+      const userId = req.user?.id;
 
-    if (!userId) {
-      res
-        .status(401)
-        .json({ success: false, message: "Authentication required" });
-      return;
+      if (!userId) {
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
+        return;
+      }
+
+      const result = await this.applicationService.submitApplication(
+        applicationId,
+        userId
+      );
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Submit application controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
-
-    const result = await this.applicationService.submitApplication(
-      applicationId,
-      userId
-    );
-    res.status(result.success ? 200 : 400).json(result);
   };
 
   getApplicationStatus = async (req: Request, res: Response): Promise<void> => {
-    const { applicationId } = req.params;
-    const result = await this.applicationService.getApplicationStatus(
-      applicationId
-    );
-    res.status(result.success ? 200 : 400).json(result);
+    try {
+      const { applicationId } = req.params;
+      const result = await this.applicationService.getApplicationStatus(
+        applicationId
+      );
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Get application status controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
   };
 
   getUserApplications = async (
     req: AuthRequest,
     res: Response
   ): Promise<void> => {
-    const userId = req.user?.id;
+    try {
+      const userId = req.user?.id;
 
-    if (!userId) {
-      res
-        .status(401)
-        .json({ success: false, message: "Authentication required" });
-      return;
+      if (!userId) {
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
+        return;
+      }
+
+      const result = await this.applicationService.getUserApplications(userId);
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Get user applications controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
-
-    const result = await this.applicationService.getUserApplications(userId);
-    res.status(result.success ? 200 : 400).json(result);
   };
+
   resubmitApplication = async (
     req: AuthRequest,
     res: Response
   ): Promise<void> => {
-    const { applicationId } = req.params;
-    const userId = req.user?.id;
+    try {
+      const { applicationId } = req.params;
+      const userId = req.user?.id;
 
-    if (!userId) {
-      res
-        .status(401)
-        .json({ success: false, message: "Authentication required" });
-      return;
+      if (!userId) {
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
+        return;
+      }
+
+      const result = await this.applicationService.resubmitApplication(
+        applicationId,
+        userId
+      );
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Resubmit application controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
-
-    const result = await this.applicationService.resubmitApplication(
-      applicationId,
-      userId
-    );
-    res.status(result.success ? 200 : 400).json(result);
   };
 
   startNewAfterRejection = async (
     req: AuthRequest,
     res: Response
   ): Promise<void> => {
-    const { email } = req.body;
-    const userId = req.user?.id;
+    try {
+      const { email } = req.body;
+      const userId = req.user?.id;
 
-    if (!userId || !email) {
-      res.status(400).json({
-        success: false,
-        message: "User ID and email are required",
-      });
-      return;
+      if (!userId || !email) {
+        const badRequestResponse = ResponseHelper.badRequest("User ID and email are required");
+        res.status(badRequestResponse.statusCode).json(badRequestResponse);
+        return;
+      }
+
+      const result =
+        await this.applicationService.startNewApplicationAfterRejection(
+          userId,
+          email
+        );
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Start new after rejection controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
-
-    const result =
-      await this.applicationService.startNewApplicationAfterRejection(
-        userId,
-        email
-      );
-    res.status(result.success ? 200 : 400).json(result);
   };
 }

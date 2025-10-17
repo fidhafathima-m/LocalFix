@@ -1,47 +1,31 @@
-// src/controllers/technician/TechnicianProfileController.ts
 import { Response } from "express";
 import { ITechnicianProfileService } from "../../interfaces/services/technician/ITechnicianProfileService";
 import { AuthRequest } from "../../middleware/authMiddleware";
+import { ResponseHelper } from "../../utils/responseHelper";
 
 export class TechnicianProfileController {
   private profileService: ITechnicianProfileService;
 
   constructor(profileService: ITechnicianProfileService) {
     this.profileService = profileService;
-    console.log('🎯 TechnicianProfileController INITIALIZED with new code');
   }
 
   getProfile = async (req: AuthRequest, res: Response): Promise<void> => {
-    console.log('🚀🚀🚀 PROFILE CONTROLLER CALLED - Service method should be reached next');
-    console.log('🔍 Request user:', req.user);
-    console.log('🔍 Request URL:', req.url);
-    console.log('🔍 Request method:', req.method);
     try {
-      const technicianId = req.user?.id; 
+      const technicianId = req.user?.id;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
       const result = await this.profileService.getTechnicianProfile(technicianId);
-
-      if (!result.success) {
-        res.status(404).json(result);
-        return;
-      }
-
-      res.status(200).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get profile controller error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
@@ -51,10 +35,8 @@ export class TechnicianProfileController {
       const updateData = req.body;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
@@ -62,20 +44,11 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
-
-      res.status(200).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update personal info controller error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
@@ -85,10 +58,8 @@ export class TechnicianProfileController {
       const updateData = req.body;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
@@ -96,20 +67,11 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
-
-      res.status(200).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update identity verification controller error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
@@ -119,10 +81,8 @@ export class TechnicianProfileController {
       const updateData = req.body;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
@@ -130,20 +90,11 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
-
-      res.status(200).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update skills services controller error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
@@ -153,10 +104,8 @@ export class TechnicianProfileController {
       const updateData = req.body;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
@@ -164,20 +113,11 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
-
-      res.status(200).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update availability controller error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
@@ -187,10 +127,8 @@ export class TechnicianProfileController {
       const updateData = req.body;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
@@ -198,20 +136,11 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
-
-      res.status(200).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update bank payment controller error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
@@ -221,10 +150,8 @@ export class TechnicianProfileController {
       const updateData = req.body;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
@@ -232,20 +159,11 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
-
-      res.status(200).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update password controller error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
@@ -255,10 +173,8 @@ export class TechnicianProfileController {
       const documentData = req.body;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
@@ -266,27 +182,16 @@ export class TechnicianProfileController {
         technicianId,
         documentData
       );
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
-
-      res.status(200).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Upload document controller error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
-  // Additional methods for frontend integration
   getStaticData = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      // Return static data for dropdowns and selections
       const staticData = {
         languages: [
           { value: "english", label: "English" },
@@ -347,85 +252,55 @@ export class TechnicianProfileController {
         ],
       };
 
-      res.status(200).json({
-        success: true,
-        message: "Static data retrieved successfully",
-        data: staticData,
-      });
+      const successResponse = ResponseHelper.success("Static data retrieved successfully", staticData);
+      res.status(successResponse.statusCode).json(successResponse);
     } catch (error) {
       console.error("Get static data error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to fetch static data",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Failed to fetch static data");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
-  // Method to handle profile deactivation
   deactivateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const technicianId = req.user?.id;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      // This would typically call a service method to deactivate the profile
       const result = await this.profileService.updateAvailabilityPreferences(
         technicianId,
         { isAvailable: false }
       );
-
-      if (!result.success) {
-        res.status(400).json(result);
-        return;
-      }
-
-      res.status(200).json({
-        success: true,
-        message: "Profile deactivated successfully",
-      });
+      res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Deactivate profile error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to deactivate profile",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Failed to deactivate profile");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
-  // Method to handle account deletion
   deleteAccount = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const technicianId = req.user?.id;
 
       if (!technicianId) {
-        res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      // This would typically call a service method to soft delete the account
-      // For now, we'll just return a success message
-      res.status(200).json({
-        success: true,
-        message: "Account deletion request received. This action will be processed within 24 hours.",
-      });
+      const successResponse = ResponseHelper.success(
+        "Account deletion request received. This action will be processed within 24 hours."
+      );
+      res.status(successResponse.statusCode).json(successResponse);
     } catch (error) {
       console.error("Delete account error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to process account deletion",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      const errorResponse = ResponseHelper.error("Failed to process account deletion");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 }

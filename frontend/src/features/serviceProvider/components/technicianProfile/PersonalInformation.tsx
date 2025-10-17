@@ -26,8 +26,13 @@ const PersonalInformation = () => {
     try {
       setLoading(true)
       const response = await technicianAPI.getProfile()
-      if (response.data.success) {
-        const profileData = response.data.data.profile
+      if (response.success) {
+        const profileData = response.data?.data?.profile
+
+         if (!profileData) {
+        console.error('Profile data not found in response')
+        return
+      }
         setProfile(profileData)
         
         // Populate form data

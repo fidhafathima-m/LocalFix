@@ -11,6 +11,7 @@ import {
   SkillsServicesUpdate,
 } from "../interfaces/technician/ITechnicianProfile";
 import { ITechnicianProfileRepository } from "../interfaces/repository/technician/ITechnicianProfileRepository";
+import { ResponseHelper } from "../utils/responseHelper";
 
 export class TechnicianProfileService implements ITechnicianProfileService {
   private technicianRepository: ITechnicianRepository;
@@ -39,10 +40,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     const user = await this.userRepository.findById(technicianId);
 
     if (!technician || !user) {
-      return {
-        success: false,
-        message: "Technician profile not found",
-      };
+      return ResponseHelper.notFound("Technician profile not found")
     }
 
     console.log('Raw technician from DB (before toObject):', technician);
@@ -74,20 +72,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     console.log('Final profileData.paymentDetails:', profileData.paymentDetails);
     console.log('=== END getTechnicianProfile ===');
 
-    return {
-      success: true,
-      message: "Profile data retrieved successfully",
+    return ResponseHelper.success("Profile data retrieved successfully", {
       data: {
         profile: profileData,
       },
-    };
+    })
   } catch (error) {
     console.error("Get technician profile error:", error);
-    return {
-      success: false,
-      message: "Failed to fetch profile data",
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+    return ResponseHelper.error("Failed to fetch profile data")
   }
 }
 
@@ -102,10 +94,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const user = await this.userRepository.findById(technicianId);
 
       if (!technician || !user) {
-        return {
-          success: false,
-          message: "Technician not found",
-        };
+        return ResponseHelper.notFound("Technician not found")
       }
 
       // Update technician personal info
@@ -139,20 +128,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         });
       }
 
-      return {
-        success: true,
-        message: "Personal information updated successfully",
+      return ResponseHelper.success("Personal information updated successfully", {
         data: {
           profile: updatedTechnician,
         },
-      };
+      })
     } catch (error) {
       console.error("Update personal information error:", error);
-      return {
-        success: false,
-        message: "Failed to update personal information",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to update personal information")
     }
   }
 
@@ -166,10 +149,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       );
 
       if (!technician) {
-        return {
-          success: false,
-          message: "Technician not found",
-        };
+        return ResponseHelper.notFound("Technician not found")
       }
 
       const updatedTechnician =
@@ -193,20 +173,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           }
         );
 
-      return {
-        success: true,
-        message: "Identity verification updated successfully",
+      return ResponseHelper.success("Identity verification updated successfully", {
         data: {
           profile: updatedTechnician,
         },
-      };
+      })
     } catch (error) {
       console.error("Update identity verification error:", error);
-      return {
-        success: false,
-        message: "Failed to update identity verification",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to update identity verification")
     }
   }
 
@@ -220,10 +194,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       );
 
       if (!technician) {
-        return {
-          success: false,
-          message: "Technician not found",
-        };
+        return ResponseHelper.notFound("Technician not found")
       }
 
       const updatedTechnician =
@@ -237,20 +208,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           }
         );
 
-      return {
-        success: true,
-        message: "Skills and services updated successfully",
+      return ResponseHelper.success("Skills and services updated successfully", {
         data: {
           profile: updatedTechnician,
         },
-      };
+      })
     } catch (error) {
       console.error("Update skills services error:", error);
-      return {
-        success: false,
-        message: "Failed to update skills and services",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to update skills and services")
     }
   }
 
@@ -264,10 +229,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       );
 
       if (!technician) {
-        return {
-          success: false,
-          message: "Technician not found",
-        };
+        return ResponseHelper.notFound("Technician not found")
       }
 
       const updatedTechnician =
@@ -289,20 +251,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           }
         );
 
-      return {
-        success: true,
-        message: "Availability preferences updated successfully",
+      return ResponseHelper.success("Availability preferences updated successfully", {
         data: {
           profile: updatedTechnician,
         },
-      };
+      })
     } catch (error) {
       console.error("Update availability preferences error:", error);
-      return {
-        success: false,
-        message: "Failed to update availability preferences",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to update availability preferences")
     }
   }
 
@@ -316,10 +272,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       );
 
       if (!technician) {
-        return {
-          success: false,
-          message: "Technician not found",
-        };
+        return ResponseHelper.notFound("Technician not found")
       }
 
       const updatedTechnician =
@@ -347,20 +300,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           }
         );
 
-      return {
-        success: true,
-        message: "Bank and payment details updated successfully",
+      return ResponseHelper.success("Bank and payment details updated successfully", {
         data: {
           profile: updatedTechnician,
         },
-      };
+      })
     } catch (error) {
       console.error("Update bank payment details error:", error);
-      return {
-        success: false,
-        message: "Failed to update bank and payment details",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to update bank and payment details")
     }
   }
 
@@ -372,10 +319,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const user = await this.userRepository.findById(technicianId);
 
       if (!user) {
-        return {
-          success: false,
-          message: "User not found",
-        };
+        return ResponseHelper.notFound("User not found")
       }
 
       // Verify current password
@@ -387,20 +331,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           );
 
         if (!isCurrentPasswordValid) {
-          return {
-            success: false,
-            message: "Current password is incorrect",
-          };
+          return ResponseHelper.badRequest("Current password is incorrect")
         }
       }
 
       // Update password
       if (updateData.newPassword) {
         if (updateData.newPassword !== updateData.confirmPassword) {
-          return {
-            success: false,
-            message: "New password and confirm password do not match",
-          };
+          return ResponseHelper.badRequest("New password and confirm password do not match")
         }
 
         await this.userRepository.updatePassword(
@@ -409,17 +347,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      return {
-        success: true,
-        message: "Password updated successfully",
-      };
+      return ResponseHelper.success("Password updated successfully")
     } catch (error) {
       console.error("Update password error:", error);
-      return {
-        success: false,
-        message: "Failed to update password",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to update password")
     }
   }
 
@@ -437,10 +368,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       );
 
       if (!technician) {
-        return {
-          success: false,
-          message: "Technician not found",
-        };
+        return ResponseHelper.notFound("Technician not found")
       }
 
       const newDocument = {
@@ -458,20 +386,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           newDocument
         );
 
-      return {
-        success: true,
-        message: "Document uploaded successfully",
+      return ResponseHelper.success("Document uploaded successfully", {
         data: {
           document: newDocument,
         },
-      };
+      })
     } catch (error) {
       console.error("Upload document error:", error);
-      return {
-        success: false,
-        message: "Failed to upload document",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to upload document")
     }
   }
 

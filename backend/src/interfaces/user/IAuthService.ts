@@ -1,14 +1,11 @@
-export interface AuthResponse {
-  success: boolean;
-  message: string;
+import { ApiResponse } from "../../utils/responseHelper";
+
+export interface AuthResponse extends ApiResponse {
   token?: string;
   user?: any;
 }
 
-export interface OTPResponse {
-  success: boolean;
-  message: string;
-}
+export interface OTPResponse extends ApiResponse {}
 
 export interface LoginCredentials {
   identifier: string;

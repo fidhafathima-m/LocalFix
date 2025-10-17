@@ -6,6 +6,7 @@ import { ITechnicianDashboardService } from "../interfaces/services/technician/I
 import { ITechnicianRepository } from "../interfaces/repository/technician/ITechnicianRepository";
 import { IUserRepository } from "../interfaces/repository/user/IUserRepository";
 import { IUserAddressRepository } from "../interfaces/repository/user/IUserAddressRepository";
+import { ResponseHelper } from "../utils/responseHelper";
 
 interface DashboardOverview {
   upcomingBookings?: number;
@@ -36,28 +37,19 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
       );
 
       if (!technician) {
-        return {
-          success: false,
-          message: "Technician not found",
-        };
+        return ResponseHelper.notFound("Technician not found")
       }
 
       const overview: DashboardOverview = {
         averageRating: technician.averageRating || 0,
       };
 
-      return {
-        success: true,
-        message: "Dashboard overview retrieved successfully",
+      return ResponseHelper.success("Dashboard overview retrieved successfully", {
         data: { overview },
-      };
+      })
     } catch (error) {
       console.error("Get dashboard overview error:", error);
-      return {
-        success: false,
-        message: "Failed to fetch dashboard overview",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to fetch dashboard overview")
     }
   }
 
@@ -69,10 +61,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
       const user = await this.userRepository.findById(technicianId);
 
       if (!technician || !user) {
-        return {
-          success: false,
-          message: "Technician profile not found",
-        };
+        return ResponseHelper.notFound("Technician profile not found")
       }
       const userAddress = await this.userAddressRepository.findByUserId(
         technician.userId as Types.ObjectId
@@ -187,18 +176,12 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         updatedAt: technician.updatedAt,
       };
 
-      return {
-        success: true,
-        message: "Technician profile retrieved successfully",
-        data: { profile },
-      };
+      return ResponseHelper.success("Technician profile retrieved successfully", {
+         data: { profile },
+      })
     } catch (error) {
       console.error("Get technician profile error:", error);
-      return {
-        success: false,
-        message: "Failed to fetch technician profile",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to fetch technician profile")
     }
   }
 }

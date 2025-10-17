@@ -33,8 +33,8 @@ const IdentityVerification = () => {
   try {
     setLoading(true)
     const response = await technicianAPI.getProfile()
-    if (response.data.success) {
-      const profileData = response.data.data.profile
+    if (response.success) {
+      const profileData = response.data?.data?.profile
       setProfile(profileData)
       
       // Populate identity verification data with null checks

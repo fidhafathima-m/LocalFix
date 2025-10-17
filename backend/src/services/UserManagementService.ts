@@ -9,6 +9,7 @@ import {
 } from "../interfaces/admin/IUserManagements";
 import { IUserManagementService } from "../interfaces/services/admin/IUserManagementService";
 import { IUserManagementRepository } from "../interfaces/repository/admin/IUserManagementRepository";
+import { ResponseHelper } from "../utils/responseHelper";
 
 export class UserManagementService implements IUserManagementService {
 
@@ -18,18 +19,12 @@ export class UserManagementService implements IUserManagementService {
     try {
       const users = await this.userManagementRepository.findAllUsers();
 
-      return {
-        success: true,
-        message: "Users retrieved successfully",
-        data: { users },
-      };
+      return ResponseHelper.success("Users retrieved successfully", {
+        users
+      })
     } catch (error) {
       console.error("Error fetching users:", error);
-      return {
-        success: false,
-        message: "Error fetching users",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Error fetching users")
     }
   }
 
@@ -42,25 +37,16 @@ export class UserManagementService implements IUserManagementService {
 
       const validStatuses = ["Active", "Inactive", "Blocked"];
       if (!validStatuses.includes(status)) {
-        return {
-          success: false,
-          message: "Invalid status value",
-        };
+        return ResponseHelper.badRequest("Invalid status value")
       }
 
       const user = await this.userManagementRepository.findUserById(userId);
       if (!user) {
-        return {
-          success: false,
-          message: "User not found",
-        };
+        return ResponseHelper.notFound("User not found")
       }
 
       if (user.isDeleted) {
-        return {
-          success: false,
-          message: "Cannot update a deleted user",
-        };
+        return ResponseHelper.forbidden("Cannot update a deleted user")
       }
 
       const updatedUser = await this.userManagementRepository.updateUserStatus(
@@ -69,24 +55,15 @@ export class UserManagementService implements IUserManagementService {
       );
 
       if (!updatedUser) {
-        return {
-          success: false,
-          message: "Failed to update user status",
-        };
+        return ResponseHelper.conflict("Failed to update user status")
       }
 
-      return {
-        success: true,
-        message: "User status updated successfully",
+      return ResponseHelper.success("User status updated successfully", {
         data: { user: updatedUser },
-      };
+      })
     } catch (error) {
       console.error("Error updating user status:", error);
-      return {
-        success: false,
-        message: "Error updating user status",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Error updating user status")
     }
   }
 
@@ -100,26 +77,17 @@ export class UserManagementService implements IUserManagementService {
       if (status) {
         const validStatuses = ["Active", "Inactive", "Blocked"];
         if (!validStatuses.includes(status)) {
-          return {
-            success: false,
-            message: "Invalid status value",
-          };
+          return ResponseHelper.badRequest("Invalid status value")
         }
       }
 
       const user = await this.userManagementRepository.findUserById(userId);
       if (!user) {
-        return {
-          success: false,
-          message: "User not found",
-        };
+        return ResponseHelper.notFound("User not found")
       }
 
       if (user.isDeleted) {
-        return {
-          success: false,
-          message: "Cannot update a deleted user",
-        };
+        return ResponseHelper.forbidden("Cannot update a deleted user")
       }
 
       const updateData: Partial<IUser> = {};
@@ -134,24 +102,15 @@ export class UserManagementService implements IUserManagementService {
       );
 
       if (!updatedUser) {
-        return {
-          success: false,
-          message: "Failed to update user",
-        };
+        return ResponseHelper.conflict("Failed to update user")
       }
 
-      return {
-        success: true,
-        message: "User updated successfully",
+      return ResponseHelper.success("User updated successfully", {
         data: { user: updatedUser },
-      };
+      })
     } catch (error) {
       console.error("Error updating user:", error);
-      return {
-        success: false,
-        message: "Error updating user",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Error updating user")
     }
   }
 
@@ -159,17 +118,11 @@ export class UserManagementService implements IUserManagementService {
     try {
       const user = await this.userManagementRepository.findUserById(userId);
       if (!user) {
-        return {
-          success: false,
-          message: "User not found",
-        };
+        return ResponseHelper.notFound("User not found")
       }
 
       if (user.isDeleted) {
-        return {
-          success: false,
-          message: "User is already deleted",
-        };
+        return ResponseHelper.badRequest("User is already deleted")
       }
 
       const deletedUser = await this.userManagementRepository.softDeleteUser(
@@ -177,24 +130,15 @@ export class UserManagementService implements IUserManagementService {
       );
 
       if (!deletedUser) {
-        return {
-          success: false,
-          message: "Failed to delete user",
-        };
+        return ResponseHelper.conflict("Failed to delete user")
       }
 
-      return {
-        success: true,
-        message: "User deleted successfully",
-        data: { user: deletedUser },
-      };
+      return ResponseHelper.success("User deleted successfully", {
+         data: { user: deletedUser },
+      })
     } catch (error) {
       console.error("Error deleting user:", error);
-      return {
-        success: false,
-        message: "Error deleting user",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Error deleting user")
     }
   }
 
@@ -202,18 +146,12 @@ export class UserManagementService implements IUserManagementService {
     try {
       const stats = await this.userManagementRepository.getUserStats();
 
-      return {
-        success: true,
-        message: "User statistics retrieved successfully",
+      return ResponseHelper.success("User statistics retrieved successfully", {
         data: { stats },
-      };
+      })
     } catch (error) {
       console.error("Error fetching user stats:", error);
-      return {
-        success: false,
-        message: "Error fetching user statistics",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Error fetching user statistics")
     }
   }
 
@@ -222,31 +160,19 @@ export class UserManagementService implements IUserManagementService {
       const user = await this.userManagementRepository.findUserById(userId);
 
       if (!user) {
-        return {
-          success: false,
-          message: "User not found",
-        };
+        return ResponseHelper.notFound("User not found")
       }
 
       if (user.isDeleted) {
-        return {
-          success: false,
-          message: "User has been deleted",
-        };
+        return ResponseHelper.forbidden("User has been deleted")
       }
 
-      return {
-        success: true,
-        message: "User retrieved successfully",
+      return ResponseHelper.success("User retrieved successfully", {
         data: { user },
-      };
+      })
     } catch (error) {
       console.error("Error fetching user:", error);
-      return {
-        success: false,
-        message: "Error fetching user",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Error fetching user")
     }
   }
 }

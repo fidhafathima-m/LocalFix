@@ -15,10 +15,10 @@ import {
   ApplicationFilters,
 } from "../interfaces/admin/ITechnicianManagement";
 import { Types } from "mongoose";
-import { Technician } from "../models/technician/TechnicianSchema";
 import { emailService } from "./EmailService";
 import { ITechnicianManagementService } from "../interfaces/services/admin/ITechnicianManagementService";
 import { ITechnicianManagementRepository } from "../interfaces/repository/admin/ITechnicianManagementRepository";
+import { ResponseHelper } from "../utils/responseHelper";
 
 export class TechnicianManagementService implements ITechnicianManagementService {
   private technicianRepository: ITechnicianManagementRepository;
@@ -132,10 +132,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
         })
       );
 
-      return {
-        success: true,
-        message: "Technicians retrieved successfully",
-        data: {
+      return ResponseHelper.success("Technicians retrieved successfully", {
           technicians: adminTechnicians,
           pagination: {
             page: pageNum,
@@ -143,15 +140,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
             total,
             pages: Math.ceil(total / limitNum),
           },
-        },
-      };
+      })
     } catch (error) {
       console.error("Get technicians error:", error);
-      return {
-        success: false,
-        message: "Failed to fetch technicians",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to fetch technicians")
     }
   }
 
@@ -160,28 +152,17 @@ export class TechnicianManagementService implements ITechnicianManagementService
       const technician = await this.technicianRepository.findTechnicianById(id);
 
       if (!technician) {
-        return {
-          success: false,
-          message: "Technician not found",
-        };
+        return ResponseHelper.notFound("Technician not found")
       }
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      return {
-        success: true,
-        message: "Technician retrieved successfully",
-        data: {
+      return ResponseHelper.success("Technician retrieved successfully", {
           technician: adminTechnician,
-        },
-      };
+      })
     } catch (error) {
       console.error("Get technician error:", error);
-      return {
-        success: false,
-        message: "Failed to fetch technician",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to fetch technician")
     }
   }
 
@@ -375,10 +356,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
       const { status, emailNotification = true, reason } = statusData;
 
       if (!status || !["approved", "suspended", "rejected"].includes(status)) {
-        return {
-          success: false,
-          message: "Valid status is required (approved, suspended, rejected)",
-        };
+        return ResponseHelper.badRequest("Valid status is required (approved, suspended, rejected)")
       }
 
       // Prepare update data
@@ -402,10 +380,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
       );
 
       if (!technician) {
-        return {
-          success: false,
-          message: "Technician not found",
-        };
+        return ResponseHelper.notFound("Technician not found")
       }
 
       // Get user data for email
@@ -446,20 +421,12 @@ export class TechnicianManagementService implements ITechnicianManagementService
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      return {
-        success: true,
-        message: `Technician status updated to ${status}${emailMessage}`,
-        data: {
+      return ResponseHelper.success(`Technician status updated to ${status}${emailMessage}`, {
           technician: adminTechnician,
-        },
-      };
+      })
     } catch (error) {
       console.error("Update technician status error:", error);
-      return {
-        success: false,
-        message: "Failed to update technician status",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to update technician status")
     }
   }
 
@@ -467,18 +434,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
     try {
       const stats = await this.technicianRepository.getTechnicianStats();
 
-      return {
-        success: true,
-        message: "Technician statistics retrieved successfully",
-        data: stats,
-      };
+      return ResponseHelper.success("Technician statistics retrieved successfully", stats)
     } catch (error) {
       console.error("Get technician stats error:", error);
-      return {
-        success: false,
-        message: "Failed to fetch technician statistics",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to fetch technician statistics")
     }
   }
 
@@ -525,10 +484,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
       );
       const total = await this.technicianRepository.countApplications(filter);
 
-      return {
-        success: true,
-        message: "Pending applications retrieved successfully",
-        data: {
+      return ResponseHelper.success("Pending applications retrieved successfully", {
           applications: applications as ITechnicianApplication[],
           pagination: {
             page: pageNum,
@@ -536,15 +492,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
             total,
             pages: Math.ceil(total / limitNum),
           },
-        },
-      };
+      })
     } catch (error) {
       console.error("Get pending applications error:", error);
-      return {
-        success: false,
-        message: "Failed to fetch pending applications",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to fetch pending applications")
     }
   }
 
@@ -554,10 +505,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
         id
       );
       if (!application) {
-        return {
-          success: false,
-          message: "Application not found",
-        };
+        return ResponseHelper.notFound("Application not found")
       }
 
       // Update application status
@@ -565,10 +513,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
         await this.technicianRepository.updateApplicationStatus(id, "approved");
 
       if (!updatedApplication) {
-        return {
-          success: false,
-          message: "Failed to update application",
-        };
+        return ResponseHelper.badRequest("Failed to update application")
       }
 
       // Update user's application status
@@ -631,10 +576,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
         );
       }
 
-      return {
-        success: true,
-        message: `Application approved successfully${emailMessage}`,
-        data: {
+      return ResponseHelper.success(`Application approved successfully${emailMessage}`, {
           applications: [updatedApplication as ITechnicianApplication],
           pagination: {
             page: 1,
@@ -642,15 +584,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
             total: 1,
             pages: 1,
           },
-        },
-      };
+      })
     } catch (error) {
       console.error("Approve application error:", error);
-      return {
-        success: false,
-        message: "Failed to approve application",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to approve application")
     }
   }
 
@@ -665,10 +602,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
         id
       );
       if (!application) {
-        return {
-          success: false,
-          message: "Application not found",
-        };
+        return ResponseHelper.notFound("Application not found")
       }
 
       if (application.technicianId) {
@@ -737,10 +671,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
           : " but failed to send email notification";
       }
 
-      return {
-        success: true,
-        message: `Application rejected successfully${emailMessage}`,
-        data: {
+      return ResponseHelper.success(`Application rejected successfully${emailMessage}`, {
           applications: [updatedApplication as ITechnicianApplication],
           pagination: {
             page: 1,
@@ -748,15 +679,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
             total: 1,
             pages: 1,
           },
-        },
-      };
+      })
     } catch (error) {
       console.error("Reject application error:", error);
-      return {
-        success: false,
-        message: "Failed to reject application",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to reject application")
     }
   }
 
@@ -766,10 +692,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
         id
       );
       if (!application) {
-        return {
-          success: false,
-          message: "Application not found",
-        };
+        return ResponseHelper.notFound("Application not found")
       }
 
       // Get user data
@@ -791,10 +714,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
         documents: formattedDocuments,
       } as ITechnicianApplication;
 
-      return {
-        success: true,
-        message: "Application retrieved successfully",
-        data: {
+      return ResponseHelper.success("Application retrieved successfully", {
           applications: [applicationData],
           pagination: {
             page: 1,
@@ -802,15 +722,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
             total: 1,
             pages: 1,
           },
-        },
-      };
+      })
     } catch (error) {
       console.error("Get application error:", error);
-      return {
-        success: false,
-        message: "Failed to fetch application",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to fetch application")
     }
   }
 
@@ -818,18 +733,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
     try {
       const stats = await this.technicianRepository.getApplicationStats();
 
-      return {
-        success: true,
-        message: "Application statistics retrieved successfully",
-        data: stats,
-      };
+      return ResponseHelper.success("Application statistics retrieved successfully", stats)
     } catch (error) {
       console.error("Get application stats error:", error);
-      return {
-        success: false,
-        message: "Failed to fetch application statistics",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to fetch application statistics")
     }
   }
 
@@ -843,18 +750,12 @@ export class TechnicianManagementService implements ITechnicianManagementService
         );
 
       if (!technician) {
-        return {
-          success: false,
-          message: "Technician not found for this application",
-        };
+        return ResponseHelper.notFound("Technician not found for this application")
       }
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      return {
-        success: true,
-        message: "Technician retrieved successfully",
-        data: {
+      return ResponseHelper.success("Technician retrieved successfully", {
           technicians: [adminTechnician],
           pagination: {
             page: 1,
@@ -862,15 +763,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
             total: 1,
             pages: 1,
           },
-        },
-      };
+      })
     } catch (error) {
       console.error("Get technician by application error:", error);
-      return {
-        success: false,
-        message: "Failed to fetch technician",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return ResponseHelper.error("Failed to fetch technician")
     }
   }
 }

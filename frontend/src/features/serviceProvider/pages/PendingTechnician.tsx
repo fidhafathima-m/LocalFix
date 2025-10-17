@@ -108,79 +108,80 @@ const PendingTechnicianApplication: React.FC = () => {
   const navigate = useNavigate();
 
   const fetchApplicationData = useCallback(async () => {
-    if (!isLoggedIn || !token) {
+  if (!isLoggedIn || !token) {
+    setLoading(false);
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setError(null);
+
+    const applicationId = localStorage.getItem("applicationId");
+
+    if (!applicationId) {
+      setError("No application found");
       setLoading(false);
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    const applicationResponse = await axios.get(
+      `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-      const applicationId = localStorage.getItem("applicationId");
+    console.log('Full API Response:', applicationResponse);
+    console.log('Response data:', applicationResponse.data);
+    console.log('Response data.data:', applicationResponse.data.data);
 
-      if (!applicationId) {
-        setError("No application found");
-        setLoading(false);
+    // FIX: Check the correct nested structure
+    if (applicationResponse.data.data?.data?.application) {
+      const appData = applicationResponse.data.data.data.application;
+
+      if (appData.status === "draft") {
+        navigate("/technicians/apply");
         return;
       }
 
-      const applicationResponse = await axios.get(
-        `${
-          import.meta.env.VITE_BASE_URL
-        }/technician-application/${applicationId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      setApplicationData(appData);
+      setApplicationStatus(appData.status);
 
-      if (applicationResponse.data.data?.application) {
-        const appData = applicationResponse.data.data.application;
-
-        if (appData.status === "draft") {
-          navigate("/technicians/apply");
-          return;
-        }
-
-        setApplicationData(appData);
-        setApplicationStatus(appData.status);
-
-        if (appData.status === "approved") {
-          try {
-            const technicianResponse = await axios.get(
-              `${
-                import.meta.env.VITE_BASE_URL
-              }/technicians/by-application/${applicationId}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-            if (technicianResponse.data.data?.technician) {
-              setTechnicianData(technicianResponse.data.data.technician);
+      if (appData.status === "approved") {
+        try {
+          const technicianResponse = await axios.get(
+            `${import.meta.env.VITE_BASE_URL}/technicians/by-application/${applicationId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
             }
-          } catch (techError) {
-            console.log("No technician data found yet", techError);
+          );
+          if (technicianResponse.data.data?.technician) {
+            setTechnicianData(technicianResponse.data.data.technician);
           }
+        } catch (techError) {
+          console.log("No technician data found yet", techError);
         }
-      } else {
-        setError("Failed to load application data");
       }
-    } catch (error: any) {
-      console.error("Error fetching application data:", error);
-
-      if (error.response?.status === 401) {
-        setError("Your session has expired. Please log in again.");
-      } else {
-        setError("Failed to load application data");
-      }
-    } finally {
-      setLoading(false);
+    } else {
+      setError("Failed to load application data");
     }
-  }, [token, isLoggedIn, navigate]);
+  } catch (error: any) {
+    console.error("Error fetching application data:", error);
+
+    if (error.response?.status === 401) {
+      setError("Your session has expired. Please log in again.");
+    } else {
+      setError("Failed to load application data");
+    }
+  } finally {
+    setLoading(false);
+  }
+}, [token, isLoggedIn, navigate]);
 
   // Function to get all available documents dynamically
   const getAvailableDocuments = (): AvailableDocument[] => {

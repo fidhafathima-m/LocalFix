@@ -1,5 +1,5 @@
 import React from "react";
-import {  useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../../hooks/redux";
 import { loginSuccess, type User } from "../../../store/slices/authSlice";
 import { authAPI, type OTPData } from "../../../services/authApi";
@@ -40,39 +40,50 @@ const UserSignupOTP: React.FC = () => {
 
     const res = await authAPI.verifyOTP(otpData);
 
-    if (!res.success || !res.user || !res.token) {
-      throw new Error(res.message || "Invalid response from server");
+    // Check if the response indicates success
+    if (!res.success) {
+      throw new Error(res.message || "OTP verification failed");
     }
 
+    // ✅ FIXED: Extract user and token from data object
+    const userData = res.data?.user;
+    const token = res.data?.token;
+
+    if (!userData || !token) {
+      throw new Error("Invalid response from server: missing user data or token");
+    }
+
+    // Dispatch login success
     dispatch(loginSuccess({
-      user: res.user as User,
-      token: res.token,
+      user: userData as User,
+      token: token,
     }));
 
     // Determine redirect path based on user role and application status
     let redirectPath = "/";
-    if (res.user.role === "serviceProvider") {
-      if (res.user.applicationStatus === "approved") {
+    if (userData.role === "serviceProvider") {
+      if (userData.applicationStatus === "approved") {
         redirectPath = "/technicians/dashboard";
       } else if (
-        res.user.applicationStatus === "submitted" ||
-        res.user.applicationStatus === "under_review"
+        userData.applicationStatus === "submitted" ||
+        userData.applicationStatus === "under_review"
       ) {
         redirectPath = "/pending-technician/dashboard";
       } else {
         redirectPath = "/technicians";
       }
-    } else if (res.user.role === "admin") {
+    } else if (userData.role === "admin") {
       redirectPath = "/admin/dashboard";
     }
 
+    // Clean up localStorage
     localStorage.removeItem("signupData");
 
     return {
       success: true,
-      message: res.message,
-      user: res.user,
-      token: res.token,
+      message: res.message || "OTP verified successfully",
+      user: userData,
+      token: token,
       redirectPath,
     };
   };
@@ -90,7 +101,6 @@ const UserSignupOTP: React.FC = () => {
       message: res.message,
     };
   };
-
 
   return (
     <BaseOTP

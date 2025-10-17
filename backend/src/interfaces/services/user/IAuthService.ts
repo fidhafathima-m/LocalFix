@@ -1,4 +1,4 @@
-import { ApiResponse } from "@/types/technicianApplicationTypes";
+import { ApiResponse } from "../../../utils/responseHelper"; // Use only one import
 import {
   LoginCredentials,
   OTPVerificationData,
@@ -7,6 +7,7 @@ import {
   SocialAuthData,
 } from "../../../interfaces/user/IAuthService";
 
+// Remove the duplicate ApiResponse import and extend from the correct one
 export interface AuthResponse extends ApiResponse {
   user?: any;
   token?: string;

@@ -45,15 +45,9 @@ const BankPaymentDetails = () => {
     setLoading(true)
     
     const response = await technicianAPI.getProfile()
-    console.log('📡 API Response status:', response.status);
-    console.log('📡 API Response data:', response.data);
     
-    if (response.data.success) {
-       console.log('✅ Profile fetch successful');
-      const profileData = response.data.data.profile
-      console.log('Full profile data:', profileData)
-      console.log('Payment details:', profileData.paymentDetails)
-      console.log('Bank payment details:', profileData.paymentDetails) // Check this!
+    if (response.success) {
+      const profileData = response.data?.data?.profile
       
       // Populate payment details data
       const paymentDetails = profileData.paymentDetails || profileData.paymentDetails || {}

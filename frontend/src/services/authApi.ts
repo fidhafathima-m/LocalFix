@@ -56,31 +56,44 @@ export interface GoogleAuthData {
 export interface AuthResponse {
   success: boolean;
   message: string;
-  user?: {
-    _id: string;
-    fullName: string;
-    phone?: string;
-    email?: string;
-    role: "user" | "serviceProvider" | "admin";
-    applicationStatus?: string;
-    isVerified?: boolean;
-    status?: string;
+  data?: {
+    user?: {
+      _id: string;
+      fullName: string;
+      phone?: string;
+      email?: string;
+      role: "user" | "serviceProvider" | "admin";
+      applicationStatus?: string;
+      isVerified?: boolean;
+      status?: string;
+    };
+    token?: string;
   };
+  user?: any;
   token?: string;
   error?: string;
+  statusCode?: number;
 }
+
+// Helper function to normalize response structure
+const normalizeAuthResponse = (response: AuthResponse): AuthResponse => {
+  return {
+    ...response,
+    // Extract user and token to root level for easy access
+    user: response.data?.user || response.user,
+    token: response.data?.token || response.token
+  };
+};
 
 export const authAPI = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>("/auth/login", credentials);
-      return response.data;
+      return normalizeAuthResponse(response.data);
     } catch (error: any) {
-      // Return the backend error response directly
       if (error.response?.data) {
-        return error.response.data;
+        return normalizeAuthResponse(error.response.data);
       }
-      // If no response from backend, create a generic error
       return {
         success: false,
         message: error.message || "Login failed",
@@ -92,10 +105,10 @@ export const authAPI = {
   signup: async (userData: SignupData): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>("/auth/signup", userData);
-      return response.data;
+      return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
-        return error.response.data;
+        return normalizeAuthResponse(error.response.data);
       }
       return {
         success: false,
@@ -111,10 +124,10 @@ export const authAPI = {
         "/auth/verify-otp",
         otpData
       );
-      return response.data;
+      return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
-        return error.response.data;
+        return normalizeAuthResponse(error.response.data);
       }
       return {
         success: false,
@@ -130,10 +143,10 @@ export const authAPI = {
         ...otpData,
         context: "forgot",
       });
-      return response.data;
+      return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
-        return error.response.data;
+        return normalizeAuthResponse(error.response.data);
       }
       return {
         success: false,
@@ -149,10 +162,10 @@ export const authAPI = {
         "/auth/resend-otp",
         otpData
       );
-      return response.data;
+      return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
-        return error.response.data;
+        return normalizeAuthResponse(error.response.data);
       }
       return {
         success: false,
@@ -168,10 +181,10 @@ export const authAPI = {
         "/auth/forgot-password",
         data
       );
-      return response.data;
+      return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
-        return error.response.data;
+        return normalizeAuthResponse(error.response.data);
       }
       return {
         success: false,
@@ -182,32 +195,31 @@ export const authAPI = {
   },
 
   resetPassword: async (resetData: ResetPasswordData): Promise<AuthResponse> => {
-  try {
-    
-    const response = await api.post<AuthResponse>(
-      "/auth/reset-password",
-      resetData
-    );
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.data) {
-      return error.response.data;
+    try {
+      const response = await api.post<AuthResponse>(
+        "/auth/reset-password",
+        resetData
+      );
+      return normalizeAuthResponse(response.data);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeAuthResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Password reset failed",
+        error: "Network error",
+      };
     }
-    return {
-      success: false,
-      message: error.message || "Password reset failed",
-      error: "Network error",
-    };
-  }
-},
+  },
 
   googleAuth: async (tokenData: GoogleAuthData): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>("/auth/google", tokenData);
-      return response.data;
+      return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
-        return error.response.data;
+        return normalizeAuthResponse(error.response.data);
       }
       return {
         success: false,
@@ -220,10 +232,10 @@ export const authAPI = {
   getProfile: async (): Promise<AuthResponse> => {
     try {
       const response = await api.get<AuthResponse>("/auth/profile");
-      return response.data;
+      return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
-        return error.response.data;
+        return normalizeAuthResponse(error.response.data);
       }
       return {
         success: false,

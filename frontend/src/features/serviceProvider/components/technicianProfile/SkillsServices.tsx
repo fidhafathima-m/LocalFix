@@ -33,13 +33,10 @@ const SkillsServices = () => {
     { id: 'refrigerator', name: 'Refrigerator', enabled: false },
     { id: 'fan-repair', name: 'Fan Repair', enabled: false },
     { id: 'tv-repair', name: 'TV Repair', enabled: false },
-    { id: 'microwave', name: 'Microwave Repair', enabled: false },
-    { id: 'water-purifier', name: 'Water Purifier Repair', enabled: false },
-    { id: 'geyser', name: 'Geyser Repair', enabled: false },
-    { id: 'inverter', name: 'Inverter Repair', enabled: false },
-    { id: 'computer', name: 'Computer Repair', enabled: false },
-    { id: 'laptop', name: 'Laptop Repair', enabled: false },
-    { id: 'printer', name: 'Printer Repair', enabled: false },
+    { id: 'microwave', name: 'Microwave Oven', enabled: false },
+    { id: 'water-purifier', name: 'Water Purifier', enabled: false },
+    { id: 'geyser', name: 'Geyser/Water Heater', enabled: false },
+    { id: 'ac-installation', name: 'AC Installation', enabled: false },
   ]
 
   useEffect(() => {
@@ -50,8 +47,8 @@ const SkillsServices = () => {
     try {
       setLoading(true)
       const response = await technicianAPI.getProfile()
-      if (response.data.success) {
-        const profileData = response.data.data.profile
+      if (response.success) {
+        const profileData = response.data?.data?.profile
         setProfile(profileData)
         
         // Populate skills and services data

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AuthRequest } from "../../middleware/authMiddleware";
 import { ITechnicianDashboardService } from "../../interfaces/services/technician/ITechnicianDashboardService";
+import { ResponseHelper } from "../../utils/responseHelper";
 
 export class TechnicianDashboardController {
   private dashboardService: ITechnicianDashboardService;
@@ -17,22 +18,19 @@ export class TechnicianDashboardController {
       const technicianId = req.user?.id;
 
       if (!technicianId) {
-        res
-          .status(401)
-          .json({ success: false, message: "Authentication required" });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
       const result = await this.dashboardService.getDashboardOverview(
         technicianId
       );
-      res.status(result.success ? 200 : 400).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      console.error("Get dashboard overview controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
@@ -44,23 +42,19 @@ export class TechnicianDashboardController {
       const technicianId = req.user?.id;
 
       if (!technicianId) {
-        res
-          .status(401)
-          .json({ success: false, message: "Authentication required" });
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
       const result = await this.dashboardService.getTechnicianProfile(
         technicianId
       );
-      res.status(result.success ? 200 : 400).json(result);
+      res.status(result.statusCode).json(result);
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      console.error("Get technician profile controller error:", error);
+      const errorResponse = ResponseHelper.error("Internal server error");
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 }
-

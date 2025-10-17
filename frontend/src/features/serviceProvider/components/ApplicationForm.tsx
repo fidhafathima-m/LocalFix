@@ -171,70 +171,82 @@ export const ApplicationForm: React.FC = () => {
   });
 
   const startApplication = async (): Promise<string | null> => {
-    if (!user?._id) {
-      toast.error("Please log in to start application");
-      return null;
-    }
+  if (!user?._id) {
+    toast.error("Please log in to start application");
+    return null;
+  }
 
-    if (!formData.email || formData.email.trim() === "") {
-      toast.error("Please enter your email address first");
-      return null;
-    }
+  if (!formData.email || formData.email.trim() === "") {
+    toast.error("Please enter your email address first");
+    return null;
+  }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      alert("Please enter a valid email address");
-      return null;
-    }
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(formData.email)) {
+    alert("Please enter a valid email address");
+    return null;
+  }
 
-    try {
-      const response = await technicianAPI.startApplication({
-        email: formData.email.trim(),
-        userId: user._id,
-      });
+  try {
+    const response = await technicianAPI.startApplication({
+      email: formData.email.trim(),
+      userId: user._id,
+    });
 
-      if (response.data.success) {
-        const responseData = response.data.data;
-        const newApplicationId = responseData?.applicationId;
+    console.log("🔍 Start Application Response:", response);
 
-        if (responseData?.redirectTo) {
-          const currentPath = window.location.pathname;
-          if (!currentPath.includes(responseData.redirectTo)) {
-            window.location.href = responseData.redirectTo;
-          }
-          return null;
+    // ✅ FIXED: Check response structure properly
+    if (response.success) {
+      // Extract data from both possible locations
+      const applicationData = response.data || response;
+      const newApplicationId = applicationData.applicationId || applicationData.data?.applicationId;
+      const redirectTo = applicationData.redirectTo || applicationData.data?.redirectTo;
+
+      console.log("🔍 Extracted Application ID:", newApplicationId);
+      console.log("🔍 Redirect To:", redirectTo);
+
+      if (redirectTo) {
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes(redirectTo)) {
+          window.location.href = redirectTo;
         }
-        if (newApplicationId) {
-          setApplicationId(newApplicationId);
-          localStorage.setItem("applicationId", newApplicationId);
-          localStorage.setItem("currentTechnicianApplication", user._id);
-          return newApplicationId;
-        } else {
-          toast.error("Failed to get application ID from server");
-          return null;
-        }
-      } else {
-        toast.error("Failed to start application");
         return null;
       }
-    } catch (err: unknown) {
-      console.error("Start application error:", err);
 
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 400) {
-          alert(err.response.data.message);
-        } else if (err.response?.status === 500) {
-          alert("Server error. Please try again later.");
-        } else {
-          alert("Failed to start application");
-        }
+      if (newApplicationId) {
+        setApplicationId(newApplicationId);
+        localStorage.setItem("applicationId", newApplicationId);
+        localStorage.setItem("currentTechnicianApplication", user._id);
+        toast.success("Application started successfully!");
+        return newApplicationId;
       } else {
-        alert("Failed to start application");
+        console.error("No application ID in response:", response);
+        toast.error("Failed to get application ID from server");
+        return null;
       }
+    } else {
+      console.error("API returned failure:", response);
+      toast.error(response.message || "Failed to start application");
       return null;
     }
-  };
+  } catch (err: unknown) {
+    console.error("Start application error:", err);
+
+    if (axios.isAxiosError(err)) {
+      if (err.response?.status === 400) {
+        toast.error(err.response.data.message || "Bad request");
+      } else if (err.response?.status === 500) {
+        toast.error("Server error. Please try again later.");
+      } else {
+        toast.error("Failed to start application");
+      }
+    } else {
+      toast.error("Failed to start application");
+    }
+    return null;
+  }
+};
 
   useEffect(() => {
     const savedAppId = localStorage.getItem("applicationId");
@@ -751,133 +763,142 @@ export const ApplicationForm: React.FC = () => {
   };
 
   const handleNext = async () => {
-    if (isLoading) return;
+  if (isLoading) return;
 
-    const stepErrors = validateStepFields(currentStep);
+  const stepErrors = validateStepFields(currentStep);
 
-    if (Object.keys(stepErrors).length > 0) {
-      setErrors(stepErrors);
-      return;
-    } else {
-      setErrors({});
-    }
-    setIsLoading(true);
+  if (Object.keys(stepErrors).length > 0) {
+    setErrors(stepErrors);
+    return;
+  } else {
+    setErrors({});
+  }
+  setIsLoading(true);
 
-    let currentApplicationId = applicationId;
+  let currentApplicationId = applicationId;
 
+  if (!currentApplicationId) {
+    currentApplicationId = await startApplication();
     if (!currentApplicationId) {
-      currentApplicationId = await startApplication();
-      if (!currentApplicationId) {
-        toast.error("Failed to start application");
-        setIsLoading(false);
-        return;
+      toast.error("Failed to start application");
+      setIsLoading(false);
+      return;
+    }
+  }
+
+  const stepName = STEPS[currentStep - 1];
+  const stepForm = new FormData();
+
+  stepForm.append("step", stepName);
+  stepForm.append("applicationId", currentApplicationId);
+
+  const currentStepFields = stepFields[stepName] || [];
+
+  if (stepName === "Documents") {
+    const documentFields = [
+      "idProof",
+      "addressProof",
+      "policeVerification",
+      "tradeLicense",
+      "certifications",
+      "passportPhoto",
+    ];
+
+    documentFields.forEach((field) => {
+      const file = (formData as any)[field];
+      if (file instanceof File) {
+        stepForm.append(field, file);
       }
-    }
+    });
+  } else {
+    // Handle other steps normally
+    currentStepFields.forEach((field) => {
+      let value = (formData as any)[field];
 
-    const stepName = STEPS[currentStep - 1];
-    const stepForm = new FormData();
-
-    stepForm.append("step", stepName);
-    stepForm.append("applicationId", currentApplicationId);
-
-    const currentStepFields = stepFields[stepName] || [];
-
-    if (stepName === "Documents") {
-      const documentFields = [
-        "idProof",
-        "addressProof",
-        "policeVerification",
-        "tradeLicense",
-        "certifications",
-        "passportPhoto",
-      ];
-
-      documentFields.forEach((field) => {
-        const file = (formData as any)[field];
-        if (file instanceof File) {
-          stepForm.append(field, file);
+      if (value !== null && value !== undefined) {
+        if (value instanceof File) {
+          return;
         }
-      });
-    } else {
-      // Handle other steps normally
-      currentStepFields.forEach((field) => {
-        let value = (formData as any)[field];
 
-        if (value !== null && value !== undefined) {
-          if (value instanceof File) {
-            return;
-          }
-
-          if (field === "agreement") {
-            stepForm.append(field, value ? "true" : "false");
-          } else if (
-            (field === "address" || field === "location") &&
-            typeof value === "object"
-          ) {
-            const addressString = JSON.stringify(value);
-            stepForm.append(field, addressString);
-          }
-          // Handle availability object
-          else if (field === "availability" && typeof value === "object") {
-            value = JSON.stringify(value);
-            stepForm.append(field, value);
-          }
-          // Handle arrays
-          else if (Array.isArray(value)) {
-            value = JSON.stringify(value);
-            stepForm.append(field, value);
-          }
-          // Handle all other values
-          else {
-            stepForm.append(field, String(value));
-          }
+        if (field === "agreement") {
+          stepForm.append(field, value ? "true" : "false");
+        } else if (
+          (field === "address" || field === "location") &&
+          typeof value === "object"
+        ) {
+          const addressString = JSON.stringify(value);
+          stepForm.append(field, addressString);
         }
-      });
-    }
+        // Handle availability object
+        else if (field === "availability" && typeof value === "object") {
+          value = JSON.stringify(value);
+          stepForm.append(field, value);
+        }
+        // Handle arrays
+        else if (Array.isArray(value)) {
+          value = JSON.stringify(value);
+          stepForm.append(field, value);
+        }
+        // Handle all other values
+        else {
+          stepForm.append(field, String(value));
+        }
+      }
+    });
+  }
 
-    try {
-      await technicianAPI.saveStep(stepForm);
+  try {
+    const response = await technicianAPI.saveStep(stepForm);
 
+    console.log("🔍 Save Step Response:", response);
+
+    // ✅ FIXED: Check response properly
+    if (response.success) {
+      toast.success("Step saved successfully!");
+      
       // Move to next step
       if (currentStep < STEPS.length) {
         setCurrentStep((prev) => prev + 1);
       }
-    } catch (err: unknown) {
-      console.error("Error saving step:", err);
-
-      if (axios.isAxiosError(err)) {
-        console.error("Axios error details:", {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-          statusText: err.response?.statusText,
-          headers: err.response?.headers,
-        });
-
-        const errorMessage = err.response?.data?.message || err.message;
-
-        if (err.code === "ECONNABORTED") {
-          toast.error(
-            "Request timeout. Please check your internet connection and try again."
-          );
-        } else if (err.response?.status === 413) {
-          toast.error("File too large. Please upload smaller files.");
-        } else if (err.response?.status === 415) {
-          toast.error(
-            "Unsupported file type. Please upload PDF, JPG, or PNG files."
-          );
-        } else {
-          toast.error(`Failed to save step: ${errorMessage}`);
-        }
-      } else if (err instanceof Error) {
-        toast.error(`Failed to save step: ${err.message}`);
-      } else {
-        toast.error("Failed to save this step. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
+    } else {
+      toast.error(response.message || "Failed to save step");
     }
-  };
+  } catch (err: unknown) {
+    console.error("Error saving step:", err);
+
+    if (axios.isAxiosError(err)) {
+      console.error("Axios error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        headers: err.response?.headers,
+      });
+
+      const errorMessage = err.response?.data?.message || err.message;
+
+      if (err.code === "ECONNABORTED") {
+        toast.error(
+          "Request timeout. Please check your internet connection and try again."
+        );
+      } else if (err.response?.status === 413) {
+        toast.error("File too large. Please upload smaller files.");
+      } else if (err.response?.status === 415) {
+        toast.error(
+          "Unsupported file type. Please upload PDF, JPG, or PNG files."
+        );
+      } else {
+        toast.error(`Failed to save step: ${errorMessage}`);
+      }
+    } else if (err instanceof Error) {
+      toast.error(`Failed to save step: ${err.message}`);
+    } else {
+      toast.error("Failed to save this step. Please try again.");
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handlePrevious = () => {
     if (currentStep > 1) {
@@ -887,125 +908,140 @@ export const ApplicationForm: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (isLoading) return;
+  if (isLoading) return;
 
-    const currentToken = localStorage.getItem("token");
+  const currentToken = localStorage.getItem("token");
 
-    if (!currentToken) {
-      console.error("No token found in localStorage");
-      alert("Your session has expired. Please log in again.");
-      window.location.href =
-        "/login?redirect=" + encodeURIComponent(window.location.pathname);
-      setIsLoading(false);
-      return;
-    }
+  if (!currentToken) {
+    console.error("No token found in localStorage");
+    alert("Your session has expired. Please log in again.");
+    window.location.href =
+      "/login?redirect=" + encodeURIComponent(window.location.pathname);
+    setIsLoading(false);
+    return;
+  }
 
-    if (!user?._id) {
-      console.error("No user data found");
-      alert("User information not found. Please log in again.");
-      window.location.href = "/technician/login";
-      return;
-    }
+  if (!user?._id) {
+    console.error("No user data found");
+    alert("User information not found. Please log in again.");
+    window.location.href = "/technician/login";
+    return;
+  }
 
-    if (!applicationId) {
-      console.error("No application ID found");
-      alert("Application not found. Please start a new application.");
-      return;
-    }
+  if (!applicationId) {
+    console.error("No application ID found");
+    alert("Application not found. Please start a new application.");
+    return;
+  }
 
-    try {
-      const response = await technicianAPI.submitApplication({
-        applicationId: applicationId,
-      });
+  setIsLoading(true);
 
-      if (response.data.success) {
-        dispatch(updateApplicationStatus("submitted"));
+  try {
+    const response = await technicianAPI.submitApplication({
+      applicationId: applicationId,
+    });
 
-        if (response.data.data?.user) {
-          dispatch(
-            updateUser({
-              ...user,
-              applicationStatus: "submitted",
-            })
-          );
-        } else {
-          dispatch(
-            updateUser({
-              applicationStatus: "submitted",
-            })
-          );
-        }
+    console.log("🔍 Submit Application Response:", response);
 
-        const currentUser = localStorage.getItem("user");
-        if (currentUser) {
-          const userData = JSON.parse(currentUser);
-          userData.applicationStatus = "submitted";
-          localStorage.setItem("user", JSON.stringify(userData));
-        }
+    // ✅ FIXED: Check response properly
+    if (response.success) {
+      dispatch(updateApplicationStatus("submitted"));
 
-        setIsSubmitted(true);
-        setSubmissionSuccess(true);
-
-        localStorage.removeItem(`techApp-${applicationId}`);
-      }
-    } catch (error: unknown) {
-      console.error("Submission error:", error);
-
-      if (axios.isAxiosError(error)) {
-        const errorMessage =
-          error.response?.data?.message ||
-          error.response?.statusText ||
-          error.message;
-        const missingSteps = error.response?.data?.missingSteps;
-
-        console.log("Error details:", {
-          message: errorMessage,
-          missingSteps: missingSteps,
-          response: error.response?.data,
-          status: error.response?.status,
-        });
-
-        if (error.response?.status === 401) {
-          // Clear auth data and redirect to login
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          alert("Your session has expired. Please log in again.");
-          window.location.href = "/login";
-        } else if (error.response?.status === 403) {
-          alert(
-            "Access denied. You do not have permission to submit this application."
-          );
-        } else if (missingSteps && missingSteps.length > 0) {
-          alert(
-            `Please complete the following steps before submitting: ${missingSteps.join(
-              ", "
-            )}`
-          );
-
-          // Navigate to first missing step
-          const firstMissingStep = missingSteps[0];
-          const stepIndex = STEPS.findIndex(
-            (step) => step === firstMissingStep
-          );
-          if (stepIndex !== -1) {
-            setCurrentStep(stepIndex + 1);
-          }
-        } else {
-          alert(
-            `There was an error submitting the application: ${errorMessage}`
-          );
-        }
-      } else if (error instanceof Error) {
-        alert(
-          `There was an error submitting the application: ${error.message}`
+      if (response.data?.user) {
+        dispatch(
+          updateUser({
+            ...user,
+            applicationStatus: "submitted",
+          })
         );
       } else {
-        alert("There was an unknown error submitting the application.");
+        dispatch(
+          updateUser({
+            applicationStatus: "submitted",
+          })
+        );
       }
-    } finally {
-      setIsLoading(false);
+
+      const currentUser = localStorage.getItem("user");
+      if (currentUser) {
+        const userData = JSON.parse(currentUser);
+        userData.applicationStatus = "submitted";
+        localStorage.setItem("user", JSON.stringify(userData));
+      }
+
+      // ✅ FIXED: Set both states to trigger success page
+      setIsSubmitted(true);
+      setSubmissionSuccess(true);
+
+      localStorage.removeItem(`techApp-${applicationId}`);
+      
+      // ✅ FIXED: Show success toast
+      toast.success("Application submitted successfully!");
+      
+      console.log("✅ Application submitted successfully, should redirect to success page");
+    } else {
+      // Handle API error response
+      console.error("Submit application failed:", response);
+      toast.error(response.message || "Failed to submit application");
     }
-  };
+  } catch (error: unknown) {
+    console.error("Submission error:", error);
+
+    if (axios.isAxiosError(error)) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.statusText ||
+        error.message;
+      const missingSteps = error.response?.data?.missingSteps;
+
+      console.log("Error details:", {
+        message: errorMessage,
+        missingSteps: missingSteps,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+
+      if (error.response?.status === 401) {
+        // Clear auth data and redirect to login
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        alert("Your session has expired. Please log in again.");
+        window.location.href = "/login";
+      } else if (error.response?.status === 403) {
+        alert(
+          "Access denied. You do not have permission to submit this application."
+        );
+      } else if (missingSteps && missingSteps.length > 0) {
+        alert(
+          `Please complete the following steps before submitting: ${missingSteps.join(
+            ", "
+          )}`
+        );
+
+        // Navigate to first missing step
+        const firstMissingStep = missingSteps[0];
+        const stepIndex = STEPS.findIndex(
+          (step) => step === firstMissingStep
+        );
+        if (stepIndex !== -1) {
+          setCurrentStep(stepIndex + 1);
+        }
+      } else {
+        alert(
+          `There was an error submitting the application: ${errorMessage}`
+        );
+      }
+    } else if (error instanceof Error) {
+      alert(
+        `There was an error submitting the application: ${error.message}`
+      );
+    } else {
+      alert("There was an unknown error submitting the application.");
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
   if (isSubmitted && submissionSuccess) {
     return <ApplicationSubmitted />;
   }

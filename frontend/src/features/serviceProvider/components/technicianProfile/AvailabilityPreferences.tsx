@@ -69,8 +69,8 @@ const AvailabilityPreferences = () => {
     try {
       setLoading(true)
       const response = await technicianAPI.getProfile()
-      if (response.data.success) {
-        const profileData = response.data.data.profile
+      if (response.success) {
+        const profileData = response.data?.data?.profile
         setProfile(profileData)
         
         // Populate availability data

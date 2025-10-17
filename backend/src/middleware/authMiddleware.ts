@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/UserSchema";
 import { Types } from "mongoose";
+import { ResponseHelper } from "../utils/responseHelper";
 
 export interface AuthRequest extends Request {
   user?: {
@@ -26,10 +27,7 @@ export const protect = async (
   }
 
   if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: "Authentication required",
-    });
+    return ResponseHelper.unauthorized("Authentication required")
   }
 
   try {
@@ -38,19 +36,13 @@ export const protect = async (
     const userId = decoded._id || decoded.id;
 
     if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid token structure",
-      });
+      return ResponseHelper.unauthorized("Invalid token structure")
     }
 
     const user = await User.findById(userId).select("-passwordHash");
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not found",
-      });
+      return ResponseHelper.notFound("User not found")
     }
 
     req.user = {
@@ -62,10 +54,7 @@ export const protect = async (
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    return res.status(401).json({
-      success: false,
-      message: "Invalid token",
-    });
+    return ResponseHelper.unauthorized("Invalid token")
   }
 };
 
@@ -73,10 +62,7 @@ export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.user && req.user.role === "admin") {
     next();
   } else {
-    res.status(403).json({
-      success: false,
-      message: "Access denied. Admin role required.",
-    });
+    return ResponseHelper.forbidden("Access denied. Admin role required.")
   }
 };
 
@@ -88,10 +74,7 @@ export const serviceProvider = (
   if (req.user && req.user.role === "serviceProvider") {
     next();
   } else {
-    res.status(403).json({
-      success: false,
-      message: "Access denied. Service Provider role required.",
-    });
+    return ResponseHelper.forbidden("Access denied. Service Provider role required.")
   }
 };
 
@@ -99,10 +82,7 @@ export const user = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.user && req.user.role === "user") {
     next();
   } else {
-    res.status(403).json({
-      success: false,
-      message: "Access denied. User role required.",
-    });
+    return ResponseHelper.forbidden("Access denied. User role required.")
   }
 };
 
@@ -112,10 +92,7 @@ export const requireRole = (roles: string[]) => {
     if (req.user && roles.includes(req.user.role || "")) {
       next();
     } else {
-      res.status(403).json({
-        success: false,
-        message: `Access denied. Required roles: ${roles.join(", ")}`,
-      });
+      return ResponseHelper.forbidden(`Access denied. Required roles: ${roles.join(", ")}`)
     }
   };
 };

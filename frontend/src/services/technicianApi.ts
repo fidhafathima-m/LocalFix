@@ -142,111 +142,401 @@ export interface ApplicationData {
   updatedAt: string;
 }
 
+// FIX: Remove the extra data wrapping
+const normalizeResponse = (response: any) => {
+  const responseData = response.data || response;
+  
+  return {
+    success: responseData.success,
+    message: responseData.message,
+    data: responseData.data, // Remove the || responseData part
+    statusCode: responseData.statusCode || 200,
+    error: responseData.error
+  };
+};
+
 export const technicianAPI = {
-  getProfile: () =>
-    api.get<{ success: boolean; data: { profile: TechnicianProfile } }>(
-      "/technician/profile"
-    ),
-
-  updateProfile: (data: Partial<TechnicianProfile>) =>
-    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
-      "/technician/profile",
-      data
-    ),
-
-  getAddress: () =>
-    api.get<{ success: boolean; data: { address: any } }>(
-      "/technician/address"
-    ),
-
-  updateAddress: (addressData: any) =>
-    api.put<{ success: boolean; data: { address: any } }>(
-      "/technician/address",
-      addressData
-    ),
-
-  getApplication: (applicationId: string) =>
-    api.get<{ success: boolean; data: { application: ApplicationData } }>(
-      `/technician-application/${applicationId}`
-    ),
-
-  getUserApplications: () =>
-    api.get<{ success: boolean; data: { applications: ApplicationData[] } }>(
-      "/technician-application/user/applications"
-    ),
-
-  startApplication: (data: { email: string; userId: string }) =>
-    api.post<{
-      success: boolean;
-      data: { applicationId: string; redirectTo?: string };
-    }>("/technician-application/start", data),
-
-  saveStep: (formData: FormData) =>
-    api.post<{ success: boolean }>(
-      "/technician-application/save-step",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
+  getProfile: async () => {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>("/technician/profile");
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
       }
-    ),
+      return {
+        success: false,
+        message: error.message || "Failed to get profile",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
 
-  submitApplication: (data: { applicationId: string }) =>
-    api.post<{ success: boolean; data?: { user: any } }>(
-      "/technician-application/submit",
-      data
-    ),
+  updateProfile: async (data: Partial<TechnicianProfile>) => {
+    try {
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>("/technician/profile", data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update profile",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
 
-  resubmitApplication: (applicationId: string) =>
-    api.patch<{ success: boolean }>(
-      `/technician-application/${applicationId}/resubmit`
-    ),
+  getAddress: async () => {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        message: string;
+        data: { address: any };
+        statusCode: number;
+      }>("/technician/address");
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to get address",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
 
-  startNewAfterRejection: (data: { email: string }) =>
-    api.post<{ success: boolean; data: { applicationId: string } }>(
-      "/technician-application/start-new-after-rejection",
-      data
-    ),
+  updateAddress: async (addressData: any) => {
+    try {
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: { address: any };
+        statusCode: number;
+      }>("/technician/address", addressData);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update address",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  getApplication: async (applicationId: string) => {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        message: string;
+        data: { application: ApplicationData };
+        statusCode: number;
+      }>(`/technician-application/${applicationId}`);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to get application",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  getUserApplications: async () => {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        message: string;
+        data: { applications: ApplicationData[] };
+        statusCode: number;
+      }>("/technician-application/user/applications");
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to get user applications",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  startApplication: async (data: { email: string; userId: string }) => {
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data: { applicationId: string; redirectTo?: string };
+        statusCode: number;
+      }>("/technician-application/start", data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to start application",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  saveStep: async (formData: FormData) => {
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data: any;
+        statusCode: number;
+      }>("/technician-application/save-step", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to save step",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  submitApplication: async (data: { applicationId: string }) => {
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data?: { user: any };
+        statusCode: number;
+      }>("/technician-application/submit", data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to submit application",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  resubmitApplication: async (applicationId: string) => {
+    try {
+      const response = await api.patch<{
+        success: boolean;
+        message: string;
+        data: any;
+        statusCode: number;
+      }>(`/technician-application/${applicationId}/resubmit`);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to resubmit application",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  startNewAfterRejection: async (data: { email: string }) => {
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data: { applicationId: string };
+        statusCode: number;
+      }>("/technician-application/start-new-after-rejection", data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to start new application",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
 
   // technician profile
-  uploadPhoto: (formData: FormData) =>
-    api.post<{ success: boolean; data: { profilePictureUrl: string } }>(
-      "/technician/profile/upload-photo",
-      formData,
-      {
+  uploadPhoto: async (formData: FormData) => {
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data: { profilePictureUrl: string };
+        statusCode: number;
+      }>("/technician/profile/upload-photo", formData, {
         headers: { "Content-Type": "multipart/form-data" },
+      });
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
       }
-    ),
+      return {
+        success: false,
+        message: error.message || "Failed to upload photo",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
 
-  updatePersonalInfo: (data: any) =>
-    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
-      "/technician/profile/personal-info",
-      data
-    ),
-  updateIdentityVerification: (data: any) =>
-    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
-      "/technician/profile/identity-verification",
-      data
-    ),
+  updatePersonalInfo: async (data: any) => {
+    try {
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>("/technician/profile/personal-info", data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update personal info",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
 
-  uploadDocument: (formData: FormData) =>
-    api.post<{ success: boolean; data: { document: any } }>(
-      "/technician/profile/documents",
-      formData,
-      {
+  updateIdentityVerification: async (data: any) => {
+    try {
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>("/technician/profile/identity-verification", data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update identity verification",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  uploadDocument: async (formData: FormData) => {
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data: { document: any };
+        statusCode: number;
+      }>("/technician/profile/documents", formData, {
         headers: { "Content-Type": "multipart/form-data" },
+      });
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
       }
-    ),
-  updateSkillsServices: (data: {
+      return {
+        success: false,
+        message: error.message || "Failed to upload document",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  updateSkillsServices: async (data: {
     services: string[];
     experienceYears?: number;
     skills?: string[];
     certifications?: string[];
-  }) =>
-    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
-      "/technician/profile/skills-services",
-      data
-    ),
-  updateAvailability: (data: {
+  }) => {
+    try {
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>("/technician/profile/skills-services", data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update skills and services",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  updateAvailability: async (data: {
     availability: {
       isAvailable: boolean;
       weeklyAvailability: {
@@ -259,12 +549,30 @@ export const technicianAPI = {
     };
     workAreas: string[];
     serviceRadiusKm: number;
-  }) =>
-    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
-      "/technician/profile/availability",
-      data
-    ),
-  updateBankPayment: (data: {
+  }) => {
+    try {
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>("/technician/profile/availability", data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update availability",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
+
+  updateBankPayment: async (data: {
     paymentDetails: {
       bankAccount: {
         holderName: string;
@@ -275,9 +583,26 @@ export const technicianAPI = {
       upiId?: string;
       withdrawalPreference: "auto" | "manual";
     };
-  }) =>
-    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
-      "/technician/profile/bank-payment",
-      data
-    ),
+  }) => {
+    try {
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>("/technician/profile/bank-payment", data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update bank payment details",
+        error: "Network error",
+        data: null,
+        statusCode: 500
+      };
+    }
+  },
 };

@@ -1,3 +1,4 @@
+import { ApiResponse } from "../../utils/responseHelper";
 import { Types } from "mongoose";
 
 export interface IUser {
@@ -32,21 +33,10 @@ export interface EditUserRequest {
   status?: "Active" | "Inactive" | "Blocked";
 }
 
-export interface UserManagementResponse {
-  success: boolean;
-  message: string;
-  data?: any;
-  error?: string;
-}
-
-export interface UsersListResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    users: IUserWithAddress[];
-    total?: number;
-    page?: number;
-    limit?: number;
-  };
-  error?: string;
-}
+export type UserManagementResponse = ApiResponse;
+export type UsersListResponse = ApiResponse<{
+  users: IUserWithAddress[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}>;

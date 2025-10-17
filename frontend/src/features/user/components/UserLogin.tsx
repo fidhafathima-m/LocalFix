@@ -18,19 +18,24 @@ const UserLogin: React.FC = () => {
     try {
       const res = await authAPI.login(credentials);
       
-      if (res.success && res.user && res.token) {
+      // ✅ FIXED: Extract user and token from data object
+      const userDataFromResponse = res.data?.user || res.user;
+      const tokenFromResponse = res.data?.token || res.token;
+      
+      if (res.success && userDataFromResponse && tokenFromResponse) {
         const userData: User = {
-          _id: res.user._id,
-          fullName: res.user.fullName,
-          phone: res.user.phone || "",
-          email: res.user.email || "",
-          role: res.user.role,
-          applicationStatus: getSafeApplicationStatus(res.user.applicationStatus),
-          isVerified: res.user.isVerified || false,
+          _id: userDataFromResponse._id,
+          fullName: userDataFromResponse.fullName,
+          phone: userDataFromResponse.phone || "",
+          email: userDataFromResponse.email || "",
+          role: userDataFromResponse.role,
+          applicationStatus: getSafeApplicationStatus(userDataFromResponse.applicationStatus),
+          isVerified: userDataFromResponse.isVerified || false,
         };
+        
         dispatch(loginSuccess({
           user: userData,
-          token: res.token,
+          token: tokenFromResponse,
         }));
         
         // User-specific success logic
@@ -47,7 +52,6 @@ const UserLogin: React.FC = () => {
       return { success: false, message: errorMessage };
     }
   };
-
 
   const customValidation = (data: { identifier: string; password: string }) => {
     const validation = validateSchema(loginSchema, {
