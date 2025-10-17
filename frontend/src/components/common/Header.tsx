@@ -275,7 +275,7 @@ const Header: React.FC<HeaderProps> = ({
               </a>,
               <a
                 key="profile"
-                href="/technicians/profile"
+                href="/technician/profile"
                 className="px-3 hover:text-blue-600 transition-colors"
                 onClick={closeMobileMenu}
               >

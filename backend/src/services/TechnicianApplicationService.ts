@@ -633,6 +633,20 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
           addressData = application.identity.address;
         }
       }
+      if (application.bank && technician) {
+      await this.technicianRepository.updateByUserId(userId, {
+        paymentDetails: {
+          bankAccount: {
+            holderName: application.bank.accountHolderName,
+            accountNumber: application.bank.accountNumber,
+            ifscCode: application.bank.ifscCode,
+            bankName: application.bank.bankName || "",
+          },
+          upiId: application.bank.upiId || "",
+          withdrawalPreference: 'auto'
+        }
+      });
+    }
 
       if (!technician) {
         technician = await this.technicianRepository.create({

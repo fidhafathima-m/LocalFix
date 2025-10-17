@@ -1,3 +1,4 @@
+// src/repositories/admin/TechnicianManagemnetRepository.ts
 import { Technician } from "../../models/technician/TechnicianSchema";
 import {
   TechnicianApplication,
@@ -6,21 +7,29 @@ import {
 import User from "../../models/UserSchema";
 import UserAddressSchema from "../../models/UserAddressSchema";
 import { Types } from "mongoose";
-import { ITechnician } from "../../interfaces/admin/ITechnicianManagement";
+import {
+  ITechnician,
+  IAdminTechnician,
+} from "../../interfaces/admin/ITechnicianManagement";
 import { ITechnicianManagementRepository } from "../../interfaces/repository/admin/ITechnicianManagementRepository";
 
-export class TechnicianManagementRepository implements ITechnicianManagementRepository {
+export class TechnicianManagementRepository
+  implements ITechnicianManagementRepository
+{
   async findAllTechnicians(
     filter: any,
     skip: number,
     limit: number
   ): Promise<ITechnician[]> {
-    return await Technician.find(filter)
+    const technicians = await Technician.find(filter)
       .populate("userId", "email phone fullName")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
+
+    // Use type assertion to bypass TypeScript errors
+    return technicians as unknown as ITechnician[];
   }
 
   async countTechnicians(filter: any): Promise<number> {
@@ -28,46 +37,50 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
   }
 
   async findTechnicianById(id: string): Promise<ITechnician | null> {
-    return await Technician.findById(id)
+    const technician = await Technician.findById(id)
       .populate("userId", "email phone fullName createdAt")
       .lean();
+
+    // Use type assertion to bypass TypeScript errors
+    return technician as unknown as ITechnician | null;
   }
 
   async updateTechnicianStatus(
-  id: string, 
-  status: string, 
-  additionalData?: any
-): Promise<ITechnician | null> {
-  try {
-    const updateData: any = { status };
-    
-    // Merge additional data if provided
-    if (additionalData) {
-      Object.assign(updateData, additionalData);
+    id: string,
+    status: string,
+    additionalData?: any
+  ): Promise<ITechnician | null> {
+    try {
+      const updateData: any = { status };
+
+      // Merge additional data if provided
+      if (additionalData) {
+        Object.assign(updateData, additionalData);
+      }
+
+      const technician = await Technician.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true }
+      );
+
+      if (!technician) {
+        return null;
+      }
+
+      // Use type assertion to bypass TypeScript errors
+      return technician as unknown as ITechnician;
+    } catch (error) {
+      console.error("Repository: Error updating technician status:", error);
+      throw error;
     }
-
-    const technician = await Technician.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true }
-    );
-
-    if (!technician) {
-      return null;
-    }
-
-    return technician;
-  } catch (error) {
-    console.error("Repository: Error updating technician status:", error);
-    throw error;
   }
-}
 
   async updateTechnicianPersonalInfo(
     technicianId: string,
     personalInfo: any
   ): Promise<ITechnician | null> {
-    return await Technician.findByIdAndUpdate(
+    const technician = await Technician.findByIdAndUpdate(
       technicianId,
       {
         $set: {
@@ -77,11 +90,18 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
       },
       { new: true }
     );
+
+    // Use type assertion to bypass TypeScript errors
+    return technician as unknown as ITechnician | null;
   }
 
   async findTechnicianByUserId(userId: string): Promise<ITechnician | null> {
     try {
-      return await Technician.findOne({ userId: new Types.ObjectId(userId) });
+      const technician = await Technician.findOne({
+        userId: new Types.ObjectId(userId),
+      });
+      // Use type assertion to bypass TypeScript errors
+      return technician as unknown as ITechnician | null;
     } catch (error) {
       console.error("Error finding technician by userId:", error);
       return null;
@@ -169,6 +189,7 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
       throw error;
     }
   }
+
   async getApplicationStats(): Promise<{
     total: number;
     pending: number;
@@ -311,21 +332,26 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
         throw new Error("Technician could not be found or created");
       }
 
-      return technician;
+      // Use type assertion to bypass TypeScript errors
+      return technician as unknown as ITechnician;
     } catch (error) {
       console.error("Find or create technician error:", error);
       throw error;
     }
   }
+
   async findTechnicianByApplicationId(
     applicationId: string
   ): Promise<ITechnician | null> {
     const application = await TechnicianApplication.findById(applicationId);
     if (!application) return null;
 
-    return await Technician.findOne({
+    const technician = await Technician.findOne({
       userId: application.technicianId,
     }).populate("userId", "email phone fullName");
+
+    // Use type assertion to bypass TypeScript errors
+    return technician as unknown as ITechnician | null;
   }
 
   async findUserById(userId: Types.ObjectId): Promise<any> {
@@ -367,5 +393,19 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
       console.error("Error finding application by technician ID:", error);
       return null;
     }
+  }
+  async updateTechnicianPaymentDetails(
+    technicianId: string,
+    paymentDetails: any
+  ): Promise<any> {
+    return await Technician.findByIdAndUpdate(
+      technicianId,
+      {
+        $set: {
+          paymentDetails: paymentDetails,
+        },
+      },
+      { new: true }
+    );
   }
 }

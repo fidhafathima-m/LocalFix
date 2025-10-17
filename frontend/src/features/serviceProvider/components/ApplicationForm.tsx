@@ -57,6 +57,7 @@ const stepFields: Record<string, string[]> = {
     "accountNumber",
     "ifscCode",
     "upiId",
+    "bankName",
   ],
   Documents: [
     "idProof",
@@ -160,6 +161,7 @@ export const ApplicationForm: React.FC = () => {
     accountNumber: "",
     ifscCode: "",
     upiId: "",
+    bankName: "",
     // Step 6: Documents
     policeVerification: null as File | null,
     tradeLicense: null as File | null,
@@ -1695,6 +1697,23 @@ export const ApplicationForm: React.FC = () => {
               </div>
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
+                  Bank Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="bankName"
+                  value={formData.bankName}
+                  onChange={handleInputChange}
+                  placeholder="Enter your bank name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  required
+                />
+                {errors.bankName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.bankName}</p>
+                )}
+              </div>
+              <div>
+                <label className="block mb-1 font-medium text-gray-700">
                   Bank Account Number <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -2217,6 +2236,12 @@ export const ApplicationForm: React.FC = () => {
                       <span className="text-gray-600">Account Holder:</span>
                       <p className="font-medium">
                         {formData.accountHolderName || "Not provided"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Bank Name:</span>
+                      <p className="font-medium">
+                        {formData.bankName || "Not provided"}
                       </p>
                     </div>
                     <div>

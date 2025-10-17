@@ -613,6 +613,24 @@ export class TechnicianManagementService implements ITechnicianManagementService
           : " but failed to send email notification";
       }
 
+      // In approveApplication method, after creating/updating technician:
+      if (application.bank && technician) {
+        const bankData = application.bank;
+        await this.technicianRepository.updateTechnicianPaymentDetails(
+          technician._id.toString(),
+          {
+            bankAccount: {
+              holderName: bankData.accountHolderName,
+              accountNumber: bankData.accountNumber,
+              ifscCode: bankData.ifscCode,
+              bankName: bankData.bankName,
+            },
+            upiId: bankData.upiId,
+            withdrawalPreference: bankData.withdrawalPreference || 'auto'
+          }
+        );
+      }
+
       return {
         success: true,
         message: `Application approved successfully${emailMessage}`,

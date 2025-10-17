@@ -1,3 +1,4 @@
+// src/repositories/technician/TechnicianRepository.ts
 import { ITechnician } from "../../interfaces/technician/ITechnician";
 import { Technician } from "../../models/technician/TechnicianSchema";
 import { Types } from "mongoose";
@@ -14,7 +15,6 @@ export class TechnicianRepository implements ITechnicianRepository {
 
   async create(technicianData: any): Promise<ITechnician> {
     try {
-      // Ensure languages is properly formatted as array
       const processedData = {
         ...technicianData,
         personalInfo: {
@@ -27,7 +27,6 @@ export class TechnicianRepository implements ITechnicianRepository {
 
       const technician = new Technician(processedData);
       const savedTechnician = await technician.save();
-
       return savedTechnician;
     } catch (error) {
       console.error("Error creating technician:", error);
@@ -57,7 +56,6 @@ export class TechnicianRepository implements ITechnicianRepository {
         { $set: processedUpdateData },
         { new: true, runValidators: true }
       );
-
       return technician;
     } catch (error) {
       console.error("Error updating technician:", error);

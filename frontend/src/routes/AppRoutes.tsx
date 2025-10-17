@@ -30,6 +30,7 @@ const TechForgotPassword = lazy(() => import("../features/serviceProvider/pages/
 const TechOTP = lazy(() => import("../features/serviceProvider/pages/TechOTP"));
 const PendingTechnicianApplication = lazy(() => import("../features/serviceProvider/pages/PendingTechnician"));
 const ApprovedTechnicianDashboard = lazy(() => import("../features/serviceProvider/pages/ApprovedTechnician"));
+const TechnicianProfileEdit = lazy(() => import("../features/serviceProvider/pages/TechnicianProfileEdit"))
 
 // AdminRoutes imports
 const AdminLogin = lazy(() => import("../features/admin/pages/AdminLogin"));
@@ -78,6 +79,10 @@ const AppRoutes = () => {
             <Route
               path="/technician/dashboard"
               element={<ApprovedTechnicianDashboard />}
+            />
+            <Route
+              path="/technician/profile"
+              element={<TechnicianProfileEdit />}
             />
 
             {/* admin routes */}

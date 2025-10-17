@@ -26,6 +26,21 @@ const TechnicianSchema = new Schema<ITechnician>(
       languages: { type: [String] },
     },
 
+    paymentDetails: {
+      bankAccount: {
+        holderName: { type: String },
+        accountNumber: { type: String },
+        ifscCode: { type: String },
+        bankName: { type: String }
+      },
+      upiId: { type: String },
+      withdrawalPreference: { 
+        type: String, 
+        enum: ['auto', 'manual'], 
+        default: 'auto' 
+      }
+    },
+
     currentLocation: {
       type: {
         type: String,

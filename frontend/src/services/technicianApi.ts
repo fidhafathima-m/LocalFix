@@ -9,7 +9,6 @@ export interface TechnicianProfile {
   phone: string;
   services: string[];
   experienceYears: number;
-  workAreas: string[];
   averageRating: number;
   ratingCount: number;
   profilePictureUrl: string;
@@ -29,10 +28,44 @@ export interface TechnicianProfile {
     };
     languages?: string[];
   };
+  identityVerification?: {
+    governmentIdType?: string;
+    governmentIdNumber?: string;
+    idDocument?: string;
+    verified?: boolean;
+    verificationStatus?: "pending" | "approved" | "rejected";
+    verifiedAt?: string;
+  };
+  // Availability & Work Preferences
+  workAreas: string[];
+  serviceRadiusKm?: number;
+  availability?: {
+    isAvailable?: boolean;
+    weeklyAvailability?: {
+      [key: string]: {
+        enabled: boolean;
+        startTime: string;
+        endTime: string;
+      };
+    };
+  };
+  // Bank & Payment Details
+  paymentDetails?: {
+    bankAccount?: {
+      holderName?: string;
+      accountNumber?: string;
+      ifscCode?: string;
+      bankName?: string;
+    };
+    upiId?: string;
+    withdrawalPreference?: 'auto' | 'manual';
+  };
+  skills?: string[];
+  certifications?: string[];
   bio?: string;
   createdAt: string;
   updatedAt: string;
-  suspensionReason?: string; 
+  suspensionReason?: string;
   suspendedAt?: string;
 }
 
@@ -61,7 +94,7 @@ export interface ApplicationData {
     currentAddress?: string;
   };
   documents?: Record<string, any>;
-  availability: { 
+  availability: {
     monday: {
       available: boolean;
       startTime: string;
@@ -100,7 +133,7 @@ export interface ApplicationData {
   };
   skills?: Record<string, any>;
   agreement: boolean;
-  bank?: Record<string,any>;
+  bank?: Record<string, any>;
   submittedAt?: string;
   reviewNotes?: string;
   rejectionReason?: string;
@@ -171,6 +204,80 @@ export const technicianAPI = {
   startNewAfterRejection: (data: { email: string }) =>
     api.post<{ success: boolean; data: { applicationId: string } }>(
       "/technician-application/start-new-after-rejection",
+      data
+    ),
+
+  // technician profile
+  uploadPhoto: (formData: FormData) =>
+    api.post<{ success: boolean; data: { profilePictureUrl: string } }>(
+      "/technician/profile/upload-photo",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    ),
+
+  updatePersonalInfo: (data: any) =>
+    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
+      "/technician/profile/personal-info",
+      data
+    ),
+  updateIdentityVerification: (data: any) =>
+    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
+      "/technician/profile/identity-verification",
+      data
+    ),
+
+  uploadDocument: (formData: FormData) =>
+    api.post<{ success: boolean; data: { document: any } }>(
+      "/technician/profile/documents",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    ),
+  updateSkillsServices: (data: {
+    services: string[];
+    experienceYears?: number;
+    skills?: string[];
+    certifications?: string[];
+  }) =>
+    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
+      "/technician/profile/skills-services",
+      data
+    ),
+  updateAvailability: (data: {
+    availability: {
+      isAvailable: boolean;
+      weeklyAvailability: {
+        [key: string]: {
+          enabled: boolean;
+          startTime: string;
+          endTime: string;
+        };
+      };
+    };
+    workAreas: string[];
+    serviceRadiusKm: number;
+  }) =>
+    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
+      "/technician/profile/availability",
+      data
+    ),
+  updateBankPayment: (data: {
+    paymentDetails: {
+      bankAccount: {
+        holderName: string;
+        accountNumber: string;
+        ifscCode: string;
+        bankName?: string;
+      };
+      upiId?: string;
+      withdrawalPreference: "auto" | "manual";
+    };
+  }) =>
+    api.put<{ success: boolean; data: { profile: TechnicianProfile } }>(
+      "/technician/profile/bank-payment",
       data
     ),
 };

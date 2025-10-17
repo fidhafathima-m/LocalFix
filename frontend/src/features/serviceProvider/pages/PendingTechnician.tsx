@@ -95,8 +95,11 @@ interface AvailableDocument {
 }
 
 const PendingTechnicianApplication: React.FC = () => {
-  const [applicationData, setApplicationData] = useState<ApplicationData | null>(null);
-  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(null);
+  const [applicationData, setApplicationData] =
+    useState<ApplicationData | null>(null);
+  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(
+    null
+  );
   const [applicationStatus, setApplicationStatus] = useState<string>("pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -222,7 +225,11 @@ const PendingTechnicianApplication: React.FC = () => {
     return Object.entries(applicationData.documents)
       .filter(
         ([, doc]) =>
-          doc && doc.url && typeof doc.url === "string" && doc.url.trim() !== "" && !doc.uploadFailed
+          doc &&
+          doc.url &&
+          typeof doc.url === "string" &&
+          doc.url.trim() !== "" &&
+          !doc.uploadFailed
       )
       .map(([key, doc]) => {
         // Determine file type based on document type and URL analysis
@@ -244,7 +251,9 @@ const PendingTechnicianApplication: React.FC = () => {
         // Check file extension as fallback
         else if (doc.url.toLowerCase().match(/\.(pdf)$/)) {
           isPdf = true;
-        } else if (doc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/)) {
+        } else if (
+          doc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/)
+        ) {
           isImage = true;
         }
 
@@ -273,7 +282,11 @@ const PendingTechnicianApplication: React.FC = () => {
       .sort((a, b) => a.displayName.localeCompare(b.displayName)); // Sort alphabetically
   };
 
-  const handleViewDocument = (url: string, isPdf: boolean, filename?: string) => {
+  const handleViewDocument = (
+    url: string,
+    isPdf: boolean,
+    filename?: string
+  ) => {
     if (isPdf) {
       let viewUrl = url;
 
@@ -284,10 +297,20 @@ const PendingTechnicianApplication: React.FC = () => {
         )}&embedded=true`;
       }
 
-      window.open(viewUrl, "_blank", `noopener,noreferrer,width=800,height=600,title=${filename || 'Document'}`);
+      window.open(
+        viewUrl,
+        "_blank",
+        `noopener,noreferrer,width=800,height=600,title=${
+          filename || "Document"
+        }`
+      );
     } else {
       // For images, open in new tab
-      window.open(url, "_blank", `noopener,noreferrer,title=${filename || 'Image'}`);
+      window.open(
+        url,
+        "_blank",
+        `noopener,noreferrer,title=${filename || "Image"}`
+      );
     }
   };
 
@@ -538,15 +561,35 @@ const PendingTechnicianApplication: React.FC = () => {
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      ? name
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-      : "U";
-  };
+  // Add this helper function to get the profile photo URL
+const getProfilePhotoUrl = (): string | null => {
+  if (!applicationData?.documents) return null;
+  
+  // Check for passport photo first
+  const passportPhoto = applicationData.documents.passportPhoto;
+  if (passportPhoto?.url && !passportPhoto.uploadFailed) {
+    return passportPhoto.url;
+  }
+  
+  // Check for profile photo as fallback
+  const profilePhoto = applicationData.documents.profilePhoto;
+  if (profilePhoto?.url && !profilePhoto.uploadFailed) {
+    return profilePhoto.url;
+  }
+  
+  return null;
+};
+
+// Add this helper function to get initials as fallback
+const getInitials = (name: string) => {
+  return name
+    ? name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : "U";
+};
 
   const getStatusBadge = () => {
     const status = applicationData?.status;
@@ -671,13 +714,42 @@ const PendingTechnicianApplication: React.FC = () => {
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
         <div className="max-w-3xl mx-auto space-y-4">
           {/* Header Card */}
+          {/* Header Card */}
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center">
-              <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                <span className="text-blue-600 text-lg font-medium">
-                  {getInitials(applicationData.personal?.fullName || "User")}
-                </span>
-              </div>
+
+              {/* With this profile photo section */}
+              {getProfilePhotoUrl() ? (
+                <div className="h-12 w-12 rounded-full overflow-hidden mr-4 border-2 border-gray-200">
+                  <img
+                    src={getProfilePhotoUrl()!}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      // Fallback to initials if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `
+                <div class="h-full w-full bg-blue-100 rounded-full flex items-center justify-center">
+                  <span class="text-blue-600 text-lg font-medium">
+                    ${getInitials(applicationData.personal?.fullName || "User")}
+                  </span>
+                </div>
+              `;
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                  <span className="text-blue-600 text-lg font-medium">
+                    {getInitials(applicationData.personal?.fullName || "User")}
+                  </span>
+                </div>
+              )}
+
               <div className="flex-1">
                 <h1 className="text-xl font-semibold">
                   {applicationData.personal?.fullName || "Not Provided"}
@@ -693,7 +765,7 @@ const PendingTechnicianApplication: React.FC = () => {
               </div>
               {applicationData.status !== "rejected" && (
                 <button
-                  onClick={() => (window.location.href = "/technician/apply")}
+                  onClick={() => (window.location.href = "/technician/profile")}
                   className="text-blue-500 flex items-center text-sm font-medium"
                 >
                   <EditOutlined className="w-4 h-4 mr-1" />
@@ -831,9 +903,7 @@ const PendingTechnicianApplication: React.FC = () => {
                           }
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1 cursor-pointer"
                         >
-                          <span>
-                            {doc.isPdf ? "View PDF" : "View Image"}
-                          </span>
+                          <span>{doc.isPdf ? "View PDF" : "View Image"}</span>
                         </button>
                       </div>
 
@@ -852,7 +922,8 @@ const PendingTechnicianApplication: React.FC = () => {
                 <ImageOutlined className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500">No documents uploaded yet</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Upload documents in your application to proceed with verification
+                  Upload documents in your application to proceed with
+                  verification
                 </p>
                 <button
                   onClick={() => (window.location.href = "/technician/apply")}

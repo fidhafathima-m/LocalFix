@@ -18,6 +18,9 @@ import { OTPRepository } from "../repositories/user/OTPRepository";
 import { SocialAccountRepository } from "../repositories/user/SocialAccountRepository";
 import { AuthService } from "../services/AuthService";
 import { AuthController } from "../controllers/user/authController";
+import { TechnicianProfileRepository } from "../repositories/technician/TechnicianProfileRepository";
+import { TechnicianProfileService } from "../services/TechnicianProfileService";
+import { TechnicianProfileController } from "../controllers/technician/technicianProfile";
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
@@ -66,8 +69,24 @@ const technicianDashboardController = new TechnicianDashboardController(
 // User authentication dependencies
 const otpRepository = new OTPRepository();
 const socialAccountRepository = new SocialAccountRepository();
-const authService = new AuthService(userRepository, otpRepository, socialAccountRepository);
-const authController = new AuthController(authService)
+const authService = new AuthService(
+  userRepository,
+  otpRepository,
+  socialAccountRepository
+);
+const authController = new AuthController(authService);
+
+// Technician profile dependencies
+const technicianProfileRepository = new TechnicianProfileRepository();
+const technicianProfileService = new TechnicianProfileService(
+  technicianRepository,
+  technicianProfileRepository,
+  userRepository,
+  userAddressRepository
+);
+const technicianProfileController = new TechnicianProfileController(
+  technicianProfileService
+);
 
 export {
   userManagementController,
@@ -82,5 +101,8 @@ export {
   technicianDashboardController,
   technicianDashboardService,
   authController,
-  authService
+  authService,
+  technicianProfileController,
+  technicianProfileService,
+  technicianProfileRepository,
 };

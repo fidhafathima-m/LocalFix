@@ -204,6 +204,7 @@ export const bankingSchema = z.object({
     .string()
     .regex(/^\d{9,18}$/, "Account number must be 9 to 18 digits"),
   ifscCode: z.string().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Enter valid IFSC code"),
+   bankName: z.string().min(1, "Bank name is required"),
   upiId: z.string().optional(),
 });
 
