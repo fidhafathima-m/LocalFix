@@ -1,15 +1,15 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import ForgetPassword from "../../../components/common/ForgetPassword";
+import TechForgotPasswordOTP from "../components/TechForgetPasswordOTP";
 
-const ForgotPassword = () => {
+const TechSignupOTPPage = () => {
   return (
     <div>
       <Header />
-      <ForgetPassword userType="user" />
+        <TechForgotPasswordOTP/>
       <Footer />
     </div>
   );
 };
 
-export default ForgotPassword;
+export default TechSignupOTPPage;

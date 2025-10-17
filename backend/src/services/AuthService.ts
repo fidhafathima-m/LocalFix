@@ -11,9 +11,6 @@ import {
   ResetPasswordData,
   SocialAuthData,
 } from "../interfaces/user/IAuthService";
-import { UserRepository } from "../repositories/user/UserRepository";
-import { OTPRepository } from "../repositories/user/OTPRepository";
-import { SocialAccountRepository } from "../repositories/user/SocialAccountRepository";
 import { generateOTP } from "../utils/generateOTP";
 import { sendPhoneOTP } from "../utils/sendPhoneOTP";
 import { sendEmailOTP } from "../utils/sendEmailOTP";
@@ -256,94 +253,108 @@ export class AuthService implements IAuthService {
   }
 
   async forgotPassword(
-    phone?: string,
-    email?: string,
-    userType?: string
-  ): Promise<AuthResponse> {
-    try {
-      if (!phone && !email) {
-        return { success: false, message: "Provide phone or email" };
-      }
-
-      // Find user by phone or email
-      let user;
-      if (phone) {
-        user = await this.userRepository.findByPhone(phone);
-      } else if (email) {
-        user = await this.userRepository.findByEmail(email);
-      }
-
-      // Check if user exists
-      if (!user) {
-        return { success: false, message: "User not found" };
-      }
-
-      // Check user type if provided
-      if (userType) {
-        const expectedRole =
-          userType === "serviceProvider" ? "serviceProvider" : "user";
-        if (user.role !== expectedRole) {
-          return {
-            success: false,
-            message: `User not found for ${userType} role`,
-          };
-        }
-      }
-
-      // Check if user is active and not blocked
-      if (user.isDeleted) {
-        return {
-          success: false,
-          message: "Your account has been deleted. Please contact support.",
-        };
-      }
-
-      if (user.status === "Blocked") {
-        return {
-          success: false,
-          message: "Your account is blocked by admin. Please contact support.",
-        };
-      }
-
-      if (user.status !== "Active") {
-        return {
-          success: false,
-          message: "Your account is not active. Please contact support.",
-        };
-      }
-
-      // Generate and send OTP only if user exists and is valid
-      const otp = generateOTP();
-      const otpHash = await bcrypt.hash(otp, 10);
-
-      const otpData: any = {
-        otpHash,
-        purpose: "reset",
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      };
-      if (phone) otpData.phone = phone;
-      if (email) otpData.email = email;
-
-      await this.otpRepository.create(otpData);
-
-      const sentChannels: string[] = [];
-      if (phone) {
-        await sendPhoneOTP(phone, otp);
-        sentChannels.push(`phone: ${phone}`);
-      }
-      if (email) {
-        await sendEmailOTP(email, otp);
-        sentChannels.push(`email: ${email}`);
-      }
-
-      return {
-        success: true,
-        message: `OTP sent to ${sentChannels.join(", ")}.`,
-      };
-    } catch (error: any) {
-      return { success: false, message: error.message };
+  phone?: string,
+  email?: string,
+  userType?: string
+): Promise<AuthResponse> {
+  try {
+    if (!phone && !email) {
+      return { success: false, message: "Provide phone or email" };
     }
+
+    // Find user by phone or email
+    let user;
+    if (phone) {
+      user = await this.userRepository.findByPhone(phone);
+    } else if (email) {
+      user = await this.userRepository.findByEmail(email);
+    }
+
+    // Check if user exists
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+
+    // Check user type if provided - FIXED THIS PART
+    if (userType) {
+      let expectedRole: string;
+      
+      // Map frontend userType to backend role
+      switch (userType) {
+        case "serviceProvider":
+          expectedRole = "serviceProvider";
+          break;
+        case "admin":
+          expectedRole = "admin";
+          break;
+        case "user":
+        default:
+          expectedRole = "user";
+          break;
+      }
+
+      if (user.role !== expectedRole) {
+        return {
+          success: false,
+          message: `User not found for ${userType} role`,
+        };
+      }
+    }
+
+    // Check if user is active and not blocked
+    if (user.isDeleted) {
+      return {
+        success: false,
+        message: "Your account has been deleted. Please contact support.",
+      };
+    }
+
+    if (user.status === "Blocked") {
+      return {
+        success: false,
+        message: "Your account is blocked by admin. Please contact support.",
+      };
+    }
+
+    if (user.status !== "Active") {
+      return {
+        success: false,
+        message: "Your account is not active. Please contact support.",
+      };
+    }
+
+    // Generate and send OTP only if user exists and is valid
+    const otp = generateOTP();
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    const otpData: any = {
+      otpHash,
+      purpose: "reset",
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    };
+    if (phone) otpData.phone = phone;
+    if (email) otpData.email = email;
+
+    await this.otpRepository.create(otpData);
+
+    const sentChannels: string[] = [];
+    if (phone) {
+      await sendPhoneOTP(phone, otp);
+      sentChannels.push(`phone: ${phone}`);
+    }
+    if (email) {
+      await sendEmailOTP(email, otp);
+      sentChannels.push(`email: ${email}`);
+    }
+
+    return {
+      success: true,
+      message: `OTP sent to ${sentChannels.join(", ")}.`,
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message };
   }
+}
 
   async resetPassword(resetData: ResetPasswordData): Promise<AuthResponse> {
   try {

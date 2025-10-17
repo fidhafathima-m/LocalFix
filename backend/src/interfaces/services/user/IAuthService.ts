@@ -1,11 +1,16 @@
+import { ApiResponse } from "@/types/technicianApplicationTypes";
 import {
-  AuthResponse,
   LoginCredentials,
   OTPVerificationData,
   ResetPasswordData,
   SignupData,
   SocialAuthData,
 } from "../../../interfaces/user/IAuthService";
+
+export interface AuthResponse extends ApiResponse {
+  user?: any;
+  token?: string;
+}
 
 export interface IAuthService {
   signup(signupData: SignupData): Promise<AuthResponse>;

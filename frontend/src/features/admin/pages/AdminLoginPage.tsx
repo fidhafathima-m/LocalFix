@@ -1,15 +1,15 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import Login from "../../../components/common/Login";
+import AdminLogin from "../components/AdminLogin";
 
-const AdminLogin = () => {
+const AdminLoginPage = () => {
   return (
     <div>
       <Header userType="admin" />
-      <Login userType="admin" />
+        <AdminLogin/>
       <Footer />
     </div>
   );
 };
 
-export default AdminLogin;
+export default AdminLoginPage;

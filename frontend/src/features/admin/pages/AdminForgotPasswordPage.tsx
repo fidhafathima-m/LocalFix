@@ -1,15 +1,15 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import OTP from "../../../components/common/OTP";
+import AdminForgetPassword from "../components/AdminForgetPassword";
 
-const ForgetOTP = () => {
+const AdminForgotPasswordPage = () => {
   return (
     <div>
       <Header />
-      <OTP userType="user" context="forgot" />
+        <AdminForgetPassword/>
       <Footer />
     </div>
   );
 };
 
-export default ForgetOTP;
+export default AdminForgotPasswordPage;

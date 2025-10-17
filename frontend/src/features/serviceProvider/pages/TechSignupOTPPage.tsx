@@ -1,15 +1,15 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import OTP from "../../../components/common/OTP";
+import TechSignupOTP from "../components/TechSignupOTP"
 
-const TechOTP = () => {
+const TechSignupOTPPage = () => {
   return (
     <div>
       <Header />
-      <OTP userType="serviceProvider" context="signup" />
+        <TechSignupOTP/>
       <Footer />
     </div>
   );
 };
 
-export default TechOTP;
+export default TechSignupOTPPage;

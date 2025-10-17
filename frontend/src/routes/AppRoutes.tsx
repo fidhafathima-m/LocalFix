@@ -14,32 +14,34 @@ const LoadingSpinner = () => (
 
 // User Routes imports
 const Home = lazy(() => import("../features/user/pages/Home"));
-const SignUpForm = lazy(() => import("../features/user/pages/SignUpForm"));
-const UserLogin = lazy(() => import("../features/user/pages/LoginForm"));
-const ForgetPassword = lazy(() => import("../features/user/pages/ForgotPassword"));
-const UserOTP = lazy(() => import("../features/user/pages/UserOTP"));
-const ResetPasswordPage = lazy(() => import("../features/user/pages/ResetPassword"));
-const ForgetOTP = lazy(() => import("../features/user/pages/ForgertOtp"));
+const UserSignupPage = lazy(() => import("../features/user/pages/UserSignupPage"));
+const UserLogin = lazy(() => import("../features/user/pages/UserLoginPage"));
+const UserForgotPasswordPage = lazy(() => import("../features/user/pages/UserForgotPasswordPage"));
+const UserSignupOTPPage = lazy(() => import("../features/user/pages/UserSignupOTPPage"));
+const UserResetPasswordPage = lazy(() => import("../features/user/pages/UserResetPasswordPage"));
+const ForgertPasswordOTPPage = lazy(() => import("../features/user/pages/ForgertPasswordOTPPage"));
 
 // Service Provider Routes imports
 const TechHome = lazy(() => import("../features/serviceProvider/pages/TechHome"));
 const TechSignUp = lazy(() => import("../features/serviceProvider/pages/TechSignUp"));
 const TechnicianApplication = lazy(() => import("../features/serviceProvider/pages/TechnicianApplication"));
-const TechLogin = lazy(() => import("../features/serviceProvider/pages/TechLogin"));
-const TechForgotPassword = lazy(() => import("../features/serviceProvider/pages/TechForgotPassword"));
-const TechOTP = lazy(() => import("../features/serviceProvider/pages/TechOTP"));
+const TechLoginPage = lazy(() => import("../features/serviceProvider/pages/TechLoginPage"));
+const TechForgetPasswordPage = lazy(() => import("../features/serviceProvider/pages/TechForgetPasswordPage"));
+const TechSignupOTPPage = lazy(() => import("../features/serviceProvider/pages/TechSignupOTPPage"));
+const TechForgotPasswordOTPPage = lazy(() => import("../features/serviceProvider/pages/TechForgetPasswordOTPPage"));
+const TechnicianResetPasswordPage = lazy(() => import("../features/serviceProvider/pages/TechResetPasswordPage"));
 const PendingTechnicianApplication = lazy(() => import("../features/serviceProvider/pages/PendingTechnician"));
 const ApprovedTechnicianDashboard = lazy(() => import("../features/serviceProvider/pages/ApprovedTechnician"));
 const TechnicianProfileEdit = lazy(() => import("../features/serviceProvider/pages/TechnicianProfileEdit"))
 
 // AdminRoutes imports
-const AdminLogin = lazy(() => import("../features/admin/pages/AdminLogin"));
+const AdminLoginPage = lazy(() => import("../features/admin/pages/AdminLoginPage"));
 const AdminDashboard = lazy(() => import("../features/admin/pages/AdminDashboard"));
 const ProtectedRoute = lazy(() => import("../components/ProtectedRoute"));
-const AdminForgotPassword = lazy(() => import("../features/admin/pages/AdminForgotPassword"));
-const AdminForgotOTP = lazy(() => import("../features/admin/pages/AdminForgotOTP"));
+const AdminForgotPasswordPage = lazy(() => import("../features/admin/pages/AdminForgotPasswordPage"));
+const AdminForgetOTPPage = lazy(() => import("../features/admin/pages/AdminForgetOTPPage"));
 const UserManagement = lazy(() => import("../features/admin/pages/UserManagement"));
-const AdminResetPasswordPage = lazy(() => import("../features/admin/pages/AdminResetPassword"));
+const AdminResetPasswordPage = lazy(() => import("../features/admin/pages/AdminResetPasswordPage"));
 const TechnicianManagement = lazy(() => import("../features/admin/pages/TechnicianManagement"));
 const TechnicianProfile = lazy(() => import("../features/admin/pages/TechnicianProfile"));
 const PendingApplicationProfile = lazy(() => import("../features/admin/pages/PendingTechnicianProfile"));
@@ -53,11 +55,11 @@ const AppRoutes = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<UserLogin />} />
-            <Route path="/signUp" element={<SignUpForm />} />
-            <Route path="/otp" element={<UserOTP />} />
-            <Route path="/forgot-password" element={<ForgetPassword />} />
-            <Route path="/verify-otp" element={<ForgetOTP />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/signUp" element={<UserSignupPage />} />
+            <Route path="/otp" element={<UserSignupOTPPage />} />
+            <Route path="/forgot-password" element={<UserForgotPasswordPage />} />
+            <Route path="/verify-otp" element={<ForgertPasswordOTPPage />} />
+            <Route path="/reset-password" element={<UserResetPasswordPage />} />
 
             {/* technicians routes */}
             <Route path="/technicians" element={<TechHome />} />
@@ -66,12 +68,14 @@ const AppRoutes = () => {
               path="/technicians/apply"
               element={<TechnicianApplication />}
             />
-            <Route path="/technicians/login" element={<TechLogin />} />
+            <Route path="/technicians/login" element={<TechLoginPage />} />
             <Route
               path="/technicians/forgot-password"
-              element={<TechForgotPassword />}
+              element={<TechForgetPasswordPage />}
             />
-            <Route path="/technicians/verify-otp" element={<TechOTP />} />
+            <Route path="/technicians/verify-otp" element={<TechSignupOTPPage />} />
+            <Route path="/technicians/forgot-verify-otp" element={<TechForgotPasswordOTPPage />} />
+            <Route path="/technicians/reset-password" element={<TechnicianResetPasswordPage />} />
             <Route
               path="/pending-technician/dashboard"
               element={<PendingTechnicianApplication />}
@@ -86,7 +90,7 @@ const AppRoutes = () => {
             />
 
             {/* admin routes */}
-            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route
               path="/admin/dashboard"
               element={
@@ -97,9 +101,9 @@ const AppRoutes = () => {
             />
             <Route
               path="/admin/forgot-password"
-              element={<AdminForgotPassword />}
+              element={<AdminForgotPasswordPage />}
             />
-            <Route path="/admin/verify-otp" element={<AdminForgotOTP />} />
+            <Route path="/admin/verify-otp" element={<AdminForgetOTPPage />} />
             <Route
               path="/admin/reset-password"
               element={<AdminResetPasswordPage />}

@@ -1,15 +1,15 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import SignUp from "../../../components/common/Signup";
+import UserLogin from "../components/UserLogin";
 
-const SignUpForm = () => {
+const UserLoginPage = () => {
   return (
     <div>
       <Header />
-      <SignUp userType="user" />
+        <UserLogin/>
       <Footer />
     </div>
   );
 };
 
-export default SignUpForm;
+export default UserLoginPage;

@@ -1,15 +1,15 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import Login from "../../../components/common/Login";
+import TechnicianForgetPassword from "../components/TechForgetPassword";
 
-const UserLogin = () => {
+const TechForgetPasswordPage = () => {
   return (
     <div>
       <Header />
-      <Login userType="user" />
+        <TechnicianForgetPassword/>
       <Footer />
     </div>
   );
 };
 
-export default UserLogin;
+export default TechForgetPasswordPage;

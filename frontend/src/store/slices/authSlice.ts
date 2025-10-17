@@ -9,11 +9,27 @@ export type ApplicationStatus =
   | "approved"
   | "rejected";
 
+  export const isValidApplicationStatus = (status: string): status is ApplicationStatus => {
+  return [
+    "not-applied",
+    "draft", 
+    "submitted",
+    "under_review",
+    "approved",
+    "rejected"
+  ].includes(status);
+};
+
+// Helper function to get safe application status
+export const getSafeApplicationStatus = (status?: string): ApplicationStatus => {
+  return isValidApplicationStatus(status || "") ? status as ApplicationStatus : "not-applied";
+};
+
 export interface User {
   _id: string;
   fullName: string;
-  phone: string;
-  email: string;
+  phone?: string;
+  email?: string;
   role: UserType;
   applicationStatus?: ApplicationStatus;
   isVerified?: boolean;

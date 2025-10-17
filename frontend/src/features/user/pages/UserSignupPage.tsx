@@ -1,15 +1,15 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import OTP from "../../../components/common/OTP";
+import UserSignUp from "../components/UserSignup";
 
-const UserOTP = () => {
+const UserSignupForm = () => {
   return (
     <div>
       <Header />
-      <OTP userType="user" context="signup" />
+        <UserSignUp/>
       <Footer />
     </div>
   );
 };
 
-export default UserOTP;
+export default UserSignupForm;
