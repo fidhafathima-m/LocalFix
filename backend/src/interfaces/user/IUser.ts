@@ -24,7 +24,7 @@ export interface IUser extends Document {
   phone?: string;
   passwordHash?: string;
   isVerified: boolean;
-  role: "user" | "serviceProvider" | "admin";
+  roles: string[];
   status: "Active" | "Inactive" | "Blocked";
   applicationStatus?: ApplicationStatus;
   applicationDate?: Date;
@@ -45,7 +45,7 @@ export interface IUserCreate {
   email?: string;
   phone?: string;
   passwordHash?: string;
-  role: "user" | "serviceProvider" | "admin";
+  roles: string[];
   isVerified: boolean;
   applicationStatus?: ApplicationStatus;
   status?: "Active" | "Inactive" | "Blocked";
@@ -60,7 +60,7 @@ export interface IUserUpdate {
   fullName?: string;
   email?: string;
   phone?: string;
-  role?: "user" | "serviceProvider" | "admin";
+  roles?: string[];
   passwordHash?: string;
   isVerified?: boolean;
   applicationStatus?: ApplicationStatus;

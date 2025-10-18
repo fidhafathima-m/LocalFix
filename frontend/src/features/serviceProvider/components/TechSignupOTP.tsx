@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../../hooks/redux";
@@ -49,25 +50,42 @@ const TechSignupOTP: React.FC = () => {
         throw new Error(res.message || "Invalid response from server");
       }
 
+      // FIX: Check if user has serviceProvider role in their roles array
+      const hasServiceProviderRole = res.user.roles?.includes("serviceProvider");
+      
+      if (!hasServiceProviderRole) {
+        throw new Error("User does not have service provider role");
+      }
+
+      // FIX: Use the correct User type that matches your authSlice
+      const userData: User = {
+        _id: res.user._id,
+        fullName: res.user.fullName,
+        phone: res.user.phone || "",
+        email: res.user.email || "",
+        role: "serviceProvider",
+        isVerified: res.user.isVerified || false,
+      };
+
       dispatch(loginSuccess({
-        user: res.user as User,
+        user: userData,
         token: res.token,
       }));
 
-      // Determine redirect path based on user role and application status
+      // KEEP ORIGINAL REDIRECTION LOGIC - DON'T CHANGE PATHS
       let redirectPath = "/";
-      if (res.user.role === "serviceProvider") {
-        if (res.user.applicationStatus === "approved") {
+      if (userData.role === "serviceProvider") {
+        if (userData.applicationStatus === "approved") {
           redirectPath = "/technicians/dashboard";
         } else if (
-          res.user.applicationStatus === "submitted" ||
-          res.user.applicationStatus === "under_review"
+          userData.applicationStatus === "submitted" ||
+          userData.applicationStatus === "under_review"
         ) {
           redirectPath = "/pending-technician/dashboard";
         } else {
           redirectPath = "/technicians";
         }
-      } else if (res.user.role === "admin") {
+      } else if (userData.role === "admin") {
         redirectPath = "/admin/dashboard";
       }
 
@@ -76,9 +94,15 @@ const TechSignupOTP: React.FC = () => {
       return {
         success: true,
         message: res.message,
-        user: res.user,
+        user: userData,
         token: res.token,
         redirectPath,
+      };
+    } catch (error: any) {
+      console.error("OTP verification error:", error);
+      return {
+        success: false,
+        message: error.message || "OTP verification failed",
       };
     } finally {
       setLoading(false);
@@ -87,18 +111,26 @@ const TechSignupOTP: React.FC = () => {
 
   const handleResendOTP = async (formData: OTPFormData) => {
     setLoading(true);
-    const res = await authAPI.resendOTP({
-      phone: formData.phone,
-      email: formData.email,
-      purpose: "signup",
-      userType: "serviceProvider",
-    });
-    setLoading(false);
-    
-    return {
-      success: res.success,
-      message: res.message,
-    };
+    try {
+      const res = await authAPI.resendOTP({
+        phone: formData.phone,
+        email: formData.email,
+        purpose: "signup",
+        userType: "serviceProvider",
+      });
+      
+      return {
+        success: res.success,
+        message: res.message,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "Failed to resend OTP",
+      };
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -7,8 +7,9 @@ import { ResponseHelper } from "../utils/responseHelper";
 export interface AuthRequest extends Request {
   user?: {
     id: string;
-    role?: string;
+    roles: string[]; // Changed from string to string[]
     email?: string;
+    currentRole?: string; // Added current role for role switching
   };
 }
 
@@ -27,7 +28,7 @@ export const protect = async (
   }
 
   if (!token) {
-    return ResponseHelper.unauthorized("Authentication required")
+    return ResponseHelper.unauthorized("Authentication required");
   }
 
   try {
@@ -36,33 +37,48 @@ export const protect = async (
     const userId = decoded._id || decoded.id;
 
     if (!userId) {
-      return ResponseHelper.unauthorized("Invalid token structure")
+      return ResponseHelper.unauthorized("Invalid token structure");
     }
 
     const user = await User.findById(userId).select("-passwordHash");
 
     if (!user) {
-      return ResponseHelper.notFound("User not found")
+      return ResponseHelper.notFound("User not found");
+    }
+
+    // Check if user is active and not blocked
+    if (user.isDeleted) {
+      return ResponseHelper.forbidden("Account has been deleted");
+    }
+
+    if (user.status === "Blocked") {
+      return ResponseHelper.forbidden("Account has been blocked");
+    }
+
+    if (user.status !== "Active") {
+      return ResponseHelper.forbidden("Account is not active");
     }
 
     req.user = {
       id: user._id.toString(),
-      role: user.role,
+      roles: user.roles, // Now this is an array
       email: user.email,
+      currentRole: decoded.currentRole || user.roles[0], // Support role switching
     };
 
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    return ResponseHelper.unauthorized("Invalid token")
+    return ResponseHelper.unauthorized("Invalid token");
   }
 };
 
+// UPDATED: Role-specific middleware to check if user has the role in their roles array
 export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
-  if (req.user && req.user.role === "admin") {
+  if (req.user && req.user.roles.includes("admin")) {
     next();
   } else {
-    return ResponseHelper.forbidden("Access denied. Admin role required.")
+    return ResponseHelper.forbidden("Access denied. Admin role required.");
   }
 };
 
@@ -71,28 +87,59 @@ export const serviceProvider = (
   res: Response,
   next: NextFunction
 ) => {
-  if (req.user && req.user.role === "serviceProvider") {
+  if (req.user && req.user.roles.includes("serviceProvider")) {
     next();
   } else {
-    return ResponseHelper.forbidden("Access denied. Service Provider role required.")
+    return ResponseHelper.forbidden("Access denied. Service Provider role required.");
   }
 };
 
 export const user = (req: AuthRequest, res: Response, next: NextFunction) => {
-  if (req.user && req.user.role === "user") {
+  if (req.user && req.user.roles.includes("user")) {
     next();
   } else {
-    return ResponseHelper.forbidden("Access denied. User role required.")
+    return ResponseHelper.forbidden("Access denied. User role required.");
   }
 };
 
-// Combined role middleware
+// UPDATED: Combined role middleware - check if user has ANY of the required roles
 export const requireRole = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (req.user && roles.includes(req.user.role || "")) {
+    if (!req.user) {
+      return ResponseHelper.unauthorized("Authentication required");
+    }
+
+    const hasRequiredRole = roles.some(role => 
+      req.user!.roles.includes(role)
+    );
+
+    if (hasRequiredRole) {
       next();
     } else {
-      return ResponseHelper.forbidden(`Access denied. Required roles: ${roles.join(", ")}`)
+      return ResponseHelper.forbidden(
+        `Access denied. Required one of: ${roles.join(", ")}`
+      );
+    }
+  };
+};
+
+// NEW: Middleware to require ALL specified roles
+export const requireAllRoles = (roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return ResponseHelper.unauthorized("Authentication required");
+    }
+
+    const hasAllRoles = roles.every(role => 
+      req.user!.roles.includes(role)
+    );
+
+    if (hasAllRoles) {
+      next();
+    } else {
+      return ResponseHelper.forbidden(
+        `Access denied. Required all roles: ${roles.join(", ")}`
+      );
     }
   };
 };

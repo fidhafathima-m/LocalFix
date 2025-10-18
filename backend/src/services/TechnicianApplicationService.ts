@@ -538,11 +538,6 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         await this.userRepository.update(userId, { email: application.email });
       }
 
-      // Update user role if needed
-      if (user.role !== USER_ROLES.SERVICE_PROVIDER) {
-        await this.userRepository.updateRole(userId, USER_ROLES.SERVICE_PROVIDER);
-      }
-
       // Create or update technician record
       let technician = await this.technicianRepository.findByUserId(userId);
 

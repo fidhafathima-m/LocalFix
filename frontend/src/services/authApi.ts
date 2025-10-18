@@ -4,7 +4,7 @@ import api from "../utils/axiosConfig";
 export interface LoginCredentials {
   identifier: string;
   password: string;
-  role: "user" | "serviceProvider" | "admin";
+  role: "user" | "serviceProvider" | "admin"; // Keep for role-specific login
 }
 
 export interface SignupData {
@@ -12,7 +12,7 @@ export interface SignupData {
   email?: string;
   phone?: string;
   password: string;
-  userType: "user" | "serviceProvider";
+  userType: "user" | "serviceProvider"; // This becomes the initial role
 }
 
 export interface OTPData {
@@ -53,23 +53,26 @@ export interface GoogleAuthData {
   userType: "user" | "serviceProvider";
 }
 
+// UPDATED: User interface to support multiple roles
+export interface User {
+  _id: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  roles: string[]; // Changed from 'role' to 'roles' array
+  applicationStatus?: string;
+  isVerified?: boolean;
+  status?: string;
+}
+
 export interface AuthResponse {
   success: boolean;
   message: string;
   data?: {
-    user?: {
-      _id: string;
-      fullName: string;
-      phone?: string;
-      email?: string;
-      role: "user" | "serviceProvider" | "admin";
-      applicationStatus?: string;
-      isVerified?: boolean;
-      status?: string;
-    };
+    user?: User; // Updated to use new User interface
     token?: string;
   };
-  user?: any;
+  user?: User; // Updated to use new User interface
   token?: string;
   error?: string;
   statusCode?: number;
@@ -244,4 +247,54 @@ export const authAPI = {
       };
     }
   },
+
+  // NEW: Add role management methods
+  addRole: async (role: string): Promise<AuthResponse> => {
+    try {
+      const response = await api.post<AuthResponse>("/auth/add-role", { role });
+      return normalizeAuthResponse(response.data);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeAuthResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to add role",
+        error: "Network error",
+      };
+    }
+  },
+
+  removeRole: async (role: string): Promise<AuthResponse> => {
+    try {
+      const response = await api.delete<AuthResponse>(`/auth/remove-role/${role}`);
+      return normalizeAuthResponse(response.data);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeAuthResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to remove role",
+        error: "Network error",
+      };
+    }
+  },
+
+  // NEW: Switch current role for session
+  switchRole: async (role: string): Promise<AuthResponse> => {
+    try {
+      const response = await api.post<AuthResponse>("/auth/switch-role", { role });
+      return normalizeAuthResponse(response.data);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeAuthResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to switch role",
+        error: "Network error",
+      };
+    }
+  }
 };

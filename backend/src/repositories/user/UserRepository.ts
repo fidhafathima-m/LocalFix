@@ -3,12 +3,31 @@ import { IUser, IUserCreate, IUserUpdate } from "../../interfaces/user/IUser";
 import User from "../../models/UserSchema";
 
 export class UserRepository implements IUserRepository {
-  async findByEmail(email: string): Promise<IUser | null> {
-    return await User.findOne({ email });
+  async findByEmail(email: string, role?: string): Promise<IUser | null> {
+    const query: any = { 
+      email: email.toLowerCase(), 
+      isDeleted: false 
+    };
+    
+    // If role is specified, check if roles array contains that role
+    if (role) {
+      query.roles = role;
+    }
+    
+    return User.findOne(query);
   }
 
-  async findByPhone(phone: string): Promise<IUser | null> {
-    return await User.findOne({ phone });
+  async findByPhone(phone: string, role?: string): Promise<IUser | null> {
+    const query: any = { 
+      phone, 
+      isDeleted: false 
+    };
+    
+    if (role) {
+      query.roles = role;
+    }
+    
+    return User.findOne(query);
   }
 
   async findById(id: string): Promise<IUser | null> {
@@ -37,7 +56,7 @@ export class UserRepository implements IUserRepository {
     if (/^\d{10}$/.test(actualIdentifier)) {
       const query: any = { phone: actualIdentifier };
       if (role) {
-        query.role = role;
+        query.roles = role;
       }
       return await User.findOne(query);
     }
@@ -48,7 +67,7 @@ export class UserRepository implements IUserRepository {
         },
       };
       if (role) {
-        query.role = role;
+        query.roles = role;
       }
       return await User.findOne(query);
     }
@@ -89,7 +108,7 @@ export class UserRepository implements IUserRepository {
       : { email: actualIdentifier };
 
     if (userType === "serviceProvider") {
-      query.role = "serviceProvider";
+      query.roles = "serviceProvider";
     }
 
     return await User.findOneAndUpdate(

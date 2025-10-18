@@ -19,22 +19,29 @@ const TechnicianLogin: React.FC = () => {
       const res = await authAPI.login(credentials);
       
       if (res.success && res.user && res.token) {
+        // FIX: Check if user has serviceProvider role in their roles array
+        const hasServiceProviderRole = res.user.roles?.includes("serviceProvider");
+        
+        if (!hasServiceProviderRole) {
+          throw new Error("This account is not registered as a service provider");
+        }
+
         const userData: User = {
-                  _id: res.user._id,
-                  fullName: res.user.fullName,
-                  phone: res.user.phone || "",
-                  email: res.user.email || "",
-                  role: res.user.role,
-                  applicationStatus: getSafeApplicationStatus(res.user.applicationStatus),
-                  isVerified: res.user.isVerified || false,
-                };
+          _id: res.user._id,
+          fullName: res.user.fullName,
+          phone: res.user.phone || "",
+          email: res.user.email || "",
+          role: "serviceProvider", // Use the primary role for backward compatibility
+          applicationStatus: getSafeApplicationStatus(res.user.applicationStatus),
+          isVerified: res.user.isVerified || false,
+        };
 
         dispatch(loginSuccess({
           user: userData,
           token: res.token,
         }));
 
-        // Technician-specific redirect logic
+        // KEEP ORIGINAL REDIRECTION LOGIC - DON'T CHANGE PATHS
         setTimeout(() => {
           if (userData.applicationStatus === "submitted" || userData.applicationStatus === "under_review") {
             navigate("/pending-technician/dashboard");
@@ -55,7 +62,7 @@ const TechnicianLogin: React.FC = () => {
         return { success: false, message: res.message };
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Login failed";
+      const errorMessage = error.response?.data?.message || error.message || "Login failed";
       dispatch(loginFailure(errorMessage));
       return { success: false, message: errorMessage };
     }

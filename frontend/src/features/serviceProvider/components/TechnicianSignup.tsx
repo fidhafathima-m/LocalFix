@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BaseSignUp from "../../../components/reusable/BaseSignup";
 import { authAPI } from "../../../services/authApi";
 import { validateSchema, signupSchema } from "../../../validation";
+import type { SignUpFormData, SignUpErrors } from "../../../components/reusable/BaseSignup";
 
 const TechnicianSignUp: React.FC = () => {
     const [loading, setLoading] = useState(false);
@@ -44,6 +44,7 @@ const TechnicianSignUp: React.FC = () => {
       } else {
         return { success: false, message: response.message, error: response.error };
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Technician signup error:", error);
       const errorMessage = error?.message || "Sign up failed - Unexpected error";
@@ -53,22 +54,24 @@ const TechnicianSignUp: React.FC = () => {
     }
   };
 
-
-  const customValidation = (data: any) => {
+  const customValidation = (data: SignUpFormData) => {
     const validation = validateSchema(signupSchema, {
       ...data,
       userType: "serviceProvider",
     });
     
+    // Transform the validation errors to match SignUpErrors type
+    const errors: SignUpErrors = {
+      fullName: validation.errors?.fullName,
+      email: validation.errors?.email,
+      phone: validation.errors?.phone,
+      password: validation.errors?.password,
+      confirmPassword: validation.errors?.confirmPassword,
+    };
+    
     return {
       isValid: validation.success,
-      errors: validation.errors || {
-        fullName: "",
-        email: "",
-        phone: "",
-        password: "",
-        confirmPassword: "",
-      },
+      errors: errors,
     };
   };
 
@@ -78,7 +81,7 @@ const TechnicianSignUp: React.FC = () => {
       onSubmit={handleSignUp}
       loading={loading}
       customValidation={customValidation}
-      title="Join as Technician"
+      title="Join as Service Provider"
       subtitle="Start your service business with LocalFix"
       loginLink="/technicians/login"
     />

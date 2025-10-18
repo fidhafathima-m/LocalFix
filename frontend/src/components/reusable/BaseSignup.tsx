@@ -33,7 +33,7 @@ interface BaseSignUpProps {
     email?: string;
     phone?: string;
     password: string;
-    userType: "user" | "serviceProvider";
+    userType: "user" | "serviceProvider"; // Keep as string for backend
   }) => Promise<{ success: boolean; message?: string; error?: any }>;
   onSuccess?: (data: SignUpFormData) => void;
   onFailure?: (error: string) => void;
@@ -75,7 +75,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Default validation
+  // Default validation - UPDATED to allow same email/phone for different roles
   const defaultValidateForm = (): boolean => {
     const newErrors: SignUpErrors = {};
     let isValid = true;
@@ -169,12 +169,16 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const getDefaultTitle = () => "Create Your Account";
+  const getDefaultTitle = () => {
+    return userType === "serviceProvider" 
+      ? "Join as Service Provider" 
+      : "Create Your Account";
+  };
 
   const getDefaultSubtitle = () => {
-    return userType === "user" 
-      ? "Join LocalFix to get your appliances fixed by local experts"
-      : "Join LocalFix to start your services";
+    return userType === "serviceProvider" 
+      ? "Start your service business with LocalFix"
+      : "Join LocalFix to get your appliances fixed by local experts";
   };
 
   const getDefaultLoginLink = () => {

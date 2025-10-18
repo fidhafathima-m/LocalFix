@@ -47,19 +47,28 @@ constructor(
 
 async signup(signupData: SignupData): Promise<AuthResponse> {
   try {
-    const { email, phone } = signupData;
+    const { email, phone, userType } = signupData;
 
     // Validation
     if (!email && !phone) {
       return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
     }
 
-    // Check uniqueness
-    if (email && (await this.userRepository.findByEmail(email))) {
-      return ResponseHelper.conflict(AUTH_MESSAGES.EMAIL_IN_USE);
+    // Check uniqueness - ONLY if same email/phone AND same role
+    if (email) {
+      const existingUser = await this.userRepository.findByEmail(email);
+      // Only conflict if user exists AND already has this role
+      if (existingUser && existingUser.roles.includes(userType)) {
+        return ResponseHelper.conflict(AUTH_MESSAGES.EMAIL_IN_USE);
+      }
     }
-    if (phone && (await this.userRepository.findByPhone(phone))) {
-      return ResponseHelper.conflict(AUTH_MESSAGES.PHONE_IN_USE);
+    
+    if (phone) {
+      const existingUser = await this.userRepository.findByPhone(phone);
+      // Only conflict if user exists AND already has this role
+      if (existingUser && existingUser.roles.includes(userType)) {
+        return ResponseHelper.conflict(AUTH_MESSAGES.PHONE_IN_USE);
+      }
     }
 
     // Generate and send OTP
@@ -99,9 +108,10 @@ async verifyOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
   try {
     const { phone, email, otp, fullName, password, userType } = otpData;
 
-    const query: any = { purpose: "signup" };
-    if (phone) query.phone = phone;
-    if (email) query.email = email;
+    // Validate required fields
+    if (!userType) {
+      return ResponseHelper.badRequest("User type is required");
+    }
 
     const record = await this.otpRepository.findLatest(
       phone,
@@ -123,34 +133,110 @@ async verifyOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
       return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OTP);
     }
 
-    // Create user
-    const passwordHash = password
-      ? await bcrypt.hash(password, 10)
-      : undefined;
-
-    const userData: any = {
-      fullName,
-      phone,
-      email,
-      passwordHash,
-      isVerified: true,
-      applicationStatus: "not-applied",
-    };
-
-    // Set role based on userType
-    if (userType === USER_ROLES.SERVICE_PROVIDER || userType === USER_ROLES.TECHNICIAN) {
-      userData.role = USER_ROLES.SERVICE_PROVIDER;
-    } else if (userType === USER_ROLES.ADMIN) {
-      userData.role = USER_ROLES.ADMIN;
-    } else {
-      userData.role = USER_ROLES.USER;
+    // FIND EXISTING USER - Use both email and phone to be sure
+    let user = null;
+    if (email) {
+      user = await this.userRepository.findByEmail(email);
+    }
+    if (!user && phone) {
+      user = await this.userRepository.findByPhone(phone);
     }
 
-    const user = await this.userRepository.create(userData);
+    console.log("Existing user found:", user?._id, "with roles:", user?.roles);
+
+    if (user) {
+      // User exists, add new role if not already present
+      if (!user.roles.includes(userType)) {
+        const updatedRoles = [...user.roles, userType];
+        
+        // Update user with new role
+        const updateResult = await this.userRepository.update(user._id!.toString(), {
+          roles: updatedRoles
+        });
+
+         console.log("Added role to existing user. New roles:", user?.roles);
+        
+        if (!updateResult) {
+          return ResponseHelper.error("Failed to update user roles");
+        }
+        user = updateResult;
+        
+        
+        // Update password if provided
+        if (password) {
+          const passwordHash = await bcrypt.hash(password, 10);
+          const passwordUpdateResult = await this.userRepository.update(user._id!.toString(), {
+            passwordHash
+          });
+          if (passwordUpdateResult) {
+            user = passwordUpdateResult;
+          }
+        }
+        
+        // Update name if different
+        if (fullName && user.fullName !== fullName) {
+          const nameUpdateResult = await this.userRepository.update(user._id!.toString(), {
+            fullName
+          });
+          if (nameUpdateResult) {
+            user = nameUpdateResult;
+          }
+        }
+      }
+      // If user already has the role, just update other fields if needed
+      else {
+        let updatedUser = user;
+        
+        if (password) {
+          const passwordHash = await bcrypt.hash(password, 10);
+          const passwordUpdateResult = await this.userRepository.update(user._id!.toString(), {
+            passwordHash
+          });
+          if (passwordUpdateResult) {
+            updatedUser = passwordUpdateResult;
+          }
+        }
+        
+        if (fullName && user.fullName !== fullName) {
+          const nameUpdateResult = await this.userRepository.update(user._id!.toString(), {
+            fullName
+          });
+          if (nameUpdateResult) {
+            updatedUser = nameUpdateResult;
+          }
+        }
+        
+        user = updatedUser;
+      }
+    } else {
+      // Create new user with initial role
+      const passwordHash = password ? await bcrypt.hash(password, 10) : undefined;
+
+      const userData: any = {
+        fullName: fullName!,
+        phone: phone || undefined,
+        email: email || undefined,
+        passwordHash,
+        isVerified: true,
+        applicationStatus: "not-applied",
+        roles: [userType],
+      };
+
+      const newUser = await this.userRepository.create(userData);
+      if (!newUser) {
+        return ResponseHelper.error("Failed to create user");
+      }
+      user = newUser;
+    }
+
+    // Ensure user is not null at this point
+    if (!user) {
+      return ResponseHelper.error("User creation/update failed");
+    }
 
     // Generate JWT token
     const token = jwt.sign(
-      { _id: user._id, role: user.role },
+      { _id: user._id, roles: user.roles },
       process.env.JWT_SECRET as string,
       { expiresIn: "7d" }
     );
@@ -164,7 +250,7 @@ async verifyOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
       fullName: user.fullName,
       phone: user.phone,
       email: user.email,
-      role: user.role,
+      roles: user.roles,
       applicationStatus: user.applicationStatus || "not-applied",
     };
 
@@ -176,6 +262,7 @@ async verifyOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
       }
     );
   } catch (error: any) {
+    console.error("Verify OTP error:", error);
     return ResponseHelper.error(error.message);
   }
 }
@@ -217,7 +304,7 @@ async login(credentials: LoginCredentials): Promise<AuthResponse> {
     }
 
     const token = jwt.sign(
-      { _id: user._id, role: user.role },
+      { _id: user._id, roles: user.roles },
       process.env.JWT_SECRET as string,
       { expiresIn: "7d" }
     );
@@ -227,7 +314,7 @@ async login(credentials: LoginCredentials): Promise<AuthResponse> {
       fullName: user.fullName,
       phone: user.phone,
       email: user.email,
-      role: user.role,
+      roles: user.roles,
       applicationStatus: user.applicationStatus || "not-applied",
       isVerified: user.isVerified,
       status: user.status,
@@ -283,9 +370,9 @@ try {
         break;
     }
 
-    if (user.role !== expectedRole) {
-      return ResponseHelper.notFound(`${AUTH_MESSAGES.USER_NOT_FOUND} for ${userType} role`);
-    }
+    if (!user.roles.includes(expectedRole)) {
+  return ResponseHelper.notFound(`${AUTH_MESSAGES.USER_NOT_FOUND} for ${userType} role`);
+}
   }
 
   // Check if user is active and not blocked
@@ -431,7 +518,7 @@ async verifyResetOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
     // For technicians, verify the user exists with correct role
     if (userType === USER_ROLES.SERVICE_PROVIDER) {
       const userQuery: any = phone ? { phone } : { email };
-      userQuery.role = USER_ROLES.SERVICE_PROVIDER;
+      userQuery.roles = USER_ROLES.SERVICE_PROVIDER;
       const user = await this.userRepository.findByIdentifier(userQuery);
       if (!user) {
         return ResponseHelper.notFound(`${userType} not found`);
@@ -540,7 +627,7 @@ async facebookLogin(
         user = await this.userRepository.create({
           fullName: name,
           email,
-          role: "user",
+          roles: ["user"],
           applicationStatus: "not-applied",
           isVerified: true,
         });
@@ -563,7 +650,7 @@ async facebookLogin(
 
     // Generate JWT
     const token = jwt.sign(
-      { _id: user._id, role: user.role },
+      { _id: user._id, roles: user.roles },
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
@@ -573,7 +660,7 @@ async facebookLogin(
       _id: user._id!.toString(),
       fullName: user.fullName,
       email: user.email,
-      role: user.role,
+      roles: user.roles,
       applicationStatus: user.applicationStatus || "not-applied",
       isVerified: user.isVerified,
     };
@@ -588,106 +675,106 @@ async facebookLogin(
   }
 }
 
-async googleAuth(socialData: SocialAuthData): Promise<AuthResponse> {
-  try {
-    const { token, userType } = socialData;
+ async googleAuth(socialData: SocialAuthData): Promise<AuthResponse> {
+    try {
+      const { token, userType } = socialData;
 
-    if (!token) {
-      return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_OR_TOKEN_REQUIRED);
-    }
-
-    const ticket = await this.googleClient.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-    if (!payload) {
-      return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN);
-    }
-
-    const { email, name, sub: googleId, picture } = payload;
-
-    if (!email) {
-      return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
-    }
-
-    // Check if social account exists
-    let socialAccount = await this.socialAccountRepository.findByProviderId(
-      googleId
-    );
-    let user;
-
-    if (socialAccount) {
-      user = await this.userRepository.findById(
-        socialAccount.userId.toString()
-      );
-    } else {
-      // Check if user exists with this email
-      user = await this.userRepository.findByEmail(email);
-
-      if (!user) {
-        // Create new user
-        user = await this.userRepository.create({
-          fullName: name!,
-          email: email,
-          isVerified: true,
-          role: userType === USER_ROLES.SERVICE_PROVIDER? USER_ROLES.SERVICE_PROVIDER : USER_ROLES.USER,
-          applicationStatus: "not-applied",
-        });
-      } else {
-        // Update role if needed
-        if (userType === USER_ROLES.SERVICE_PROVIDER && user.role === USER_ROLES.USER) {
-          user = await this.userRepository.update(user._id!.toString(), {
-            role: USER_ROLES.SERVICE_PROVIDER,
-          });
-        }
+      if (!token) {
+        return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_OR_TOKEN_REQUIRED);
       }
 
-      // Create SocialAccount record
-      socialAccount =
-        await this.socialAccountRepository.findByUserIdAndProvider(
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload) {
+        return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN);
+      }
+
+      const { email, name, sub: googleId, picture } = payload;
+
+      if (!email) {
+        return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
+      }
+
+      // Check if social account exists
+      let socialAccount = await this.socialAccountRepository.findByProviderId(
+        googleId
+      );
+      let user;
+
+      if (socialAccount) {
+        user = await this.userRepository.findById(
+          socialAccount.userId.toString()
+        );
+      } else {
+        // Check if user exists with this email
+        user = await this.userRepository.findByEmail(email);
+
+        if (!user) {
+          // Create new user
+          user = await this.userRepository.create({
+            fullName: name!,
+            email: email,
+            isVerified: true,
+            roles: userType === USER_ROLES.SERVICE_PROVIDER ? [USER_ROLES.SERVICE_PROVIDER] : ["user"], // FIX: Array
+            applicationStatus: "not-applied",
+          });
+        } else {
+          // Update role if needed - add service provider role if not present
+          if (userType === USER_ROLES.SERVICE_PROVIDER && !user.roles.includes(USER_ROLES.SERVICE_PROVIDER)) {
+            const updatedRoles = [...user.roles, USER_ROLES.SERVICE_PROVIDER];
+            user = await this.userRepository.update(user._id!.toString(), {
+              roles: updatedRoles, // FIX: Array
+            });
+          }
+        }
+
+        // Create SocialAccount record
+        socialAccount = await this.socialAccountRepository.findByUserIdAndProvider(
           user!._id!,
           "google"
         );
 
-      if (!socialAccount) {
-        socialAccount = await this.socialAccountRepository.create({
-          userId: user!._id!,
-          provider: "google",
-          providerId: googleId,
-          email,
-          profilePictureUrl: picture,
-        });
+        if (!socialAccount) {
+          socialAccount = await this.socialAccountRepository.create({
+            userId: user!._id!,
+            provider: "google",
+            providerId: googleId,
+            email,
+            profilePictureUrl: picture,
+          });
+        }
       }
+
+      if (!user) {
+        return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND );
+      }
+
+      const appToken = jwt.sign(
+        { _id: user._id, roles: user.roles },
+        process.env.JWT_SECRET!,
+        { expiresIn: "7d" }
+      );
+
+      const userResponse = {
+        _id: user._id!.toString(),
+        fullName: user.fullName,
+        email: user.email,
+        roles: user.roles,
+        applicationStatus: user.applicationStatus || "not-applied",
+        isVerified: user.isVerified,
+      };
+
+      return ResponseHelper.success(AUTH_MESSAGES.GOOGLE_AUTH_SUCCESS, {
+        token: appToken,
+        user: userResponse,
+      })
+    } catch (error: any) {
+      console.error("Google auth error:", error);
+      return ResponseHelper.error(AUTH_MESSAGES.SOCIAL_AUTH_FAILED)
     }
-
-    if (!user) {
-      return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND );
-    }
-
-    const appToken = jwt.sign(
-      { _id: user._id, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: "7d" }
-    );
-
-    const userResponse = {
-      _id: user._id!.toString(),
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      applicationStatus: user.applicationStatus || "not-applied",
-      isVerified: user.isVerified,
-    };
-
-    return ResponseHelper.success(AUTH_MESSAGES.GOOGLE_AUTH_SUCCESS, {
-      token: appToken,
-      user: userResponse,
-    })
-  } catch (error: any) {
-    console.error("Google auth error:", error);
-    return ResponseHelper.error(AUTH_MESSAGES.SOCIAL_AUTH_FAILED)
   }
-}
 }

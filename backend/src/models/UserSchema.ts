@@ -14,10 +14,10 @@ const UserSchema = new Schema<IUser>(
     },
     passwordHash: { type: String },
     isVerified: { type: Boolean, default: false },
-    role: {
-      type: String,
+    roles: {
+      type: [String], // Correct array syntax
       enum: ["user", "serviceProvider", "admin"],
-      default: "user",
+      default: ["user"], // Default as array
     },
     status: {
       type: String,
@@ -54,7 +54,6 @@ const UserSchema = new Schema<IUser>(
     approvalDate: { type: Date },
     rejectionReason: { type: String },
   },
-
   { timestamps: true }
 );
 
@@ -75,5 +74,9 @@ UserSchema.index(
     partialFilterExpression: { email: { $exists: true, $ne: null } },
   }
 );
+
+// Compound index for email/phone + role queries (optional but recommended)
+UserSchema.index({ email: 1, roles: 1 });
+UserSchema.index({ phone: 1, roles: 1 });
 
 export default mongoose.model<IUser>("User", UserSchema);

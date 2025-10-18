@@ -11,6 +11,7 @@ export interface LoginCredentials {
   identifier: string;
   password: string;
   role?: string;
+  roles?: string[];
 }
 
 export interface SignupData {
@@ -18,7 +19,7 @@ export interface SignupData {
   phone?: string;
   fullName: string;
   password?: string;
-  userType?: string;
+  userType: "user" | "serviceProvider";
 }
 
 export interface OTPVerificationData {
