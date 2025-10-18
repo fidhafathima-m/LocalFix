@@ -140,4 +140,60 @@ export class UserRepository implements IUserRepository {
   async findOne(query: any): Promise<IUser | null> {
     return await User.findOne(query);
   }
+
+   async storeRefreshToken(userId: string, refreshToken: string): Promise<void> {
+    await User.findByIdAndUpdate(
+      userId,
+      { 
+        $push: { 
+          refreshTokens: {
+            token: refreshToken,
+            createdAt: new Date()
+          }
+        } 
+      }
+    );
+  }
+
+  async findByRefreshToken(userId: string, refreshToken: string): Promise<IUser | null> {
+    return User.findOne({
+      _id: userId,
+      'refreshTokens.token': refreshToken
+    });
+  }
+
+  async updateRefreshToken(userId: string, oldToken: string, newToken: string): Promise<void> {
+    await User.findOneAndUpdate(
+      {
+        _id: userId,
+        'refreshTokens.token': oldToken
+      },
+      {
+        $set: {
+          'refreshTokens.$.token': newToken,
+          'refreshTokens.$.createdAt': new Date()
+        }
+      }
+    );
+  }
+
+  async removeRefreshToken(userId: string, refreshToken: string): Promise<void> {
+    await User.findByIdAndUpdate(
+      userId,
+      { 
+        $pull: { 
+          refreshTokens: { token: refreshToken } 
+        } 
+      }
+    );
+  }
+
+  async removeAllRefreshTokens(userId: string): Promise<void> {
+    await User.findByIdAndUpdate(
+      userId,
+      { 
+        $set: { refreshTokens: [] } 
+      }
+    );
+  }
 }

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {authController} from "../config/container";
+import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
 
@@ -12,5 +13,7 @@ router.post("/reset-password", authController.resetPassword);
 router.post("/resend-otp", authController.resendOTP);
 router.post("/google", authController.googleAuth);
 router.post("/facebook", authController.facebookLogin);
+router.post("/refresh-token", authController.refreshToken);
+router.post("/logout", protect, authController.logout);
 
 export default router;

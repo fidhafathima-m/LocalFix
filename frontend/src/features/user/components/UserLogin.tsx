@@ -18,27 +18,27 @@ const UserLogin: React.FC = () => {
     try {
       const res = await authAPI.login(credentials);
       
-      // ✅ FIXED: Extract user and token from data object
       const userDataFromResponse = res.data?.user || res.user;
-      const tokenFromResponse = res.data?.token || res.token;
+      const accessToken = res.data?.accessToken || res.accessToken;
+      const refreshToken = res.data?.refreshToken || res.refreshToken;
       
-      if (res.success && userDataFromResponse && tokenFromResponse) {
+      if (res.success && userDataFromResponse && accessToken && refreshToken) {
         const userData: User = {
           _id: userDataFromResponse._id,
           fullName: userDataFromResponse.fullName,
           phone: userDataFromResponse.phone || "",
           email: userDataFromResponse.email || "",
-          role: userDataFromResponse.role,
+          roles: userDataFromResponse.roles,
           applicationStatus: getSafeApplicationStatus(userDataFromResponse.applicationStatus),
           isVerified: userDataFromResponse.isVerified || false,
         };
         
         dispatch(loginSuccess({
           user: userData,
-          token: tokenFromResponse,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
         }));
         
-        // User-specific success logic
         setTimeout(() => navigate("/"), 1000);
         
         return { success: true, message: res.message };

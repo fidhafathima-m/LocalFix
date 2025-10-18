@@ -34,6 +34,10 @@ export interface IUser extends Document {
     balance: number;
     transactions: IWalletTransaction[];
   };
+  refreshTokens: {
+    token: string;
+    createdAt: Date;
+  }[];
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;

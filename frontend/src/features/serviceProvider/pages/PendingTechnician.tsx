@@ -104,11 +104,11 @@ const PendingTechnicianApplication: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isResubmitting, setIsResubmitting] = useState(false);
-  const { token, isLoggedIn } = useAppSelector((state) => state.auth);
+  const { accessToken, isLoggedIn } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const fetchApplicationData = useCallback(async () => {
-  if (!isLoggedIn || !token) {
+  if (!isLoggedIn || !accessToken) {
     setLoading(false);
     return;
   }
@@ -129,7 +129,7 @@ const PendingTechnicianApplication: React.FC = () => {
       `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
@@ -156,7 +156,7 @@ const PendingTechnicianApplication: React.FC = () => {
             `${import.meta.env.VITE_BASE_URL}/technicians/by-application/${applicationId}`,
             {
               headers: {
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${accessToken}`,
               },
             }
           );
@@ -181,7 +181,7 @@ const PendingTechnicianApplication: React.FC = () => {
   } finally {
     setLoading(false);
   }
-}, [token, isLoggedIn, navigate]);
+}, [accessToken, isLoggedIn, navigate]);
 
   // Function to get all available documents dynamically
   const getAvailableDocuments = (): AvailableDocument[] => {
@@ -356,7 +356,7 @@ const PendingTechnicianApplication: React.FC = () => {
   };
 
   const handleResubmitApplication = async () => {
-    if (!isLoggedIn || !token) {
+    if (!isLoggedIn || !accessToken) {
       toast.error("Please log in to perform this action");
       navigate("/technicians/login");
       return;
@@ -374,7 +374,7 @@ const PendingTechnicianApplication: React.FC = () => {
         {},
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
@@ -408,7 +408,7 @@ const PendingTechnicianApplication: React.FC = () => {
   };
 
   const handleStartFreshApplication = async () => {
-    if (!isLoggedIn || !token) {
+    if (!isLoggedIn || !accessToken) {
       toast.error("Please log in to perform this action");
       navigate("/technicians/login");
       return;
@@ -426,7 +426,7 @@ const PendingTechnicianApplication: React.FC = () => {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
@@ -462,7 +462,7 @@ const PendingTechnicianApplication: React.FC = () => {
 
   useEffect(() => {
     const checkApplicationStatus = async () => {
-      if (!isLoggedIn || !token) {
+      if (!isLoggedIn || !accessToken) {
         setLoading(false);
         return;
       }
@@ -483,7 +483,7 @@ const PendingTechnicianApplication: React.FC = () => {
           }/technician-application/user/applications`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${accessToken}`,
             },
           }
         );
@@ -518,7 +518,7 @@ const PendingTechnicianApplication: React.FC = () => {
     };
 
     checkApplicationStatus();
-  }, [token, isLoggedIn, navigate, fetchApplicationData]);
+  }, [accessToken, isLoggedIn, navigate, fetchApplicationData]);
 
   if (applicationStatus === "approved" && technicianData) {
     window.location.href = "/technicians/dashboard";

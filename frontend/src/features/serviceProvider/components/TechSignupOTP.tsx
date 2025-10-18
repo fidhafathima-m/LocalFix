@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../../hooks/redux";
-import { loginSuccess, type User } from "../../../store/slices/authSlice";
+import { getSafeApplicationStatus, loginSuccess, type User } from "../../../store/slices/authSlice";
 import { authAPI, type OTPData } from "../../../services/authApi";
 import BaseOTP, { type OTPFormData, type UserType, type OTPContext } from "../../../components/reusable/BaseOTP";
 
@@ -29,85 +29,94 @@ const TechSignupOTP: React.FC = () => {
     userType: "serviceProvider" as UserType,
   };
 
-  const handleSubmit = async ({ otp, formData }: { otp: string; formData: OTPFormData }) => {
-    setLoading(true);
-    
-    try {
-      // Use verifyOTP endpoint for signup (requires fullName, password)
-      const otpData: OTPData = {
-        otp,
-        userType: "serviceProvider",
-        context: "signup" as OTPContext,
-        ...(formData.phone && { phone: formData.phone }),
-        ...(formData.email && { email: formData.email }),
-        ...(formData.fullName && { fullName: formData.fullName }),
-        ...(formData.password && { password: formData.password }),
-      };
+// In your TechSignupOTP.tsx - fix the applicationStatus type
+// In TechSignupOTP.tsx - fix the redirect logic
+const handleSubmit = async ({ otp, formData }: { otp: string; formData: OTPFormData }) => {
+  setLoading(true);
+  
+  try {
+    const otpData: OTPData = {
+      otp,
+      userType: "serviceProvider",
+      context: "signup" as OTPContext,
+      ...(formData.phone && { phone: formData.phone }),
+      ...(formData.email && { email: formData.email }),
+      ...(formData.fullName && { fullName: formData.fullName }),
+      ...(formData.password && { password: formData.password }),
+    };
 
-      const res = await authAPI.verifyOTP(otpData);
+    const res = await authAPI.verifyOTP(otpData);
 
-      if (!res.success || !res.user || !res.token) {
-        throw new Error(res.message || "Invalid response from server");
-      }
+    const userData = res.data?.user || res.user;
+    const accessToken = res.data?.accessToken || res.accessToken;
+    const refreshToken = res.data?.refreshToken || res.refreshToken;
 
-      // FIX: Check if user has serviceProvider role in their roles array
-      const hasServiceProviderRole = res.user.roles?.includes("serviceProvider");
-      
-      if (!hasServiceProviderRole) {
-        throw new Error("User does not have service provider role");
-      }
-
-      // FIX: Use the correct User type that matches your authSlice
-      const userData: User = {
-        _id: res.user._id,
-        fullName: res.user.fullName,
-        phone: res.user.phone || "",
-        email: res.user.email || "",
-        role: "serviceProvider",
-        isVerified: res.user.isVerified || false,
-      };
-
-      dispatch(loginSuccess({
-        user: userData,
-        token: res.token,
-      }));
-
-      // KEEP ORIGINAL REDIRECTION LOGIC - DON'T CHANGE PATHS
-      let redirectPath = "/";
-      if (userData.role === "serviceProvider") {
-        if (userData.applicationStatus === "approved") {
-          redirectPath = "/technicians/dashboard";
-        } else if (
-          userData.applicationStatus === "submitted" ||
-          userData.applicationStatus === "under_review"
-        ) {
-          redirectPath = "/pending-technician/dashboard";
-        } else {
-          redirectPath = "/technicians";
-        }
-      } else if (userData.role === "admin") {
-        redirectPath = "/admin/dashboard";
-      }
-
-      localStorage.removeItem("signupData");
-
-      return {
-        success: true,
-        message: res.message,
-        user: userData,
-        token: res.token,
-        redirectPath,
-      };
-    } catch (error: any) {
-      console.error("OTP verification error:", error);
-      return {
-        success: false,
-        message: error.message || "OTP verification failed",
-      };
-    } finally {
-      setLoading(false);
+    if (!res.success || !userData || !accessToken || !refreshToken) {
+      throw new Error(res.message || "Invalid response from server");
     }
-  };
+
+    const hasServiceProviderRole = userData.roles?.includes("serviceProvider");
+    
+    if (!hasServiceProviderRole) {
+      throw new Error("User does not have service provider role");
+    }
+
+    const userWithRoles: User = {
+      _id: userData._id,
+      fullName: userData.fullName,
+      phone: userData.phone || "",
+      email: userData.email || "",
+      roles: userData.roles || [],
+      isVerified: userData.isVerified || false,
+      applicationStatus: getSafeApplicationStatus(userData.applicationStatus),
+    };
+
+    dispatch(loginSuccess({
+      user: userWithRoles,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    }));
+
+    // ✅ FIXED: Better redirect logic with debugging
+    let redirectPath = "/";
+    
+    console.log("🔍 User applicationStatus:", userData.applicationStatus); // DEBUG
+    
+    if (hasServiceProviderRole) {
+      if (userData.applicationStatus === "approved") {
+        redirectPath = "/technician/dashboard"; // Note: your route is "/technician/dashboard" not "/technicians/dashboard"
+      } else if (
+        userData.applicationStatus === "submitted" ||
+        userData.applicationStatus === "under_review"
+      ) {
+        redirectPath = "/pending-technician/dashboard";
+      } else {
+        redirectPath = "/technicians"; // This might be the issue - it's redirecting here
+      }
+    }
+
+    console.log("🔍 Determined redirectPath:", redirectPath); // DEBUG
+
+    localStorage.removeItem("signupData");
+
+    return {
+      success: true,
+      message: res.message,
+      user: userWithRoles,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      redirectPath, // Make sure this is being returned
+    };
+  } catch (error: any) {
+    console.error("OTP verification error:", error);
+    return {
+      success: false,
+      message: error.message || "OTP verification failed",
+    };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleResendOTP = async (formData: OTPFormData) => {
     setLoading(true);

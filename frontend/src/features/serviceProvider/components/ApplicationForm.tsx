@@ -79,9 +79,18 @@ export const ApplicationForm: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [, setApplicationStatus] = useState<string | null>(null);
-  const { user, token } = useAppSelector((state) => state.auth);
+  const { user, accessToken } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    console.log("🔍 ApplicationForm - Auth State:", {
+      user: user,
+      accessToken: accessToken ? "Token exists" : "No token",
+      isLoggedIn: !!accessToken
+    });
+    console.log("🔍 ApplicationForm - localStorage auth:", localStorage.getItem("auth"));
+  }, [user, accessToken]);
 
   // File related
   const [, setPreview] = useState<string | null>(null);
@@ -170,7 +179,8 @@ export const ApplicationForm: React.FC = () => {
     agreement: false,
   });
 
-  const startApplication = async (): Promise<string | null> => {
+  // In ApplicationForm.tsx - fix the startApplication function
+const startApplication = async (): Promise<string | null> => {
   if (!user?._id) {
     toast.error("Please log in to start application");
     return null;
@@ -185,6 +195,12 @@ export const ApplicationForm: React.FC = () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(formData.email)) {
     alert("Please enter a valid email address");
+    return null;
+  }
+
+  // ✅ FIXED: Check if we have accessToken
+  if (!accessToken) {
+    toast.error("Authentication token not found. Please log in again.");
     return null;
   }
 
@@ -234,7 +250,12 @@ export const ApplicationForm: React.FC = () => {
     console.error("Start application error:", err);
 
     if (axios.isAxiosError(err)) {
-      if (err.response?.status === 400) {
+      if (err.response?.status === 401) {
+        toast.error("Session expired. Please log in again.");
+        // Clear auth and redirect to login
+        localStorage.removeItem("auth");
+        window.location.href = "/login";
+      } else if (err.response?.status === 400) {
         toast.error(err.response.data.message || "Bad request");
       } else if (err.response?.status === 500) {
         toast.error("Server error. Please try again later.");
@@ -309,7 +330,7 @@ export const ApplicationForm: React.FC = () => {
     };
 
     checkExistingApplication();
-  }, [user?._id, token]);
+  }, [user?._id, accessToken]);
 
   useEffect(() => {
     const fetchSavedApplication = async () => {
@@ -391,7 +412,7 @@ export const ApplicationForm: React.FC = () => {
     };
 
     fetchSavedApplication();
-  }, [applicationId, token]);
+  }, [applicationId, accessToken]);
 
   // Save formData locally on every change
   useEffect(() => {
@@ -907,16 +928,17 @@ export const ApplicationForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  // In ApplicationForm.tsx - fix the handleSubmit function
+const handleSubmit = async () => {
   if (isLoading) return;
 
-  const currentToken = localStorage.getItem("token");
+  // ✅ FIXED: Get token from auth state instead of localStorage
+  const currentToken = accessToken; // Use from useAppSelector
 
   if (!currentToken) {
-    console.error("No token found in localStorage");
+    console.error("No token found in auth state");
     alert("Your session has expired. Please log in again.");
-    window.location.href =
-      "/login?redirect=" + encodeURIComponent(window.location.pathname);
+    window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
     setIsLoading(false);
     return;
   }
@@ -1003,8 +1025,7 @@ export const ApplicationForm: React.FC = () => {
 
       if (error.response?.status === 401) {
         // Clear auth data and redirect to login
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        localStorage.removeItem("auth"); // Clear the auth object
         alert("Your session has expired. Please log in again.");
         window.location.href = "/login";
       } else if (error.response?.status === 403) {

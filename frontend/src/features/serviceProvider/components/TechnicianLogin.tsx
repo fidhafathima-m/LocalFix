@@ -18,27 +18,35 @@ const TechnicianLogin: React.FC = () => {
     try {
       const res = await authAPI.login(credentials);
       
-      if (res.success && res.user && res.token) {
-        // FIX: Check if user has serviceProvider role in their roles array
-        const hasServiceProviderRole = res.user.roles?.includes("serviceProvider");
+      // ✅ UPDATED: Extract tokens from new structure
+      const userDataFromResponse = res.data?.user || res.user;
+      const accessToken = res.data?.accessToken || res.accessToken;
+      const refreshToken = res.data?.refreshToken || res.refreshToken;
+      
+      if (res.success && userDataFromResponse && accessToken && refreshToken) {
+        // ✅ FIXED: Check if user has serviceProvider role in their roles array
+        const hasServiceProviderRole = userDataFromResponse.roles?.includes("serviceProvider");
         
         if (!hasServiceProviderRole) {
           throw new Error("This account is not registered as a service provider");
         }
 
+        // ✅ UPDATED: Create proper User object with roles array
         const userData: User = {
-          _id: res.user._id,
-          fullName: res.user.fullName,
-          phone: res.user.phone || "",
-          email: res.user.email || "",
-          role: "serviceProvider", // Use the primary role for backward compatibility
-          applicationStatus: getSafeApplicationStatus(res.user.applicationStatus),
-          isVerified: res.user.isVerified || false,
+          _id: userDataFromResponse._id,
+          fullName: userDataFromResponse.fullName,
+          phone: userDataFromResponse.phone || "",
+          email: userDataFromResponse.email || "",
+          roles: userDataFromResponse.roles || [], // Use roles array
+          applicationStatus: getSafeApplicationStatus(userDataFromResponse.applicationStatus),
+          isVerified: userDataFromResponse.isVerified || false,
         };
 
+        // ✅ UPDATED: Dispatch login success with both tokens
         dispatch(loginSuccess({
           user: userData,
-          token: res.token,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
         }));
 
         // KEEP ORIGINAL REDIRECTION LOGIC - DON'T CHANGE PATHS

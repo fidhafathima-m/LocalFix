@@ -32,4 +32,6 @@ export interface IAuthService {
   ): Promise<AuthResponse>;
   facebookLogin(accessToken: string, userID: string): Promise<AuthResponse>;
   googleAuth(socialData: SocialAuthData): Promise<AuthResponse>;
+  refreshToken(refreshToken: string): Promise<AuthResponse>
+  logout(userId: string, refreshToken?: string): Promise<AuthResponse>
 }

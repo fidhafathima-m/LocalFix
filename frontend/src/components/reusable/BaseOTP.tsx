@@ -16,6 +16,17 @@ export interface OTPFormData {
   token?: string;
 }
 
+// ✅ IMPROVED: Better response type for onSubmit
+export interface OTPSubmitResponse {
+  success: boolean; 
+  message?: string; 
+  user?: any;
+  accessToken?: string;
+  refreshToken?: string;
+  token?: string; // For backward compatibility
+  redirectPath?: string;
+}
+
 export interface BaseOTPProps {
   userType: UserType;
   context: OTPContext;
@@ -23,15 +34,9 @@ export interface BaseOTPProps {
   onSubmit: (data: {
     otp: string;
     formData: OTPFormData;
-  }) => Promise<{ 
-    success: boolean; 
-    message?: string; 
-    user?: any;
-    token?: string;
-    redirectPath?: string;
-  }>;
+  }) => Promise<OTPSubmitResponse>;
   onResendOTP: (formData: OTPFormData) => Promise<{ success: boolean; message?: string }>;
-  onSuccess?: (result: any) => void;
+  onSuccess?: (result: OTPSubmitResponse) => void;
   onFailure?: (error: string) => void;
   loading?: boolean;
   title?: string;
@@ -92,59 +97,75 @@ const BaseOTP: React.FC<BaseOTPProps> = ({
     return "Please enter the six-digit pin sent to:";
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // In BaseOTP.tsx - update the handleSubmit function
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!otp || otp.length !== 6) {
-      setError("Please enter a valid 6-digit OTP");
-      return;
-    }
+  if (!otp || otp.length !== 6) {
+    setError("Please enter a valid 6-digit OTP");
+    return;
+  }
 
-    setError("");
-    
-    // Set loading state
-    if (externalLoading === undefined) {
-      setInternalLoading(true);
-    }
+  setError("");
+  
+  // Set loading state
+  if (externalLoading === undefined) {
+    setInternalLoading(true);
+  }
 
-    try {
-      const result = await onSubmit({ otp, formData });
+  try {
+    const result = await onSubmit({ otp, formData });
 
-      if (result.success) {
-        toast.success(result.message || "OTP verified successfully!");
-        onSuccess?.(result);
-        
-        // Navigate if redirect path is provided
-        if (result.redirectPath) {
-          navigate(result.redirectPath, { replace: true });
-        }
+    console.log("🔍 BaseOTP - onSubmit result:", result); // ✅ ADD THIS
+
+    if (result.success) {
+      toast.success(result.message || "OTP verified successfully!");
+      onSuccess?.(result);
+      
+      console.log("🔍 BaseOTP - OTP verification successful"); // ✅ ADD THIS
+      console.log("🔍 BaseOTP - redirectPath:", result.redirectPath); // ✅ ADD THIS
+      
+      // ✅ IMPROVED: Log token info for debugging
+      if (result.accessToken && result.refreshToken) {
+        console.log("OTP verification successful - tokens received");
+      } else if (result.token) {
+        console.log("OTP verification successful - legacy token received");
+      }
+      
+      // ✅ FIXED: Check if we should navigate
+      if (result.redirectPath) {
+        console.log("🔍 BaseOTP - Navigating to:", result.redirectPath); // ✅ ADD THIS
+        navigate(result.redirectPath, { replace: true });
       } else {
-        const errorMessage = result.message || "OTP verification failed";
-        setError(errorMessage);
-        toast.error(errorMessage);
-        onFailure?.(errorMessage);
+        console.log("🔍 BaseOTP - No redirectPath provided"); // ✅ ADD THIS
       }
-    } catch (err: unknown) {
-      const error = err as AxiosError<{ message: string }>;
-      console.error("OTP verification error:", error);
-
-      let errorMessage = "OTP verification failed";
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
+    } else {
+      const errorMessage = result.message || "OTP verification failed";
       setError(errorMessage);
       toast.error(errorMessage);
       onFailure?.(errorMessage);
-    } finally {
-      // Reset loading state
-      if (externalLoading === undefined) {
-        setInternalLoading(false);
-      }
     }
-  };
+  } catch (err: unknown) {
+    const error = err as AxiosError<{ message: string }>;
+    console.error("OTP verification error:", error);
+
+    let errorMessage = "OTP verification failed";
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    setError(errorMessage);
+    toast.error(errorMessage);
+    onFailure?.(errorMessage);
+  } finally {
+    // Reset loading state
+    if (externalLoading === undefined) {
+      setInternalLoading(false);
+    }
+  }
+};
 
   const handleResendOTP = async () => {
     if (countdown > 0) return;
