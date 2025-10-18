@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { IUserManagementService } from "../../interfaces/services/admin/IUserManagementService";
 import { ResponseHelper } from "../../utils/responseHelper";
+import { GENERAL_MESSAGES } from "../../constants";
 
 export class UserManagementController {
   private userManagementService: IUserManagementService;
@@ -15,7 +16,7 @@ export class UserManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get users controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -30,7 +31,7 @@ export class UserManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update user status controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -42,7 +43,7 @@ export class UserManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Edit user controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -54,7 +55,7 @@ export class UserManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Delete user controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -65,7 +66,7 @@ export class UserManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get user stats controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -77,7 +78,7 @@ export class UserManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get user by ID controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

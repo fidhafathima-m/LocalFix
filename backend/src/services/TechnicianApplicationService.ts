@@ -14,6 +14,7 @@ import { ITechnicianRepository } from "../interfaces/repository/technician/ITech
 import { ITechnicianDocumentRepository } from "../interfaces/repository/technician/ITechnicianDocumentRepository";
 import { IUserRepository } from "../interfaces/repository/user/IUserRepository";
 import { ResponseHelper } from "../utils/responseHelper";
+import { TECH_APPLICATION_MESSAGES, APPLICATION_STEPS, DOCUMENT_TYPES, REDIRECT_PATHS, REQUIRED_STEPS, STEP_MAPPING, APPLICATION_STATUS, USER_ROLES } from "../constants";
 
 export class TechnicianApplicationService implements ITechnicianApplicationService {
   private applicationRepository: ITechnicianApplicationRepository;
@@ -40,53 +41,53 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       const { email, userId } = data;
 
       if (!email || !userId) {
-        return ResponseHelper.badRequest("Email and User ID are required")
+        return ResponseHelper.badRequest(TECH_APPLICATION_MESSAGES.EMAIL_AND_USER_ID_REQUIRED)
       }
 
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        return ResponseHelper.badRequest("Please provide a valid email address")
+        return ResponseHelper.badRequest(TECH_APPLICATION_MESSAGES.VALID_EMAIL_REQUIRED)
       }
 
       const existingUserApplication =
         await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
-          "draft",
-          "submitted",
-          "under_review",
-          "approved",
-          "rejected",
+          APPLICATION_STATUS.DRAFT,
+          APPLICATION_STATUS.SUBMITTED,
+          APPLICATION_STATUS.UNDER_REVIEW,
+          APPLICATION_STATUS.APPROVED,
+          APPLICATION_STATUS.REJECTED,
         ]);
 
       if (existingUserApplication) {
         const appStatus = existingUserApplication.status;
 
         // If application is submitted or under review, redirect to pending dashboard
-        if (appStatus === "submitted" || appStatus === "under_review") {
-          return ResponseHelper.success("Application already submitted", {
+        if (appStatus === APPLICATION_STATUS.SUBMITTED || appStatus === APPLICATION_STATUS.UNDER_REVIEW) {
+          return ResponseHelper.success(TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_SUBMITTED, {
             data: {
               applicationId: existingUserApplication._id.toString(),
-              redirectTo: "/pending-technician/dashboard",
+              redirectTo: REDIRECT_PATHS.PENDING_DASHBOARD,
             },
           })
         }
 
         // If application is approved, redirect to technician dashboard
-        if (appStatus === "approved") {
-          return ResponseHelper.success("Application already approved", {
+        if (appStatus === APPLICATION_STATUS.APPROVED) {
+          return ResponseHelper.success(TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_APPROVED, {
             data: {
               applicationId: existingUserApplication._id.toString(),
-              redirectTo: "/technician/dashboard",
+              redirectTo: REDIRECT_PATHS.TECHNICIAN_DASHBOARD,
             },
           })
         }
 
         // Allow rejected applications to be edited and resubmitted
-        if (appStatus === "draft" || appStatus === "rejected") {
+        if (appStatus === APPLICATION_STATUS.DRAFT || appStatus === APPLICATION_STATUS.REJECTED) {
           return ResponseHelper.success(
-            appStatus === "rejected"
-                ? "Rejected application found - you can edit and resubmit"
-                : "Draft application found", {
+            appStatus === APPLICATION_STATUS.REJECTED
+                ? TECH_APPLICATION_MESSAGES.REJECTED_APPLICATION_FOUND
+                : TECH_APPLICATION_MESSAGES.DRAFT_APPLICATION_FOUND, {
                   data: {
               applicationId: existingUserApplication._id.toString(),
               redirectTo: null,
@@ -98,11 +99,11 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       // Check if email is already registered to different user
       const existingEmailApplication =
         await this.applicationRepository.findByEmailAndStatus(email, [
-          "draft",
-          "submitted",
-          "under_review",
-          "approved",
-          "rejected",
+          APPLICATION_STATUS.DRAFT,
+          APPLICATION_STATUS.SUBMITTED,
+          APPLICATION_STATUS.UNDER_REVIEW,
+          APPLICATION_STATUS.APPROVED,
+          APPLICATION_STATUS.REJECTED,
         ]);
 
       if (existingEmailApplication) {
@@ -111,7 +112,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
 
         // Email already used by someone else
         if (existingAppTechnicianId && existingAppTechnicianId !== userId) {
-          return ResponseHelper.conflict("Email already has an application in progress by another user")
+          return ResponseHelper.conflict(TECH_APPLICATION_MESSAGES.EMAIL_ALREADY_IN_USE)
         }
       }
 
@@ -119,7 +120,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       const application = await this.applicationRepository.create({
         email: email.toLowerCase().trim(),
         technicianId: new Types.ObjectId(userId),
-        status: "draft",
+        status: APPLICATION_STATUS.DRAFT,
         stepsCompleted: [],
         personal: {},
         identity: {},
@@ -130,7 +131,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         agreement: false,
       });
 
-      return ResponseHelper.success("Application started successfully", {
+      return ResponseHelper.success(TECH_APPLICATION_MESSAGES.APPLICATION_STARTED, {
         data: {
           applicationId: application._id.toString(),
           redirectTo: null,
@@ -138,7 +139,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       })
     } catch (error) {
       console.error("Start application error:", error);
-      return ResponseHelper.error("Failed to start application")
+      return ResponseHelper.error(TECH_APPLICATION_MESSAGES.FAILED_TO_START_APPLICATION)
     }
   }
 
@@ -150,14 +151,14 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       const { applicationId, step, ...stepData } = data;
 
       if (!applicationId || !step) {
-        return ResponseHelper.badRequest("Application ID and step are required")
+        return ResponseHelper.badRequest(TECH_APPLICATION_MESSAGES.APPLICATION_ID_AND_STEP_REQUIRED)
       }
 
       const application = await this.applicationRepository.findById(
         applicationId
       );
       if (!application) {
-        return ResponseHelper.notFound("Application not found")
+        return ResponseHelper.notFound(TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND)
       }
 
       const processedStepData = { ...stepData };
@@ -185,16 +186,16 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       });
 
       // Handle different steps
-      if (step === "Identity & Verification") {
+      if (step === APPLICATION_STEPS.IDENTITY_VERIFICATION) {
         await this.handleIdentityVerificationStep(
           application,
           processedStepData
         );
-      } else if (step === "Documents") {
+      } else if (step === APPLICATION_STEPS.DOCUMENTS) {
         await this.handleDocumentsStep(application, files);
-      } else if (step === "Agreement & Consent") {
+      } else if (step === APPLICATION_STEPS.AGREEMENT_CONSENT) {
         await this.handleAgreementStep(application, processedStepData);
-      } else if (step === "Review & Submit") {
+      } else if (step === APPLICATION_STEPS.REVIEW_SUBMIT) {
         await this.handleReviewStep(application);
       } else {
         await this.handleGenericStep(application, step, processedStepData);
@@ -207,7 +208,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
 
       await this.applicationRepository.save(application);
 
-      return ResponseHelper.success("Step saved successfully", {
+      return ResponseHelper.success(TECH_APPLICATION_MESSAGES.STEP_SAVED, {
         data: {
           application: {
             _id: application._id,
@@ -217,7 +218,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       })
     } catch (error) {
       console.error("Save step error:", error);
-      return ResponseHelper.error("Failed to save step")
+      return ResponseHelper.error(TECH_APPLICATION_MESSAGES.FAILED_TO_SAVE_STEP)
     }
   }
 
@@ -296,12 +297,12 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
 
     const documents: any = application.documents;
     const documentFields = [
-      "idProof",
-      "addressProof",
-      "policeVerification",
-      "passportPhoto",
-      "profilePhoto",
-      "tradeLicense",
+      DOCUMENT_TYPES.ID_PROOF,
+      DOCUMENT_TYPES.ADDRESS_PROOF,
+      DOCUMENT_TYPES.POLICE_VERIFICATION,
+      DOCUMENT_TYPES.PASSPORT_PHOTO,
+      DOCUMENT_TYPES.PROFILE_PHOTO,
+      DOCUMENT_TYPES.TRADE_LICENSE,
     ];
 
     for (const field of documentFields) {
@@ -346,7 +347,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
               filename: fileToUpload.originalname,
               uploadedAt: new Date(),
               uploadFailed: true,
-              error: "Cloudinary upload failed - no secure_url returned",
+              error: TECH_APPLICATION_MESSAGES.CLOUDINARY_UPLOAD_FAILED,
               verified: false,
             };
           }
@@ -408,13 +409,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
     step: string,
     stepData: any
   ): Promise<void> {
-    const stepMapping: Record<string, string> = {
-      "Personal Information": "personal",
-      "Identity & Verification": "identity",
-      "Skills & Services": "skills",
-      "Availability & Work Preferences": "availability",
-      "Banking Details": "bank",
-    };
+    const stepMapping: Record<string, string> = STEP_MAPPING
 
     const applicationField = stepMapping[step];
     if (applicationField) {
@@ -433,7 +428,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         applicationId
       );
       if (!application) {
-        return ResponseHelper.notFound("Application not found")
+        return ResponseHelper.notFound(TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND)
       }
 
       const applicationData = {
@@ -456,12 +451,12 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         updatedAt: application.updatedAt,
       };
 
-      return ResponseHelper.success("Application retrieved successfully", {
+      return ResponseHelper.success(TECH_APPLICATION_MESSAGES.APPLICATION_RETRIEVED, {
         data: { application: applicationData },
       })
     } catch (error) {
       console.error("Get application error:", error);
-      return ResponseHelper.error("Failed to retrieve application")
+      return ResponseHelper.error(TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION)
     }
   }
 
@@ -474,7 +469,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         applicationId
       );
       if (!application) {
-        return ResponseHelper.notFound("Application not found")
+        return ResponseHelper.notFound(TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND)
       }
 
       let languagesArray: string[] = [];
@@ -508,31 +503,23 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         !application.technicianId ||
         application.technicianId.toString() !== userId
       ) {
-        return ResponseHelper.forbidden("Access denied - application does not belong to current user")
+        return ResponseHelper.forbidden(TECH_APPLICATION_MESSAGES.ACCESS_DENIED)
       }
 
       // Check if application already submitted
-      if (application.status !== "draft") {
-        return ResponseHelper.badRequest("Application has already been submitted")
+      if (application.status !== APPLICATION_STATUS.DRAFT) {
+        return ResponseHelper.badRequest(TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_SUBMITTED)
       }
 
       // Validate all required steps are completed
-      const requiredSteps = [
-        "Personal Information",
-        "Identity & Verification",
-        "Skills & Services",
-        "Availability & Work Preferences",
-        "Banking Details",
-        "Documents",
-        "Agreement & Consent",
-      ];
+      const requiredSteps = REQUIRED_STEPS
 
       const missingSteps = requiredSteps.filter(
         (step) => !application.stepsCompleted.includes(step)
       );
 
       if (missingSteps.length > 0) {
-        return ResponseHelper.unProcessableEntity("Please complete all steps before submitting", {
+        return ResponseHelper.unProcessableEntity(TECH_APPLICATION_MESSAGES.COMPLETE_ALL_STEPS_REQUIRED, {
           missingSteps,
         })
       }
@@ -540,10 +527,10 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       // Update user
       const user = await this.userRepository.updateApplicationStatus(
         userId,
-        "submitted"
+        APPLICATION_STATUS.SUBMITTED
       );
       if (!user) {
-        return ResponseHelper.notFound("User not found")
+        return ResponseHelper.notFound(TECH_APPLICATION_MESSAGES.USER_NOT_FOUND)
       }
 
       // Update user email if different
@@ -552,8 +539,8 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       }
 
       // Update user role if needed
-      if (user.role !== "serviceProvider") {
-        await this.userRepository.updateRole(userId, "serviceProvider");
+      if (user.role !== USER_ROLES.SERVICE_PROVIDER) {
+        await this.userRepository.updateRole(userId, USER_ROLES.SERVICE_PROVIDER);
       }
 
       // Create or update technician record
@@ -590,7 +577,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       if (!technician) {
         technician = await this.technicianRepository.create({
           userId: new Types.ObjectId(userId),
-          displayName: application.personal?.fullName || "Technician",
+          displayName: application.personal?.fullName || USER_ROLES.TECHNICIAN,
           bio: application.skills?.bio || "",
           experienceYears: parseInt(application.skills?.yearsOfExperience) || 0,
           services: application.skills?.services || [],
@@ -603,7 +590,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
           },
           averageRating: 0,
           ratingCount: 0,
-          status: "submitted",
+          status: APPLICATION_STATUS.SUBMITTED,
           profilePictureUrl: application.documents?.passportPhoto?.url || "",
           personalInfo: {
             fullName: application.personal?.fullName || "",
@@ -629,7 +616,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
           profilePictureUrl:
             application.documents?.passportPhoto?.url ||
             technician.profilePictureUrl,
-          status: "submitted",
+          status: APPLICATION_STATUS.SUBMITTED,
           personalInfo: {
             ...technician.personalInfo,
             fullName:
@@ -656,18 +643,18 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
 
       // Update application status
       await this.applicationRepository.update(applicationId, {
-        status: "submitted",
+        status: APPLICATION_STATUS.SUBMITTED,
         submittedAt: new Date(),
       });
 
-      return ResponseHelper.success( "Application submitted successfully", {
+      return ResponseHelper.success(TECH_APPLICATION_MESSAGES.APPLICATION_SUBMITTED, {
         data: {
           applicationId: application._id.toString(),
         },
       })
     } catch (error) {
       console.error("Submit application error:", error);
-      return ResponseHelper.badRequest("Failed to submit application")
+      return ResponseHelper.badRequest(TECH_APPLICATION_MESSAGES.FAILED_TO_SUBMIT_APPLICATION)
     }
   }
 
@@ -679,7 +666,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         applicationId
       );
       if (!application) {
-        return ResponseHelper.notFound("Application not found")
+        return ResponseHelper.notFound(TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND)
       }
 
       const applicationData = {
@@ -687,12 +674,12 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         documents: application.documents || {},
       };
 
-      return ResponseHelper.success( "Application status retrieved successfully", {
+      return ResponseHelper.success( TECH_APPLICATION_MESSAGES.APPLICATION_STATUS_RETRIEVED, {
         data: { application: applicationData }
       })
     } catch (error) {
       console.error("Get application status error:", error);
-      return ResponseHelper.error("Failed to get application status")
+      return ResponseHelper.error(TECH_APPLICATION_MESSAGES.FAILED_TO_GET_STATUS)
     }
   }
 
@@ -702,13 +689,13 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         userId
       );
 
-      return ResponseHelper.success("User applications retrieved successfully",{
+      return ResponseHelper.success(TECH_APPLICATION_MESSAGES.USER_APPLICATIONS_RETRIEVED,{
           data: { applications },
         }
       )
     } catch (error) {
       console.error("Get user applications error:", error);
-      return ResponseHelper.error("Failed to retrieve user applications")
+      return ResponseHelper.error(TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION)
     }
   }
 
@@ -721,25 +708,25 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         applicationId
       );
       if (!application) {
-        return ResponseHelper.notFound("Application not found")
+        return ResponseHelper.notFound(TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND)
       }
 
       // Ownership validation
       if (!application.technicianId) {
-        return ResponseHelper.badRequest("Application has no technician assigned")
+        return ResponseHelper.badRequest(TECH_APPLICATION_MESSAGES.NO_TECHNICIAN_ASSIGNED)
       }
 
       if (application.technicianId.toString() !== userId) {
-        return ResponseHelper.forbidden("Access denied - application does not belong to current user")
+        return ResponseHelper.forbidden(TECH_APPLICATION_MESSAGES.ACCESS_DENIED)
       }
 
       // Check if application is rejected
-      if (application.status !== "rejected") {
-        return ResponseHelper.badRequest("Only rejected applications can be resubmitted")
+      if (application.status !== APPLICATION_STATUS.REJECTED) {
+        return ResponseHelper.badRequest(TECH_APPLICATION_MESSAGES.ONLY_REJECTED_CAN_RESUBMIT)
       }
 
       // Update application status and clear rejection details
-      application.status = "submitted";
+      application.status = APPLICATION_STATUS.SUBMITTED;
       application.rejectionReason = undefined;
       application.reviewNotes = undefined;
       application.resubmittedCount = (application.resubmittedCount || 0) + 1;
@@ -751,20 +738,18 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       const technician = await this.technicianRepository.findByUserId(userId);
       if (technician) {
         await this.technicianRepository.updateByUserId(userId, {
-          status: "submitted",
+          status: APPLICATION_STATUS.SUBMITTED,
         });
-      } else {
-        console.log("Resubmit - No technician found for user");
-      }
+      } 
 
-      return ResponseHelper.success("Application resubmitted successfully", {
+      return ResponseHelper.success(TECH_APPLICATION_MESSAGES.APPLICATION_RESUBMITTED, {
         data: {
           applicationId: application._id.toString(),
         },
       })
     } catch (error) {
       console.error("Resubmit application error:", error);
-      return ResponseHelper.error("Failed to resubmit application")
+      return ResponseHelper.error(TECH_APPLICATION_MESSAGES.FAILED_TO_RESUBMIT_APPLICATION)
     }
   }
 
@@ -776,18 +761,18 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       // Find the rejected application
       const rejectedApplication =
         await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
-          "rejected",
+          APPLICATION_STATUS.REJECTED,
         ]);
 
       if (!rejectedApplication) {
-        return ResponseHelper.notFound("No rejected application found")
+        return ResponseHelper.notFound(TECH_APPLICATION_MESSAGES.NO_REJECTED_APPLICATION_FOUND)
       }
 
       // Create a brand new application, but copy some data for convenience
       const newApplication = await this.applicationRepository.create({
         email: email.toLowerCase().trim(),
         technicianId: new Types.ObjectId(userId),
-        status: "draft",
+        status: APPLICATION_STATUS.DRAFT,
         stepsCompleted: [],
 
         // Copy basic info to save user time, but reset steps
@@ -805,7 +790,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         resubmittedCount: (rejectedApplication.resubmittedCount || 0) + 1,
       });
 
-      return ResponseHelper.success("New application started successfully", {
+      return ResponseHelper.success(TECH_APPLICATION_MESSAGES.NEW_APPLICATION_STARTED, {
         data: {
           applicationId: newApplication._id.toString(),
           redirectTo: null,
@@ -813,7 +798,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       })
     } catch (error) {
       console.error("Start new application after rejection error:", error);
-      return ResponseHelper.error("Failed to start new application")
+      return ResponseHelper.error(TECH_APPLICATION_MESSAGES.FAILED_TO_START_NEW_APPLICATION)
     }
   }
 }

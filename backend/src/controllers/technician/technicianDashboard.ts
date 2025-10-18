@@ -1,7 +1,8 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { AuthRequest } from "../../middleware/authMiddleware";
 import { ITechnicianDashboardService } from "../../interfaces/services/technician/ITechnicianDashboardService";
 import { ResponseHelper } from "../../utils/responseHelper";
+import { GENERAL_MESSAGES } from "../../constants";
 
 export class TechnicianDashboardController {
   private dashboardService: ITechnicianDashboardService;
@@ -29,7 +30,7 @@ export class TechnicianDashboardController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get dashboard overview controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -53,7 +54,7 @@ export class TechnicianDashboardController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technician profile controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

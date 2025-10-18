@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { IAuthService } from "../../interfaces/services/user/IAuthService";
 import { ResponseHelper } from "../../utils/responseHelper";
+import { GENERAL_MESSAGES } from "../../constants";
 
 export class AuthController {
   private authService: IAuthService;
@@ -15,7 +16,7 @@ export class AuthController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Signup controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -26,7 +27,7 @@ export class AuthController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Verify OTP controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -37,7 +38,7 @@ export class AuthController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Verify reset OTP controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -48,7 +49,7 @@ export class AuthController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Login controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -64,7 +65,7 @@ export class AuthController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Forgot password controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -75,7 +76,7 @@ export class AuthController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Reset password controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -92,7 +93,7 @@ export class AuthController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Resend OTP controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -103,7 +104,7 @@ export class AuthController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Google auth controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -115,7 +116,7 @@ export class AuthController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Facebook login controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

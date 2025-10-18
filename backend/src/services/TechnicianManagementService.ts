@@ -19,6 +19,22 @@ import { emailService } from "./EmailService";
 import { ITechnicianManagementService } from "../interfaces/services/admin/ITechnicianManagementService";
 import { ITechnicianManagementRepository } from "../interfaces/repository/admin/ITechnicianManagementRepository";
 import { ResponseHelper } from "../utils/responseHelper";
+import {
+  TECHNICIAN_MANAGEMENT_MESSAGES,
+  STATUS_MAPPING,
+  FILTER_DEFAULTS,
+  RATING_FILTER_MAPPING,
+  STATUS_FILTER_MAPPING,
+  VALID_STATUS_VALUES,
+  PERSONAL_INFO_DEFAULTS,
+  DOCUMENT_FIELDS,
+  SEARCH_FIELDS,
+  PAGINATION_DEFAULTS,
+  EMAIL_CONFIG,
+  BANK_DETAILS_DEFAULTS,
+  TECHNICIAN_STATUS,
+  APPLICATION_STATUS,
+} from "../constants";
 
 export class TechnicianManagementService implements ITechnicianManagementService {
   private technicianRepository: ITechnicianManagementRepository;
@@ -33,8 +49,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
 
     const formatted: any = {};
 
-    // Map the actual document structure
-    Object.keys(documents).forEach((key) => {
+    DOCUMENT_FIELDS.forEach((key) => {
       const doc = documents[key];
       if (doc && doc.url) {
         formatted[key] = {
@@ -54,13 +69,13 @@ export class TechnicianManagementService implements ITechnicianManagementService
   ): Promise<TechnicianListResponse> {
     try {
       const {
-        status,
-        service,
-        rating,
-        location,
+        status = FILTER_DEFAULTS.STATUS,
+        service = FILTER_DEFAULTS.SERVICE,
+        rating = FILTER_DEFAULTS.RATING,
+        location = FILTER_DEFAULTS.LOCATION,
         search,
-        page = 1,
-        limit = 10,
+        page = FILTER_DEFAULTS.PAGE,
+        limit = FILTER_DEFAULTS.LIMIT,
       } = filters;
 
       // Build filter object
@@ -68,48 +83,30 @@ export class TechnicianManagementService implements ITechnicianManagementService
 
       // Status filter
       if (status && status !== "all") {
-        // Map frontend status to database status
-        const statusMap: Record<string, string> = {
-          active: "approved",
-          pending: "pending",
-          suspended: "suspended",
-          rejected: "rejected",
-        };
-
-        const dbStatus = statusMap[status] || status;
+        const dbStatus = STATUS_FILTER_MAPPING[status] || status;
         filter.status = dbStatus;
       } else {
-        filter.status = { $in: ["approved", "suspended", "rejected"] };
+        filter.status = { $in: [TECHNICIAN_STATUS.APPROVED, TECHNICIAN_STATUS.SUSPENDED, TECHNICIAN_STATUS.REJECTED] };
       }
 
       // Service filter
-      if (service && service !== "All Services") {
+      if (service && service !== FILTER_DEFAULTS.SERVICE) {
         filter.services = service;
       }
 
       // Rating filter
-      if (rating && rating !== "All Ratings") {
-        const ratingMap: any = {
-          "5 Star": { $gte: 4.8 },
-          "4+ Star": { $gte: 4.0 },
-          "3+ Star": { $gte: 3.0 },
-        };
-        filter.averageRating = ratingMap[rating as string];
+      if (rating && rating !== FILTER_DEFAULTS.RATING) {
+        filter.averageRating = RATING_FILTER_MAPPING[rating as string];
       }
 
       // Search filter
       if (search) {
         const searchRegex = new RegExp(search as string, "i");
-        filter.$or = [
-          { displayName: searchRegex },
-          { "user.email": searchRegex },
-          { "user.phone": searchRegex },
-          { workAreas: { $in: [searchRegex] } },
-        ];
+        filter.$or = SEARCH_FIELDS.TECHNICIAN.map(field => ({ [field]: searchRegex }));
       }
 
       // Location filter
-      if (location && location !== "All Locations") {
+      if (location && location !== FILTER_DEFAULTS.LOCATION) {
         filter.workAreas = { $in: [new RegExp(location as string, "i")] };
       }
 
@@ -132,18 +129,18 @@ export class TechnicianManagementService implements ITechnicianManagementService
         })
       );
 
-      return ResponseHelper.success("Technicians retrieved successfully", {
-          technicians: adminTechnicians,
-          pagination: {
-            page: pageNum,
-            limit: limitNum,
-            total,
-            pages: Math.ceil(total / limitNum),
-          },
-      })
+      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED, {
+        technicians: adminTechnicians,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum),
+        },
+      });
     } catch (error) {
       console.error("Get technicians error:", error);
-      return ResponseHelper.error("Failed to fetch technicians")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS);
     }
   }
 
@@ -152,17 +149,17 @@ export class TechnicianManagementService implements ITechnicianManagementService
       const technician = await this.technicianRepository.findTechnicianById(id);
 
       if (!technician) {
-        return ResponseHelper.notFound("Technician not found")
+        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND);
       }
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      return ResponseHelper.success("Technician retrieved successfully", {
-          technician: adminTechnician,
-      })
+      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_RETRIEVED, {
+        technician: adminTechnician,
+      });
     } catch (error) {
       console.error("Get technician error:", error);
-      return ResponseHelper.error("Failed to fetch technician")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN);
     }
   }
 
@@ -190,28 +187,15 @@ export class TechnicianManagementService implements ITechnicianManagementService
     ): "pending" | "approved" | "rejected" | "suspended" => {
       if (
         application &&
-        ["submitted", "under_review", "pending"].includes(application.status)
+        [APPLICATION_STATUS.SUBMITTED, APPLICATION_STATUS.UNDER_REVIEW, TECHNICIAN_STATUS.PENDING].includes(application.status)
       ) {
-        return "pending";
+        return TECHNICIAN_STATUS.PENDING as "pending";
       }
-      switch (status) {
-        case "submitted":
-        case "under_review":
-        case "pending":
-          return "pending";
-        case "approved":
-        case "active":
-          return "approved";
-        case "rejected":
-          return "rejected";
-        case "suspended":
-        case "blocked":
-          return "suspended";
-        default:
-          console.warn("Unknown technician status:", status);
-          return status as "pending" | "approved" | "rejected" | "suspended";
-      }
+      
+      const mappedStatus = STATUS_MAPPING[status as keyof typeof STATUS_MAPPING];
+      return mappedStatus || (status as "pending" | "approved" | "rejected" | "suspended");
     };
+
     const status = mapStatus(technician.status, application);
 
     const getPersonalInfo = (
@@ -221,9 +205,9 @@ export class TechnicianManagementService implements ITechnicianManagementService
     ) => {
       const hasRealTechnicianData =
         technician.personalInfo &&
-        (technician.personalInfo.gender !== "Not specified" ||
-          technician.personalInfo.phoneNumber !== "Not provided" ||
-          technician.personalInfo.dateOfBirth !== "Not specified");
+        (technician.personalInfo.gender !== PERSONAL_INFO_DEFAULTS.GENDER ||
+          technician.personalInfo.phoneNumber !== PERSONAL_INFO_DEFAULTS.PHONE_NUMBER ||
+          technician.personalInfo.dateOfBirth !== PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH);
 
       let personalInfo: any;
 
@@ -233,48 +217,47 @@ export class TechnicianManagementService implements ITechnicianManagementService
           gender: technician.personalInfo?.gender,
           phoneNumber: technician.personalInfo?.phoneNumber || technician.phone,
           dateOfBirth: technician.personalInfo?.dateOfBirth,
-          languages: technician.personalInfo?.languages || [],
+          languages: technician.personalInfo?.languages || PERSONAL_INFO_DEFAULTS.LANGUAGES,
         };
       } else if (application?.personal) {
         const appPersonal = application.personal;
         personalInfo = {
           fullName: appPersonal.fullName || technician.displayName,
-          gender: appPersonal.gender || "Not specified",
-          phoneNumber:
-            appPersonal.phoneNumber || technician.phone || "Not provided",
-          dateOfBirth: appPersonal.dateOfBirth || "Not specified",
-          languages: appPersonal.languages || [],
+          gender: appPersonal.gender || PERSONAL_INFO_DEFAULTS.GENDER,
+          phoneNumber: appPersonal.phoneNumber || technician.phone || PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
+          dateOfBirth: appPersonal.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
+          languages: appPersonal.languages || PERSONAL_INFO_DEFAULTS.LANGUAGES,
         };
       } else {
         personalInfo = {
           fullName: technician.displayName,
-          gender: "Not specified",
-          phoneNumber: technician.phone || "Not provided",
-          dateOfBirth: "Not specified",
-          languages: [],
+          gender: PERSONAL_INFO_DEFAULTS.GENDER,
+          phoneNumber: technician.phone || PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
+          dateOfBirth: PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
+          languages: PERSONAL_INFO_DEFAULTS.LANGUAGES,
         };
       }
 
       if (userAddress) {
         personalInfo.address = {
-          street: userAddress.street || "Not specified",
-          city: userAddress.city || "Not specified",
-          state: userAddress.state || "Not specified",
-          pincode: userAddress.pincode || "Not specified",
+          street: userAddress.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+          city: userAddress.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+          state: userAddress.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+          pincode: userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
       } else if (technician.personalInfo?.address) {
         personalInfo.address = {
-          street: technician.personalInfo.address.street || "Not specified",
-          city: technician.personalInfo.address.city || "Not specified",
-          state: technician.personalInfo.address.state || "Not specified",
-          pincode: technician.personalInfo.address.pincode || "Not specified",
+          street: technician.personalInfo.address.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+          city: technician.personalInfo.address.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+          state: technician.personalInfo.address.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+          pincode: technician.personalInfo.address.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
       } else if (application?.personal?.address) {
         personalInfo.address = {
-          street: application.personal.address.street || "Not specified",
-          city: application.personal.address.city || "Not specified",
-          state: application.personal.address.state || "Not specified",
-          pincode: application.personal.address.pincode || "Not specified",
+          street: application.personal.address.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+          city: application.personal.address.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+          state: application.personal.address.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+          pincode: application.personal.address.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
       } else {
         personalInfo.address = undefined;
@@ -353,20 +336,20 @@ export class TechnicianManagementService implements ITechnicianManagementService
     statusData: UpdateStatusRequest
   ): Promise<SingleTechnicianResponse> {
     try {
-      const { status, emailNotification = true, reason } = statusData;
+      const { status, emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION, reason } = statusData;
 
-      if (!status || !["approved", "suspended", "rejected"].includes(status)) {
-        return ResponseHelper.badRequest("Valid status is required (approved, suspended, rejected)")
+      if (!status || !VALID_STATUS_VALUES.includes(status as any)) {
+        return ResponseHelper.badRequest(TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED);
       }
 
       // Prepare update data
       const updateData: any = {};
 
       // Store suspension/rejection reason and timestamp
-      if (status === "suspended" || status === "rejected") {
+      if (status === TECHNICIAN_STATUS.SUSPENDED || status === TECHNICIAN_STATUS.REJECTED) {
         updateData.suspensionReason = reason;
         updateData.suspendedAt = new Date();
-      } else if (status === "approved") {
+      } else if (status === TECHNICIAN_STATUS.APPROVED) {
         // Clear suspension data when approving/reactivating
         updateData.suspensionReason = undefined;
         updateData.suspendedAt = undefined;
@@ -380,7 +363,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
       );
 
       if (!technician) {
-        return ResponseHelper.notFound("Technician not found")
+        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND);
       }
 
       // Get user data for email
@@ -393,18 +376,18 @@ export class TechnicianManagementService implements ITechnicianManagementService
 
       // Send email notification if requested and user email exists
       if (emailNotification && user?.email) {
-        if (status === "approved") {
+        if (status === TECHNICIAN_STATUS.APPROVED) {
           emailSent = await emailService.sendApplicationApprovalEmail(
             user.email,
             technician.displayName
           );
           emailMessage = emailSent
-            ? " and approval email sent to technician"
-            : " but failed to send email notification";
+            ? TECHNICIAN_MANAGEMENT_MESSAGES.APPROVAL_EMAIL_SENT
+            : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
 
           await this.technicianRepository.updateApplicationStatus(
             id,
-            "approved"
+            APPLICATION_STATUS.APPROVED
           );
         } else {
           emailSent = await emailService.sendStatusUpdateEmail(
@@ -414,19 +397,22 @@ export class TechnicianManagementService implements ITechnicianManagementService
             reason
           );
           emailMessage = emailSent
-            ? ` and ${status} notification email sent to technician`
-            : ` but failed to send email notification`;
+            ? TECHNICIAN_MANAGEMENT_MESSAGES.STATUS_EMAIL_SENT.replace('${status}', status)
+            : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
         }
       }
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      return ResponseHelper.success(`Technician status updated to ${status}${emailMessage}`, {
+      return ResponseHelper.success(
+        `${TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATUS_UPDATED.replace('${status}', status)}${emailMessage}`,
+        {
           technician: adminTechnician,
-      })
+        }
+      );
     } catch (error) {
       console.error("Update technician status error:", error);
-      return ResponseHelper.error("Failed to update technician status")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS);
     }
   }
 
@@ -434,10 +420,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
     try {
       const stats = await this.technicianRepository.getTechnicianStats();
 
-      return ResponseHelper.success("Technician statistics retrieved successfully", stats)
+      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATS_RETRIEVED, stats);
     } catch (error) {
       console.error("Get technician stats error:", error);
-      return ResponseHelper.error("Failed to fetch technician statistics")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS);
     }
   }
 
@@ -446,11 +432,11 @@ export class TechnicianManagementService implements ITechnicianManagementService
   ): Promise<ApplicationListResponse> {
     try {
       const {
-        status = "submitted,under_review",
+        status = FILTER_DEFAULTS.APPLICATION_STATUS,
         search,
-        service,
-        page = 1,
-        limit = 10,
+        service = FILTER_DEFAULTS.SERVICE,
+        page = FILTER_DEFAULTS.PAGE,
+        limit = FILTER_DEFAULTS.LIMIT,
       } = filters;
 
       // Build filter object
@@ -461,15 +447,11 @@ export class TechnicianManagementService implements ITechnicianManagementService
       // Search filter
       if (search) {
         const searchRegex = new RegExp(search as string, "i");
-        filter.$or = [
-          { "personal.fullName": searchRegex },
-          { email: searchRegex },
-          { "personal.phoneNumber": searchRegex },
-        ];
+        filter.$or = SEARCH_FIELDS.APPLICATION.map(field => ({ [field]: searchRegex }));
       }
 
       // Service filter
-      if (service && service !== "All Services") {
+      if (service && service !== FILTER_DEFAULTS.SERVICE) {
         filter["skills.services"] = service;
       }
 
@@ -484,18 +466,18 @@ export class TechnicianManagementService implements ITechnicianManagementService
       );
       const total = await this.technicianRepository.countApplications(filter);
 
-      return ResponseHelper.success("Pending applications retrieved successfully", {
-          applications: applications as ITechnicianApplication[],
-          pagination: {
-            page: pageNum,
-            limit: limitNum,
-            total,
-            pages: Math.ceil(total / limitNum),
-          },
-      })
+      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.PENDING_APPLICATIONS_RETRIEVED, {
+        applications: applications as ITechnicianApplication[],
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum),
+        },
+      });
     } catch (error) {
       console.error("Get pending applications error:", error);
-      return ResponseHelper.error("Failed to fetch pending applications")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS);
     }
   }
 
@@ -505,21 +487,21 @@ export class TechnicianManagementService implements ITechnicianManagementService
         id
       );
       if (!application) {
-        return ResponseHelper.notFound("Application not found")
+        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND);
       }
 
       // Update application status
       const updatedApplication =
-        await this.technicianRepository.updateApplicationStatus(id, "approved");
+        await this.technicianRepository.updateApplicationStatus(id, APPLICATION_STATUS.APPROVED);
 
       if (!updatedApplication) {
-        return ResponseHelper.badRequest("Failed to update application")
+        return ResponseHelper.badRequest(TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED);
       }
 
       // Update user's application status
       await this.technicianRepository.updateUserApplicationStatus(
         application.technicianId as Types.ObjectId,
-        "approved"
+        APPLICATION_STATUS.APPROVED
       );
 
       // Update or create technician record
@@ -554,8 +536,8 @@ export class TechnicianManagementService implements ITechnicianManagementService
           application.personal?.fullName || "Technician"
         );
         emailMessage = emailSent
-          ? " and approval email sent to technician"
-          : " but failed to send email notification";
+          ? TECHNICIAN_MANAGEMENT_MESSAGES.APPROVAL_EMAIL_SENT
+          : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
       }
 
       // In approveApplication method, after creating/updating technician:
@@ -571,23 +553,21 @@ export class TechnicianManagementService implements ITechnicianManagementService
               bankName: bankData.bankName,
             },
             upiId: bankData.upiId,
-            withdrawalPreference: bankData.withdrawalPreference || 'auto'
+            withdrawalPreference: bankData.withdrawalPreference || BANK_DETAILS_DEFAULTS.WITHDRAWAL_PREFERENCE
           }
         );
       }
 
-      return ResponseHelper.success(`Application approved successfully${emailMessage}`, {
+      return ResponseHelper.success(
+        `${TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_APPROVED}${emailMessage}`,
+        {
           applications: [updatedApplication as ITechnicianApplication],
-          pagination: {
-            page: 1,
-            limit: 1,
-            total: 1,
-            pages: 1,
-          },
-      })
+          pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
+        }
+      );
     } catch (error) {
       console.error("Approve application error:", error);
-      return ResponseHelper.error("Failed to approve application")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION);
     }
   }
 
@@ -596,13 +576,13 @@ export class TechnicianManagementService implements ITechnicianManagementService
     rejectData: RejectApplicationRequest
   ): Promise<ApplicationListResponse> {
     try {
-      const { rejectionReason, emailNotification = true } = rejectData;
+      const { rejectionReason, emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION } = rejectData;
 
       const application = await this.technicianRepository.findApplicationById(
         id
       );
       if (!application) {
-        return ResponseHelper.notFound("Application not found")
+        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND);
       }
 
       if (application.technicianId) {
@@ -612,15 +592,12 @@ export class TechnicianManagementService implements ITechnicianManagementService
         );
 
         if (technician) {
-          const updatedTechnician =
-            await this.technicianRepository.updateTechnicianStatus(
-              application.technicianId.toString(),
-              "rejected"
-            );
-        } else {
-          console.log(
-            "Technician not found by technicianId, trying by userId..."
+          await this.technicianRepository.updateTechnicianStatus(
+            application.technicianId.toString(),
+            TECHNICIAN_STATUS.REJECTED
           );
+        } else {
+          console.log("Technician not found by technicianId, trying by userId...");
 
           // Find by userId as fallback
           const technicianByUser =
@@ -628,11 +605,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
               application.technicianId.toString()
             );
           if (technicianByUser) {
-            const updatedTechnician =
-              await this.technicianRepository.updateTechnicianStatus(
-                technicianByUser._id.toString(),
-                "rejected"
-              );
+            await this.technicianRepository.updateTechnicianStatus(
+              technicianByUser._id.toString(),
+              TECHNICIAN_STATUS.REJECTED
+            );
           } else {
             console.log("Technician not found by userId either");
           }
@@ -644,7 +620,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
       const updatedApplication =
         await this.technicianRepository.updateApplicationStatus(
           id,
-          "rejected",
+          APPLICATION_STATUS.REJECTED,
           {
             rejectionReason,
             rejectedAt: new Date(),
@@ -653,7 +629,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
 
       await this.technicianRepository.updateUserApplicationStatus(
         application.technicianId as Types.ObjectId,
-        "rejected"
+        APPLICATION_STATUS.REJECTED
       );
 
       // Send rejection email
@@ -667,22 +643,20 @@ export class TechnicianManagementService implements ITechnicianManagementService
           rejectionReason
         );
         emailMessage = emailSent
-          ? " and rejection email sent to applicant"
-          : " but failed to send email notification";
+          ? TECHNICIAN_MANAGEMENT_MESSAGES.REJECTION_EMAIL_SENT
+          : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
       }
 
-      return ResponseHelper.success(`Application rejected successfully${emailMessage}`, {
+      return ResponseHelper.success(
+        `${TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_REJECTED}${emailMessage}`,
+        {
           applications: [updatedApplication as ITechnicianApplication],
-          pagination: {
-            page: 1,
-            limit: 1,
-            total: 1,
-            pages: 1,
-          },
-      })
+          pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
+        }
+      );
     } catch (error) {
       console.error("Reject application error:", error);
-      return ResponseHelper.error("Failed to reject application")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION);
     }
   }
 
@@ -692,7 +666,7 @@ export class TechnicianManagementService implements ITechnicianManagementService
         id
       );
       if (!application) {
-        return ResponseHelper.notFound("Application not found")
+        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND);
       }
 
       // Get user data
@@ -714,18 +688,13 @@ export class TechnicianManagementService implements ITechnicianManagementService
         documents: formattedDocuments,
       } as ITechnicianApplication;
 
-      return ResponseHelper.success("Application retrieved successfully", {
-          applications: [applicationData],
-          pagination: {
-            page: 1,
-            limit: 1,
-            total: 1,
-            pages: 1,
-          },
-      })
+      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_RETRIEVED, {
+        applications: [applicationData],
+        pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
+      });
     } catch (error) {
       console.error("Get application error:", error);
-      return ResponseHelper.error("Failed to fetch application")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION);
     }
   }
 
@@ -733,10 +702,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
     try {
       const stats = await this.technicianRepository.getApplicationStats();
 
-      return ResponseHelper.success("Application statistics retrieved successfully", stats)
+      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_STATS_RETRIEVED, stats);
     } catch (error) {
       console.error("Get application stats error:", error);
-      return ResponseHelper.error("Failed to fetch application statistics")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION_STATS);
     }
   }
 
@@ -750,23 +719,18 @@ export class TechnicianManagementService implements ITechnicianManagementService
         );
 
       if (!technician) {
-        return ResponseHelper.notFound("Technician not found for this application")
+        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND_FOR_APPLICATION);
       }
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      return ResponseHelper.success("Technician retrieved successfully", {
-          technicians: [adminTechnician],
-          pagination: {
-            page: 1,
-            limit: 1,
-            total: 1,
-            pages: 1,
-          },
-      })
+      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_BY_APPLICATION_RETRIEVED, {
+        technicians: [adminTechnician],
+        pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
+      });
     } catch (error) {
       console.error("Get technician by application error:", error);
-      return ResponseHelper.error("Failed to fetch technician")
+      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP);
     }
   }
 }

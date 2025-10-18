@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { TechnicianApplicationService } from "../../services/TechnicianApplicationService";
 import { AuthRequest } from "../../middleware/authMiddleware";
 import { ITechnicianApplicationService } from "../../interfaces/services/technician/ITechnicianApplicationService";
 import { ResponseHelper } from "../../utils/responseHelper";
+import { GENERAL_MESSAGES } from "../../constants";
 
 export class TechnicianApplicationController {
   private applicationService: ITechnicianApplicationService;
@@ -17,7 +17,7 @@ export class TechnicianApplicationController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Start application controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -28,7 +28,7 @@ export class TechnicianApplicationController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Save step controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -40,7 +40,7 @@ export class TechnicianApplicationController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -66,7 +66,7 @@ export class TechnicianApplicationController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Submit application controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -80,7 +80,7 @@ export class TechnicianApplicationController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application status controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -102,7 +102,7 @@ export class TechnicianApplicationController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get user applications controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -128,7 +128,7 @@ export class TechnicianApplicationController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Resubmit application controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -155,7 +155,7 @@ export class TechnicianApplicationController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Start new after rejection controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

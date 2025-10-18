@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { TechnicianManagementService } from "../../services/TechnicianManagementService";
 import { AuthRequest } from "../../middleware/authMiddleware";
 import { ITechnicianManagementService } from "../../interfaces/services/admin/ITechnicianManagementService";
 import { ResponseHelper } from "../../utils/responseHelper";
+import { GENERAL_MESSAGES } from "../../constants";
 
 export class TechnicianManagementController {
   private technicianService: ITechnicianManagementService;
@@ -17,7 +17,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technicians controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -29,7 +29,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technician controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -44,7 +44,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update technician status controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -55,7 +55,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technician stats controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -69,7 +69,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get pending applications controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -84,7 +84,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Approve application controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -109,7 +109,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Reject application controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -121,7 +121,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -132,7 +132,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application stats controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -147,7 +147,7 @@ export class TechnicianManagementController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technician by application controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

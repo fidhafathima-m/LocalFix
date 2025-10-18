@@ -19,6 +19,14 @@ import { IUserRepository } from "../interfaces/repository/user/IUserRepository";
 import { IOTPRepository } from "../interfaces/repository/user/IOTPRepository";
 import { ISocialAccountRepository } from "../interfaces/repository/user/ISocialAccountRepository";
 import { ResponseHelper } from "../utils/responseHelper";
+import { 
+  AUTH_MESSAGES, 
+  GENERAL_MESSAGES ,
+  OTP_CONFIG, 
+  OTP_PURPOSES,
+  USER_STATUS, 
+  USER_ROLES
+} from "../constants"
 
 export class AuthService implements IAuthService {
 private userRepository: IUserRepository;
@@ -43,15 +51,15 @@ async signup(signupData: SignupData): Promise<AuthResponse> {
 
     // Validation
     if (!email && !phone) {
-      return ResponseHelper.badRequest("Provide at least email or phone");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
     }
 
     // Check uniqueness
     if (email && (await this.userRepository.findByEmail(email))) {
-      return ResponseHelper.conflict("Email already in use");
+      return ResponseHelper.conflict(AUTH_MESSAGES.EMAIL_IN_USE);
     }
     if (phone && (await this.userRepository.findByPhone(phone))) {
-      return ResponseHelper.conflict("Phone already in use");
+      return ResponseHelper.conflict(AUTH_MESSAGES.PHONE_IN_USE);
     }
 
     // Generate and send OTP
@@ -60,8 +68,8 @@ async signup(signupData: SignupData): Promise<AuthResponse> {
 
     const otpData: any = {
       otpHash,
-      purpose: "signup",
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      purpose: OTP_PURPOSES.SIGNUP,
+      expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
     };
     if (phone) otpData.phone = phone;
     if (email) otpData.email = email;
@@ -102,17 +110,17 @@ async verifyOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
     );
 
     if (!record) {
-      return ResponseHelper.badRequest("No OTP request found. Please request a new OTP.");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_NOT_FOUND);
     }
 
     if (record.expiresAt < new Date()) {
       await this.otpRepository.deleteById(record._id!);
-      return ResponseHelper.badRequest("OTP expired! Please request a new one.");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_EXPIRED);
     }
 
     const isMatch = await bcrypt.compare(otp, record.otpHash);
     if (!isMatch) {
-      return ResponseHelper.badRequest("Invalid OTP");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OTP);
     }
 
     // Create user
@@ -130,12 +138,12 @@ async verifyOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
     };
 
     // Set role based on userType
-    if (userType === "serviceProvider" || userType === "technician") {
-      userData.role = "serviceProvider";
-    } else if (userType === "admin") {
-      userData.role = "admin";
+    if (userType === USER_ROLES.SERVICE_PROVIDER || userType === USER_ROLES.TECHNICIAN) {
+      userData.role = USER_ROLES.SERVICE_PROVIDER;
+    } else if (userType === USER_ROLES.ADMIN) {
+      userData.role = USER_ROLES.ADMIN;
     } else {
-      userData.role = "user";
+      userData.role = USER_ROLES.USER;
     }
 
     const user = await this.userRepository.create(userData);
@@ -161,7 +169,7 @@ async verifyOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
     };
 
     return ResponseHelper.success(
-      "Signup successful",
+      AUTH_MESSAGES.SIGNUP_SUCCESS,
       {
         user: userResponse,
         token,
@@ -188,24 +196,24 @@ async login(credentials: LoginCredentials): Promise<AuthResponse> {
     );
 
     if (!user) {
-      return ResponseHelper.notFound("User not found");
+      return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
     }
 
     if (user.isDeleted) {
-      return ResponseHelper.forbidden("Your account has been deleted. Please contact support.");
+      return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_DELETED);
     }
 
-    if (user.status === "Blocked") {
-      return ResponseHelper.forbidden("Your account is blocked by admin. Please contact support.");
+    if (user.status === USER_STATUS.BLOCKED) {
+      return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_BLOCKED);
     }
 
-    if (user.status !== "Active") {
-      return ResponseHelper.forbidden("Your account is not active. Please contact support.");
+    if (user.status !== USER_STATUS.ACTIVE) {
+      return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_INACTIVE);
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash || "");
     if (!isMatch) {
-      return ResponseHelper.unauthorized("Invalid credentials");
+      return ResponseHelper.unauthorized(AUTH_MESSAGES.INVALID_CREDENTIALS);
     }
 
     const token = jwt.sign(
@@ -225,12 +233,12 @@ async login(credentials: LoginCredentials): Promise<AuthResponse> {
       status: user.status,
     };
 
-    return ResponseHelper.success("Logged in Successfully", {
+    return ResponseHelper.success(AUTH_MESSAGES.LOGIN_SUCCESS, {
       token,
       user: userResponse,
     })
   } catch (error: any) {
-    return ResponseHelper.error(error.message);
+    return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
   }
 }
 
@@ -241,7 +249,7 @@ userType?: string
 ): Promise<AuthResponse> {
 try {
   if (!phone && !email) {
-    return ResponseHelper.badRequest("Provide phone or email");
+    return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
   }
 
   // Find user by phone or email
@@ -254,7 +262,7 @@ try {
 
   // Check if user exists
   if (!user) {
-    return ResponseHelper.notFound("User not found");
+    return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
   }
 
   // Check user type if provided - FIXED THIS PART
@@ -263,34 +271,34 @@ try {
     
     // Map frontend userType to backend role
     switch (userType) {
-      case "serviceProvider":
-        expectedRole = "serviceProvider";
+      case USER_ROLES.SERVICE_PROVIDER:
+        expectedRole = USER_ROLES.SERVICE_PROVIDER;
         break;
-      case "admin":
-        expectedRole = "admin";
+      case USER_ROLES.ADMIN:
+        expectedRole = USER_ROLES.ADMIN;
         break;
-      case "user":
+      case USER_ROLES.USER:
       default:
-        expectedRole = "user";
+        expectedRole = USER_ROLES.USER;
         break;
     }
 
     if (user.role !== expectedRole) {
-      return ResponseHelper.notFound(`User not found for ${userType} role`);
+      return ResponseHelper.notFound(`${AUTH_MESSAGES.USER_NOT_FOUND} for ${userType} role`);
     }
   }
 
   // Check if user is active and not blocked
   if (user.isDeleted) {
-    return ResponseHelper.forbidden("Your account has been deleted. Please contact support.");
+    return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_DELETED);
   }
 
-  if (user.status === "Blocked") {
-    return ResponseHelper.forbidden("Your account is blocked by admin. Please contact support.");
+  if (user.status === USER_STATUS.BLOCKED) {
+    return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_BLOCKED);
   }
 
-  if (user.status !== "Active") {
-    return ResponseHelper.forbidden("Your account is not active. Please contact support.");
+  if (user.status !== USER_STATUS.ACTIVE) {
+    return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_INACTIVE);
   }
 
   // Generate and send OTP only if user exists and is valid
@@ -299,8 +307,8 @@ try {
 
   const otpData: any = {
     otpHash,
-    purpose: "reset",
-    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    purpose: OTP_PURPOSES.RESET,
+    expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
   };
   if (phone) otpData.phone = phone;
   if (email) otpData.email = email;
@@ -319,7 +327,7 @@ try {
 
   return ResponseHelper.success(`OTP sent to ${sentChannels.join(", ")}.`);
 } catch (error: any) {
-  return ResponseHelper.error(error.message)
+  return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR)
 }
 }
 
@@ -328,7 +336,7 @@ try {
   const { phone, email, otp, token, password, userType } = resetData; // Change newPassword to password
 
   if (!password) {
-    return ResponseHelper.badRequest("Password is required");
+    return ResponseHelper.badRequest(AUTH_MESSAGES.PASSWORD_REQUIRED);
   }
 
   let record;
@@ -338,16 +346,16 @@ try {
     record = await this.otpRepository.findLatest(phone, email, "reset");
     
     if (!record) {
-      return ResponseHelper.badRequest("No OTP request found");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_NOT_FOUND);
     }
 
     if (record.expiresAt < new Date()) {
-      return ResponseHelper.badRequest("OTP expired!");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_EXPIRED);
     }
 
     const isMatch = await bcrypt.compare(otp, record.otpHash);
     if (!isMatch) {
-      return ResponseHelper.badRequest("Invalid OTP");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OTP);
     }
   } 
   // Handle token-based reset
@@ -357,25 +365,25 @@ try {
       
       // Verify token purpose and expiration
       if (decoded.purpose !== "password_reset") {
-        return ResponseHelper.badRequest("Invalid reset token");
+        return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_RESET_TOKEN);
       }
       
       // Verify identifier matches
       const tokenIdentifier = decoded.identifier;
       const providedIdentifier = phone || email;
       if (tokenIdentifier !== providedIdentifier) {
-        return ResponseHelper.badRequest("Token mismatch"); 
+        return ResponseHelper.badRequest(AUTH_MESSAGES.TOKEN_MISMATCH); 
       }
       
       // Verify user type matches
       if (decoded.userType !== userType) {
-        return ResponseHelper.badRequest("User type mismatch");
+        return ResponseHelper.badRequest(AUTH_MESSAGES.USER_TYPE_MISMATCH);
       }
     } catch (error) {
-      return ResponseHelper.badRequest("Invalid or expired token");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN);
     }
   } else {
-    return ResponseHelper.badRequest("Either OTP or token is required");
+    return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_OR_TOKEN_REQUIRED);
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -392,10 +400,10 @@ try {
     await this.otpRepository.deleteMany(phone, email, "reset");
   }
 
-  return ResponseHelper.success("Password reset successfully");
+  return ResponseHelper.success(AUTH_MESSAGES.PASSWORD_RESET);
 } catch (error: any) {
   console.error("Reset password error:", error);
-  return ResponseHelper.error(error.message);
+  return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
 }
 }
 
@@ -407,23 +415,23 @@ async verifyResetOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
     const record = await this.otpRepository.findLatest(phone, email, "reset");
 
     if (!record) {
-      return ResponseHelper.badRequest("No OTP request found. Please request a new OTP.");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_NOT_FOUND);
     }
 
     if (record.expiresAt < new Date()) {
       await this.otpRepository.deleteById(record._id!);
-      return ResponseHelper.badRequest("OTP expired! Please request a new one.");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_EXPIRED);
     }
 
     const isMatch = await bcrypt.compare(otp, record.otpHash);
     if (!isMatch) {
-      return ResponseHelper.badRequest("Invalid OTP");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OTP);
     }
 
     // For technicians, verify the user exists with correct role
-    if (userType === "serviceProvider") {
+    if (userType === USER_ROLES.SERVICE_PROVIDER) {
       const userQuery: any = phone ? { phone } : { email };
-      userQuery.role = "serviceProvider";
+      userQuery.role = USER_ROLES.SERVICE_PROVIDER;
       const user = await this.userRepository.findByIdentifier(userQuery);
       if (!user) {
         return ResponseHelper.notFound(`${userType} not found`);
@@ -443,11 +451,11 @@ async verifyResetOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
     );
 
     return ResponseHelper.success(
-      "OTP verified successfully",
+      AUTH_MESSAGES.OTP_SENT,
       { token: tempToken }
     );
   } catch (error: any) {
-    return ResponseHelper.error(error.message);
+    return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
   }
 }
 
@@ -460,15 +468,15 @@ async resendOTP(
   try {
     // Must provide at least email or phone
     if (!email && !phone) {
-      return ResponseHelper.badRequest("Provide at least email or phone");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
     }
 
     // For forgot password, check if user exists
-    if (purpose === "reset") {
+    if (purpose === OTP_PURPOSES.RESET) {
       const userQuery: any = phone ? { phone } : { email };
       const user = await this.userRepository.findByIdentifier(userQuery);
       if (!user) {
-        return ResponseHelper.notFound("User not found");
+        return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
       }
     }
 
@@ -483,7 +491,7 @@ async resendOTP(
     const otpData: any = {
       otpHash,
       purpose,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+      expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MINUTES), // 5 minutes
     };
     if (phone) otpData.phone = phone;
     if (email) otpData.email = email;
@@ -504,7 +512,7 @@ async resendOTP(
     return ResponseHelper.success(`OTP resent to ${sentChannels.join(", ")}`)
   } catch (error: any) {
     console.error("Resend OTP error:", error);
-    return ResponseHelper.error(error.message);
+    return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
   }
 }
 
@@ -550,7 +558,7 @@ async facebookLogin(
     }
 
     if (!user) {
-      return ResponseHelper.notFound("User not found" );
+      return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
     }
 
     // Generate JWT
@@ -570,13 +578,13 @@ async facebookLogin(
       isVerified: user.isVerified,
     };
 
-    return ResponseHelper.success("Facebook login successful", {
+    return ResponseHelper.success(AUTH_MESSAGES.FACEBOOK_LOGIN_SUCCESS, {
       token,
       user: userResponse,
     })
   } catch (error: any) {
     console.error("Facebook login error:", error);
-    return ResponseHelper.error("Facebook login failed" );
+    return ResponseHelper.error(AUTH_MESSAGES.SOCIAL_AUTH_FAILED);
   }
 }
 
@@ -585,7 +593,7 @@ async googleAuth(socialData: SocialAuthData): Promise<AuthResponse> {
     const { token, userType } = socialData;
 
     if (!token) {
-      return ResponseHelper.badRequest("Token is required");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_OR_TOKEN_REQUIRED);
     }
 
     const ticket = await this.googleClient.verifyIdToken({
@@ -595,13 +603,13 @@ async googleAuth(socialData: SocialAuthData): Promise<AuthResponse> {
 
     const payload = ticket.getPayload();
     if (!payload) {
-      return ResponseHelper.badRequest("Invalid token");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN);
     }
 
     const { email, name, sub: googleId, picture } = payload;
 
     if (!email) {
-      return ResponseHelper.badRequest("Google account email is required");
+      return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
     }
 
     // Check if social account exists
@@ -624,14 +632,14 @@ async googleAuth(socialData: SocialAuthData): Promise<AuthResponse> {
           fullName: name!,
           email: email,
           isVerified: true,
-          role: userType === "serviceProvider" ? "serviceProvider" : "user",
+          role: userType === USER_ROLES.SERVICE_PROVIDER? USER_ROLES.SERVICE_PROVIDER : USER_ROLES.USER,
           applicationStatus: "not-applied",
         });
       } else {
         // Update role if needed
-        if (userType === "serviceProvider" && user.role === "user") {
+        if (userType === USER_ROLES.SERVICE_PROVIDER && user.role === USER_ROLES.USER) {
           user = await this.userRepository.update(user._id!.toString(), {
-            role: "serviceProvider",
+            role: USER_ROLES.SERVICE_PROVIDER,
           });
         }
       }
@@ -655,7 +663,7 @@ async googleAuth(socialData: SocialAuthData): Promise<AuthResponse> {
     }
 
     if (!user) {
-      return ResponseHelper.notFound("User not found" );
+      return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND );
     }
 
     const appToken = jwt.sign(
@@ -673,13 +681,13 @@ async googleAuth(socialData: SocialAuthData): Promise<AuthResponse> {
       isVerified: user.isVerified,
     };
 
-    return ResponseHelper.success("Google authentication successful", {
+    return ResponseHelper.success(AUTH_MESSAGES.GOOGLE_AUTH_SUCCESS, {
       token: appToken,
       user: userResponse,
     })
   } catch (error: any) {
     console.error("Google auth error:", error);
-    return ResponseHelper.error("Google authentication failed")
+    return ResponseHelper.error(AUTH_MESSAGES.SOCIAL_AUTH_FAILED)
   }
 }
 }

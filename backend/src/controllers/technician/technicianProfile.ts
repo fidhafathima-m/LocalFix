@@ -2,6 +2,7 @@ import { Response } from "express";
 import { ITechnicianProfileService } from "../../interfaces/services/technician/ITechnicianProfileService";
 import { AuthRequest } from "../../middleware/authMiddleware";
 import { ResponseHelper } from "../../utils/responseHelper";
+import { GENERAL_MESSAGES } from "../../constants";
 
 export class TechnicianProfileController {
   private profileService: ITechnicianProfileService;
@@ -24,7 +25,7 @@ export class TechnicianProfileController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get profile controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -47,7 +48,7 @@ export class TechnicianProfileController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update personal info controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -70,7 +71,7 @@ export class TechnicianProfileController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update identity verification controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -93,7 +94,7 @@ export class TechnicianProfileController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update skills services controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -116,7 +117,7 @@ export class TechnicianProfileController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update availability controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -139,7 +140,7 @@ export class TechnicianProfileController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update bank payment controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -162,7 +163,7 @@ export class TechnicianProfileController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update password controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -185,7 +186,7 @@ export class TechnicianProfileController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Upload document controller error:", error);
-      const errorResponse = ResponseHelper.error("Internal server error");
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

@@ -1,0 +1,30 @@
+export const APPLICATION_STATUS = {
+  NOT_APPLIED: "not-applied",
+  PENDING: "pending",
+  SUBMITTED: "submitted",
+  UNDER_REVIEW: "under_review",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+  DRAFT: "draft",
+} as const;
+
+export const APPLICATION_STEPS = {
+  PERSONAL_INFORMATION: "Personal Information",
+  IDENTITY_VERIFICATION: "Identity & Verification",
+  SKILLS_SERVICES: "Skills & Services",
+  AVAILABILITY_PREFERENCES: "Availability & Work Preferences",
+  BANKING_DETAILS: "Banking Details",
+  DOCUMENTS: "Documents",
+  AGREEMENT_CONSENT: "Agreement & Consent",
+  REVIEW_SUBMIT: "Review & Submit",
+} as const;
+
+export const REQUIRED_STEPS = [
+  APPLICATION_STEPS.PERSONAL_INFORMATION,
+  APPLICATION_STEPS.IDENTITY_VERIFICATION,
+  APPLICATION_STEPS.SKILLS_SERVICES,
+  APPLICATION_STEPS.AVAILABILITY_PREFERENCES,
+  APPLICATION_STEPS.BANKING_DETAILS,
+  APPLICATION_STEPS.DOCUMENTS,
+  APPLICATION_STEPS.AGREEMENT_CONSENT,
+] as const;
