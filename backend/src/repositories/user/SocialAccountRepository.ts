@@ -4,9 +4,13 @@ import {
   ISocialAccountCreate,
 } from "../../interfaces/user/ISocialAccount";
 import { SocialAccount } from "../../models/SocialAccountSchema";
-import { Types } from "mongoose";
+import { Model, Types } from "mongoose";
+import { BaseRepository } from "../BaseRepository";
 
-export class SocialAccountRepository implements ISocialAccountRepository {
+export class SocialAccountRepository extends BaseRepository<ISocialAccount> {
+  constructor() {
+    super(SocialAccount as Model<ISocialAccount>);
+  }
   async findByProviderId(providerId: string): Promise<ISocialAccount | null> {
     return await SocialAccount.findOne({ providerId });
   }
@@ -16,9 +20,5 @@ export class SocialAccountRepository implements ISocialAccountRepository {
     provider: string
   ): Promise<ISocialAccount | null> {
     return await SocialAccount.findOne({ userId, provider });
-  }
-
-  async create(socialData: ISocialAccountCreate): Promise<ISocialAccount> {
-    return await SocialAccount.create(socialData);
   }
 }

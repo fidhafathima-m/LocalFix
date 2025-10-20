@@ -124,7 +124,7 @@
         }
 
         if (record.expiresAt < new Date()) {
-          await this.otpRepository.deleteById(record._id!);
+          await this.otpRepository.deleteById(record._id!.toString());
           return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_EXPIRED);
         }
 
@@ -615,7 +615,7 @@
       }
 
       if (record.expiresAt < new Date()) {
-        await this.otpRepository.deleteById(record._id!);
+        await this.otpRepository.deleteById(record._id!.toString());
         return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_EXPIRED);
       }
 

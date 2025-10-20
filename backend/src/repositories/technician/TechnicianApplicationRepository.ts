@@ -1,74 +1,40 @@
-import {
-  TechnicianApplication,
-  ITechnicianApplication,
-} from "../../models/technician/TechnicianApplicationSchema";
-import { Types } from "mongoose";
+import { Model, Types } from 'mongoose';
+import { BaseRepository } from '../BaseRepository';
 import { ITechnicianApplicationRepository } from "../../interfaces/repository/technician/ITechnicianApplicationRepository";
+import { ITechnicianApplication, TechnicianApplication } from "../../models/technician/TechnicianApplicationSchema";
 
-export class TechnicianApplicationRepository implements ITechnicianApplicationRepository {
-  async findById(
-    applicationId: string
-  ): Promise<ITechnicianApplication | null> {
-    return await TechnicianApplication.findById(applicationId);
+export class TechnicianApplicationRepository 
+  extends BaseRepository<ITechnicianApplication> 
+  implements ITechnicianApplicationRepository {
+  
+  constructor() {
+    super(TechnicianApplication as Model<ITechnicianApplication>);
   }
 
-  async findByTechnicianId(
-    technicianId: string
-  ): Promise<ITechnicianApplication[]> {
-    return await TechnicianApplication.find({
+  async findByTechnicianId(technicianId: string): Promise<ITechnicianApplication[]> {
+    return this.find({
       technicianId: new Types.ObjectId(technicianId),
-    }).sort({ createdAt: -1 });
+    });
   }
 
-  async findByEmailAndStatus(
-    email: string,
-    statuses: string[]
-  ): Promise<ITechnicianApplication | null> {
-    return await TechnicianApplication.findOne({
+  async findByEmailAndStatus(email: string, statuses: string[]): Promise<ITechnicianApplication | null> {
+    return this.findOne({
       email: email.toLowerCase().trim(),
       status: { $in: statuses },
     });
   }
 
-  async findByTechnicianIdAndStatus(
-    technicianId: string,
-    statuses: string[]
-  ): Promise<ITechnicianApplication | null> {
-    return await TechnicianApplication.findOne({
+  async findByTechnicianIdAndStatus(technicianId: string, statuses: string[]): Promise<ITechnicianApplication | null> {
+    return this.findOne({
       technicianId: new Types.ObjectId(technicianId),
       status: { $in: statuses },
-    }).sort({ createdAt: -1 }); // Get the most recent application
+    });
   }
 
-  async create(
-    applicationData: Partial<ITechnicianApplication>
-  ): Promise<ITechnicianApplication> {
-    return await TechnicianApplication.create(applicationData);
-  }
-
-  async update(
-    applicationId: string,
-    updateData: Partial<ITechnicianApplication>
-  ): Promise<ITechnicianApplication | null> {
-    return await TechnicianApplication.findByIdAndUpdate(
-      applicationId,
-      { $set: updateData },
-      { new: true }
-    );
-  }
-
-  async save(
-    application: ITechnicianApplication
-  ): Promise<ITechnicianApplication> {
-    return await application.save();
-  }
-  async findByUserIdAndStatus(
-    userId: string,
-    statuses: string[]
-  ): Promise<ITechnicianApplication | null> {
-    return await TechnicianApplication.findOne({
+  async findByUserIdAndStatus(userId: string, statuses: string[]): Promise<ITechnicianApplication | null> {
+    return this.findOne({
       technicianId: new Types.ObjectId(userId),
       status: { $in: statuses },
-    }).sort({ createdAt: -1 });
+    });
   }
 }

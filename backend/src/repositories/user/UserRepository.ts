@@ -1,20 +1,26 @@
+import { Model, Types } from 'mongoose';
+import { BaseRepository } from '../BaseRepository';
 import { IUserRepository } from "../../interfaces/repository/user/IUserRepository";
 import { IUser, IUserCreate, IUserUpdate } from "../../interfaces/user/IUser";
 import User from "../../models/UserSchema";
 
-export class UserRepository implements IUserRepository {
+export class UserRepository extends BaseRepository<IUser> implements IUserRepository {
+  constructor() {
+    super(User as Model<IUser>);
+  }
+
+  // Only custom methods - all common methods are inherited
   async findByEmail(email: string, role?: string): Promise<IUser | null> {
     const query: any = { 
       email: email.toLowerCase(), 
       isDeleted: false 
     };
     
-    // If role is specified, check if roles array contains that role
     if (role) {
       query.roles = role;
     }
     
-    return User.findOne(query);
+    return this.findOne(query);
   }
 
   async findByPhone(phone: string, role?: string): Promise<IUser | null> {
@@ -27,20 +33,12 @@ export class UserRepository implements IUserRepository {
       query.roles = role;
     }
     
-    return User.findOne(query);
+    return this.findOne(query);
   }
 
-  async findById(id: string): Promise<IUser | null> {
-    return await User.findById(id);
-  }
-
-  async findByIdentifier(
-    identifier: string,
-    role?: string
-  ): Promise<IUser | null> {
+  async findByIdentifier(identifier: string, role?: string): Promise<IUser | null> {
     let actualIdentifier = identifier;
 
-    // If identifier is an object, extract the email/phone from it
     if (typeof identifier === "object" && identifier !== null) {
       const identifierObj = identifier as any;
       if (identifierObj.email) {
@@ -48,48 +46,22 @@ export class UserRepository implements IUserRepository {
       } else if (identifierObj.phone) {
         actualIdentifier = identifierObj.phone;
       } else {
-        // If it's an object but doesn't have email/phone, return null
         return null;
       }
     }
 
-    if (/^\d{10}$/.test(actualIdentifier)) {
-      const query: any = { phone: actualIdentifier };
-      if (role) {
-        query.roles = role;
-      }
-      return await User.findOne(query);
+    const query: any = /^\d{10}$/.test(actualIdentifier)
+      ? { phone: actualIdentifier }
+      : { email: { $regex: new RegExp(`^${actualIdentifier}$`, "i") } };
+
+    if (role) {
+      query.roles = role;
     }
-    else {
-      const query: any = {
-        email: {
-          $regex: new RegExp(`^${actualIdentifier}$`, "i"),
-        },
-      };
-      if (role) {
-        query.roles = role;
-      }
-      return await User.findOne(query);
-    }
+
+    return this.findOne(query);
   }
 
-  async create(userData: IUserCreate): Promise<IUser> {
-    return await User.create(userData);
-  }
-
-  async update(id: string, updateData: IUserUpdate): Promise<IUser | null> {
-    return await User.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true }
-    );
-  }
-
-  async updatePassword(
-    identifier: string,
-    passwordHash: string,
-    userType?: string
-  ): Promise<IUser | null> {
+  async updatePassword(identifier: string, passwordHash: string, userType?: string): Promise<IUser | null> {
     let actualIdentifier = identifier;
 
     if (typeof identifier === "object" && identifier !== null) {
@@ -111,59 +83,33 @@ export class UserRepository implements IUserRepository {
       query.roles = "serviceProvider";
     }
 
-    return await User.findOneAndUpdate(
-      query,
-      { $set: { passwordHash } },
-      { new: true }
-    );
+    return this.update(query, { $set: { passwordHash } } as any);
   }
 
-  async updateApplicationStatus(
-    userId: string,
-    applicationStatus: string
-  ): Promise<IUser | null> {
-    return await User.findByIdAndUpdate(
-      userId,
-      { $set: { applicationStatus } },
-      { new: true }
-    );
+  async updateApplicationStatus(userId: string, applicationStatus: string): Promise<IUser | null> {
+    return this.update(userId, { $set: { applicationStatus } } as any);
   }
 
-  async updateRole(userId: string, role: string): Promise<IUser | null> {
-    return await User.findByIdAndUpdate(
-      userId,
-      { $set: { role } },
-      { new: true }
-    );
-  }
-
-  async findOne(query: any): Promise<IUser | null> {
-    return await User.findOne(query);
-  }
-
-   async storeRefreshToken(userId: string, refreshToken: string): Promise<void> {
-    await User.findByIdAndUpdate(
-      userId,
-      { 
-        $push: { 
-          refreshTokens: {
-            token: refreshToken,
-            createdAt: new Date()
-          }
-        } 
+  async storeRefreshToken(userId: string, refreshToken: string): Promise<void> {
+    await this.update(userId, {
+      $push: { 
+        refreshTokens: {
+          token: refreshToken,
+          createdAt: new Date()
+        }
       }
-    );
+    } as any);
   }
 
   async findByRefreshToken(userId: string, refreshToken: string): Promise<IUser | null> {
-    return User.findOne({
+    return this.findOne({
       _id: userId,
       'refreshTokens.token': refreshToken
     });
   }
 
   async updateRefreshToken(userId: string, oldToken: string, newToken: string): Promise<void> {
-    await User.findOneAndUpdate(
+    await this.model.findOneAndUpdate(
       {
         _id: userId,
         'refreshTokens.token': oldToken
@@ -178,22 +124,16 @@ export class UserRepository implements IUserRepository {
   }
 
   async removeRefreshToken(userId: string, refreshToken: string): Promise<void> {
-    await User.findByIdAndUpdate(
-      userId,
-      { 
-        $pull: { 
-          refreshTokens: { token: refreshToken } 
-        } 
+    await this.update(userId, {
+      $pull: { 
+        refreshTokens: { token: refreshToken } 
       }
-    );
+    } as any);
   }
 
   async removeAllRefreshTokens(userId: string): Promise<void> {
-    await User.findByIdAndUpdate(
-      userId,
-      { 
-        $set: { refreshTokens: [] } 
-      }
-    );
+    await this.update(userId, {
+      $set: { refreshTokens: [] } 
+    } as any);
   }
 }

@@ -1,113 +1,76 @@
-import User from "../../models/UserSchema";
-import {
-  IUser,
-  IUserWithAddress,
-} from "../../interfaces/admin/IUserManagements";
-import { Types } from "mongoose";
+import { Model } from 'mongoose';
+import { BaseRepository } from '../BaseRepository';
 import { IUserManagementRepository } from "../../interfaces/repository/admin/IUserManagementRepository";
+import { IUser, IUserWithAddress } from "../../interfaces/admin/IUserManagements";
+import User from "../../models/UserSchema";
 
-export class UserManagementRepository implements IUserManagementRepository {
- async findAllUsers(): Promise<IUserWithAddress[]> {
-  return await User.aggregate([
-    { 
-      $match: { 
-        // ✅ FIX: Update to check roles array instead of role field
-        roles: "user", 
-        isDeleted: { $ne: true } 
-      } 
-    },
-    { $sort: { createdAt: -1 } },
-    {
-      $lookup: {
-        from: "useraddresses",
-        localField: "_id",
-        foreignField: "userId",
-        as: "addresses",
+export class UserManagementRepository 
+  extends BaseRepository<IUser> 
+  implements IUserManagementRepository {
+  
+  constructor() {
+    // Use type assertion to handle the Model type
+    super(User as unknown as Model<IUser>);
+  }
+
+  async findAllUsers(): Promise<IUserWithAddress[]> {
+    return this.model.aggregate([
+      { 
+        $match: { 
+          roles: "user", 
+          isDeleted: { $ne: true } 
+        } 
       },
-    },
-    {
-      $addFields: {
-        defaultAddress: {
-          $first: {
-            $filter: {
-              input: "$addresses",
-              as: "addr",
-              cond: { $eq: ["$$addr.isDefault", true] },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: "useraddresses",
+          localField: "_id",
+          foreignField: "userId",
+          as: "addresses",
+        },
+      },
+      {
+        $addFields: {
+          defaultAddress: {
+            $first: {
+              $filter: {
+                input: "$addresses",
+                as: "addr",
+                cond: { $eq: ["$$addr.isDefault", true] },
+              },
             },
           },
         },
       },
-    },
-    { $project: { addresses: 0, passwordHash: 0 } },
-  ]);
-}
-
-  async findUserById(userId: string): Promise<IUser | null> {
-    return await User.findById(userId).select("-passwordHash");
+      { $project: { addresses: 0, passwordHash: 0 } },
+    ]);
   }
 
-  async updateUserStatus(
-    userId: string,
-    status: "Active" | "Inactive" | "Blocked"
-  ): Promise<IUser | null> {
-    return await User.findByIdAndUpdate(
-      userId,
-      { $set: { status } },
-      { new: true }
-    ).select("-passwordHash");
-  }
-
-  async updateUser(
-    userId: string,
-    updateData: Partial<IUser>
-  ): Promise<IUser | null> {
-    return await User.findByIdAndUpdate(
-      userId,
-      { $set: updateData },
-      { new: true }
-    ).select("-passwordHash");
+  async updateUserStatus(userId: string, status: "Active" | "Inactive" | "Blocked"): Promise<IUser | null> {
+    return this.update(userId, { $set: { status } });
   }
 
   async softDeleteUser(userId: string): Promise<IUser | null> {
-    return await User.findByIdAndUpdate(
-      userId,
-      { $set: { isDeleted: true } },
-      { new: true }
-    ).select("-passwordHash");
+    return this.update(userId, { $set: { isDeleted: true } });
   }
 
   async getUserStats(): Promise<{
-  totalUsers: number;
-  activeUsers: number;
-  inactiveUsers: number;
-  blockedUsers: number;
-}> {
-  // ✅ FIX: Update all queries to use roles instead of role
-  const totalUsers = await User.countDocuments({
-    roles: "user",
-    isDeleted: { $ne: true },
-  });
-  const activeUsers = await User.countDocuments({
-    roles: "user",
-    status: "Active",
-    isDeleted: { $ne: true },
-  });
-  const inactiveUsers = await User.countDocuments({
-    roles: "user",
-    status: "Inactive",
-    isDeleted: { $ne: true },
-  });
-  const blockedUsers = await User.countDocuments({
-    roles: "user",
-    status: "Blocked",
-    isDeleted: { $ne: true },
-  });
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+    blockedUsers: number;
+  }> {
+    const userMatchCondition = {
+      roles: "user",
+      isDeleted: { $ne: true }
+    };
 
-  return {
-    totalUsers,
-    activeUsers,
-    inactiveUsers,
-    blockedUsers,
-  };
-}
+    const totalUsers = await this.count(userMatchCondition);
+    const activeUsers = await this.count({ ...userMatchCondition, status: "Active" });
+    const inactiveUsers = await this.count({ ...userMatchCondition, status: "Inactive" });
+    const blockedUsers = await this.count({ ...userMatchCondition, status: "Blocked" });
+
+    return { totalUsers, activeUsers, inactiveUsers, blockedUsers };
+  }
 }

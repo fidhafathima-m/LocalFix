@@ -1,9 +1,8 @@
 import { ITechnician } from "../../../interfaces/technician/ITechnician";
+import { IBaseRepository } from "../IBaseRepository";
 
-export interface ITechnicianRepository {
+export interface ITechnicianRepository extends IBaseRepository<ITechnician> {
   findByUserId(userId: string): Promise<ITechnician | null>;
-  findById(id: string): Promise<ITechnician | null>;
-  create(technicianData: any): Promise<ITechnician>;
   updateByUserId(userId: string, updateData: any): Promise<ITechnician | null>;
   updateTechnicianStatus(
     id: string,

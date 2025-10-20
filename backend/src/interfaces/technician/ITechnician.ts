@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Types, Document } from "mongoose";
 
 export interface IGeoPoint {
   type: "Point";
@@ -7,8 +7,8 @@ export interface IGeoPoint {
 
 export type ServiceRates = Record<string, number>;
 
-export interface ITechnician {
-  toObject: any;
+// Extend Document to include Mongoose methods and properties
+export interface ITechnician extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   displayName: string;
