@@ -21,7 +21,17 @@ const Header: React.FC<HeaderProps> = ({
 
   const dispatch = useAppDispatch();
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
-  const userType = propUserType ?? user?.roles ?? "user";
+   const getUserType = () => {
+    if (propUserType) return propUserType;
+    
+    if (user?.roles && user.roles.length > 0) {
+      return user.roles[0] as "user" | "serviceProvider" | "admin";
+    }
+    
+    return "user";
+  };
+
+  const userType = getUserType();
 
   const navigate = useNavigate();
 
@@ -97,6 +107,8 @@ const Header: React.FC<HeaderProps> = ({
     if (!isClient) {
       return [<div key="placeholder" className="h-6"></div>];
     }
+
+     console.log("🔍 Generating links for userType:", userType);
 
     switch (userType) {
       case "user":

@@ -69,9 +69,19 @@ const UserSignupOTP: React.FC = () => {
       isVerified: userData.isVerified || false,
     };
 
+    const userForRedux: User = {
+      _id: userData._id,
+      fullName: userData.fullName,
+      phone: userData.phone || "",
+      email: userData.email || "",
+      roles: userData.roles || ["user"], // Ensure roles array is set
+      isVerified: userData.isVerified || false,
+      applicationStatus: userData.applicationStatus || "not-applied",
+    };
+
     // Dispatch login success
     dispatch(loginSuccess({
-      user: userData as User,
+      user: userForRedux,
       accessToken: accessToken,
       refreshToken: refreshToken,
     }));
