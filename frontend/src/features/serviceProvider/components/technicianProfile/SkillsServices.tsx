@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AccordionSection from './AccordianSections'
-import { technicianAPI, type TechnicianProfile } from '../../../../services/technicianApi'
+import { type TechnicianProfile } from '../../../../services/common/technicianApi'
+import { TechnicianService } from '../../../../services/technician/technicianService';
 
 interface Service {
   id: string;
@@ -46,7 +47,7 @@ const SkillsServices = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true)
-      const response = await technicianAPI.getProfile()
+      const response = await TechnicianService.getProfile()
       if (response.success) {
         const profileData = response.data?.data?.profile
         setProfile(profileData)
@@ -104,7 +105,7 @@ const SkillsServices = () => {
       certifications: formData.certifications
     }
 
-    const response = await technicianAPI.updateSkillsServices(updateData)
+    const response = await TechnicianService.updateSkillsServices(updateData)
     
     if (response.data.success) {
       // Update local profile state with proper type safety

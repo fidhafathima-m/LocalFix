@@ -6,7 +6,6 @@ import { TechnicianProfileHeader } from "../components/technicianManagement/Tech
 import { TechnicianProfileTabs } from "../components/technicianManagement/TechnicianProfileTabs";
 import { AdminActions } from "../components/technicianManagement/AdminActions";
 import { useAppSelector } from "../../../hooks/redux";
-import { adminAPI } from "../../../services/adminApi";
 import PersonalInfoTab from "../components/technicianManagement/tabs/PersonalInfoTab";
 import ServicesSkillsTab from "../components/technicianManagement/tabs/ServicesSkillsTab";
 import VerificationDocumentsTab from "../components/technicianManagement/tabs/VerificationDocumentsTab";
@@ -15,6 +14,7 @@ import EarningsJobsTab from "../components/technicianManagement/tabs/EarningJobs
 import ReviewsRatingsTab from "../components/technicianManagement/tabs/ReviewsRatingsTab";
 import ActiveBookingsTab from "../components/technicianManagement/tabs/ActiveBookingsTab";
 import type { TechnicianDetails } from "../../../validation/types/technicianTypes";
+import { TechnicianMangementService } from "../../../services/admin/TechnicianManagementService";
 
 export const TechnicianProfile: React.FC = () => {
   const { technicianId } = useParams<{ technicianId: string }>();
@@ -66,7 +66,7 @@ export const TechnicianProfile: React.FC = () => {
         throw new Error("Technician ID is required");
       }
 
-      const response = await adminAPI.getTechnicianById(technicianId);
+      const response = await TechnicianMangementService.getTechnicianById(technicianId);
 
       if (response.data.success && response.data.data) {
         setTechnician(response.data.data.technician);

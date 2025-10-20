@@ -348,11 +348,39 @@
           normalizedIdentifier = identifier.toLowerCase();
         }
 
-        const user = await this.userRepository.findByIdentifier(
-          normalizedIdentifier,
-          role
-        );
+        console.log("🔍 Backend - Login attempt:", { 
+      identifier: normalizedIdentifier, 
+      role 
+    });
+// ✅ FIX: Improved user lookup with role checking
+    let user;
+    
+    if (role) {
+      // First try to find user by identifier with the specific role
+      user = await this.userRepository.findByIdentifier(
+        normalizedIdentifier,
+        role
+      );
+      
+      console.log("🔍 Backend - User found with role filter:", user?._id);
+      
+      // If not found with role filter, try without role but check if user has the role
+      if (!user) {
+        user = await this.userRepository.findByIdentifier(normalizedIdentifier);
+        
+        if (user && !user.roles.includes(role)) {
+          console.log("🔍 Backend - User exists but doesn't have role:", user.roles);
+          return ResponseHelper.notFound(
+            `${AUTH_MESSAGES.USER_NOT_FOUND} for ${role} role`
+          );
+        }
+      }
+    } else {
+      // No role specified, find by identifier only
+      user = await this.userRepository.findByIdentifier(normalizedIdentifier);
+    }
 
+    console.log("🔍 Backend - Final user found:", user?._id, "with roles:", user?.roles);
         if (!user) {
           return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
         }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import AccordionSection from './AccordianSections'
-import { technicianAPI, type TechnicianProfile } from '../../../../services/technicianApi'
+import { type TechnicianProfile } from '../../../../services/common/technicianApi'
 import api from '../../../../utils/axiosConfig';
+import { TechnicianService } from '../../../../services/technician/technicianService';
 
 interface BankAccount {
   holderName?: string;
@@ -44,7 +45,7 @@ const BankPaymentDetails = () => {
     });
     setLoading(true)
     
-    const response = await technicianAPI.getProfile()
+    const response = await TechnicianService.getProfile();
     
     if (response.success) {
       const profileData = response.data?.data?.profile
@@ -131,7 +132,7 @@ const BankPaymentDetails = () => {
         }
       }
 
-      const response = await technicianAPI.updateBankPayment(updateData)
+      const response = await TechnicianService.updateBankPayment(updateData)
       
       if (response.data.success) {
         // Update local profile state

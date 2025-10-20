@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { authAPI, type OTPData } from "../../../services/authApi";
+import { type OTPData } from "../../../services/common/authApi";
 import BaseOTP, { type OTPFormData, type UserType, type OTPContext } from "../../../components/reusable/BaseOTP";
+import { UserAuthService } from "../../../services/user/userAuthService";
 
 interface LocationState {
   phone?: string;
@@ -31,7 +32,7 @@ const ForgotPasswordOTP: React.FC = () => {
     ...(formData.email && { email: formData.email }),
   };
 
-  const res = await authAPI.verifyForgotPasswordOTP(data);
+  const res = await UserAuthService.verifyForgotPasswordOTP(data)
 
   if (!res.success) {
     throw new Error(res.message || "OTP verification failed");
@@ -73,7 +74,7 @@ const ForgotPasswordOTP: React.FC = () => {
 };
 
   const handleResendOTP = async (formData: OTPFormData) => {
-    const res = await authAPI.resendOTP({
+    const res = await UserAuthService.resendOTP({
       phone: formData.phone,
       email: formData.email,
       purpose: "reset", // Make sure this is "reset" for forgot password

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BaseForgetPassword, { type ForgetPasswordFormData } from "../../../components/reusable/BaseForgetPassword";
-import { authAPI } from "../../../services/authApi";
 import { validateSchema, forgotPasswordSchema } from "../../../validation";
+import { UserAuthService } from "../../../services/user/userAuthService";
 
 const UserForgetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ const UserForgetPassword: React.FC = () => {
   }) => {
     setLoading(true);
     try {
-      const response = await authAPI.forgotPassword(data);
+      const response = await UserAuthService.forgotPassword(data)
 
       if (response.success) {
         // Save to localStorage as fallback

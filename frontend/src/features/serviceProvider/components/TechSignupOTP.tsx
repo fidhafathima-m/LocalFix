@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../../hooks/redux";
 import { getSafeApplicationStatus, loginSuccess, type User } from "../../../store/slices/authSlice";
-import { authAPI, type OTPData } from "../../../services/authApi";
+import { type OTPData } from "../../../services/common/authApi";
 import BaseOTP, { type OTPFormData, type UserType, type OTPContext } from "../../../components/reusable/BaseOTP";
+import { TechnicianAuthService } from "../../../services/technician/technicianAuthService";
 
 interface LocationState {
   phone?: string;
@@ -45,7 +46,7 @@ const handleSubmit = async ({ otp, formData }: { otp: string; formData: OTPFormD
       ...(formData.password && { password: formData.password }),
     };
 
-    const res = await authAPI.verifyOTP(otpData);
+    const res = await TechnicianAuthService.verifyOTP(otpData);
 
     const userData = res.data?.user || res.user;
     const accessToken = res.data?.accessToken || res.accessToken;
@@ -121,7 +122,7 @@ const handleSubmit = async ({ otp, formData }: { otp: string; formData: OTPFormD
   const handleResendOTP = async (formData: OTPFormData) => {
     setLoading(true);
     try {
-      const res = await authAPI.resendOTP({
+      const res = await TechnicianAuthService.resendOTP({
         phone: formData.phone,
         email: formData.email,
         purpose: "signup",

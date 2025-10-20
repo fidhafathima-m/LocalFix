@@ -21,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const dispatch = useAppDispatch();
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
-  const userType = propUserType ?? user?.role ?? "user";
+  const userType = propUserType ?? user?.roles ?? "user";
 
   const navigate = useNavigate();
 

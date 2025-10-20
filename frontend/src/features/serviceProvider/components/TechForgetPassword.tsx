@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BaseForgetPassword from "../../../components/reusable/BaseForgetPassword";
-import { authAPI } from "../../../services/authApi";
 import { validateSchema, forgotPasswordSchema } from "../../../validation";
+import { TechnicianAuthService } from "../../../services/technician/technicianAuthService";
 
 const TechnicianForgetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const TechnicianForgetPassword: React.FC = () => {
   }) => {
     setLoading(true);
     try {
-      const response = await authAPI.forgotPassword(data);
+      const response = await TechnicianAuthService.forgotPassword(data)
 
       if (response.success) {
         localStorage.setItem(

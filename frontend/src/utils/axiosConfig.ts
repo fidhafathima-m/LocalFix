@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // utils/axiosConfig.ts
 import axios from "axios";
-import { authAPI } from "../services/authApi";
+import { authAPI } from "../services/common/authApi";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL,

@@ -2,10 +2,10 @@
 import React from "react";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
 import { loginStart, loginSuccess, loginFailure, getSafeApplicationStatus, type User } from "../../../store/slices/authSlice";
-import { authAPI } from "../../../services/authApi";
 import { useNavigate } from "react-router-dom";
 import BaseLogin from "../../../components/reusable/BaseLogin";
 import { validateSchema, loginSchema } from "../../../validation";
+import { AdminAuthService } from "../../../services/admin/AdminAuthService";
 
 const AdminLogin: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -16,35 +16,82 @@ const AdminLogin: React.FC = () => {
     dispatch(loginStart());
     
     try {
-      const res = await authAPI.login(credentials);
+      console.log("🔍 AdminLogin - Sending credentials:", credentials);
+      const res = await AdminAuthService.login(credentials);
+      console.log("🔍 AdminLogin - Full Response:", res);  
       
-      if (res.success && res.user && res.token) {
+      // ✅ FIX: Check for success and proper data structure
+      if (res.success) {
+        // ✅ FIX: Extract user data correctly - check both locations
+        const userDataFromResponse = res.data?.user || res.user;
+        const accessToken = res.data?.accessToken || res.accessToken;
+        const refreshToken = res.data?.refreshToken || res.refreshToken;
+
+        console.log("🔍 AdminLogin - Extracted data:", {
+          userDataFromResponse,
+          accessToken,
+          refreshToken
+        });
+
+        if (!userDataFromResponse || !accessToken) {
+          console.error("❌ AdminLogin - Missing user data or token:", {
+            userDataFromResponse,
+            accessToken,
+            refreshToken
+          });
+          throw new Error("Invalid response: missing user data or token");
+        }
+
         const userData: User = {
-          _id: res.user._id,
-          fullName: res.user.fullName,
-          phone: res.user.phone || "",
-          email: res.user.email || "",
-          role: res.user.role,
-          applicationStatus: getSafeApplicationStatus(res.user.applicationStatus),
-          isVerified: res.user.isVerified || false,
+          _id: userDataFromResponse._id,
+          fullName: userDataFromResponse.fullName,
+          phone: userDataFromResponse.phone || "",
+          email: userDataFromResponse.email || "",
+          roles: userDataFromResponse.roles,
+          applicationStatus: getSafeApplicationStatus(userDataFromResponse.applicationStatus),
+          isVerified: userDataFromResponse.isVerified || false,
         };
+
+        console.log("🔍 AdminLogin - Dispatching loginSuccess");
         dispatch(loginSuccess({
           user: userData,
-          token: res.token,
+          accessToken,
+          refreshToken: refreshToken || "", // Handle case where refreshToken might be missing
         }));
 
-        // Admin-specific redirect logic
-        setTimeout(() => navigate("/admin/dashboard"), 1000);
+        // ✅ FIX: Return success BEFORE navigation
+        const result = { 
+          success: true, 
+          message: res.message || "Login successful",
+          redirectPath: "/admin/dashboard" // Add redirect path
+        };
 
-        return { success: true, message: res.message };
+        // ✅ FIX: Navigate after a short delay to allow state updates
+        setTimeout(() => {
+          console.log("🔍 AdminLogin - Navigating to /admin/dashboard");
+          navigate("/admin/dashboard", { replace: true });
+        }, 500);
+
+        return result;
+
       } else {
-        dispatch(loginFailure(res.message));
-        return { success: false, message: res.message };
+        // Handle case where res.success is false
+        const errorMessage = res.message || "Login failed";
+        console.error("❌ AdminLogin - Login failed:", errorMessage);
+        dispatch(loginFailure(errorMessage));
+        return { 
+          success: false, 
+          message: errorMessage 
+        };
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Login failed";
+      console.error("❌ AdminLogin - Error:", error);
+      const errorMessage = error.message || "Login failed";
       dispatch(loginFailure(errorMessage));
-      return { success: false, message: errorMessage };
+      return { 
+        success: false, 
+        message: errorMessage 
+      };
     }
   };
 

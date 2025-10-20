@@ -1,4 +1,4 @@
-import api from "../utils/axiosConfig";
+import api from "../../utils/axiosConfig";
 
 export interface User {
   _id: string;

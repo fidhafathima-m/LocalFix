@@ -2,8 +2,9 @@ import React from "react";
 import { useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../../hooks/redux";
 import { loginSuccess, type User } from "../../../store/slices/authSlice";
-import { authAPI, type OTPData } from "../../../services/authApi";
+import { type OTPData } from "../../../services/common/authApi";
 import BaseOTP, { type OTPFormData, type UserType, type OTPContext } from "../../../components/reusable/BaseOTP";
+import { UserAuthService } from "../../../services/user/userAuthService";
 
 interface LocationState {
   phone?: string;
@@ -38,12 +39,17 @@ const UserSignupOTP: React.FC = () => {
       ...(formData.password && { password: formData.password }),
     };
 
-    const res = await authAPI.verifyOTP(otpData);
+    console.log("🔍 Sending OTP data:", otpData);
+
+    const res = await UserAuthService.verifyOTP(otpData)
+
+    console.log("🔍 Full API response:", res)
 
     // Check if the response indicates success
     if (!res.success) {
-      throw new Error(res.message || "OTP verification failed");
-    }
+    console.log("🔍 OTP verification failed - response:", res); // Debug log
+    throw new Error(res.message || "OTP verification failed");
+  }
 
     // ✅ FIXED: Extract user and token from data object
     const userData = res.data?.user || res.user;
@@ -105,7 +111,7 @@ const UserSignupOTP: React.FC = () => {
   };
 
   const handleResendOTP = async (formData: OTPFormData) => {
-    const res = await authAPI.resendOTP({
+    const res = await UserAuthService.resendOTP({
       phone: formData.phone,
       email: formData.email,
       purpose: "signup",

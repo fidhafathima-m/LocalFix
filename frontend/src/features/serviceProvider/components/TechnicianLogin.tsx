@@ -2,10 +2,10 @@
 import React from "react";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
 import { loginStart, loginSuccess, loginFailure, getSafeApplicationStatus, type User } from "../../../store/slices/authSlice";
-import { authAPI } from "../../../services/authApi";
 import { useNavigate } from "react-router-dom";
 import BaseLogin from "../../../components/reusable/BaseLogin";
 import { validateSchema, loginSchema } from "../../../validation";
+import { TechnicianAuthService } from "../../../services/technician/technicianAuthService";
 
 const TechnicianLogin: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -16,7 +16,7 @@ const TechnicianLogin: React.FC = () => {
     dispatch(loginStart());
     
     try {
-      const res = await authAPI.login(credentials);
+      const res = await TechnicianAuthService.login(credentials)
       
       // ✅ UPDATED: Extract tokens from new structure
       const userDataFromResponse = res.data?.user || res.user;

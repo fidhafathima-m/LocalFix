@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import api from "../utils/axiosConfig";
+import api from "../../utils/axiosConfig";
 
 export interface TechnicianProfile {
   _id: string;

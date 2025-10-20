@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import AccordionSection from './AccordianSections'
 import { CalendarTodayOutlined, FileUploadOutlined } from '@mui/icons-material'
-import { technicianAPI, type TechnicianProfile } from '../../../../services/technicianApi'
+import { type TechnicianProfile } from '../../../../services/common/technicianApi'
+import { TechnicianService } from '../../../../services/technician/technicianService'
 
 const PersonalInformation = () => {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null)
@@ -25,7 +26,7 @@ const PersonalInformation = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true)
-      const response = await technicianAPI.getProfile()
+      const response = await TechnicianService.getProfile()
       if (response.success) {
         const profileData = response.data?.data?.profile
 
@@ -86,7 +87,7 @@ const PersonalInformation = () => {
         ...(formData.profilePicture && { profilePicture: formData.profilePicture })
       }
 
-      const response = await technicianAPI.updateProfile(updateData)
+      const response = await TechnicianService.updateProfile(updateData)
       
       if (response.data.success) {
         // Update local profile state

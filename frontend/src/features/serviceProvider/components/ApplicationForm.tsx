@@ -24,7 +24,7 @@ import {
   updateApplicationStatus,
   updateUser,
 } from "../../../store/slices/authSlice";
-import { technicianAPI } from "../../../services/technicianApi";
+import { TechnicianApplicationService } from "../../../services/technician/technicianApplicationService";
 
 const STEPS = [
   "Personal Information",
@@ -100,7 +100,7 @@ export const ApplicationForm: React.FC = () => {
     // Step 1: Personal Information
     fullName: "",
     phoneNumber: "",
-    email: "",
+    email: user?.email || "",
     dateOfBirth: "",
     gender: "",
     // Step 2: Identity & Verification
@@ -186,15 +186,13 @@ const startApplication = async (): Promise<string | null> => {
     return null;
   }
 
-  if (!formData.email || formData.email.trim() === "") {
-    toast.error("Please enter your email address first");
+  if (!user.email) {
+    toast.error("User email not found. Please contact support.");
     return null;
   }
 
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(formData.email)) {
-    alert("Please enter a valid email address");
+   if (!accessToken) {
+    toast.error("Authentication token not found. Please log in again.");
     return null;
   }
 
@@ -205,8 +203,8 @@ const startApplication = async (): Promise<string | null> => {
   }
 
   try {
-    const response = await technicianAPI.startApplication({
-      email: formData.email.trim(),
+    const response = await TechnicianApplicationService.startApplication({
+      email: user.email,
       userId: user._id,
     });
 
@@ -234,7 +232,6 @@ const startApplication = async (): Promise<string | null> => {
         setApplicationId(newApplicationId);
         localStorage.setItem("applicationId", newApplicationId);
         localStorage.setItem("currentTechnicianApplication", user._id);
-        toast.success("Application started successfully!");
         return newApplicationId;
       } else {
         console.error("No application ID in response:", response);
@@ -298,7 +295,7 @@ const startApplication = async (): Promise<string | null> => {
         setApplicationId(savedAppId);
 
         try {
-          const response = await technicianAPI.getApplication(savedAppId);
+          const response = await TechnicianApplicationService.getApplication(savedAppId);
 
           if (response.data.success && response.data.data?.application) {
             const appData = response.data.data.application;
@@ -337,7 +334,7 @@ const startApplication = async (): Promise<string | null> => {
       if (!applicationId) return;
 
       try {
-        const response = await technicianAPI.getApplication(applicationId);
+        const response = await TechnicianApplicationService.getApplication(applicationId);
 
         if (response.data.success && response.data.data?.application) {
           const application = response.data.data.application;
@@ -869,7 +866,7 @@ const startApplication = async (): Promise<string | null> => {
   }
 
   try {
-    const response = await technicianAPI.saveStep(stepForm);
+    const response = await TechnicianApplicationService.saveStep(stepForm);
 
     console.log("🔍 Save Step Response:", response);
 
@@ -959,7 +956,7 @@ const handleSubmit = async () => {
   setIsLoading(true);
 
   try {
-    const response = await technicianAPI.submitApplication({
+    const response = await TechnicianApplicationService.submitApplication({
       applicationId: applicationId,
     });
 
@@ -1132,10 +1129,13 @@ const handleSubmit = async () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="Enter your email address"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
+                  readOnly
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
+                 <p className="text-xs text-gray-500 mt-1">
+            Email is taken from your account and cannot be changed here
+          </p>
                 {errors.email && (
                   <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                 )}

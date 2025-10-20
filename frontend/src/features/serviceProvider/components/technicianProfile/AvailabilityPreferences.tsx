@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import AccordionSection from './AccordianSections'
 import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
-import { technicianAPI, type TechnicianProfile } from '../../../../services/technicianApi'
+import { type TechnicianProfile } from '../../../../services/common/technicianApi'
+import { TechnicianService } from '../../../../services/technician/technicianService';
 
 interface WeeklyAvailability {
   [key: string]: {
@@ -68,7 +69,7 @@ const AvailabilityPreferences = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true)
-      const response = await technicianAPI.getProfile()
+      const response = await TechnicianService.getProfile()
       if (response.success) {
         const profileData = response.data?.data?.profile
         setProfile(profileData)
@@ -166,7 +167,7 @@ const AvailabilityPreferences = () => {
         serviceRadiusKm: formData.workRadius
       }
 
-      const response = await technicianAPI.updateAvailability(updateData)
+      const response = await TechnicianService.updateAvailability(updateData)
       
       if (response.data.success) {
         // Update local profile state

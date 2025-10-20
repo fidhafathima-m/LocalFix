@@ -40,15 +40,15 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
     try {
       const { email, userId } = data;
 
-      if (!email || !userId) {
-        return ResponseHelper.badRequest(TECH_APPLICATION_MESSAGES.EMAIL_AND_USER_ID_REQUIRED)
-      }
+      const user = await this.userRepository.findById(userId);
+    if (!user) {
+      return ResponseHelper.notFound("User not found");
+    }
 
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return ResponseHelper.badRequest(TECH_APPLICATION_MESSAGES.VALID_EMAIL_REQUIRED)
-      }
+     // Ensure the provided email matches the user's actual email
+    if (user.email !== email) {
+      return ResponseHelper.badRequest("Email must match your account email");
+    }
 
       const existingUserApplication =
         await this.applicationRepository.findByTechnicianIdAndStatus(userId, [

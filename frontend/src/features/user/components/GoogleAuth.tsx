@@ -2,8 +2,8 @@ import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAppDispatch } from "../../../hooks/redux";
 import { loginSuccess, type User } from "../../../store/slices/authSlice";
 import toast from "react-hot-toast";
-import { authAPI } from "../../../services/authApi";
 import { useNavigate, useLocation } from "react-router-dom";
+import { UserAuthService } from "../../../services/user/userAuthService";
 
 interface GoogleAuthProps {
   userType?: "user" | "serviceProvider" | "admin";
@@ -28,7 +28,7 @@ const GoogleAuth: React.FC<GoogleAuthProps> = () => {
     }
 
     try {
-      const res = await authAPI.googleAuth({
+      const res = await UserAuthService.googleAuth({
         token: credentialResponse.credential,
         userType: currentUserType,
       });

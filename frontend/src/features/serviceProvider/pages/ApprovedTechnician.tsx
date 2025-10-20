@@ -11,9 +11,9 @@ import {
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
 import {
-  technicianAPI,
   type TechnicianProfile,
-} from "../../../services/technicianApi";
+} from "../../../services/common/technicianApi";
+import { TechnicianService } from "../../../services/technician/technicianService";
 
 interface DashboardData {
   overview: {
@@ -58,7 +58,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await technicianAPI.getProfile();
+      const response = await TechnicianService.getProfile();
 
       console.log('DEBUG - Profile response:', response);
 

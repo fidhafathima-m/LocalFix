@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BaseSignUp from "../../../components/reusable/BaseSignup";
-import { authAPI } from "../../../services/authApi";
 import { validateSchema, signupSchema } from "../../../validation";
 import type { SignUpFormData, SignUpErrors } from "../../../components/reusable/BaseSignup";
+import { UserAuthService } from "../../../services/user/userAuthService";
 
 const UserSignUp: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ const UserSignUp: React.FC = () => {
   }) => {
     setLoading(true)
     try {
-      const response = await authAPI.signup(data);
+      const response = await UserAuthService.signup(data)
       
       if (response.success) {
         localStorage.setItem(

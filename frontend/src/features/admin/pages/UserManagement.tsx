@@ -24,7 +24,7 @@ import {
   updateUser,
   updateUserStatus,
 } from "../../../store/slices/adminSlice";
-import { adminAPI } from "../../../services/adminApi";
+import { UserMangementService } from "../../../services/admin/UserManagementService";
 export interface User {
   _id: string;
   fullName: string;
@@ -85,24 +85,39 @@ const UserManagement: React.FC = () => {
   }, [statusFilter, searchQuery]);
 
   useEffect(() => {
-    const loadUsers = async () => {
-      dispatch(fetchUsersStart());
-      try {
-        const response = await adminAPI.getUsers();
-        if (response.data.success && response.data.data) {
-          dispatch(fetchUsersSuccess(response.data.data.users || []));
-        } else {
-          dispatch(
-            fetchUsersFailure(response.data.message || "Failed to fetch users")
-          );
-        }
-      } catch (err) {
-        console.error("Error fetching users:", err);
-        dispatch(fetchUsersFailure("Failed to load users"));
+  const loadUsers = async () => {
+    dispatch(fetchUsersStart());
+    try {
+      console.log("🔍 Loading users...");
+      const response = await UserMangementService.getUsers();
+      console.log("🔍 Full API Response:", response);
+      
+      if (response.data.success && response.data.data) {
+        const usersData = response.data?.users || 
+                   response.data?.data?.users || 
+                   response.users || 
+                   [];
+        console.log("🔍 Users data to dispatch:", usersData);
+        dispatch(fetchUsersSuccess(usersData));
+      } else {
+        console.error("❌ API response indicates failure:", response.data.message);
+        dispatch(
+          fetchUsersFailure(response.data.message || "Failed to fetch users")
+        );
       }
-    };
-    loadUsers();
-  }, [dispatch]);
+    } catch (err) {
+      console.error("❌ Error fetching users:", err);
+      dispatch(fetchUsersFailure("Failed to load users"));
+    }
+  };
+  loadUsers();
+}, [dispatch]);
+
+// Add this useEffect to see what's in the store
+useEffect(() => {
+  console.log("🔍 Redux users state:", users);
+  console.log("🔍 Redux loading state:", usersLoading);
+}, [users, usersLoading]);
 
   const handleOpenViewModal = (user: User) => {
     setSelectedUser(user);
@@ -141,7 +156,7 @@ const UserManagement: React.FC = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const response = await adminAPI.updateUserStatus(userId, newStatus);
+      const response = await UserMangementService.updateUserStatus(userId, newStatus);
 
       if (response.data.success && response.data.data) {
         dispatch(updateUserStatus({ userId, status: newStatus }));
@@ -170,7 +185,7 @@ const UserManagement: React.FC = () => {
     if (!result.isConfirmed) return;
 
     try {
-      await adminAPI.deleteUser(userId);
+      await UserMangementService.deleteUser(userId);
       dispatch(removeUser(userId));
       toast.success("User has been deleted.");
     } catch (err) {
