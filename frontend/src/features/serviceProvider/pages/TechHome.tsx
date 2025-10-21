@@ -7,15 +7,9 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAppSelector } from "../../../hooks/redux";
 
-
 const TechHome = () => {
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
 
-  console.log("🔍 TechHome - isLoggedIn:", isLoggedIn);
-  console.log("🔍 TechHome - user:", user);
-  console.log("🔍 TechHome - user roles:", user?.roles);
-
-  // ✅ FIXED: Check if user has serviceProvider role in roles array
   const isServiceProvider = user?.roles?.includes("serviceProvider") || false;
 
   return (
@@ -101,9 +95,7 @@ const PublicBanner = () => {
 };
 
 // Banner for logged-in technicians
-// In TechHome.tsx - fix LoggedInBanner
-// Banner for logged-in technicians
-const LoggedInBanner = ({ tech }: { tech: any }) => { // Change to any or proper type
+const LoggedInBanner = ({ tech }: { tech: any }) => {
   const { user, accessToken } = useAppSelector((state) => state.auth);
 
   const handleApplyNow = async () => {

@@ -12,7 +12,7 @@ export class UserMangementService {
   }
   static async updateUserStatus(userId: string, status: string) {
     try {
-      const response = await adminAPI.updateUserStatus(userId, status)
+      const response = await adminAPI.updateUserStatus(userId, status);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to update user status");
@@ -31,7 +31,7 @@ export class UserMangementService {
       const response = await adminAPI.getTechnicianById(technicianId);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to reset Password");
+      throw this.handleError(error, "Failed to get technician by id");
     }
   }
   private static handleResponse(response: any) {

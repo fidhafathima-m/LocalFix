@@ -1,13 +1,13 @@
-import { Model, Types } from 'mongoose';
-import { BaseRepository } from '../BaseRepository';
+import { Model, Types } from "mongoose";
+import { BaseRepository } from "../BaseRepository";
 import { ITechnicianRepository } from "../../interfaces/repository/technician/ITechnicianRepository";
 import { ITechnician } from "../../interfaces/technician/ITechnician";
 import { Technician } from "../../models/technician/TechnicianSchema";
 
-export class TechnicianRepository 
-  extends BaseRepository<ITechnician> 
-  implements ITechnicianRepository {
-  
+export class TechnicianRepository
+  extends BaseRepository<ITechnician>
+  implements ITechnicianRepository
+{
   constructor() {
     super(Technician as Model<ITechnician>);
   }
@@ -16,7 +16,10 @@ export class TechnicianRepository
     return this.findOne({ userId: new Types.ObjectId(userId) });
   }
 
-  async updateByUserId(userId: string, updateData: any): Promise<ITechnician | null> {
+  async updateByUserId(
+    userId: string,
+    updateData: any
+  ): Promise<ITechnician | null> {
     const processedUpdateData = {
       ...updateData,
       personalInfo: updateData.personalInfo
@@ -36,7 +39,10 @@ export class TechnicianRepository
     );
   }
 
-  async updateTechnicianStatus(id: string, updateData: any): Promise<ITechnician | null> {
+  async updateTechnicianStatus(
+    id: string,
+    updateData: any
+  ): Promise<ITechnician | null> {
     return this.update(id, { $set: updateData } as any);
   }
 }

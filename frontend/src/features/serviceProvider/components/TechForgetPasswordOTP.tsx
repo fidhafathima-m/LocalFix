@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { type OTPData } from "../../../services/common/authApi";
-import BaseOTP, { type OTPFormData, type UserType, type OTPContext } from "../../../components/reusable/BaseOTP";
+import BaseOTP, {
+  type OTPFormData,
+  type UserType,
+  type OTPContext,
+} from "../../../components/reusable/BaseOTP";
 import { TechnicianAuthService } from "../../../services/technician/technicianAuthService";
 
 interface LocationState {
@@ -18,17 +22,22 @@ const TechForgotPasswordOTP: React.FC = () => {
   // Get data from location state and localStorage
   const locationData = location.state as LocationState;
   const storageData = JSON.parse(localStorage.getItem("forgotData") || "{}");
-  
+
   const formData: OTPFormData = {
     ...storageData,
     ...locationData,
   };
 
-  const handleSubmit = async ({ otp, formData }: { otp: string; formData: OTPFormData }) => {
+  const handleSubmit = async ({
+    otp,
+    formData,
+  }: {
+    otp: string;
+    formData: OTPFormData;
+  }) => {
     setLoading(true);
-    
+
     try {
-      // Use verifyResetOTP endpoint for forgot password (doesn't require fullName, password)
       const data: OTPData = {
         otp,
         context: "forgot" as OTPContext,
@@ -37,7 +46,7 @@ const TechForgotPasswordOTP: React.FC = () => {
         ...(formData.email && { email: formData.email }),
       };
 
-      const res = await TechnicianAuthService.verifyForgotPasswordOTP(data)
+      const res = await TechnicianAuthService.verifyForgotPasswordOTP(data);
 
       if (!res.success) {
         throw new Error(res.message || "OTP verification failed");
@@ -79,7 +88,7 @@ const TechForgotPasswordOTP: React.FC = () => {
       userType: formData.userType,
     });
     setLoading(false);
-    
+
     return {
       success: res.success,
       message: res.message,

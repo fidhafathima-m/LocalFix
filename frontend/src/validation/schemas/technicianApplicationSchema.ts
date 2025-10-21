@@ -12,13 +12,11 @@ export const dateSchema = z.string().min(1, "Date is required");
 
 export const requiredString = z.string().min(1, "This field is required");
 
-// In your validation file, update the fileSchema and requiredFileSchema
-
 export const fileSchema = z
   .any()
   .refine((val) => {
     if (val === null || val === undefined || val === "") return true;
-    
+
     // Handle File objects
     if (val instanceof File) {
       const allowedTypes = [
@@ -37,25 +35,25 @@ export const fileSchema = z
       }
       return true;
     }
-    
-    // Handle FileMetadata objects (restored from localStorage)
-    if (val && typeof val === 'object' && val._isFile === true) {
+
+    // Handle FileMetadata objects
+    if (val && typeof val === "object" && val._isFile === true) {
       // File is already uploaded, no need to validate again
       return true;
     }
-    
+
     // Handle string (file URL from backend)
-    if (typeof val === 'string' && val.trim() !== '') {
+    if (typeof val === "string" && val.trim() !== "") {
       return true;
     }
-    
+
     return false;
   }, "Invalid file format. Must be JPG, PNG, or PDF under 5MB")
   .optional();
 
 export const requiredFileSchema = z.any().refine((val) => {
   if (!val) return false;
-  
+
   // Handle File objects
   if (val instanceof File) {
     const allowedTypes = [
@@ -74,17 +72,17 @@ export const requiredFileSchema = z.any().refine((val) => {
     }
     return true;
   }
-  
-  // Handle FileMetadata objects (restored from localStorage)
-  if (val && typeof val === 'object' && val._isFile === true) {
+
+  // Handle FileMetadata objects
+  if (val && typeof val === "object" && val._isFile === true) {
     return true; // File is already uploaded
   }
-  
-  // Handle string (file URL from backend)
-  if (typeof val === 'string' && val.trim() !== '') {
+
+  // Handle string
+  if (typeof val === "string" && val.trim() !== "") {
     return true;
   }
-  
+
   return false;
 }, "This document is required and must be JPG, PNG, or PDF under 5MB");
 
@@ -231,7 +229,7 @@ export const bankingSchema = z.object({
     .string()
     .regex(/^\d{9,18}$/, "Account number must be 9 to 18 digits"),
   ifscCode: z.string().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Enter valid IFSC code"),
-   bankName: z.string().min(1, "Bank name is required"),
+  bankName: z.string().min(1, "Bank name is required"),
   upiId: z.string().optional(),
 });
 

@@ -39,7 +39,10 @@ export class UserManagementController {
   editUser = async (req: Request, res: Response): Promise<void> => {
     try {
       const { userId } = req.params;
-      const result = await this.userManagementService.editUser(userId, req.body);
+      const result = await this.userManagementService.editUser(
+        userId,
+        req.body
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Edit user controller error:", error);

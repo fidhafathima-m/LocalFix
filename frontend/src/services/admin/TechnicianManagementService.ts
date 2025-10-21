@@ -15,7 +15,7 @@ export class TechnicianMangementService {
       const response = await adminAPI.getTechnicians();
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to reset Password");
+      throw this.handleError(error, "Failed to get technicians");
     }
   }
   static async getPendingTechnicians() {
@@ -23,7 +23,7 @@ export class TechnicianMangementService {
       const response = await adminAPI.getPendingApplications();
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to reset Password");
+      throw this.handleError(error, "Failed to get pending technicians");
     }
   }
   static async getTechnicianById(technicianId: string) {
@@ -31,7 +31,7 @@ export class TechnicianMangementService {
       const response = await adminAPI.getTechnicianById(technicianId);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to reset Password");
+      throw this.handleError(error, "Failed to get technician by id");
     }
   }
   private static handleResponse(response: any) {

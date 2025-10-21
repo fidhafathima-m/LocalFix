@@ -4,7 +4,7 @@ import api from "../../utils/axiosConfig";
 export interface LoginCredentials {
   identifier: string;
   password: string;
-  role: "user" | "serviceProvider" | "admin"; // Keep for role-specific login
+  role: "user" | "serviceProvider" | "admin";
 }
 
 export interface SignupData {
@@ -12,7 +12,7 @@ export interface SignupData {
   email?: string;
   phone?: string;
   password: string;
-  userType: "user" | "serviceProvider"; // This becomes the initial role
+  userType: "user" | "serviceProvider";
 }
 
 export interface OTPData {
@@ -53,13 +53,12 @@ export interface GoogleAuthData {
   userType: "user" | "serviceProvider";
 }
 
-// UPDATED: User interface to support multiple roles
 export interface User {
   _id: string;
   fullName: string;
   phone?: string;
   email?: string;
-  roles: string[]; // Changed from 'role' to 'roles' array
+  roles: string[];
   applicationStatus?: string;
   isVerified?: boolean;
   status?: string;
@@ -69,13 +68,13 @@ export interface AuthResponse {
   success: boolean;
   message: string;
   data?: {
-    user?: User; // Updated to use new User interface
+    user?: User;
     accessToken?: string;
     refreshToken?: string;
-    token?: string
-    [key: string]: any
+    token?: string;
+    [key: string]: any;
   };
-  user?: User; // Updated to use new User interface
+  user?: User;
   accessToken?: string;
   refreshToken?: string;
   token?: string;
@@ -83,8 +82,6 @@ export interface AuthResponse {
   statusCode?: number;
 }
 
-// Helper function to normalize response structure
-// In your authApi.ts, update the normalizeAuthResponse function:
 const normalizeAuthResponse = (response: AuthResponse): AuthResponse => {
   const normalized = {
     ...response,
@@ -92,19 +89,20 @@ const normalizeAuthResponse = (response: AuthResponse): AuthResponse => {
     accessToken: response.data?.accessToken || response.accessToken,
     refreshToken: response.data?.refreshToken || response.refreshToken,
     // Add token extraction for forgot password flow
-    token: response.data?.token || 
-           response.data?.data?.token || 
-           response.accessToken ||
-           response.token
+    token:
+      response.data?.token ||
+      response.data?.data?.token ||
+      response.accessToken ||
+      response.token,
   };
-  
+
   return normalized;
 };
 export const authAPI = {
   refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>("/auth/refresh-token", {
-        refreshToken
+        refreshToken,
       });
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
@@ -122,7 +120,7 @@ export const authAPI = {
   logout: async (refreshToken?: string): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>("/auth/logout", {
-        refreshToken
+        refreshToken,
       });
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
@@ -244,7 +242,9 @@ export const authAPI = {
     }
   },
 
-  resetPassword: async (resetData: ResetPasswordData): Promise<AuthResponse> => {
+  resetPassword: async (
+    resetData: ResetPasswordData
+  ): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>(
         "/auth/reset-password",
@@ -295,7 +295,6 @@ export const authAPI = {
     }
   },
 
-  // NEW: Add role management methods
   addRole: async (role: string): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>("/auth/add-role", { role });
@@ -314,7 +313,9 @@ export const authAPI = {
 
   removeRole: async (role: string): Promise<AuthResponse> => {
     try {
-      const response = await api.delete<AuthResponse>(`/auth/remove-role/${role}`);
+      const response = await api.delete<AuthResponse>(
+        `/auth/remove-role/${role}`
+      );
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
@@ -328,10 +329,11 @@ export const authAPI = {
     }
   },
 
-  // NEW: Switch current role for session
   switchRole: async (role: string): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/switch-role", { role });
+      const response = await api.post<AuthResponse>("/auth/switch-role", {
+        role,
+      });
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
@@ -343,5 +345,5 @@ export const authAPI = {
         error: "Network error",
       };
     }
-  }
+  },
 };

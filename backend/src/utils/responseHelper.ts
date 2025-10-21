@@ -29,17 +29,17 @@ export enum HttpStatus {
 }
 
 export enum HttpStatusMessage {
-  OK = 'OK',
-  CREATED = 'Created',
-  ACCEPTED = 'Accepted',
-  NO_CONTENT = 'No Content',
-  BAD_REQUEST = 'Bad Request',
-  UNAUTHORIZED = 'Unauthorized',
-  FORBIDDEN = 'Forbidden',
-  NOT_FOUND = 'Not Found',
-  CONFLICT = 'Conflict',
-  UNPROCESSABLE_ENTITY = 'Unprocessable Entity',
-  INTERNAL_SERVER_ERROR = 'Internal Server Error',
+  OK = "OK",
+  CREATED = "Created",
+  ACCEPTED = "Accepted",
+  NO_CONTENT = "No Content",
+  BAD_REQUEST = "Bad Request",
+  UNAUTHORIZED = "Unauthorized",
+  FORBIDDEN = "Forbidden",
+  NOT_FOUND = "Not Found",
+  CONFLICT = "Conflict",
+  UNPROCESSABLE_ENTITY = "Unprocessable Entity",
+  INTERNAL_SERVER_ERROR = "Internal Server Error",
 }
 
 export interface ApiResponse<T = any> {
@@ -94,11 +94,15 @@ export class ResponseHelper {
     return this.createResponse(false, message, statusCode);
   }
 
-  static badRequest(message: string = HttpStatusMessage.BAD_REQUEST): ApiResponse {
+  static badRequest(
+    message: string = HttpStatusMessage.BAD_REQUEST
+  ): ApiResponse {
     return this.error(message, HttpStatus.BAD_REQUEST);
   }
 
-  static unauthorized(message: string = HttpStatusMessage.UNAUTHORIZED): ApiResponse {
+  static unauthorized(
+    message: string = HttpStatusMessage.UNAUTHORIZED
+  ): ApiResponse {
     return this.error(message, HttpStatus.UNAUTHORIZED);
   }
 
@@ -110,9 +114,12 @@ export class ResponseHelper {
     return this.error(message, HttpStatus.CONFLICT);
   }
 
-  static created<T>(message: string = HttpStatusMessage.CREATED, data?: T): ApiResponse<T> {
+  static created<T>(
+    message: string = HttpStatusMessage.CREATED,
+    data?: T
+  ): ApiResponse<T> {
     return this.createResponse(true, message, HttpStatus.CREATED, data);
   }
 }
 
-export default HttpStatus
+export default HttpStatus;

@@ -93,22 +93,14 @@ export const ApplicationForm: React.FC = () => {
   const [hasRestoredFromLocalStorage, setHasRestoredFromLocalStorage] =
     useState(false);
 
-  useEffect(() => {
-    console.log("🔍 ApplicationForm - Auth State:", {
-      user: user,
-      accessToken: accessToken ? "Token exists" : "No token",
-      isLoggedIn: !!accessToken,
-    });
-  }, [user, accessToken]);
-
   // File related
   const [, setPreview] = useState<string | null>(null);
 
   // Form data state
   const [formData, setFormData] = useState({
     // Step 1: Personal Information
-    fullName: "",
-    phoneNumber: "",
+    fullName: user?.fullName || "",
+    phoneNumber: user?.phone || "",
     email: user?.email || "",
     dateOfBirth: "",
     gender: "",
@@ -204,8 +196,6 @@ export const ApplicationForm: React.FC = () => {
   const restoreApplicationFromLocalStorage = async () => {
     if (!user?._id) return;
 
-    console.log("🔄 ATTEMPTING TO RESTORE APPLICATION FROM LOCALSTORAGE");
-
     try {
       const savedUserData = localStorage.getItem(`techApp-${user._id}`);
       const savedUserStep = localStorage.getItem(`techApp-step-${user._id}`);
@@ -213,15 +203,7 @@ export const ApplicationForm: React.FC = () => {
         `techApp-applicationId-${user._id}`
       );
 
-      console.log("🔍 RESTORE CHECK:", {
-        hasSavedData: !!savedUserData,
-        savedStep: savedUserStep,
-        savedAppId: savedAppId,
-        currentUser: user._id,
-      });
-
       if (savedUserData && savedUserStep) {
-        console.log("🎯 RESTORING APPLICATION DATA FROM LOCALSTORAGE");
 
         const parsedData = JSON.parse(savedUserData);
         const savedStepNumber = parseInt(savedUserStep);
@@ -280,32 +262,28 @@ export const ApplicationForm: React.FC = () => {
             }
           });
 
-          console.log("✅ FORM DATA RESTORED WITH BACKEND DOCUMENT INFO");
           return restoredData;
         });
 
         // Restore step
         if (savedStepNumber > 0 && savedStepNumber <= STEPS.length) {
           setCurrentStep(savedStepNumber);
-          console.log("✅ STEP RESTORED:", savedStepNumber);
         }
 
         // Restore application ID if exists
         if (savedAppId) {
           setApplicationId(savedAppId);
-          console.log("✅ APPLICATION ID RESTORED:", savedAppId);
         }
 
         setHasRestoredFromLocalStorage(true);
       }
     } catch (error) {
-      console.error("❌ RESTORE FROM LOCALSTORAGE FAILED:", error);
+      console.error("RESTORE FROM LOCALSTORAGE FAILED:", error);
     }
   };
 
-  // NEW: Restore application from localStorage on component mount and user login
+  // Restore application from localStorage on component mount and user login
   useEffect(() => {
-    // Restore when user logs in or component mounts
     if (user?._id && !hasRestoredFromLocalStorage) {
       restoreApplicationFromLocalStorage();
     }
@@ -314,8 +292,6 @@ export const ApplicationForm: React.FC = () => {
   // Auto-save to localStorage
   useEffect(() => {
     if (user?._id && formData.fullName) {
-      // Only save if we have actual data
-      console.log("💾 AUTO-SAVING APPLICATION DATA");
 
       try {
         const safeFormData = { ...formData };
@@ -364,9 +340,8 @@ export const ApplicationForm: React.FC = () => {
           new Date().toISOString()
         );
 
-        console.log("✅ AUTO-SAVE SUCCESS");
       } catch (error) {
-        console.error("❌ AUTO-SAVE FAILED:", error);
+        console.error("AUTO-SAVE FAILED:", error);
       }
     }
   }, [formData, currentStep, user?._id, applicationId]);
@@ -377,11 +352,9 @@ export const ApplicationForm: React.FC = () => {
       return null;
     }
 
-    console.log("🚀 START APPLICATION CALLED for user:", user._id);
 
     // Check if we already have a restored application
     if (hasRestoredFromLocalStorage && applicationId) {
-      console.log("🔄 USING RESTORED APPLICATION:", applicationId);
       return applicationId;
     }
 
@@ -391,7 +364,6 @@ export const ApplicationForm: React.FC = () => {
         userId: user._id,
       });
 
-      console.log("🔍 Start Application Response:", response);
 
       if (response.success) {
         const applicationData = response.data || response;
@@ -417,7 +389,6 @@ export const ApplicationForm: React.FC = () => {
             newApplicationId
           );
 
-          console.log("✅ APPLICATION STARTED:", newApplicationId);
           return newApplicationId;
         } else {
           console.error("No application ID in response:", response);
@@ -426,7 +397,6 @@ export const ApplicationForm: React.FC = () => {
         }
       } else {
         console.error("API returned failure:", response);
-        // Don't show error toast - user can continue with local data
         return null;
       }
     } catch (err: unknown) {
@@ -459,43 +429,36 @@ export const ApplicationForm: React.FC = () => {
     }
   }, [applicationId, user?._id]);
 
-  // Check existing application status (only if we haven't restored from localStorage)
+  // Check existing application status
 useEffect(() => {
   const checkExistingApplication = async () => {
 
     const currentPath = window.location.pathname;
     if (currentPath.includes("/pending-technician")) {
-      console.log("🔍 Already on pending dashboard, skipping check");
       return;
     }
     if (hasRestoredFromLocalStorage) {
-      console.log("🔍 SKIPPING BACKEND CHECK - USING LOCAL DATA");
       return;
     }
 
-    // ✅ FIXED: First check if user already has a submitted application
     if (user?.applicationStatus === "submitted" || user?.applicationStatus === "under_review") {
-      console.log("📋 User has submitted application, redirecting to pending dashboard");
       clearLocalApplicationData();
       window.location.replace("/pending-technician/dashboard");
       return;
     }
 
     if (user?.applicationStatus === "approved") {
-      console.log("✅ User has approved application, redirecting to technician dashboard");
       clearLocalApplicationData();
       window.location.replace("/technician/dashboard");
       return;
     }
 
     const savedAppId = localStorage.getItem("applicationId");
-    console.log("🔍 CHECK EXISTING APPLICATION - savedAppId:", savedAppId);
 
     if (savedAppId) {
       const applicationUser = localStorage.getItem("currentTechnicianApplication");
 
       if (applicationUser !== user?._id) {
-        console.log("🔄 USER CHANGED - CLEARING OLD APPLICATION DATA");
         localStorage.removeItem("applicationId");
         localStorage.removeItem("currentTechnicianApplication");
         if (user?._id) {
@@ -511,31 +474,22 @@ useEffect(() => {
       setApplicationId(savedAppId);
 
       try {
-        console.log("🔍 FETCHING APPLICATION STATUS FOR:", savedAppId);
         const response = await TechnicianApplicationService.getApplication(savedAppId);
-        console.log("🔍 APPLICATION STATUS RESPONSE:", response);
 
-        // ✅ FIXED: Check response structure properly
         if (response.success) {
           const applicationData = response.data?.application || response.application;
-          console.log("🔍 APPLICATION DATA:", applicationData);
 
           if (applicationData) {
             const appStatus = applicationData.status;
             setApplicationStatus(appStatus);
 
-            console.log("🔍 APPLICATION STATUS:", appStatus, "Current path:", window.location.pathname);
-
-            // ✅ FIXED: Check if we're already on the correct page to avoid infinite redirects
             const currentPath = window.location.pathname;
             
             if (
               (appStatus === "submitted" || appStatus === "under_review") &&
               !currentPath.includes("/pending-technician")
             ) {
-              console.log("📋 Application already submitted, redirecting to pending dashboard");
               clearLocalApplicationData();
-              // Use replace to prevent going back to application form
               window.location.replace("/pending-technician/dashboard");
               return;
             }
@@ -544,7 +498,6 @@ useEffect(() => {
               appStatus === "approved" &&
               !currentPath.includes("/technician/dashboard")
             ) {
-              console.log("✅ Application approved, redirecting to technician dashboard");
               clearLocalApplicationData();
               window.location.replace("/technician/dashboard");
               return;
@@ -553,18 +506,16 @@ useEffect(() => {
         }
       } catch (error) {
         console.error("Error checking application status:", error);
-        // Don't remove applicationId on error - might be temporary network issue
       }
     }
   };
 
-  // Only run this check if we have a user and access token
   if (user?._id && accessToken) {
     checkExistingApplication();
   }
-}, [user?._id, accessToken, hasRestoredFromLocalStorage, user?.applicationStatus]); // ✅ Added user.applicationStatus dependency
+}, [user?._id, accessToken, hasRestoredFromLocalStorage, user?.applicationStatus]);
 
-  // Fetch saved application from backend (only if no local data)
+  // Fetch saved application from backend
   useEffect(() => {
     const fetchSavedApplication = async () => {
       if (!applicationId || !user?._id || hasRestoredFromLocalStorage) return;
@@ -649,7 +600,7 @@ useEffect(() => {
     fetchSavedApplication();
   }, [applicationId, accessToken, user?._id, hasRestoredFromLocalStorage]);
 
-  // NEW: Clear localStorage when application is submitted
+  //Clear localStorage when application is submitted
   const clearLocalApplicationData = () => {
     if (user?._id) {
       localStorage.removeItem(`techApp-${user._id}`);
@@ -724,8 +675,7 @@ useEffect(() => {
       });
     }
 
-    // Only update if it's an actual File or null (not FileMetadata)
-    // This prevents overwriting the metadata when user doesn't choose a new file
+    // Only update if it's an actual File or null
     if (file === null || file instanceof File) {
       setFormData((prev) => ({
         ...prev,
@@ -921,7 +871,6 @@ useEffect(() => {
         }
         break;
       }
-      // In ApplicationForm.tsx, update the Documents step validation
       case 6: {
         const documentsValidation = validateStepSchema<DocumentsData>(
           stepSchemas[6],
@@ -943,8 +892,7 @@ useEffect(() => {
         fileFields.forEach(({ field, name }) => {
           const file = (formData as any)[field];
 
-          // Only validate if it's an actual File object (new upload)
-          // Skip validation for FileMetadata (already uploaded) or backend files
+          // Only validate if it's an actual File object
           if (file instanceof File) {
             const sizeError = validateFileSize(file, name);
             if (sizeError) {
@@ -1031,7 +979,7 @@ useEffect(() => {
     const currentStepFields = stepFields[stepName] || [];
 
     if (currentStep === 6) {
-      // Check if we have any FileMetadata objects (restored files)
+      // Check if we have any FileMetadata objects
       const hasRestoredFiles = Object.values(formData).some(
         (value) =>
           value && typeof value === "object" && (value as any)._isFile === true
@@ -1102,7 +1050,6 @@ useEffect(() => {
 
     try {
       const response = await TechnicianApplicationService.saveStep(stepForm);
-      console.log("🔍 Save Step Response:", response);
 
       if (response.success) {
         toast.success("Step saved successfully!");
@@ -1175,13 +1122,11 @@ useEffect(() => {
     setIsLoading(true);
 
     try {
-      // ✅ FIXED: Pass userId to submitApplication
       const response = await TechnicianApplicationService.submitApplication({
         applicationId: applicationId,
-        userId: user._id, // Add this line
+        userId: user._id, 
       });
 
-      console.log("🔍 Submit Application Response:", response);
 
       if (response.success) {
         dispatch(updateApplicationStatus("submitted"));
@@ -1209,7 +1154,6 @@ useEffect(() => {
           localStorage.setItem("user", JSON.stringify(userData));
         }
 
-        // NEW: Clear local application data after successful submission
         clearLocalApplicationData();
 
         setIsSubmitted(true);
@@ -1217,13 +1161,8 @@ useEffect(() => {
 
         toast.success("Application submitted successfully!");
 
-        console.log(
-          "✅ Application submitted successfully, should redirect to success page"
-        );
-
         clearLocalApplicationData();
 
-        // ✅ FIXED: Add a small delay to ensure state updates before redirect
         setTimeout(() => {
           window.location.replace("/pending-technician/dashboard");
         }, 2000);
@@ -1240,7 +1179,6 @@ useEffect(() => {
           error.message;
         const missingSteps = error.response?.data?.missingSteps;
 
-        console.log("Error details:", { message: errorMessage, missingSteps });
 
         if (error.response?.status === 401) {
           localStorage.removeItem("auth");
@@ -1280,16 +1218,6 @@ useEffect(() => {
     }
   };
 
-  useEffect(() => {
-  console.log("🔍 APPLICATION FORM STATE UPDATE:", {
-    applicationId,
-    currentStep,
-    isSubmitted,
-    submissionSuccess,
-    hasRestoredFromLocalStorage,
-    user: user?._id
-  });
-}, [applicationId, currentStep, isSubmitted, submissionSuccess, hasRestoredFromLocalStorage, user]);
 
   if (isSubmitted && submissionSuccess) {
     return <ApplicationSubmitted />;
@@ -1492,7 +1420,7 @@ useEffect(() => {
                       formattedAddress: location.address || "",
                     };
 
-                    // Update location coordinates - FIXED structure
+                    // Update location coordinates
                     setFormData((prev) => ({
                       ...prev,
                       location: locationData,
@@ -1852,7 +1780,7 @@ useEffect(() => {
                   <option value="10">10 km</option>
                   <option value="15">15 km</option>
                   <option value="20">20 km</option>
-                  <option value="25+">25+ km</option>
+                  <option value="25">25 km</option>
                 </select>
                 {errors.workRadius && (
                   <p className="text-red-500 text-sm mt-1">

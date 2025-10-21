@@ -1,4 +1,3 @@
-// src/repositories/admin/TechnicianManagemnetRepository.ts
 import { Technician } from "../../models/technician/TechnicianSchema";
 import {
   TechnicianApplication,
@@ -28,7 +27,6 @@ export class TechnicianManagementRepository
       .limit(limit)
       .lean();
 
-    // Use type assertion to bypass TypeScript errors
     return technicians as unknown as ITechnician[];
   }
 
@@ -41,7 +39,6 @@ export class TechnicianManagementRepository
       .populate("userId", "email phone fullName createdAt")
       .lean();
 
-    // Use type assertion to bypass TypeScript errors
     return technician as unknown as ITechnician | null;
   }
 
@@ -53,7 +50,6 @@ export class TechnicianManagementRepository
     try {
       const updateData: any = { status };
 
-      // Merge additional data if provided
       if (additionalData) {
         Object.assign(updateData, additionalData);
       }
@@ -68,7 +64,6 @@ export class TechnicianManagementRepository
         return null;
       }
 
-      // Use type assertion to bypass TypeScript errors
       return technician as unknown as ITechnician;
     } catch (error) {
       console.error("Repository: Error updating technician status:", error);
@@ -91,7 +86,6 @@ export class TechnicianManagementRepository
       { new: true }
     );
 
-    // Use type assertion to bypass TypeScript errors
     return technician as unknown as ITechnician | null;
   }
 
@@ -100,7 +94,6 @@ export class TechnicianManagementRepository
       const technician = await Technician.findOne({
         userId: new Types.ObjectId(userId),
       });
-      // Use type assertion to bypass TypeScript errors
       return technician as unknown as ITechnician | null;
     } catch (error) {
       console.error("Error finding technician by userId:", error);
@@ -332,7 +325,6 @@ export class TechnicianManagementRepository
         throw new Error("Technician could not be found or created");
       }
 
-      // Use type assertion to bypass TypeScript errors
       return technician as unknown as ITechnician;
     } catch (error) {
       console.error("Find or create technician error:", error);
@@ -350,7 +342,6 @@ export class TechnicianManagementRepository
       userId: application.technicianId,
     }).populate("userId", "email phone fullName");
 
-    // Use type assertion to bypass TypeScript errors
     return technician as unknown as ITechnician | null;
   }
 

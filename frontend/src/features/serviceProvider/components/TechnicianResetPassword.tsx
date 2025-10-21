@@ -20,7 +20,10 @@ const TechnicianResetPassword: React.FC<TechnicianResetPasswordProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const handleSubmit = async (formData: { password: string; confirmPassword: string }) => {
+  const handleSubmit = async (formData: {
+    password: string;
+    confirmPassword: string;
+  }) => {
     try {
       const payload: ResetPasswordData = {
         password: formData.password,
@@ -58,7 +61,7 @@ const TechnicianResetPassword: React.FC<TechnicianResetPasswordProps> = ({
       ...data,
       userType: "serviceProvider",
     });
-    
+
     return {
       isValid: validation.success,
       errors: validation.errors || {},

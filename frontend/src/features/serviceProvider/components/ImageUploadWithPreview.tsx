@@ -5,7 +5,6 @@ import toast from "react-hot-toast";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-// Add FileMetadata interface
 interface FileMetadata {
   _isFile: true;
   name: string;
@@ -18,7 +17,7 @@ interface FileMetadata {
 interface Props {
   label: string;
   field: string;
-  file: File | FileMetadata | null; // Update to accept FileMetadata
+  file: File | FileMetadata | null;
   required?: boolean;
   onFileChange: (field: string) => (file: File | null) => void;
   accept?: string;
@@ -45,7 +44,8 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
 
   // Check if file is a File object or metadata
   const isFileObject = file instanceof File;
-  const isFileMetadata = file && typeof file === 'object' && (file as any)._isFile;
+  const isFileMetadata =
+    file && typeof file === "object" && (file as any)._isFile;
 
   // Generate preview URL when file changes
   useEffect(() => {
@@ -62,27 +62,30 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
   }, [file, isFileObject]);
 
   // Add file validation function
-  const validateFile = useCallback((selectedFile: File | null): string | null => {
-    if (!selectedFile) return null;
-    
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "application/pdf",
-    ];
+  const validateFile = useCallback(
+    (selectedFile: File | null): string | null => {
+      if (!selectedFile) return null;
 
-    if (!allowedTypes.includes(selectedFile.type)) {
-      return "File must be JPG, PNG, or PDF";
-    }
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "application/pdf",
+      ];
 
-    if (selectedFile.size > maxSize) {
-      const sizeInMB = (maxSize / (1024 * 1024)).toFixed(0);
-      return `File size must be less than ${sizeInMB}MB`;
-    }
+      if (!allowedTypes.includes(selectedFile.type)) {
+        return "File must be JPG, PNG, or PDF";
+      }
 
-    return null;
-  }, [maxSize]);
+      if (selectedFile.size > maxSize) {
+        const sizeInMB = (maxSize / (1024 * 1024)).toFixed(0);
+        return `File size must be less than ${sizeInMB}MB`;
+      }
+
+      return null;
+    },
+    [maxSize]
+  );
 
   const handleFileChange = useCallback(
     (selectedFile: File | null) => {
@@ -94,7 +97,7 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
           return; // Don't update if validation fails
         }
       }
-      
+
       setCurrentFile(selectedFile);
       onFileChange(field)(selectedFile);
     },
@@ -107,9 +110,9 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
 
   // Format file size for display
   const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' bytes';
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    else return (bytes / 1048576).toFixed(1) + ' MB';
+    if (bytes < 1024) return bytes + " bytes";
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+    else return (bytes / 1048576).toFixed(1) + " MB";
   };
 
   return (
@@ -166,7 +169,10 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
                   {(file as FileMetadata).name}
                 </p>
                 <p className="text-sm text-green-600">
-                  {formatFileSize((file as FileMetadata).size)} • {((file as FileMetadata).uploadedAt ? 'Uploaded' : 'Previously uploaded')}
+                  {formatFileSize((file as FileMetadata).size)} •{" "}
+                  {(file as FileMetadata).uploadedAt
+                    ? "Uploaded"
+                    : "Previously uploaded"}
                 </p>
               </div>
             </div>
@@ -179,26 +185,27 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
               <DeleteIcon className="w-4 h-4" />
             </button>
           </div>
-          
+
           <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200">
             <p className="text-sm text-yellow-700">
-              <span className="font-medium">Note:</span> This file was uploaded in your previous session. 
-              It's safely stored on our servers. You only need to re-upload if you want to change the file.
+              <span className="font-medium">Note:</span> This file was uploaded
+              in your previous session. It's safely stored on our servers. You
+              only need to re-upload if you want to change the file.
             </p>
           </div>
-          
-<div className="flex items-center space-x-2 text-sm text-gray-600">
-  <span>Want to change the file?</span>
-  <FileUpload
-    onFileChange={handleFileChange}
-    required={false}
-    accept={accept}
-    fieldName={field}
-    error={error}
-    maxSize={maxSize}
-    compact={true} // This will now work
-  />
-</div>
+
+          <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <span>Want to change the file?</span>
+            <FileUpload
+              onFileChange={handleFileChange}
+              required={false}
+              accept={accept}
+              fieldName={field}
+              error={error}
+              maxSize={maxSize}
+              compact={true}
+            />
+          </div>
         </div>
       ) : (
         // No file - show regular upload
@@ -211,11 +218,9 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
           maxSize={maxSize}
         />
       )}
-      
+
       {/* Show error message if exists */}
-      {error && (
-        <p className="text-red-500 text-sm mt-1">{error}</p>
-      )}
+      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
   );
 };

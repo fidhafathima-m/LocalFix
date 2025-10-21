@@ -1,5 +1,4 @@
-// interfaces/common/IUserBase.ts
-import { Document, Types } from 'mongoose';
+import { Document, Types } from "mongoose";
 
 export interface IUserBase extends Document {
   _id: Types.ObjectId;

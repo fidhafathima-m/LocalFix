@@ -5,7 +5,8 @@ import {
 import { Types } from "mongoose";
 import { IBaseRepository } from "../IBaseRepository";
 
-export interface ISocialAccountRepository extends IBaseRepository<ISocialAccount> {
+export interface ISocialAccountRepository
+  extends IBaseRepository<ISocialAccount> {
   findByProviderId(providerId: string): Promise<ISocialAccount | null>;
   findByUserIdAndProvider(
     userId: string | Types.ObjectId,

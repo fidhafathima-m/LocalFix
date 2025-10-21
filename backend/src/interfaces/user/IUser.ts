@@ -43,7 +43,6 @@ export interface IUser extends Document {
   updatedAt: Date;
 }
 
-// For create operations - without _id
 export interface IUserCreate {
   fullName: string;
   email?: string;
@@ -59,7 +58,6 @@ export interface IUserCreate {
   };
 }
 
-// For update operations
 export interface IUserUpdate {
   fullName?: string;
   email?: string;

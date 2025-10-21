@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// utils/axiosConfig.ts
 import axios from "axios";
 import { authAPI } from "../services/common/authApi";
 
@@ -12,7 +11,7 @@ let isRefreshing = false;
 let failedQueue: any[] = [];
 
 const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
+  failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
@@ -22,15 +21,17 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// ✅ FIXED: Updated helper functions to match authSlice structure
-const getTokens = (): { accessToken: string | null; refreshToken: string | null } => {
+const getTokens = (): {
+  accessToken: string | null;
+  refreshToken: string | null;
+} => {
   try {
     const authData = localStorage.getItem("auth");
     if (authData) {
       const parsed = JSON.parse(authData);
       return {
         accessToken: parsed.accessToken || null,
-        refreshToken: parsed.refreshToken || null
+        refreshToken: parsed.refreshToken || null,
       };
     }
     return { accessToken: null, refreshToken: null };
@@ -39,35 +40,37 @@ const getTokens = (): { accessToken: string | null; refreshToken: string | null 
     return { accessToken: null, refreshToken: null };
   }
 };
-
-// ✅ FIXED: Updated to match authSlice structure
 const setTokens = (accessToken: string, refreshToken: string): void => {
   try {
     const currentAuth = localStorage.getItem("auth");
     if (currentAuth) {
       const authData = JSON.parse(currentAuth);
-      localStorage.setItem("auth", JSON.stringify({
-        ...authData,
-        accessToken,
-        refreshToken
-      }));
+      localStorage.setItem(
+        "auth",
+        JSON.stringify({
+          ...authData,
+          accessToken,
+          refreshToken,
+        })
+      );
     } else {
       // Create new auth structure if it doesn't exist
-      localStorage.setItem("auth", JSON.stringify({
-        accessToken,
-        refreshToken,
-        user: null
-      }));
+      localStorage.setItem(
+        "auth",
+        JSON.stringify({
+          accessToken,
+          refreshToken,
+          user: null,
+        })
+      );
     }
   } catch (error) {
     console.error("Error setting tokens:", error);
   }
 };
 
-// ✅ FIXED: Updated to match authSlice structure
 const clearTokens = (): void => {
   localStorage.removeItem("auth");
-  // Also clear legacy items if they exist
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
@@ -103,11 +106,11 @@ api.interceptors.response.use(
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then(token => {
+          .then((token) => {
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return api(originalRequest);
           })
-          .catch(err => Promise.reject(err));
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
@@ -117,29 +120,35 @@ api.interceptors.response.use(
 
       if (!refreshToken) {
         clearTokens();
-        window.location.href = '/login';
+        window.location.href = "/login";
         return Promise.reject(error);
       }
 
       try {
         const refreshResponse = await authAPI.refreshToken(refreshToken);
-        
-        if (refreshResponse.success && refreshResponse.accessToken && refreshResponse.refreshToken) {
+
+        if (
+          refreshResponse.success &&
+          refreshResponse.accessToken &&
+          refreshResponse.refreshToken
+        ) {
           setTokens(refreshResponse.accessToken, refreshResponse.refreshToken);
-          
+
           // Update the Authorization header
-          api.defaults.headers.common['Authorization'] = `Bearer ${refreshResponse.accessToken}`;
+          api.defaults.headers.common[
+            "Authorization"
+          ] = `Bearer ${refreshResponse.accessToken}`;
           originalRequest.headers.Authorization = `Bearer ${refreshResponse.accessToken}`;
-          
+
           processQueue(null, refreshResponse.accessToken);
           return api(originalRequest);
         } else {
-          throw new Error('Token refresh failed');
+          throw new Error("Token refresh failed");
         }
       } catch (refreshError) {
         processQueue(refreshError, null);
         clearTokens();
-        window.location.href = '/login';
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -156,14 +165,6 @@ api.interceptors.response.use(
       status,
       message,
     });
-
-    if (status === 403) {
-      console.log("Access denied - Insufficient permissions");
-    }
-
-    if (status === 500) {
-      console.log("Server error - Please try again later");
-    }
 
     const userFriendlyError = new Error(
       message || `Request failed${status ? ` with status ${status}` : ""}`

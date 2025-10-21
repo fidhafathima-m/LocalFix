@@ -7,7 +7,6 @@ export interface IGeoPoint {
 
 export type ServiceRates = Record<string, number>;
 
-// Extend Document to include Mongoose methods and properties
 export interface ITechnician extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;

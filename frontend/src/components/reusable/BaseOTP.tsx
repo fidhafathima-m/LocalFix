@@ -16,14 +16,13 @@ export interface OTPFormData {
   token?: string;
 }
 
-// ✅ IMPROVED: Better response type for onSubmit
 export interface OTPSubmitResponse {
-  success: boolean; 
-  message?: string; 
+  success: boolean;
+  message?: string;
   user?: any;
   accessToken?: string;
   refreshToken?: string;
-  token?: string; // For backward compatibility
+  token?: string;
   redirectPath?: string;
 }
 
@@ -35,7 +34,9 @@ export interface BaseOTPProps {
     otp: string;
     formData: OTPFormData;
   }) => Promise<OTPSubmitResponse>;
-  onResendOTP: (formData: OTPFormData) => Promise<{ success: boolean; message?: string }>;
+  onResendOTP: (
+    formData: OTPFormData
+  ) => Promise<{ success: boolean; message?: string }>;
   onSuccess?: (result: OTPSubmitResponse) => void;
   onFailure?: (error: string) => void;
   loading?: boolean;
@@ -70,7 +71,8 @@ const BaseOTP: React.FC<BaseOTPProps> = ({
   const navigate = useNavigate();
 
   // Use external loading if provided, otherwise use internal loading
-  const isLoading = externalLoading !== undefined ? externalLoading : internalLoading;
+  const isLoading =
+    externalLoading !== undefined ? externalLoading : internalLoading;
 
   // Countdown timer effect
   useEffect(() => {
@@ -86,8 +88,12 @@ const BaseOTP: React.FC<BaseOTPProps> = ({
   }, [countdown]);
 
   const getDefaultTitle = () => {
-    const role = userType === "user" ? "User" : 
-                 userType === "serviceProvider" ? "Technician" : "Admin";
+    const role =
+      userType === "user"
+        ? "User"
+        : userType === "serviceProvider"
+        ? "Technician"
+        : "Admin";
     return context === "signup"
       ? `${role} OTP Verification`
       : `${role} Forgot Password OTP Verification`;
@@ -97,75 +103,58 @@ const BaseOTP: React.FC<BaseOTPProps> = ({
     return "Please enter the six-digit pin sent to:";
   };
 
-  // In BaseOTP.tsx - update the handleSubmit function
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!otp || otp.length !== 6) {
-    setError("Please enter a valid 6-digit OTP");
-    return;
-  }
+    if (!otp || otp.length !== 6) {
+      setError("Please enter a valid 6-digit OTP");
+      return;
+    }
 
-  setError("");
-  
-  // Set loading state
-  if (externalLoading === undefined) {
-    setInternalLoading(true);
-  }
+    setError("");
 
-  try {
-    const result = await onSubmit({ otp, formData });
+    // Set loading state
+    if (externalLoading === undefined) {
+      setInternalLoading(true);
+    }
 
-    console.log("🔍 BaseOTP - onSubmit result:", result); // ✅ ADD THIS
+    try {
+      const result = await onSubmit({ otp, formData });
 
-    if (result.success) {
-      toast.success(result.message || "OTP verified successfully!");
-      onSuccess?.(result);
-      
-      console.log("🔍 BaseOTP - OTP verification successful"); // ✅ ADD THIS
-      console.log("🔍 BaseOTP - redirectPath:", result.redirectPath); // ✅ ADD THIS
-      
-      // ✅ IMPROVED: Log token info for debugging
-      if (result.accessToken && result.refreshToken) {
-        console.log("OTP verification successful - tokens received");
-      } else if (result.token) {
-        console.log("OTP verification successful - legacy token received");
-      }
-      
-      // ✅ FIXED: Check if we should navigate
-      if (result.redirectPath) {
-        console.log("🔍 BaseOTP - Navigating to:", result.redirectPath); // ✅ ADD THIS
-        navigate(result.redirectPath, { replace: true });
+      if (result.success) {
+        toast.success(result.message || "OTP verified successfully!");
+        onSuccess?.(result);
+
+        if (result.redirectPath) {
+          navigate(result.redirectPath, { replace: true });
+        } 
       } else {
-        console.log("🔍 BaseOTP - No redirectPath provided"); // ✅ ADD THIS
+        const errorMessage = result.message || "OTP verification failed";
+        setError(errorMessage);
+        toast.error(errorMessage);
+        onFailure?.(errorMessage);
       }
-    } else {
-      const errorMessage = result.message || "OTP verification failed";
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      console.error("OTP verification error:", error);
+
+      let errorMessage = "OTP verification failed";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       setError(errorMessage);
       toast.error(errorMessage);
       onFailure?.(errorMessage);
+    } finally {
+      // Reset loading state
+      if (externalLoading === undefined) {
+        setInternalLoading(false);
+      }
     }
-  } catch (err: unknown) {
-    const error = err as AxiosError<{ message: string }>;
-    console.error("OTP verification error:", error);
-
-    let errorMessage = "OTP verification failed";
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-
-    setError(errorMessage);
-    toast.error(errorMessage);
-    onFailure?.(errorMessage);
-  } finally {
-    // Reset loading state
-    if (externalLoading === undefined) {
-      setInternalLoading(false);
-    }
-  }
-};
+  };
 
   const handleResendOTP = async () => {
     if (countdown > 0) return;
@@ -198,7 +187,9 @@ const handleSubmit = async (e: React.FormEvent) => {
   return (
     <div className="max-w-md mx-auto p-6 shadow-md mt-10">
       <div className="mb-4 text-center">
-        <h1 className="text-2xl font-semibold p-5">{title || getDefaultTitle()}</h1>
+        <h1 className="text-2xl font-semibold p-5">
+          {title || getDefaultTitle()}
+        </h1>
         <p className="text-sm text-gray-500">
           {subtitle || getDefaultSubtitle()}
         </p>
@@ -246,7 +237,9 @@ const handleSubmit = async (e: React.FormEvent) => {
           type="submit"
           disabled={isLoading}
           className={`w-full bg-blue-700 text-white p-2 rounded ${
-            isLoading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-800 cursor-pointer"
+            isLoading
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-blue-800 cursor-pointer"
           }`}
         >
           {isLoading ? "Verifying..." : verifyButtonText}

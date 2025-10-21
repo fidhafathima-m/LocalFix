@@ -11,40 +11,89 @@ const LoadingSpinner = () => (
   </div>
 );
 
-
 // User Routes imports
 const Home = lazy(() => import("../features/user/pages/Home"));
-const UserSignupPage = lazy(() => import("../features/user/pages/UserSignupPage"));
+const UserSignupPage = lazy(
+  () => import("../features/user/pages/UserSignupPage")
+);
 const UserLogin = lazy(() => import("../features/user/pages/UserLoginPage"));
-const UserForgotPasswordPage = lazy(() => import("../features/user/pages/UserForgotPasswordPage"));
-const UserSignupOTPPage = lazy(() => import("../features/user/pages/UserSignupOTPPage"));
-const UserResetPasswordPage = lazy(() => import("../features/user/pages/UserResetPasswordPage"));
-const ForgertPasswordOTPPage = lazy(() => import("../features/user/pages/ForgertPasswordOTPPage"));
+const UserForgotPasswordPage = lazy(
+  () => import("../features/user/pages/UserForgotPasswordPage")
+);
+const UserSignupOTPPage = lazy(
+  () => import("../features/user/pages/UserSignupOTPPage")
+);
+const UserResetPasswordPage = lazy(
+  () => import("../features/user/pages/UserResetPasswordPage")
+);
+const ForgertPasswordOTPPage = lazy(
+  () => import("../features/user/pages/ForgertPasswordOTPPage")
+);
 
 // Service Provider Routes imports
-const TechHome = lazy(() => import("../features/serviceProvider/pages/TechHome"));
-const TechSignUp = lazy(() => import("../features/serviceProvider/pages/TechSignUp"));
-const TechnicianApplication = lazy(() => import("../features/serviceProvider/pages/TechnicianApplication"));
-const TechLoginPage = lazy(() => import("../features/serviceProvider/pages/TechLoginPage"));
-const TechForgetPasswordPage = lazy(() => import("../features/serviceProvider/pages/TechForgetPasswordPage"));
-const TechSignupOTPPage = lazy(() => import("../features/serviceProvider/pages/TechSignupOTPPage"));
-const TechForgotPasswordOTPPage = lazy(() => import("../features/serviceProvider/pages/TechForgetPasswordOTPPage"));
-const TechnicianResetPasswordPage = lazy(() => import("../features/serviceProvider/pages/TechResetPasswordPage"));
-const PendingTechnicianApplication = lazy(() => import("../features/serviceProvider/pages/PendingTechnician"));
-const ApprovedTechnicianDashboard = lazy(() => import("../features/serviceProvider/pages/ApprovedTechnician"));
-const TechnicianProfileEdit = lazy(() => import("../features/serviceProvider/pages/TechnicianProfileEdit"))
+const TechHome = lazy(
+  () => import("../features/serviceProvider/pages/TechHome")
+);
+const TechSignUp = lazy(
+  () => import("../features/serviceProvider/pages/TechSignUp")
+);
+const TechnicianApplication = lazy(
+  () => import("../features/serviceProvider/pages/TechnicianApplication")
+);
+const TechLoginPage = lazy(
+  () => import("../features/serviceProvider/pages/TechLoginPage")
+);
+const TechForgetPasswordPage = lazy(
+  () => import("../features/serviceProvider/pages/TechForgetPasswordPage")
+);
+const TechSignupOTPPage = lazy(
+  () => import("../features/serviceProvider/pages/TechSignupOTPPage")
+);
+const TechForgotPasswordOTPPage = lazy(
+  () => import("../features/serviceProvider/pages/TechForgetPasswordOTPPage")
+);
+const TechnicianResetPasswordPage = lazy(
+  () => import("../features/serviceProvider/pages/TechResetPasswordPage")
+);
+const PendingTechnicianApplication = lazy(
+  () => import("../features/serviceProvider/pages/PendingTechnician")
+);
+const ApprovedTechnicianDashboard = lazy(
+  () => import("../features/serviceProvider/pages/ApprovedTechnician")
+);
+const TechnicianProfileEdit = lazy(
+  () => import("../features/serviceProvider/pages/TechnicianProfileEdit")
+);
 
 // AdminRoutes imports
-const AdminLoginPage = lazy(() => import("../features/admin/pages/AdminLoginPage"));
-const AdminDashboard = lazy(() => import("../features/admin/pages/AdminDashboard"));
+const AdminLoginPage = lazy(
+  () => import("../features/admin/pages/AdminLoginPage")
+);
+const AdminDashboard = lazy(
+  () => import("../features/admin/pages/AdminDashboard")
+);
 const ProtectedRoute = lazy(() => import("../components/ProtectedRoute"));
-const AdminForgotPasswordPage = lazy(() => import("../features/admin/pages/AdminForgotPasswordPage"));
-const AdminForgetOTPPage = lazy(() => import("../features/admin/pages/AdminForgetOTPPage"));
-const UserManagement = lazy(() => import("../features/admin/pages/UserManagement"));
-const AdminResetPasswordPage = lazy(() => import("../features/admin/pages/AdminResetPasswordPage"));
-const TechnicianManagement = lazy(() => import("../features/admin/pages/TechnicianManagement"));
-const TechnicianProfile = lazy(() => import("../features/admin/pages/TechnicianProfile"));
-const PendingApplicationProfile = lazy(() => import("../features/admin/pages/PendingTechnicianProfile"));
+const AdminForgotPasswordPage = lazy(
+  () => import("../features/admin/pages/AdminForgotPasswordPage")
+);
+const AdminForgetOTPPage = lazy(
+  () => import("../features/admin/pages/AdminForgetOTPPage")
+);
+const UserManagement = lazy(
+  () => import("../features/admin/pages/UserManagement")
+);
+const AdminResetPasswordPage = lazy(
+  () => import("../features/admin/pages/AdminResetPasswordPage")
+);
+const TechnicianManagement = lazy(
+  () => import("../features/admin/pages/TechnicianManagement")
+);
+const TechnicianProfile = lazy(
+  () => import("../features/admin/pages/TechnicianProfile")
+);
+const PendingApplicationProfile = lazy(
+  () => import("../features/admin/pages/PendingTechnicianProfile")
+);
 
 const AppRoutes = () => {
   return (
@@ -57,7 +106,10 @@ const AppRoutes = () => {
             <Route path="/login" element={<UserLogin />} />
             <Route path="/signUp" element={<UserSignupPage />} />
             <Route path="/otp" element={<UserSignupOTPPage />} />
-            <Route path="/forgot-password" element={<UserForgotPasswordPage />} />
+            <Route
+              path="/forgot-password"
+              element={<UserForgotPasswordPage />}
+            />
             <Route path="/verify-otp" element={<ForgertPasswordOTPPage />} />
             <Route path="/reset-password" element={<UserResetPasswordPage />} />
 
@@ -73,17 +125,25 @@ const AppRoutes = () => {
               path="/technicians/forgot-password"
               element={<TechForgetPasswordPage />}
             />
-            <Route path="/technicians/verify-otp" element={<TechSignupOTPPage />} />
-            <Route path="/technicians/forgot-verify-otp" element={<TechForgotPasswordOTPPage />} />
-            <Route path="/technicians/reset-password" element={<TechnicianResetPasswordPage />} />
+            <Route
+              path="/technicians/verify-otp"
+              element={<TechSignupOTPPage />}
+            />
+            <Route
+              path="/technicians/forgot-verify-otp"
+              element={<TechForgotPasswordOTPPage />}
+            />
+            <Route
+              path="/technicians/reset-password"
+              element={<TechnicianResetPasswordPage />}
+            />
             <Route
               path="/pending-technician/dashboard"
               element={
                 <ProtectedRoute allowedRoles={["serviceProvider"]}>
                   <PendingTechnicianApplication />
                 </ProtectedRoute>
-              
-            }
+              }
             />
             <Route
               path="/technician/dashboard"
@@ -91,8 +151,7 @@ const AppRoutes = () => {
                 <ProtectedRoute allowedRoles={["serviceProvider"]}>
                   <ApprovedTechnicianDashboard />
                 </ProtectedRoute>
-              
-            }
+              }
             />
             <Route
               path="/technician/profile"

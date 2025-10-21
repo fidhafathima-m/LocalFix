@@ -16,12 +16,16 @@ export class TechnicianProfileController {
       const technicianId = req.user?.id;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      const result = await this.profileService.getTechnicianProfile(technicianId);
+      const result = await this.profileService.getTechnicianProfile(
+        technicianId
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get profile controller error:", error);
@@ -30,13 +34,18 @@ export class TechnicianProfileController {
     }
   };
 
-  updatePersonalInfo = async (req: AuthRequest, res: Response): Promise<void> => {
+  updatePersonalInfo = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const technicianId = req.user?.id;
       const updateData = req.body;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -53,13 +62,18 @@ export class TechnicianProfileController {
     }
   };
 
-  updateIdentityVerification = async (req: AuthRequest, res: Response): Promise<void> => {
+  updateIdentityVerification = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const technicianId = req.user?.id;
       const updateData = req.body;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -76,13 +90,18 @@ export class TechnicianProfileController {
     }
   };
 
-  updateSkillsServices = async (req: AuthRequest, res: Response): Promise<void> => {
+  updateSkillsServices = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const technicianId = req.user?.id;
       const updateData = req.body;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -99,13 +118,18 @@ export class TechnicianProfileController {
     }
   };
 
-  updateAvailability = async (req: AuthRequest, res: Response): Promise<void> => {
+  updateAvailability = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const technicianId = req.user?.id;
       const updateData = req.body;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -122,13 +146,18 @@ export class TechnicianProfileController {
     }
   };
 
-  updateBankPayment = async (req: AuthRequest, res: Response): Promise<void> => {
+  updateBankPayment = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const technicianId = req.user?.id;
       const updateData = req.body;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -151,7 +180,9 @@ export class TechnicianProfileController {
       const updateData = req.body;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -174,7 +205,9 @@ export class TechnicianProfileController {
       const documentData = req.body;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -215,8 +248,16 @@ export class TechnicianProfileController {
         ],
         services: [
           { value: "ac-repair", label: "AC Repair", basePrice: 499 },
-          { value: "washing-machine", label: "Washing Machine Repair", basePrice: 399 },
-          { value: "refrigerator", label: "Refrigerator Repair", basePrice: 599 },
+          {
+            value: "washing-machine",
+            label: "Washing Machine Repair",
+            basePrice: 399,
+          },
+          {
+            value: "refrigerator",
+            label: "Refrigerator Repair",
+            basePrice: 599,
+          },
           { value: "fan-repair", label: "Fan Repair", basePrice: 299 },
           { value: "tv-repair", label: "TV Repair", basePrice: 699 },
         ],
@@ -236,7 +277,11 @@ export class TechnicianProfileController {
           { value: "pending", label: "Pending", color: "yellow" },
           { value: "approved", label: "Approved", color: "green" },
           { value: "rejected", label: "Rejected", color: "red" },
-          { value: "needs_reupload", label: "Needs Re-upload", color: "orange" },
+          {
+            value: "needs_reupload",
+            label: "Needs Re-upload",
+            color: "orange",
+          },
         ],
         withdrawalPreferences: [
           { value: "auto", label: "Automatic weekly withdrawal" },
@@ -253,7 +298,10 @@ export class TechnicianProfileController {
         ],
       };
 
-      const successResponse = ResponseHelper.success("Static data retrieved successfully", staticData);
+      const successResponse = ResponseHelper.success(
+        "Static data retrieved successfully",
+        staticData
+      );
       res.status(successResponse.statusCode).json(successResponse);
     } catch (error) {
       console.error("Get static data error:", error);
@@ -262,12 +310,17 @@ export class TechnicianProfileController {
     }
   };
 
-  deactivateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+  deactivateProfile = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const technicianId = req.user?.id;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -279,7 +332,9 @@ export class TechnicianProfileController {
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Deactivate profile error:", error);
-      const errorResponse = ResponseHelper.error("Failed to deactivate profile");
+      const errorResponse = ResponseHelper.error(
+        "Failed to deactivate profile"
+      );
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -289,7 +344,9 @@ export class TechnicianProfileController {
       const technicianId = req.user?.id;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -300,7 +357,9 @@ export class TechnicianProfileController {
       res.status(successResponse.statusCode).json(successResponse);
     } catch (error) {
       console.error("Delete account error:", error);
-      const errorResponse = ResponseHelper.error("Failed to process account deletion");
+      const errorResponse = ResponseHelper.error(
+        "Failed to process account deletion"
+      );
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

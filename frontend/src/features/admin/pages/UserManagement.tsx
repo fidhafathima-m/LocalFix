@@ -85,39 +85,34 @@ const UserManagement: React.FC = () => {
   }, [statusFilter, searchQuery]);
 
   useEffect(() => {
-  const loadUsers = async () => {
-    dispatch(fetchUsersStart());
-    try {
-      console.log("🔍 Loading users...");
-      const response = await UserMangementService.getUsers();
-      console.log("🔍 Full API Response:", response);
-      
-      if (response.data.success && response.data.data) {
-        const usersData = response.data?.users || 
-                   response.data?.data?.users || 
-                   response.users || 
-                   [];
-        console.log("🔍 Users data to dispatch:", usersData);
-        dispatch(fetchUsersSuccess(usersData));
-      } else {
-        console.error("❌ API response indicates failure:", response.data.message);
-        dispatch(
-          fetchUsersFailure(response.data.message || "Failed to fetch users")
-        );
-      }
-    } catch (err) {
-      console.error("❌ Error fetching users:", err);
-      dispatch(fetchUsersFailure("Failed to load users"));
-    }
-  };
-  loadUsers();
-}, [dispatch]);
+    const loadUsers = async () => {
+      dispatch(fetchUsersStart());
+      try {
+        const response = await UserMangementService.getUsers();
 
-// Add this useEffect to see what's in the store
-useEffect(() => {
-  console.log("🔍 Redux users state:", users);
-  console.log("🔍 Redux loading state:", usersLoading);
-}, [users, usersLoading]);
+        if (response.data.success && response.data.data) {
+          const usersData =
+            response.data?.users ||
+            response.data?.data?.users ||
+            response.users ||
+            [];
+          dispatch(fetchUsersSuccess(usersData));
+        } else {
+          console.error(
+            "API response indicates failure:",
+            response.data.message
+          );
+          dispatch(
+            fetchUsersFailure(response.data.message || "Failed to fetch users")
+          );
+        }
+      } catch (err) {
+        console.error("❌ Error fetching users:", err);
+        dispatch(fetchUsersFailure("Failed to load users"));
+      }
+    };
+    loadUsers();
+  }, [dispatch]);
 
   const handleOpenViewModal = (user: User) => {
     setSelectedUser(user);
@@ -156,7 +151,10 @@ useEffect(() => {
     if (!result.isConfirmed) return;
 
     try {
-      const response = await UserMangementService.updateUserStatus(userId, newStatus);
+      const response = await UserMangementService.updateUserStatus(
+        userId,
+        newStatus
+      );
 
       if (response.data.success && response.data.data) {
         dispatch(updateUserStatus({ userId, status: newStatus }));

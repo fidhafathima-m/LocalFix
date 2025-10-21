@@ -1,10 +1,8 @@
-// interfaces/admin/IUserManagements.ts
 import { ApiResponse } from "../../utils/responseHelper";
 import { IUserBase } from "../common/IUserBase";
 
-// Extend from the common base interface
 export interface IUser extends IUserBase {
-  // Add any admin-specific properties here if needed
+  // any admin-specific properties here
 }
 
 export interface IUserWithAddress extends IUser {

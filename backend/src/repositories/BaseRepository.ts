@@ -1,8 +1,9 @@
+import { Model, Types, Document, FilterQuery, UpdateQuery } from "mongoose";
+import { IBaseRepository } from "../interfaces/repository/IBaseRepository";
 
-import { Model, Types, Document, FilterQuery, UpdateQuery } from 'mongoose';
-import { IBaseRepository } from '../interfaces/repository/IBaseRepository';
-
-export abstract class BaseRepository<T extends Document> implements IBaseRepository<T> {
+export abstract class BaseRepository<T extends Document>
+  implements IBaseRepository<T>
+{
   protected constructor(protected readonly model: Model<T>) {}
 
   async create(data: Partial<T>): Promise<T> {
@@ -38,7 +39,10 @@ export abstract class BaseRepository<T extends Document> implements IBaseReposit
     }
   }
 
-  async update(id: string | Types.ObjectId, data: UpdateQuery<T>): Promise<T | null> {
+  async update(
+    id: string | Types.ObjectId,
+    data: UpdateQuery<T>
+  ): Promise<T | null> {
     try {
       return await this.model.findByIdAndUpdate(id, data, { new: true }).exec();
     } catch (error) {
@@ -68,7 +72,9 @@ export abstract class BaseRepository<T extends Document> implements IBaseReposit
       const count = await this.model.countDocuments(filter).exec();
       return count > 0;
     } catch (error) {
-      throw new Error(`Failed to check existence of ${this.model.modelName}: ${error}`);
+      throw new Error(
+        `Failed to check existence of ${this.model.modelName}: ${error}`
+      );
     }
   }
 

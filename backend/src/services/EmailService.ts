@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import {IEmailOptions} from '../interfaces/IEmailOptions'
+import { IEmailOptions } from "../interfaces/IEmailOptions";
 import { IEmailService } from "../interfaces/services/IEmailService";
 
 class EmailService implements IEmailService {

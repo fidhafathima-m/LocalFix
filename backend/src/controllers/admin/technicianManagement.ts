@@ -40,7 +40,10 @@ export class TechnicianManagementController {
   ): Promise<void> => {
     try {
       const { id } = req.params;
-      const result = await this.technicianService.updateTechnicianStatus(id, req.body);
+      const result = await this.technicianService.updateTechnicianStatus(
+        id,
+        req.body
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Update technician status controller error:", error);
@@ -65,7 +68,9 @@ export class TechnicianManagementController {
     res: Response
   ): Promise<void> => {
     try {
-      const result = await this.technicianService.getPendingApplications(req.query);
+      const result = await this.technicianService.getPendingApplications(
+        req.query
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get pending applications controller error:", error);
@@ -98,7 +103,9 @@ export class TechnicianManagementController {
       const { rejectionReason } = req.body;
 
       if (!rejectionReason) {
-        const badRequestResponse = ResponseHelper.badRequest("Rejection reason is required");
+        const badRequestResponse = ResponseHelper.badRequest(
+          "Rejection reason is required"
+        );
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
       }
@@ -143,7 +150,9 @@ export class TechnicianManagementController {
   ): Promise<void> => {
     try {
       const { applicationId } = req.params;
-      const result = await this.technicianService.getTechnicianByApplicationId(applicationId);
+      const result = await this.technicianService.getTechnicianByApplicationId(
+        applicationId
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technician by application controller error:", error);

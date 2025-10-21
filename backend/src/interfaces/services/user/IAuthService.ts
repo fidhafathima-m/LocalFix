@@ -1,4 +1,4 @@
-import { ApiResponse } from "../../../utils/responseHelper"; // Use only one import
+import { ApiResponse } from "../../../utils/responseHelper";
 import {
   LoginCredentials,
   OTPVerificationData,
@@ -7,7 +7,6 @@ import {
   SocialAuthData,
 } from "../../../interfaces/user/IAuthService";
 
-// Remove the duplicate ApiResponse import and extend from the correct one
 export interface AuthResponse extends ApiResponse {
   user?: any;
   token?: string;
@@ -32,6 +31,6 @@ export interface IAuthService {
   ): Promise<AuthResponse>;
   facebookLogin(accessToken: string, userID: string): Promise<AuthResponse>;
   googleAuth(socialData: SocialAuthData): Promise<AuthResponse>;
-  refreshToken(refreshToken: string): Promise<AuthResponse>
-  logout(userId: string, refreshToken?: string): Promise<AuthResponse>
+  refreshToken(refreshToken: string): Promise<AuthResponse>;
+  logout(userId: string, refreshToken?: string): Promise<AuthResponse>;
 }

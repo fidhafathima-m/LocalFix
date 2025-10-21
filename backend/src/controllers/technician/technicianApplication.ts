@@ -24,7 +24,10 @@ export class TechnicianApplicationController {
 
   saveStep = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const result = await this.applicationService.saveStep(req.body, req.files);
+      const result = await this.applicationService.saveStep(
+        req.body,
+        req.files
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Save step controller error:", error);
@@ -36,7 +39,9 @@ export class TechnicianApplicationController {
   getApplication = async (req: Request, res: Response): Promise<void> => {
     try {
       const { applicationId } = req.params;
-      const result = await this.applicationService.getApplication(applicationId);
+      const result = await this.applicationService.getApplication(
+        applicationId
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application controller error:", error);
@@ -54,7 +59,9 @@ export class TechnicianApplicationController {
       const userId = req.user?.id;
 
       if (!userId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -93,7 +100,9 @@ export class TechnicianApplicationController {
       const userId = req.user?.id;
 
       if (!userId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -116,7 +125,9 @@ export class TechnicianApplicationController {
       const userId = req.user?.id;
 
       if (!userId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -142,7 +153,9 @@ export class TechnicianApplicationController {
       const userId = req.user?.id;
 
       if (!userId || !email) {
-        const badRequestResponse = ResponseHelper.badRequest("User ID and email are required");
+        const badRequestResponse = ResponseHelper.badRequest(
+          "User ID and email are required"
+        );
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
       }

@@ -124,9 +124,9 @@ export class AuthController {
 
   async refreshToken(req: Request, res: Response): Promise<void> {
     const { refreshToken } = req.body;
-    
+
     const result = await this.authService.refreshToken(refreshToken);
-    
+
     if (result.success) {
       res.status(200).json(result);
     } else {
@@ -137,9 +137,9 @@ export class AuthController {
   async logout(req: AuthRequest, res: Response): Promise<void> {
     const { refreshToken } = req.body;
     const userId = req.user?.id;
-    
+
     const result = await this.authService.logout(userId!, refreshToken);
-    
+
     res.status(result.statusCode || 200).json(result);
   }
 }

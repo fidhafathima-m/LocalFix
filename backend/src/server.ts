@@ -37,9 +37,7 @@ app.use("/api/admin/technicians", adminTechnicianRoutes);
 app.use("/api/technician-application", technicianRoutes);
 app.use("/api/technician", technicianDashboardRoutes);
 
-console.log('🔧 Main App: Registering technician profile routes');
 app.use("/api/technician/profile", technicianProfileRoutes);
-console.log('🔧 Main App: Technician profile routes registered at /api/technician/profile');
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Localfix API running...");

@@ -23,7 +23,6 @@ import {
 } from "../constants";
 
 export class UserManagementService implements IUserManagementService {
-
   constructor(private userManagementRepository: IUserManagementRepository) {}
 
   async getUsers(): Promise<UsersListResponse> {
@@ -31,7 +30,7 @@ export class UserManagementService implements IUserManagementService {
       const users = await this.userManagementRepository.findAllUsers();
 
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USERS_RETRIEVED, {
-        users
+        users,
       });
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -47,7 +46,9 @@ export class UserManagementService implements IUserManagementService {
       const { status } = statusData;
 
       if (!VALID_STATUSES.includes(status as any)) {
-        return ResponseHelper.badRequest(USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE);
+        return ResponseHelper.badRequest(
+          USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE
+        );
       }
 
       const user = await this.userManagementRepository.findById(userId);
@@ -56,7 +57,9 @@ export class UserManagementService implements IUserManagementService {
       }
 
       if (user.isDeleted) {
-        return ResponseHelper.forbidden(USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER);
+        return ResponseHelper.forbidden(
+          USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER
+        );
       }
 
       const updatedUser = await this.userManagementRepository.updateUserStatus(
@@ -65,15 +68,22 @@ export class UserManagementService implements IUserManagementService {
       );
 
       if (!updatedUser) {
-        return ResponseHelper.conflict(USER_MANAGEMENT_MESSAGES.UPDATE_CONFLICT);
+        return ResponseHelper.conflict(
+          USER_MANAGEMENT_MESSAGES.UPDATE_CONFLICT
+        );
       }
 
-      return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_STATUS_UPDATED, {
-        data: { user: updatedUser },
-      });
+      return ResponseHelper.success(
+        USER_MANAGEMENT_MESSAGES.USER_STATUS_UPDATED,
+        {
+          data: { user: updatedUser },
+        }
+      );
     } catch (error) {
       console.error("Error updating user status:", error);
-      return ResponseHelper.error(USER_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS);
+      return ResponseHelper.error(
+        USER_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS
+      );
     }
   }
 
@@ -86,7 +96,9 @@ export class UserManagementService implements IUserManagementService {
 
       if (status) {
         if (!VALID_STATUSES.includes(status as any)) {
-          return ResponseHelper.badRequest(USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE);
+          return ResponseHelper.badRequest(
+            USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE
+          );
         }
       }
 
@@ -96,22 +108,38 @@ export class UserManagementService implements IUserManagementService {
       }
 
       if (user.isDeleted) {
-        return ResponseHelper.forbidden(USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER);
+        return ResponseHelper.forbidden(
+          USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER
+        );
       }
 
       // Validate email format if provided
       if (email && !VALIDATION.EMAIL_REGEX.test(email)) {
-        return ResponseHelper.badRequest("Please provide a valid email address");
+        return ResponseHelper.badRequest(
+          "Please provide a valid email address"
+        );
       }
 
       // Validate full name length if provided
-      if (fullName && (fullName.length < VALIDATION.MIN_FULL_NAME_LENGTH || fullName.length > VALIDATION.MAX_FULL_NAME_LENGTH)) {
-        return ResponseHelper.badRequest(`Full name must be between ${VALIDATION.MIN_FULL_NAME_LENGTH} and ${VALIDATION.MAX_FULL_NAME_LENGTH} characters`);
+      if (
+        fullName &&
+        (fullName.length < VALIDATION.MIN_FULL_NAME_LENGTH ||
+          fullName.length > VALIDATION.MAX_FULL_NAME_LENGTH)
+      ) {
+        return ResponseHelper.badRequest(
+          `Full name must be between ${VALIDATION.MIN_FULL_NAME_LENGTH} and ${VALIDATION.MAX_FULL_NAME_LENGTH} characters`
+        );
       }
 
       // Validate phone length if provided
-      if (phone && (phone.length < VALIDATION.MIN_PHONE_LENGTH || phone.length > VALIDATION.MAX_PHONE_LENGTH)) {
-        return ResponseHelper.badRequest(`Phone number must be between ${VALIDATION.MIN_PHONE_LENGTH} and ${VALIDATION.MAX_PHONE_LENGTH} characters`);
+      if (
+        phone &&
+        (phone.length < VALIDATION.MIN_PHONE_LENGTH ||
+          phone.length > VALIDATION.MAX_PHONE_LENGTH)
+      ) {
+        return ResponseHelper.badRequest(
+          `Phone number must be between ${VALIDATION.MIN_PHONE_LENGTH} and ${VALIDATION.MAX_PHONE_LENGTH} characters`
+        );
       }
 
       const updateData: Partial<IUser> = {};
@@ -126,7 +154,9 @@ export class UserManagementService implements IUserManagementService {
       );
 
       if (!updatedUser) {
-        return ResponseHelper.conflict(USER_MANAGEMENT_MESSAGES.UPDATE_USER_CONFLICT);
+        return ResponseHelper.conflict(
+          USER_MANAGEMENT_MESSAGES.UPDATE_USER_CONFLICT
+        );
       }
 
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_UPDATED, {
@@ -146,7 +176,9 @@ export class UserManagementService implements IUserManagementService {
       }
 
       if (user.isDeleted) {
-        return ResponseHelper.badRequest(USER_MANAGEMENT_MESSAGES.USER_ALREADY_DELETED);
+        return ResponseHelper.badRequest(
+          USER_MANAGEMENT_MESSAGES.USER_ALREADY_DELETED
+        );
       }
 
       const deletedUser = await this.userManagementRepository.softDeleteUser(
@@ -154,7 +186,9 @@ export class UserManagementService implements IUserManagementService {
       );
 
       if (!deletedUser) {
-        return ResponseHelper.conflict(USER_MANAGEMENT_MESSAGES.DELETE_CONFLICT);
+        return ResponseHelper.conflict(
+          USER_MANAGEMENT_MESSAGES.DELETE_CONFLICT
+        );
       }
 
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_DELETED, {
@@ -170,9 +204,12 @@ export class UserManagementService implements IUserManagementService {
     try {
       const stats = await this.userManagementRepository.getUserStats();
 
-      return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_STATS_RETRIEVED, {
-        data: { stats },
-      });
+      return ResponseHelper.success(
+        USER_MANAGEMENT_MESSAGES.USER_STATS_RETRIEVED,
+        {
+          data: { stats },
+        }
+      );
     } catch (error) {
       console.error("Error fetching user stats:", error);
       return ResponseHelper.error(USER_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS);
@@ -188,7 +225,9 @@ export class UserManagementService implements IUserManagementService {
       }
 
       if (user.isDeleted) {
-        return ResponseHelper.forbidden(USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER);
+        return ResponseHelper.forbidden(
+          USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER
+        );
       }
 
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_RETRIEVED, {

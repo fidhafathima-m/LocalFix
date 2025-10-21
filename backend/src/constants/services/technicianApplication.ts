@@ -1,11 +1,8 @@
-import { 
-  TECHNICIAN_STATUS, 
-  DOCUMENT_TYPES 
-} from "../core/technician";
-import { 
-  APPLICATION_STATUS, 
-  APPLICATION_STEPS, 
-  REQUIRED_STEPS 
+import { TECHNICIAN_STATUS, DOCUMENT_TYPES } from "../core/technician";
+import {
+  APPLICATION_STATUS,
+  APPLICATION_STEPS,
+  REQUIRED_STEPS,
 } from "../core/application";
 
 export const TECH_APPLICATION_MESSAGES = {
@@ -18,13 +15,14 @@ export const TECH_APPLICATION_MESSAGES = {
   USER_APPLICATIONS_RETRIEVED: "User applications retrieved successfully",
   STEP_SAVED: "Step saved successfully",
   NEW_APPLICATION_STARTED: "New application started successfully",
-  
+
   // Info messages
   APPLICATION_ALREADY_SUBMITTED: "Application already submitted",
   APPLICATION_ALREADY_APPROVED: "Application already approved",
   DRAFT_APPLICATION_FOUND: "Draft application found",
-  REJECTED_APPLICATION_FOUND: "Rejected application found - you can edit and resubmit",
-  
+  REJECTED_APPLICATION_FOUND:
+    "Rejected application found - you can edit and resubmit",
+
   // Error messages
   APPLICATION_NOT_FOUND: "Application not found",
   USER_NOT_FOUND: "User not found",
@@ -36,19 +34,21 @@ export const TECH_APPLICATION_MESSAGES = {
   FAILED_TO_RETRIEVE_USER_APPLICATIONS: "Failed to retrieve user applications",
   FAILED_TO_RESUBMIT_APPLICATION: "Failed to resubmit application",
   FAILED_TO_START_NEW_APPLICATION: "Failed to start new application",
-  
+
   // Validation messages
   EMAIL_AND_USER_ID_REQUIRED: "Email and User ID are required",
   VALID_EMAIL_REQUIRED: "Please provide a valid email address",
   APPLICATION_ID_AND_STEP_REQUIRED: "Application ID and step are required",
-  EMAIL_ALREADY_IN_USE: "Email already has an application in progress by another user",
+  EMAIL_ALREADY_IN_USE:
+    "Email already has an application in progress by another user",
   ACCESS_DENIED: "Access denied - application does not belong to current user",
-  APPLICATION_ALREADY_SUBMITTED_STATUS: "Application has already been submitted",
+  APPLICATION_ALREADY_SUBMITTED_STATUS:
+    "Application has already been submitted",
   COMPLETE_ALL_STEPS_REQUIRED: "Please complete all steps before submitting",
   ONLY_REJECTED_CAN_RESUBMIT: "Only rejected applications can be resubmitted",
   NO_TECHNICIAN_ASSIGNED: "Application has no technician assigned",
   NO_REJECTED_APPLICATION_FOUND: "No rejected application found",
-  
+
   // Cloudinary upload errors
   CLOUDINARY_UPLOAD_FAILED: "Cloudinary upload failed - no secure_url returned",
   DOCUMENT_UPLOAD_FAILED: "Document upload failed",
@@ -76,11 +76,10 @@ export const REDIRECT_PATHS = {
   TECHNICIAN_DASHBOARD: "/technician/dashboard",
 } as const;
 
-// Re-export with explicit exports (no conflicts)
-export { 
-  TECHNICIAN_STATUS, 
+export {
+  TECHNICIAN_STATUS,
   APPLICATION_STATUS,
   DOCUMENT_TYPES,
   APPLICATION_STEPS,
-  REQUIRED_STEPS 
+  REQUIRED_STEPS,
 };

@@ -45,15 +45,19 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
       }
 
       const overview: DashboardOverview = {
-        averageRating: technician.averageRating || DASHBOARD_DEFAULTS.AVERAGE_RATING,
+        averageRating:
+          technician.averageRating || DASHBOARD_DEFAULTS.AVERAGE_RATING,
         upcomingBookings: DASHBOARD_DEFAULTS.UPCOMING_BOOKINGS,
         monthlyEarnings: DASHBOARD_DEFAULTS.MONTHLY_EARNINGS,
         totalJobs: DASHBOARD_DEFAULTS.TOTAL_JOBS,
       };
 
-      return ResponseHelper.success(DASHBOARD_MESSAGES.DASHBOARD_OVERVIEW_RETRIEVED, {
-        data: { overview },
-      });
+      return ResponseHelper.success(
+        DASHBOARD_MESSAGES.DASHBOARD_OVERVIEW_RETRIEVED,
+        {
+          data: { overview },
+        }
+      );
     } catch (error) {
       console.error("Get dashboard overview error:", error);
       return ResponseHelper.error(DASHBOARD_MESSAGES.FAILED_FETCH_OVERVIEW);
@@ -68,7 +72,9 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
       const user = await this.userRepository.findById(technicianId);
 
       if (!technician || !user) {
-        return ResponseHelper.notFound(DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_NOT_FOUND);
+        return ResponseHelper.notFound(
+          DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_NOT_FOUND
+        );
       }
 
       const userAddress = await this.userAddressRepository.findByUserId(
@@ -123,10 +129,19 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
 
       const getPersonalInfo = (technician: any, userAddress?: any) => {
         const personalInfo: any = {
-          fullName: technician.personalInfo?.fullName || technician.displayName || PERSONAL_INFO_DEFAULTS.FULL_NAME,
-          gender: technician.personalInfo?.gender || PERSONAL_INFO_DEFAULTS.GENDER,
-          phoneNumber: technician.personalInfo?.phoneNumber || technician.phone || PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
-          dateOfBirth: technician.personalInfo?.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
+          fullName:
+            technician.personalInfo?.fullName ||
+            technician.displayName ||
+            PERSONAL_INFO_DEFAULTS.FULL_NAME,
+          gender:
+            technician.personalInfo?.gender || PERSONAL_INFO_DEFAULTS.GENDER,
+          phoneNumber:
+            technician.personalInfo?.phoneNumber ||
+            technician.phone ||
+            PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
+          dateOfBirth:
+            technician.personalInfo?.dateOfBirth ||
+            PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
           languages: formatLanguages(technician.personalInfo?.languages),
         };
 
@@ -136,14 +151,23 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
             street: userAddress.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
             city: userAddress.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
             state: userAddress.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-            pincode: userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+            pincode:
+              userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
           };
         } else if (technician.personalInfo?.address) {
           personalInfo.address = {
-            street: technician.personalInfo.address.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-            city: technician.personalInfo.address.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-            state: technician.personalInfo.address.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-            pincode: technician.personalInfo.address.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+            street:
+              technician.personalInfo.address.street ||
+              PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+            city:
+              technician.personalInfo.address.city ||
+              PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+            state:
+              technician.personalInfo.address.state ||
+              PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+            pincode:
+              technician.personalInfo.address.pincode ||
+              PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
           };
         } else {
           personalInfo.address = {
@@ -166,9 +190,11 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         email: user.email,
         phone: user.phone || technician.phone,
         services: technician.services || [],
-        experienceYears: technician.experienceYears || DASHBOARD_DEFAULTS.EXPERIENCE_YEARS,
+        experienceYears:
+          technician.experienceYears || DASHBOARD_DEFAULTS.EXPERIENCE_YEARS,
         workAreas: technician.workAreas || [],
-        averageRating: technician.averageRating || DASHBOARD_DEFAULTS.AVERAGE_RATING,
+        averageRating:
+          technician.averageRating || DASHBOARD_DEFAULTS.AVERAGE_RATING,
         ratingCount: technician.ratingCount || DASHBOARD_DEFAULTS.RATING_COUNT,
         profilePictureUrl: technician.profilePictureUrl || "",
         isVerified: technician.status === TECHNICIAN_STATUS.APPROVED,
@@ -181,9 +207,12 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         updatedAt: technician.updatedAt,
       };
 
-      return ResponseHelper.success(DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_RETRIEVED, {
-        data: { profile },
-      });
+      return ResponseHelper.success(
+        DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_RETRIEVED,
+        {
+          data: { profile },
+        }
+      );
     } catch (error) {
       console.error("Get technician profile error:", error);
       return ResponseHelper.error(DASHBOARD_MESSAGES.FAILED_FETCH_PROFILE);

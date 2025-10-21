@@ -21,10 +21,10 @@ const AdminForgetPassword: React.FC = () => {
       if (response.success) {
         localStorage.setItem(
           "forgotData",
-          JSON.stringify({ 
-            phone: data.phone, 
+          JSON.stringify({
+            phone: data.phone,
             email: data.email,
-            userType: "admin"
+            userType: "admin",
           })
         );
 
@@ -56,7 +56,7 @@ const AdminForgetPassword: React.FC = () => {
       ...data,
       userType: "admin",
     });
-    
+
     return {
       isValid: validation.success,
       errors: validation.errors || {},

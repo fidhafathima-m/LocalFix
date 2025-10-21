@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import {technicianApplicationController} from "../../config/container";
+import { technicianApplicationController } from "../../config/container";
 import { protect } from "../../middleware/authMiddleware";
 
 const router = express.Router();
@@ -36,7 +36,11 @@ const uploadFields = upload.fields([
 ]);
 
 // Application routes
-router.post("/start", protect, technicianApplicationController.startApplication);
+router.post(
+  "/start",
+  protect,
+  technicianApplicationController.startApplication
+);
 router.post(
   "/save-step",
   protect,

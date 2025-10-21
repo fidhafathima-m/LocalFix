@@ -3,7 +3,10 @@ import { IBaseRepository } from "../IBaseRepository";
 
 export interface IUserManagementRepository extends IBaseRepository<IUser> {
   findAllUsers(): Promise<IUserWithAddress[]>;
-  updateUserStatus(userId: string, status: "Active" | "Inactive" | "Blocked"): Promise<IUser | null>;
+  updateUserStatus(
+    userId: string,
+    status: "Active" | "Inactive" | "Blocked"
+  ): Promise<IUser | null>;
   softDeleteUser(userId: string): Promise<IUser | null>;
   getUserStats(): Promise<{
     totalUsers: number;

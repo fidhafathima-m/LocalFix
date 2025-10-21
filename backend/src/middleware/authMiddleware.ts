@@ -7,9 +7,9 @@ import { ResponseHelper } from "../utils/responseHelper";
 export interface AuthRequest extends Request {
   user?: {
     id: string;
-    roles: string[]; // Changed from string to string[]
+    roles: string[];
     email?: string;
-    currentRole?: string; // Added current role for role switching
+    currentRole?: string;
   };
 }
 
@@ -61,9 +61,9 @@ export const protect = async (
 
     req.user = {
       id: user._id.toString(),
-      roles: user.roles, // Now this is an array
+      roles: user.roles,
       email: user.email,
-      currentRole: decoded.currentRole || user.roles[0], // Support role switching
+      currentRole: decoded.currentRole || user.roles[0],
     };
 
     next();
@@ -73,7 +73,6 @@ export const protect = async (
   }
 };
 
-// UPDATED: Role-specific middleware to check if user has the role in their roles array
 export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.user && req.user.roles.includes("admin")) {
     next();
@@ -90,7 +89,9 @@ export const serviceProvider = (
   if (req.user && req.user.roles.includes("serviceProvider")) {
     next();
   } else {
-    return ResponseHelper.forbidden("Access denied. Service Provider role required.");
+    return ResponseHelper.forbidden(
+      "Access denied. Service Provider role required."
+    );
   }
 };
 
@@ -102,14 +103,13 @@ export const user = (req: AuthRequest, res: Response, next: NextFunction) => {
   }
 };
 
-// UPDATED: Combined role middleware - check if user has ANY of the required roles
 export const requireRole = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return ResponseHelper.unauthorized("Authentication required");
     }
 
-    const hasRequiredRole = roles.some(role => 
+    const hasRequiredRole = roles.some((role) =>
       req.user!.roles.includes(role)
     );
 
@@ -123,16 +123,13 @@ export const requireRole = (roles: string[]) => {
   };
 };
 
-// NEW: Middleware to require ALL specified roles
 export const requireAllRoles = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return ResponseHelper.unauthorized("Authentication required");
     }
 
-    const hasAllRoles = roles.every(role => 
-      req.user!.roles.includes(role)
-    );
+    const hasAllRoles = roles.every((role) => req.user!.roles.includes(role));
 
     if (hasAllRoles) {
       next();

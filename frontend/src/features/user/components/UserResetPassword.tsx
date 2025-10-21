@@ -20,7 +20,10 @@ const UserResetPassword: React.FC<UserResetPasswordProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const handleSubmit = async (formData: { password: string; confirmPassword: string }) => {
+  const handleSubmit = async (formData: {
+    password: string;
+    confirmPassword: string;
+  }) => {
     try {
       const payload: ResetPasswordData = {
         password: formData.password,
@@ -32,7 +35,7 @@ const UserResetPassword: React.FC<UserResetPasswordProps> = ({
         ...(token && { token }),
       };
 
-      const response = await UserAuthService.resetPassword(payload)
+      const response = await UserAuthService.resetPassword(payload);
 
       if (response.success) {
         localStorage.removeItem("forgotData");
@@ -58,7 +61,7 @@ const UserResetPassword: React.FC<UserResetPasswordProps> = ({
       ...data,
       userType: "user",
     });
-    
+
     return {
       isValid: validation.success,
       errors: validation.errors || {},

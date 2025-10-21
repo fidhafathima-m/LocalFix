@@ -62,21 +62,21 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const handleLogout = async() => {
+  const handleLogout = async () => {
     const result = await Swal.fire({
-        title: "Are you sure?",
-        text: "You will be logged out.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes, logout!",
-        cancelButtonText: "Cancel",
-      });
+      title: "Are you sure?",
+      text: "You will be logged out.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, logout!",
+      cancelButtonText: "Cancel",
+    });
 
-      if(result.isConfirmed) {
-        dispatch(logout());
-        dispatch(clearAdminData());
-        navigate("/admin/login");
-      }
+    if (result.isConfirmed) {
+      dispatch(logout());
+      dispatch(clearAdminData());
+      navigate("/admin/login");
+    }
     toast.success("You have been logged out!");
   };
 

@@ -1,7 +1,4 @@
-import { 
-  TECHNICIAN_STATUS, 
-  DOCUMENT_TYPES 
-} from "../core/technician";
+import { TECHNICIAN_STATUS, DOCUMENT_TYPES } from "../core/technician";
 import { APPLICATION_STATUS } from "../core/application";
 import { PAGINATION_DEFAULTS } from "../core/common";
 
@@ -39,15 +36,21 @@ export const TECHNICIAN_MANAGEMENT_MESSAGES = {
   // Validation messages
   TECHNICIAN_NOT_FOUND: "Technician not found",
   APPLICATION_NOT_FOUND: "Application not found",
-  TECHNICIAN_NOT_FOUND_FOR_APPLICATION: "Technician not found for this application",
-  VALID_STATUS_REQUIRED: "Valid status is required (approved, suspended, rejected)",
+  TECHNICIAN_NOT_FOUND_FOR_APPLICATION:
+    "Technician not found for this application",
+  VALID_STATUS_REQUIRED:
+    "Valid status is required (approved, suspended, rejected)",
   UPDATE_APPLICATION_FAILED: "Failed to update application",
   INVALID_TECHNICIAN_ID: "Invalid technician ID",
   INVALID_APPLICATION_ID: "Invalid application ID",
   REJECTION_REASON_REQUIRED: "Rejection reason is required",
 } as const;
 
-export const VALID_STATUS_VALUES = ["approved", "suspended", "rejected"] as const;
+export const VALID_STATUS_VALUES = [
+  "approved",
+  "suspended",
+  "rejected",
+] as const;
 
 export const STATUS_MAPPING = {
   [TECHNICIAN_STATUS.SUBMITTED]: TECHNICIAN_STATUS.PENDING,
@@ -77,17 +80,8 @@ export const RATING_FILTERS = {
 } as const;
 
 export const SEARCH_FIELDS = {
-  TECHNICIAN: [
-    "displayName",
-    "user.email",
-    "user.phone",
-    "workAreas",
-  ] as const,
-  APPLICATION: [
-    "personal.fullName",
-    "email",
-    "personal.phoneNumber",
-  ] as const,
+  TECHNICIAN: ["displayName", "user.email", "user.phone", "workAreas"] as const,
+  APPLICATION: ["personal.fullName", "email", "personal.phoneNumber"] as const,
 } as const;
 
 export const BANK_DETAILS_DEFAULTS = {
@@ -114,10 +108,9 @@ export const RATING_FILTER_MAPPING: Record<string, any> = {
   "3+ Star": RATING_FILTERS["3_PLUS_STAR"],
 } as const;
 
-// Re-export
-export { 
-  TECHNICIAN_STATUS, 
+export {
+  TECHNICIAN_STATUS,
   APPLICATION_STATUS,
   DOCUMENT_TYPES,
-  PAGINATION_DEFAULTS 
+  PAGINATION_DEFAULTS,
 };

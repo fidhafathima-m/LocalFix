@@ -66,7 +66,9 @@ export const TechnicianProfile: React.FC = () => {
         throw new Error("Technician ID is required");
       }
 
-      const response = await TechnicianMangementService.getTechnicianById(technicianId);
+      const response = await TechnicianMangementService.getTechnicianById(
+        technicianId
+      );
 
       if (response.data.success && response.data.data) {
         setTechnician(response.data.data.technician);

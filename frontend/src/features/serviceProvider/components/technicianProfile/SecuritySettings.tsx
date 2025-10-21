@@ -1,4 +1,4 @@
-import AccordionSection from './AccordianSections'
+import AccordionSection from "./AccordianSections";
 const SecuritySettings = () => {
   return (
     <AccordionSection title="Security & Settings" number={7}>
@@ -72,6 +72,6 @@ const SecuritySettings = () => {
         </div>
       </div>
     </AccordionSection>
-  )
-}
-export default SecuritySettings
+  );
+};
+export default SecuritySettings;

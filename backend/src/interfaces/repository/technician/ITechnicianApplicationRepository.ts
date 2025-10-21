@@ -1,7 +1,8 @@
 import { ITechnicianApplication } from "../../../models/technician/TechnicianApplicationSchema";
 import { IBaseRepository } from "../IBaseRepository";
 
-export interface ITechnicianApplicationRepository extends IBaseRepository<ITechnicianApplication> {
+export interface ITechnicianApplicationRepository
+  extends IBaseRepository<ITechnicianApplication> {
   findByTechnicianId(technicianId: string): Promise<ITechnicianApplication[]>;
   findByEmailAndStatus(
     email: string,

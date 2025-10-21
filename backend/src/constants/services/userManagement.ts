@@ -1,7 +1,7 @@
 import { USER_STATUS, USER_ROLES } from "../core/user";
 
 export const USER_MANAGEMENT_MESSAGES = {
-   // Success messages
+  // Success messages
   USERS_RETRIEVED: "Users retrieved successfully",
   USER_STATUS_UPDATED: "User status updated successfully",
   USER_UPDATED: "User updated successfully",
@@ -67,5 +67,4 @@ export const USER_FILTERS = {
   },
 } as const;
 
-// Re-export
 export { USER_STATUS, USER_ROLES };

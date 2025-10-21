@@ -1,7 +1,7 @@
 import { TECHNICIAN_STATUS } from "../core/technician";
 
 export const DASHBOARD_MESSAGES = {
- // Success messages
+  // Success messages
   DASHBOARD_OVERVIEW_RETRIEVED: "Dashboard overview retrieved successfully",
   TECHNICIAN_PROFILE_RETRIEVED: "Technician profile retrieved successfully",
   PROFILE_UPDATED: "Profile updated successfully",
@@ -53,5 +53,4 @@ export const LANGUAGE_FORMAT_OPTIONS = {
   MAX_LANGUAGES: 10,
 } as const;
 
-// Re-export
 export { TECHNICIAN_STATUS };

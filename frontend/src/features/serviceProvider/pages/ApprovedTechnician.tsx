@@ -10,9 +10,7 @@ import {
 } from "@mui/icons-material";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import {
-  type TechnicianProfile,
-} from "../../../services/common/technicianApi";
+import { type TechnicianProfile } from "../../../services/common/technicianApi";
 import { TechnicianService } from "../../../services/technician/technicianService";
 
 interface DashboardData {
@@ -35,8 +33,8 @@ interface DashboardData {
     isNewTechnician?: boolean;
   };
   profile: TechnicianProfile;
-  suspensionReason?: string; 
-  suspendedAt?: string; 
+  suspensionReason?: string;
+  suspendedAt?: string;
 }
 
 const ApprovedTechnicianDashboard: React.FC = () => {
@@ -53,93 +51,91 @@ const ApprovedTechnicianDashboard: React.FC = () => {
   }>({});
 
   useEffect(() => {
-  const loadTechnicianData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    const loadTechnicianData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const response = await TechnicianService.getProfile();
+        const response = await TechnicianService.getProfile();
 
-      console.log('DEBUG - Profile response:', response);
 
-      if (!response.success) {
-        throw new Error("Failed to fetch profile: API returned unsuccessful");
-      }
+        if (!response.success) {
+          throw new Error("Failed to fetch profile: API returned unsuccessful");
+        }
 
-      // FIX: Access the correct structure - response.data.data.profile
-      const profile = response.data?.data?.profile; // Add .data here
+        const profile = response.data?.data?.profile;
 
-      if (!profile) {
-        throw new Error("Profile data not found in response");
-      }
+        if (!profile) {
+          throw new Error("Profile data not found in response");
+        }
 
-      // Check if technician is suspended
-      const suspended = profile.status === "suspended";
-      setIsSuspended(suspended);
+        // Check if technician is suspended
+        const suspended = profile.status === "suspended";
+        setIsSuspended(suspended);
 
-      // Extract suspension info if available
-      if (suspended) {
-        setSuspensionInfo({
-          reason: profile.suspensionReason || "Violation of terms of service",
-          suspendedAt: profile.suspendedAt || new Date().toISOString(),
-        });
-      }
+        // Extract suspension info if available
+        if (suspended) {
+          setSuspensionInfo({
+            reason: profile.suspensionReason || "Violation of terms of service",
+            suspendedAt: profile.suspendedAt || new Date().toISOString(),
+          });
+        }
 
-      setDashboardData({
-        overview: {
-          upcomingBookings: 0,
-          monthlyEarnings: 0,
-          totalJobs: 0,
-          averageRating: profile.averageRating || 0,
-        },
-        bookings: {
-          bookings: [],
-          isNewTechnician: true,
-        },
-        earnings: {
-          earnings: [],
-          isNewTechnician: true,
-        },
-        reviews: {
-          reviews: [],
-          isNewTechnician: true,
-        },
-        profile: {
-          ...profile,
-          personalInfo: {
-            fullName: profile.personalInfo?.fullName || profile.displayName,
-            gender: profile.personalInfo?.gender || "Not specified",
-            phoneNumber:
-              profile.personalInfo?.phoneNumber ||
-              profile.phone ||
-              "Not provided",
-            dateOfBirth: profile.personalInfo?.dateOfBirth || "Not specified",
-            address: profile.personalInfo?.address || {
-              street: "Not specified",
-              city: "Not specified",
-              state: "Not specified",
-              pincode: "Not specified",
-            },
-            languages: profile.personalInfo?.languages || [],
+        setDashboardData({
+          overview: {
+            upcomingBookings: 0,
+            monthlyEarnings: 0,
+            totalJobs: 0,
+            averageRating: profile.averageRating || 0,
           },
-        },
-        suspensionReason: profile.suspensionReason,
-        suspendedAt: profile.suspendedAt,
-      });
-    } catch (err) {
-      console.error("Failed to load technician data:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load technician profile"
-      );
-      setDashboardData(getEmptyDashboardData());
-    } finally {
-      setLoading(false);
-    }
-  };
-  loadTechnicianData();
-}, []);
+          bookings: {
+            bookings: [],
+            isNewTechnician: true,
+          },
+          earnings: {
+            earnings: [],
+            isNewTechnician: true,
+          },
+          reviews: {
+            reviews: [],
+            isNewTechnician: true,
+          },
+          profile: {
+            ...profile,
+            personalInfo: {
+              fullName: profile.personalInfo?.fullName || profile.displayName,
+              gender: profile.personalInfo?.gender || "Not specified",
+              phoneNumber:
+                profile.personalInfo?.phoneNumber ||
+                profile.phone ||
+                "Not provided",
+              dateOfBirth: profile.personalInfo?.dateOfBirth || "Not specified",
+              address: profile.personalInfo?.address || {
+                street: "Not specified",
+                city: "Not specified",
+                state: "Not specified",
+                pincode: "Not specified",
+              },
+              languages: profile.personalInfo?.languages || [],
+            },
+          },
+          suspensionReason: profile.suspensionReason,
+          suspendedAt: profile.suspendedAt,
+        });
+      } catch (err) {
+        console.error("Failed to load technician data:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load technician profile"
+        );
+        setDashboardData(getEmptyDashboardData());
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTechnicianData();
+  }, []);
 
   const getEmptyDashboardData = (): DashboardData => {
     return {

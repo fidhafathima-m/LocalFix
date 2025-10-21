@@ -58,7 +58,7 @@ export interface TechnicianProfile {
       bankName?: string;
     };
     upiId?: string;
-    withdrawalPreference?: 'auto' | 'manual';
+    withdrawalPreference?: "auto" | "manual";
   };
   skills?: string[];
   certifications?: string[];
@@ -142,16 +142,15 @@ export interface ApplicationData {
   updatedAt: string;
 }
 
-// FIX: Remove the extra data wrapping
 const normalizeResponse = (response: any) => {
   const responseData = response.data || response;
-  
+
   return {
     success: responseData.success,
     message: responseData.message,
-    data: responseData.data, // Remove the || responseData part
+    data: responseData.data,
     statusCode: responseData.statusCode || 200,
-    error: responseData.error
+    error: responseData.error,
   };
 };
 
@@ -174,7 +173,7 @@ export const technicianAPI = {
         message: error.message || "Failed to get profile",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -197,7 +196,7 @@ export const technicianAPI = {
         message: error.message || "Failed to update profile",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -220,7 +219,7 @@ export const technicianAPI = {
         message: error.message || "Failed to get address",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -243,7 +242,7 @@ export const technicianAPI = {
         message: error.message || "Failed to update address",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -266,7 +265,7 @@ export const technicianAPI = {
         message: error.message || "Failed to get application",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -289,7 +288,7 @@ export const technicianAPI = {
         message: error.message || "Failed to get user applications",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -312,7 +311,7 @@ export const technicianAPI = {
         message: error.message || "Failed to start application",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -337,12 +336,15 @@ export const technicianAPI = {
         message: error.message || "Failed to save step",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
 
-  submitApplication: async (data: { applicationId: string, userId: string }) => {
+  submitApplication: async (data: {
+    applicationId: string;
+    userId: string;
+  }) => {
     try {
       const response = await api.post<{
         success: boolean;
@@ -360,7 +362,7 @@ export const technicianAPI = {
         message: error.message || "Failed to submit application",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -383,7 +385,7 @@ export const technicianAPI = {
         message: error.message || "Failed to resubmit application",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -406,7 +408,7 @@ export const technicianAPI = {
         message: error.message || "Failed to start new application",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -432,7 +434,7 @@ export const technicianAPI = {
         message: error.message || "Failed to upload photo",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -455,7 +457,7 @@ export const technicianAPI = {
         message: error.message || "Failed to update personal info",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -478,7 +480,7 @@ export const technicianAPI = {
         message: error.message || "Failed to update identity verification",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -503,7 +505,7 @@ export const technicianAPI = {
         message: error.message || "Failed to upload document",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -531,7 +533,7 @@ export const technicianAPI = {
         message: error.message || "Failed to update skills and services",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -567,7 +569,7 @@ export const technicianAPI = {
         message: error.message || "Failed to update availability",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },
@@ -601,7 +603,7 @@ export const technicianAPI = {
         message: error.message || "Failed to update bank payment details",
         error: "Network error",
         data: null,
-        statusCode: 500
+        statusCode: 500,
       };
     }
   },

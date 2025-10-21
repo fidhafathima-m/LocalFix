@@ -1,25 +1,27 @@
-import { Model } from 'mongoose';
-import { BaseRepository } from '../BaseRepository';
+import { Model } from "mongoose";
+import { BaseRepository } from "../BaseRepository";
 import { IUserManagementRepository } from "../../interfaces/repository/admin/IUserManagementRepository";
-import { IUser, IUserWithAddress } from "../../interfaces/admin/IUserManagements";
+import {
+  IUser,
+  IUserWithAddress,
+} from "../../interfaces/admin/IUserManagements";
 import User from "../../models/UserSchema";
 
-export class UserManagementRepository 
-  extends BaseRepository<IUser> 
-  implements IUserManagementRepository {
-  
+export class UserManagementRepository
+  extends BaseRepository<IUser>
+  implements IUserManagementRepository
+{
   constructor() {
-    // Use type assertion to handle the Model type
     super(User as unknown as Model<IUser>);
   }
 
   async findAllUsers(): Promise<IUserWithAddress[]> {
     return this.model.aggregate([
-      { 
-        $match: { 
-          roles: "user", 
-          isDeleted: { $ne: true } 
-        } 
+      {
+        $match: {
+          roles: "user",
+          isDeleted: { $ne: true },
+        },
       },
       { $sort: { createdAt: -1 } },
       {
@@ -47,7 +49,10 @@ export class UserManagementRepository
     ]);
   }
 
-  async updateUserStatus(userId: string, status: "Active" | "Inactive" | "Blocked"): Promise<IUser | null> {
+  async updateUserStatus(
+    userId: string,
+    status: "Active" | "Inactive" | "Blocked"
+  ): Promise<IUser | null> {
     return this.update(userId, { $set: { status } });
   }
 
@@ -63,13 +68,22 @@ export class UserManagementRepository
   }> {
     const userMatchCondition = {
       roles: "user",
-      isDeleted: { $ne: true }
+      isDeleted: { $ne: true },
     };
 
     const totalUsers = await this.count(userMatchCondition);
-    const activeUsers = await this.count({ ...userMatchCondition, status: "Active" });
-    const inactiveUsers = await this.count({ ...userMatchCondition, status: "Inactive" });
-    const blockedUsers = await this.count({ ...userMatchCondition, status: "Blocked" });
+    const activeUsers = await this.count({
+      ...userMatchCondition,
+      status: "Active",
+    });
+    const inactiveUsers = await this.count({
+      ...userMatchCondition,
+      status: "Inactive",
+    });
+    const blockedUsers = await this.count({
+      ...userMatchCondition,
+      status: "Blocked",
+    });
 
     return { totalUsers, activeUsers, inactiveUsers, blockedUsers };
   }

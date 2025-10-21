@@ -7,7 +7,7 @@ export class TechnicianService {
       const response = await technicianAPI.getProfile();
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to get users");
+      throw this.handleError(error, "Failed to get technician profile");
     }
   }
   static async updateAvailability(data: {
@@ -25,10 +25,10 @@ export class TechnicianService {
     serviceRadiusKm: number;
   }) {
     try {
-      const response = await technicianAPI.updateAvailability(data)
+      const response = await technicianAPI.updateAvailability(data);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to update user status");
+      throw this.handleError(error, "Failed to update availability");
     }
   }
   static async updateBankPayment(data: {
@@ -44,10 +44,10 @@ export class TechnicianService {
     };
   }) {
     try {
-      const response = await technicianAPI.updateBankPayment(data)
+      const response = await technicianAPI.updateBankPayment(data);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to delete user");
+      throw this.handleError(error, "Failed to update bank payments");
     }
   }
   static async updateIdentityVerification(data: any) {
@@ -55,7 +55,7 @@ export class TechnicianService {
       const response = await technicianAPI.updateIdentityVerification(data);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to reset Password");
+      throw this.handleError(error, "Failed to update identity verification");
     }
   }
   static async uploadDocument(formData: FormData) {
@@ -63,7 +63,7 @@ export class TechnicianService {
       const response = await technicianAPI.uploadDocument(formData);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to reset Password");
+      throw this.handleError(error, "Failed to upload document");
     }
   }
   static async updateProfile(data: Partial<TechnicianProfile>) {
@@ -71,7 +71,7 @@ export class TechnicianService {
       const response = await technicianAPI.updateProfile(data);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to reset Password");
+      throw this.handleError(error, "Failed to update profile");
     }
   }
   static async updateSkillsServices(data: {
@@ -81,10 +81,10 @@ export class TechnicianService {
     certifications?: string[];
   }) {
     try {
-      const response = await technicianAPI.updateSkillsServices(data)
+      const response = await technicianAPI.updateSkillsServices(data);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to reset Password");
+      throw this.handleError(error, "Failed to update skills and services");
     }
   }
   private static handleResponse(response: any) {

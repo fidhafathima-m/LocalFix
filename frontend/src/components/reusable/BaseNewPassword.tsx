@@ -15,7 +15,9 @@ export interface NewPasswordErrors {
 
 export interface BaseNewPasswordProps {
   userType: UserType;
-  onSubmit: (data: NewPasswordFormData) => Promise<{ success: boolean; message?: string; error?: any }> | void;
+  onSubmit: (
+    data: NewPasswordFormData
+  ) => Promise<{ success: boolean; message?: string; error?: any }> | void;
   onSuccess?: (data: NewPasswordFormData) => void;
   onFailure?: (error: string) => void;
   loading?: boolean;
@@ -50,7 +52,8 @@ const BaseNewPassword: React.FC<BaseNewPasswordProps> = ({
   const [internalLoading, setInternalLoading] = useState(false);
 
   // Use external loading if provided, otherwise use internal loading
-  const isLoading = externalLoading !== undefined ? externalLoading : internalLoading;
+  const isLoading =
+    externalLoading !== undefined ? externalLoading : internalLoading;
 
   // Default validation
   const defaultValidateForm = (): boolean => {
@@ -104,9 +107,9 @@ const BaseNewPassword: React.FC<BaseNewPasswordProps> = ({
   };
 
   const handleChange = (field: keyof NewPasswordFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -135,7 +138,6 @@ const BaseNewPassword: React.FC<BaseNewPasswordProps> = ({
         setErrors({ password: errorMessage });
         onFailure?.(errorMessage);
       } else {
-        // If onSubmit doesn't return a result (void), assume success
         onSuccess?.(formData);
       }
     } catch (error: any) {
@@ -159,7 +161,9 @@ const BaseNewPassword: React.FC<BaseNewPasswordProps> = ({
     <div className="max-w-md mx-auto p-6 shadow-md mt-10">
       {/* Header */}
       <div className="mb-4 text-center">
-        <h1 className="text-2xl font-semibold p-5">{title || getDefaultTitle()}</h1>
+        <h1 className="text-2xl font-semibold p-5">
+          {title || getDefaultTitle()}
+        </h1>
         <p className="text-sm text-gray-500">
           {subtitle || getDefaultSubtitle()}
         </p>
@@ -168,7 +172,9 @@ const BaseNewPassword: React.FC<BaseNewPasswordProps> = ({
       {/* Password Requirements */}
       {showPasswordRequirements && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-600 font-medium mb-2">Password Requirements:</p>
+          <p className="text-sm text-blue-600 font-medium mb-2">
+            Password Requirements:
+          </p>
           <ul className="text-xs text-blue-600 list-disc list-inside space-y-1">
             <li>At least 6 characters long</li>
             <li>Should match in both fields</li>
@@ -180,7 +186,10 @@ const BaseNewPassword: React.FC<BaseNewPasswordProps> = ({
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               New Password
             </label>
             <input
@@ -194,16 +203,19 @@ const BaseNewPassword: React.FC<BaseNewPasswordProps> = ({
               }`}
               placeholder="Enter new password"
               value={formData.password}
-              onChange={(e) => handleChange('password', e.target.value)}
+              onChange={(e) => handleChange("password", e.target.value)}
               disabled={isLoading}
             />
             {errors.password && (
               <p className="mt-1 text-sm text-red-600">{errors.password}</p>
             )}
           </div>
-          
+
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Confirm Password
             </label>
             <input
@@ -217,27 +229,31 @@ const BaseNewPassword: React.FC<BaseNewPasswordProps> = ({
               }`}
               placeholder="Confirm new password"
               value={formData.confirmPassword}
-              onChange={(e) => handleChange('confirmPassword', e.target.value)}
+              onChange={(e) => handleChange("confirmPassword", e.target.value)}
               disabled={isLoading}
             />
             {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+              <p className="mt-1 text-sm text-red-600">
+                {errors.confirmPassword}
+              </p>
             )}
           </div>
         </div>
-        
+
         {getGeneralError() && !errors.password && !errors.confirmPassword && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-600 text-center">{getGeneralError()}</p>
+            <p className="text-sm text-red-600 text-center">
+              {getGeneralError()}
+            </p>
           </div>
         )}
-        
+
         <button
           type="submit"
           disabled={isLoading}
           className={`w-full bg-blue-700 text-white p-3 rounded font-medium transition-colors ${
-            isLoading 
-              ? "opacity-50 cursor-not-allowed" 
+            isLoading
+              ? "opacity-50 cursor-not-allowed"
               : "hover:bg-blue-800 cursor-pointer"
           }`}
         >

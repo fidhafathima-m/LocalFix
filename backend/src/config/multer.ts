@@ -20,7 +20,11 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: any) => {
+const fileFilter = (
+  req: Express.Request,
+  file: Express.Multer.File,
+  cb: any
+) => {
   const allowed = /jpeg|jpg|png|pdf/;
   const ext = path.extname(file.originalname).toLowerCase();
   if (allowed.test(ext)) {

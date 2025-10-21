@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BaseForgetPassword, { type ForgetPasswordFormData } from "../../../components/reusable/BaseForgetPassword";
+import BaseForgetPassword, {
+  type ForgetPasswordFormData,
+} from "../../../components/reusable/BaseForgetPassword";
 import { validateSchema, forgotPasswordSchema } from "../../../validation";
 import { UserAuthService } from "../../../services/user/userAuthService";
 
@@ -15,16 +17,16 @@ const UserForgetPassword: React.FC = () => {
   }) => {
     setLoading(true);
     try {
-      const response = await UserAuthService.forgotPassword(data)
+      const response = await UserAuthService.forgotPassword(data);
 
       if (response.success) {
         // Save to localStorage as fallback
         localStorage.setItem(
           "forgotData",
-          JSON.stringify({ 
-            phone: data.phone, 
+          JSON.stringify({
+            phone: data.phone,
             email: data.email,
-            userType: "user"
+            userType: "user",
           })
         );
 
@@ -43,7 +45,7 @@ const UserForgetPassword: React.FC = () => {
       } else {
         return { success: false, message: response.message };
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Forgot password error:", error);
       const errorMessage = error.message || "Failed to send OTP";
@@ -53,20 +55,13 @@ const UserForgetPassword: React.FC = () => {
     }
   };
 
-  const handleSuccess = (formData: ForgetPasswordFormData) => {
-    console.log("OTP sent successfully to:", formData);
-  };
-
-  const handleFailure = (error: string) => {
-    console.error("Failed to send OTP:", error);
-  };
 
   const customValidation = (data: ForgetPasswordFormData) => {
     const validation = validateSchema(forgotPasswordSchema, {
       ...data,
       userType: "user",
     });
-    
+
     return {
       isValid: validation.success,
       errors: validation.errors || {},
@@ -77,8 +72,6 @@ const UserForgetPassword: React.FC = () => {
     <BaseForgetPassword
       userType="user"
       onSubmit={handleSubmit}
-      onSuccess={handleSuccess}
-      onFailure={handleFailure}
       loading={loading}
       customValidation={customValidation}
       title="User Forgot Password"

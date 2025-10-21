@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
-import { loginStart, loginSuccess, loginFailure, getSafeApplicationStatus, type User } from "../../../store/slices/authSlice";
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  getSafeApplicationStatus,
+  type User,
+} from "../../../store/slices/authSlice";
 import { useNavigate } from "react-router-dom";
 import BaseLogin from "../../../components/reusable/BaseLogin";
 import { validateSchema, loginSchema } from "../../../validation";
@@ -14,44 +20,49 @@ const TechnicianLogin: React.FC = () => {
 
   const handleLogin = async (credentials: any) => {
     dispatch(loginStart());
-    
+
     try {
-      const res = await TechnicianAuthService.login(credentials)
-      
-      // ✅ UPDATED: Extract tokens from new structure
+      const res = await TechnicianAuthService.login(credentials);
+
       const userDataFromResponse = res.data?.user || res.user;
       const accessToken = res.data?.accessToken || res.accessToken;
       const refreshToken = res.data?.refreshToken || res.refreshToken;
-      
+
       if (res.success && userDataFromResponse && accessToken && refreshToken) {
-        // ✅ FIXED: Check if user has serviceProvider role in their roles array
-        const hasServiceProviderRole = userDataFromResponse.roles?.includes("serviceProvider");
-        
+        const hasServiceProviderRole =
+          userDataFromResponse.roles?.includes("serviceProvider");
+
         if (!hasServiceProviderRole) {
-          throw new Error("This account is not registered as a service provider");
+          throw new Error(
+            "This account is not registered as a service provider"
+          );
         }
 
-        // ✅ UPDATED: Create proper User object with roles array
         const userData: User = {
           _id: userDataFromResponse._id,
           fullName: userDataFromResponse.fullName,
           phone: userDataFromResponse.phone || "",
           email: userDataFromResponse.email || "",
-          roles: userDataFromResponse.roles || [], // Use roles array
-          applicationStatus: getSafeApplicationStatus(userDataFromResponse.applicationStatus),
+          roles: userDataFromResponse.roles || [],
+          applicationStatus: getSafeApplicationStatus(
+            userDataFromResponse.applicationStatus
+          ),
           isVerified: userDataFromResponse.isVerified || false,
         };
 
-        // ✅ UPDATED: Dispatch login success with both tokens
-        dispatch(loginSuccess({
-          user: userData,
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-        }));
+        dispatch(
+          loginSuccess({
+            user: userData,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          })
+        );
 
-        // KEEP ORIGINAL REDIRECTION LOGIC - DON'T CHANGE PATHS
         setTimeout(() => {
-          if (userData.applicationStatus === "submitted" || userData.applicationStatus === "under_review") {
+          if (
+            userData.applicationStatus === "submitted" ||
+            userData.applicationStatus === "under_review"
+          ) {
             navigate("/pending-technician/dashboard");
           } else if (userData.applicationStatus === "approved") {
             navigate("/technician/dashboard");
@@ -70,7 +81,8 @@ const TechnicianLogin: React.FC = () => {
         return { success: false, message: res.message };
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || "Login failed";
+      const errorMessage =
+        error.response?.data?.message || error.message || "Login failed";
       dispatch(loginFailure(errorMessage));
       return { success: false, message: errorMessage };
     }
@@ -81,7 +93,7 @@ const TechnicianLogin: React.FC = () => {
       ...data,
       userType: "serviceProvider",
     });
-    
+
     return {
       isValid: validation.success,
       errors: validation.errors || {},

@@ -1,11 +1,11 @@
-import AccordionSection from './AccordianSections'
+import AccordionSection from "./AccordianSections";
 import {
   FileUploadOutlined,
   DescriptionOutlined,
   CheckCircleOutlineOutlined,
   ErrorOutlineOutlined,
   AccessTimeOutlined,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 const DocumentsVerification = () => {
   return (
     <AccordionSection title="Documents & Verification" number={6}>
@@ -124,6 +124,6 @@ const DocumentsVerification = () => {
         </div>
       </div>
     </AccordionSection>
-  )
-}
-export default DocumentsVerification
+  );
+};
+export default DocumentsVerification;

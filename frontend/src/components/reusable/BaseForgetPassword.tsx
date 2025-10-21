@@ -57,7 +57,8 @@ const BaseForgetPassword: React.FC<BaseForgetPasswordProps> = ({
   const [internalLoading, setInternalLoading] = useState(false);
 
   // Use external loading if provided, otherwise use internal loading
-  const isLoading = externalLoading !== undefined ? externalLoading : internalLoading;
+  const isLoading =
+    externalLoading !== undefined ? externalLoading : internalLoading;
 
   // Default validation
   const defaultValidateForm = (): boolean => {
@@ -125,9 +126,9 @@ const BaseForgetPassword: React.FC<BaseForgetPasswordProps> = ({
   };
 
   const handleChange = (field: keyof ForgetPasswordFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -178,7 +179,9 @@ const BaseForgetPassword: React.FC<BaseForgetPasswordProps> = ({
   return (
     <div className="max-w-md mx-auto p-6 shadow-md mt-10">
       <div className="mb-4 text-center">
-        <h1 className="text-2xl font-semibold p-5">{title || getDefaultTitle()}</h1>
+        <h1 className="text-2xl font-semibold p-5">
+          {title || getDefaultTitle()}
+        </h1>
         <p className="text-sm text-gray-500">
           {subtitle || getDefaultSubtitle()}
         </p>
@@ -196,7 +199,7 @@ const BaseForgetPassword: React.FC<BaseForgetPasswordProps> = ({
             }`}
             placeholder="Enter your phone number"
             value={formData.phone}
-            onChange={(e) => handleChange('phone', e.target.value)}
+            onChange={(e) => handleChange("phone", e.target.value)}
           />
           {errors.phone && (
             <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
@@ -214,7 +217,7 @@ const BaseForgetPassword: React.FC<BaseForgetPasswordProps> = ({
             }`}
             placeholder="Enter your email"
             value={formData.email}
-            onChange={(e) => handleChange('email', e.target.value)}
+            onChange={(e) => handleChange("email", e.target.value)}
           />
           {errors.email && (
             <p className="text-red-500 text-sm mt-1">{errors.email}</p>
@@ -226,12 +229,14 @@ const BaseForgetPassword: React.FC<BaseForgetPasswordProps> = ({
             type="submit"
             disabled={isLoading}
             className={`w-full bg-blue-700 text-white p-3 rounded font-medium ${
-              isLoading 
-                ? "opacity-50 cursor-not-allowed" 
+              isLoading
+                ? "opacity-50 cursor-not-allowed"
                 : "hover:bg-blue-800 transition-colors cursor-pointer"
             }`}
           >
-            {isLoading ? "Sending Verification Code..." : "Send Verification Code"}
+            {isLoading
+              ? "Sending Verification Code..."
+              : "Send Verification Code"}
           </button>
         </div>
 

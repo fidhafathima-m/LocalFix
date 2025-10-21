@@ -1,5 +1,5 @@
-import AccordionSection from './AccordianSections'
-import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import AccordionSection from "./AccordianSections";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 const DangerZone = () => {
   return (
     <AccordionSection title="Danger Zone" number={8}>
@@ -31,6 +31,6 @@ const DangerZone = () => {
         </div>
       </div>
     </AccordionSection>
-  )
-}
-export default DangerZone
+  );
+};
+export default DangerZone;

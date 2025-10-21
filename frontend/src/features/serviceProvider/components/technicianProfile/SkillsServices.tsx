@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
-import AccordionSection from './AccordianSections'
-import { type TechnicianProfile } from '../../../../services/common/technicianApi'
-import { TechnicianService } from '../../../../services/technician/technicianService';
+import { useState, useEffect } from "react";
+import AccordionSection from "./AccordianSections";
+import { type TechnicianProfile } from "../../../../services/common/technicianApi";
+import { TechnicianService } from "../../../../services/technician/technicianService";
 
 interface Service {
   id: string;
@@ -17,120 +17,120 @@ interface SkillsServicesData {
 }
 
 const SkillsServices = () => {
-  const [profile, setProfile] = useState<TechnicianProfile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [profile, setProfile] = useState<TechnicianProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<SkillsServicesData>({
     services: [],
     experienceYears: 0,
     skills: [],
-    certifications: []
-  })
+    certifications: [],
+  });
 
   // Available services without prices
   const availableServices: Service[] = [
-    { id: 'ac-repair', name: 'AC Repair', enabled: false },
-    { id: 'washing-machine', name: 'Washing Machine', enabled: false },
-    { id: 'refrigerator', name: 'Refrigerator', enabled: false },
-    { id: 'fan-repair', name: 'Fan Repair', enabled: false },
-    { id: 'tv-repair', name: 'TV Repair', enabled: false },
-    { id: 'microwave', name: 'Microwave Oven', enabled: false },
-    { id: 'water-purifier', name: 'Water Purifier', enabled: false },
-    { id: 'geyser', name: 'Geyser/Water Heater', enabled: false },
-    { id: 'ac-installation', name: 'AC Installation', enabled: false },
-  ]
+    { id: "ac-repair", name: "AC Repair", enabled: false },
+    { id: "washing-machine", name: "Washing Machine", enabled: false },
+    { id: "refrigerator", name: "Refrigerator", enabled: false },
+    { id: "fan-repair", name: "Fan Repair", enabled: false },
+    { id: "tv-repair", name: "TV Repair", enabled: false },
+    { id: "microwave", name: "Microwave Oven", enabled: false },
+    { id: "water-purifier", name: "Water Purifier", enabled: false },
+    { id: "geyser", name: "Geyser/Water Heater", enabled: false },
+    { id: "ac-installation", name: "AC Installation", enabled: false },
+  ];
 
   useEffect(() => {
-    fetchProfile()
-  }, [])
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
     try {
-      setLoading(true)
-      const response = await TechnicianService.getProfile()
+      setLoading(true);
+      const response = await TechnicianService.getProfile();
       if (response.success) {
-        const profileData = response.data?.data?.profile
-        setProfile(profileData)
-        
+        const profileData = response.data?.data?.profile;
+        setProfile(profileData);
+
         // Populate skills and services data
-        const services = profileData.services || []
-        const experienceYears = profileData.experienceYears || 0
+        const services = profileData.services || [];
+        const experienceYears = profileData.experienceYears || 0;
 
         setFormData({
           services,
           experienceYears,
           skills: profileData.skills || [],
-          certifications: profileData.certifications || []
-        })
+          certifications: profileData.certifications || [],
+        });
       }
     } catch (error) {
-      console.error('Error fetching profile:', error)
+      console.error("Error fetching profile:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleServiceToggle = (serviceId: string, enabled: boolean) => {
-    const service = availableServices.find(s => s.id === serviceId)
-    if (!service) return
+    const service = availableServices.find((s) => s.id === serviceId);
+    if (!service) return;
 
-    setFormData(prev => {
-      const updatedServices = enabled 
+    setFormData((prev) => {
+      const updatedServices = enabled
         ? [...prev.services, service.name]
-        : prev.services.filter(s => s !== service.name)
+        : prev.services.filter((s) => s !== service.name);
 
       return {
         ...prev,
-        services: updatedServices
-      }
-    })
-  }
+        services: updatedServices,
+      };
+    });
+  };
 
   const handleExperienceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 0
-    setFormData(prev => ({
+    const value = parseInt(e.target.value) || 0;
+    setFormData((prev) => ({
       ...prev,
-      experienceYears: value
-    }))
-  }
+      experienceYears: value,
+    }));
+  };
 
   const handleSave = async () => {
-  try {
-    setSaving(true)
-    
-    const updateData = {
-      services: formData.services,
-      experienceYears: formData.experienceYears || 0, // Ensure it's always a number
-      skills: formData.skills,
-      certifications: formData.certifications
-    }
+    try {
+      setSaving(true);
 
-    const response = await TechnicianService.updateSkillsServices(updateData)
-    
-    if (response.data.success) {
-      // Update local profile state with proper type safety
-      if (profile) {
-        setProfile({
-          ...profile,
-          services: updateData.services,
-          experienceYears: updateData.experienceYears,
-          skills: updateData.skills || [],
-          certifications: updateData.certifications || []
-        })
+      const updateData = {
+        services: formData.services,
+        experienceYears: formData.experienceYears || 0, // Ensure it's always a number
+        skills: formData.skills,
+        certifications: formData.certifications,
+      };
+
+      const response = await TechnicianService.updateSkillsServices(updateData);
+
+      if (response.data.success) {
+        // Update local profile state with proper type safety
+        if (profile) {
+          setProfile({
+            ...profile,
+            services: updateData.services,
+            experienceYears: updateData.experienceYears,
+            skills: updateData.skills || [],
+            certifications: updateData.certifications || [],
+          });
+        }
+        alert("Skills and services updated successfully!");
       }
-      alert('Skills and services updated successfully!')
+    } catch (error) {
+      console.error("Error updating skills and services:", error);
+      alert("Failed to update skills and services");
+    } finally {
+      setSaving(false);
     }
-  } catch (error) {
-    console.error('Error updating skills and services:', error)
-    alert('Failed to update skills and services')
-  } finally {
-    setSaving(false)
-  }
-}
+  };
 
   const isServiceEnabled = (serviceName: string) => {
-    return formData.services.includes(serviceName)
-  }
+    return formData.services.includes(serviceName);
+  };
 
   if (loading) {
     return (
@@ -139,7 +139,7 @@ const SkillsServices = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
       </AccordionSection>
-    )
+    );
   }
 
   return (
@@ -157,11 +157,13 @@ const SkillsServices = () => {
                 type="checkbox"
                 id={service.id}
                 checked={isServiceEnabled(service.name)}
-                onChange={(e) => handleServiceToggle(service.id, e.target.checked)}
+                onChange={(e) =>
+                  handleServiceToggle(service.id, e.target.checked)
+                }
                 className="mr-3 h-5 w-5 text-blue-500 rounded border-gray-300 focus:ring-blue-500"
               />
-              <label 
-                htmlFor={service.id} 
+              <label
+                htmlFor={service.id}
                 className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900"
               >
                 {service.name}
@@ -177,7 +179,7 @@ const SkillsServices = () => {
               Selected Services ({formData.services.length})
             </h4>
             <div className="flex flex-wrap gap-2">
-              {formData.services.map(service => (
+              {formData.services.map((service) => (
                 <span
                   key={service}
                   className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
@@ -192,7 +194,8 @@ const SkillsServices = () => {
         {formData.services.length === 0 && (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800">
-              No services selected. Please select at least one service you can provide.
+              No services selected. Please select at least one service you can
+              provide.
             </p>
           </div>
         )}
@@ -225,13 +228,13 @@ const SkillsServices = () => {
 
         {/* Save Button */}
         <div className="flex justify-end pt-4 border-t border-gray-200">
-          <button 
+          <button
             onClick={handleSave}
             disabled={saving || formData.services.length === 0}
             className={`px-6 py-2 rounded font-medium flex items-center ${
               saving || formData.services.length === 0
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
             }`}
           >
             {saving ? (
@@ -240,13 +243,13 @@ const SkillsServices = () => {
                 Saving...
               </>
             ) : (
-              'Save Changes'
+              "Save Changes"
             )}
           </button>
         </div>
       </div>
     </AccordionSection>
-  )
-}
+  );
+};
 
-export default SkillsServices
+export default SkillsServices;

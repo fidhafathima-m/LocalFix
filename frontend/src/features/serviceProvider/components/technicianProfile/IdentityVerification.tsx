@@ -1,8 +1,13 @@
-import { useState, useEffect } from 'react'
-import AccordionSection from './AccordianSections'
-import { AccessTimeOutlined, FileUploadOutlined, CheckCircleOutline, Cancel } from '@mui/icons-material'
-import { type TechnicianProfile } from '../../../../services/common/technicianApi'
-import { TechnicianService } from '../../../../services/technician/technicianService';
+import { useState, useEffect } from "react";
+import AccordionSection from "./AccordianSections";
+import {
+  AccessTimeOutlined,
+  FileUploadOutlined,
+  CheckCircleOutline,
+  Cancel,
+} from "@mui/icons-material";
+import { type TechnicianProfile } from "../../../../services/common/technicianApi";
+import { TechnicianService } from "../../../../services/technician/technicianService";
 
 interface IdentityVerificationData {
   governmentIdType?: string;
@@ -14,190 +19,208 @@ interface IdentityVerificationData {
 }
 
 const IdentityVerification = () => {
-  const [profile, setProfile] = useState<TechnicianProfile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [profile, setProfile] = useState<TechnicianProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState<IdentityVerificationData>({
-    governmentIdType: '',
-    governmentIdNumber: '',
-    idDocument: '',
-    verificationStatus: 'pending',
-    verified: false
-  })
+    governmentIdType: "",
+    governmentIdNumber: "",
+    idDocument: "",
+    verificationStatus: "pending",
+    verified: false,
+  });
 
   useEffect(() => {
-    fetchProfile()
-  }, [])
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
-  try {
-    setLoading(true)
-    const response = await TechnicianService.getProfile();
-    if (response.success) {
-      const profileData = response.data?.data?.profile
-      setProfile(profileData)
-      
-      // Populate identity verification data with null checks
-      if (profileData.identityVerification) {
-        setFormData({
-          governmentIdType: profileData.identityVerification.governmentIdType || '',
-          governmentIdNumber: profileData.identityVerification.governmentIdNumber || '',
-          idDocument: profileData.identityVerification.idDocument || '',
-          verificationStatus: profileData.identityVerification.verificationStatus || 'pending',
-          verified: profileData.identityVerification.verified || false,
-          verifiedAt: profileData.identityVerification.verifiedAt
-        })
-      } else {
-        // Initialize with empty values if identityVerification doesn't exist
-        setFormData({
-          governmentIdType: '',
-          governmentIdNumber: '',
-          idDocument: '',
-          verificationStatus: 'pending',
-          verified: false
-        })
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching profile:', error)
-  } finally {
-    setLoading(false)
-  }
-}
+    try {
+      setLoading(true);
+      const response = await TechnicianService.getProfile();
+      if (response.success) {
+        const profileData = response.data?.data?.profile;
+        setProfile(profileData);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
+        // Populate identity verification data with null checks
+        if (profileData.identityVerification) {
+          setFormData({
+            governmentIdType:
+              profileData.identityVerification.governmentIdType || "",
+            governmentIdNumber:
+              profileData.identityVerification.governmentIdNumber || "",
+            idDocument: profileData.identityVerification.idDocument || "",
+            verificationStatus:
+              profileData.identityVerification.verificationStatus || "pending",
+            verified: profileData.identityVerification.verified || false,
+            verifiedAt: profileData.identityVerification.verifiedAt,
+          });
+        } else {
+          // Initialize with empty values if identityVerification doesn't exist
+          setFormData({
+            governmentIdType: "",
+            governmentIdNumber: "",
+            idDocument: "",
+            verificationStatus: "pending",
+            verified: false,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
       // Reset verification status when ID details change
-      verificationStatus: 'pending',
-      verified: false
-    }))
-  }
+      verificationStatus: "pending",
+      verified: false,
+    }));
+  };
 
   const handleSave = async () => {
-  try {
-    setSaving(true)
-    
-    const updateData = {
-      identityVerification: {
-        governmentIdType: formData.governmentIdType,
-        governmentIdNumber: formData.governmentIdNumber,
-        idDocument: formData.idDocument,
-        verificationStatus: 'pending' as const, // Reset to pending when updated
-        verified: false
-      }
-    }
+    try {
+      setSaving(true);
 
-    const response = await TechnicianService.updateIdentityVerification(updateData);
-    
-    if (response.data.success) {
-      // Update local profile state with proper null checks
-      if (profile) {
-        setProfile({
-          ...profile,
-          identityVerification: {
-            ...profile.identityVerification, // This might be undefined
-            ...updateData.identityVerification
-          }
-        })
+      const updateData = {
+        identityVerification: {
+          governmentIdType: formData.governmentIdType,
+          governmentIdNumber: formData.governmentIdNumber,
+          idDocument: formData.idDocument,
+          verificationStatus: "pending" as const, // Reset to pending when updated
+          verified: false,
+        },
+      };
+
+      const response = await TechnicianService.updateIdentityVerification(
+        updateData
+      );
+
+      if (response.data.success) {
+        // Update local profile state with proper null checks
+        if (profile) {
+          setProfile({
+            ...profile,
+            identityVerification: {
+              ...profile.identityVerification,
+              ...updateData.identityVerification,
+            },
+          });
+        }
+        alert(
+          "Identity verification details updated successfully! They will be reviewed by our team."
+        );
       }
-      alert('Identity verification details updated successfully! They will be reviewed by our team.')
+    } catch (error) {
+      console.error("Error updating identity verification:", error);
+      alert("Failed to update identity verification details");
+    } finally {
+      setSaving(false);
     }
-  } catch (error) {
-    console.error('Error updating identity verification:', error)
-    alert('Failed to update identity verification details')
-  } finally {
-    setSaving(false)
-  }
-}
+  };
 
   const handleFileUpload = async (file: File) => {
     try {
-      setUploading(true)
-      
+      setUploading(true);
+
       // Create FormData for file upload
-      const uploadFormData  = new FormData()
-      uploadFormData.append('document', file)
-      uploadFormData.append('type', 'id_proof')
-      uploadFormData.append('documentType', formData.governmentIdType || 'id_proof')
+      const uploadFormData = new FormData();
+      uploadFormData.append("document", file);
+      uploadFormData.append("type", "id_proof");
+      uploadFormData.append(
+        "documentType",
+        formData.governmentIdType || "id_proof"
+      );
 
       // Upload document
-      const response = await TechnicianService.uploadDocument(uploadFormData)
-      
+      const response = await TechnicianService.uploadDocument(uploadFormData);
+
       if (response.data.success) {
         // Update form data with the uploaded document URL
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          idDocument: response.data.data.document.url
-        }))
-        
-        alert('ID document uploaded successfully!')
+          idDocument: response.data.data.document.url,
+        }));
+
+        alert("ID document uploaded successfully!");
       }
     } catch (error) {
-      console.error('Error uploading document:', error)
-      alert('Failed to upload document')
+      console.error("Error uploading document:", error);
+      alert("Failed to upload document");
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
       // Validate file type and size
-      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
+      const validTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+        "application/pdf",
+      ];
       if (!validTypes.includes(file.type)) {
-        alert('Please select a valid file type (JPEG, PNG, JPG, PDF)')
-        return
+        alert("Please select a valid file type (JPEG, PNG, JPG, PDF)");
+        return;
       }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert('File size should be less than 5MB')
-        return
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        alert("File size should be less than 5MB");
+        return;
       }
-      handleFileUpload(file)
+      handleFileUpload(file);
     }
-  }
+  };
 
   const getStatusDisplay = () => {
-    if (!formData.verificationStatus) return null
+    if (!formData.verificationStatus) return null;
 
     switch (formData.verificationStatus) {
-      case 'approved':
+      case "approved":
         return (
           <div className="flex items-center text-green-500">
             <CheckCircleOutline className="h-5 w-5 mr-1" />
             <span className="text-sm">Verified</span>
           </div>
-        )
-      case 'rejected':
+        );
+      case "rejected":
         return (
           <div className="flex items-center text-red-500">
             <Cancel className="h-5 w-5 mr-1" />
             <span className="text-sm">Verification Failed</span>
           </div>
-        )
-      case 'pending':
+        );
+      case "pending":
       default:
         return (
           <div className="flex items-center text-yellow-500">
             <AccessTimeOutlined className="h-5 w-5 mr-1" />
             <span className="text-sm">Pending Verification</span>
           </div>
-        )
+        );
     }
-  }
+  };
 
   const maskIdNumber = (idNumber?: string) => {
-    if (!idNumber) return 'XXXX-XXXX-XXXX'
-    
+    if (!idNumber) return "XXXX-XXXX-XXXX";
+
     // Mask all but last 4 characters
-    const visiblePart = idNumber.slice(-4)
-    const maskedPart = 'X'.repeat(Math.max(0, idNumber.length - 4))
-    return `${maskedPart}${visiblePart}`
-  }
+    const visiblePart = idNumber.slice(-4);
+    const maskedPart = "X".repeat(Math.max(0, idNumber.length - 4));
+    return `${maskedPart}${visiblePart}`;
+  };
 
   if (loading) {
     return (
@@ -206,7 +229,7 @@ const IdentityVerification = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
       </AccordionSection>
-    )
+    );
   }
 
   return (
@@ -227,9 +250,9 @@ const IdentityVerification = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-sm mb-1">Government ID Type</label>
-            <select 
+            <select
               name="governmentIdType"
-              value={formData.governmentIdType || ''}
+              value={formData.governmentIdType || ""}
               onChange={handleInputChange}
               className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -241,13 +264,13 @@ const IdentityVerification = () => {
               <option value="voter_id">Voter ID</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm mb-1">ID Number</label>
             <input
               type="text"
               name="governmentIdNumber"
-              value={formData.governmentIdNumber || ''}
+              value={formData.governmentIdNumber || ""}
               onChange={handleInputChange}
               placeholder="Enter your ID number"
               className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -265,7 +288,7 @@ const IdentityVerification = () => {
           <label className="block text-sm mb-1">
             Upload / Replace ID Proof
           </label>
-          
+
           {/* Current Document Display */}
           {formData.idDocument && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded">
@@ -276,9 +299,9 @@ const IdentityVerification = () => {
                     Document uploaded successfully
                   </span>
                 </div>
-                <a 
-                  href={formData.idDocument} 
-                  target="_blank" 
+                <a
+                  href={formData.idDocument}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 text-sm hover:underline"
                 >
@@ -300,7 +323,7 @@ const IdentityVerification = () => {
                 <>
                   <FileUploadOutlined className="h-8 w-8 text-gray-400 mb-2" />
                   <div className="text-blue-500 font-medium mb-1">
-                    {formData.idDocument ? 'Replace Document' : 'Upload a file'}
+                    {formData.idDocument ? "Replace Document" : "Upload a file"}
                   </div>
                   <div className="text-sm text-gray-500">or drag and drop</div>
                   <div className="text-xs text-gray-400 mt-1">
@@ -310,7 +333,7 @@ const IdentityVerification = () => {
               )}
             </div>
           </label>
-          
+
           <input
             id="id-document-upload"
             type="file"
@@ -322,7 +345,9 @@ const IdentityVerification = () => {
 
           {/* Upload Instructions */}
           <div className="mt-3 p-3 bg-blue-50 rounded">
-            <h4 className="text-sm font-medium text-blue-800 mb-2">Upload Requirements:</h4>
+            <h4 className="text-sm font-medium text-blue-800 mb-2">
+              Upload Requirements:
+            </h4>
             <ul className="text-xs text-blue-700 list-disc list-inside space-y-1">
               <li>Clear, readable image of your government ID</li>
               <li>File must be in JPG, PNG, or PDF format</li>
@@ -334,11 +359,13 @@ const IdentityVerification = () => {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <button 
+          <button
             onClick={handleSave}
             disabled={saving || uploading}
             className={`bg-blue-500 text-white px-4 py-2 rounded flex items-center ${
-              saving || uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
+              saving || uploading
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-blue-600"
             }`}
           >
             {saving ? (
@@ -347,13 +374,13 @@ const IdentityVerification = () => {
                 Saving...
               </>
             ) : (
-              'Save Changes'
+              "Save Changes"
             )}
           </button>
         </div>
       </div>
     </AccordionSection>
-  )
-}
+  );
+};
 
-export default IdentityVerification
+export default IdentityVerification;

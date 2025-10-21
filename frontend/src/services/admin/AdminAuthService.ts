@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { authAPI, type ForgotPasswordData, type LoginCredentials, type ResetPasswordData } from "../common/authApi";
+import {
+  authAPI,
+  type ForgotPasswordData,
+  type LoginCredentials,
+  type ResetPasswordData,
+} from "../common/authApi";
 
 export class AdminAuthService {
   static async resetPassword(resetData: ResetPasswordData) {

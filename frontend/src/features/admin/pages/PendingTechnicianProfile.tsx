@@ -68,7 +68,9 @@ const PendingApplicationProfile: React.FC = () => {
           throw new Error("Application ID is required");
         }
 
-        const response = await TechnicianMangementService.getApplicationDetails(applicationId);
+        const response = await TechnicianMangementService.getApplicationDetails(
+          applicationId
+        );
 
         if (response.data.success && response.data.data?.applications?.[0]) {
           const applicationData = response.data.data.applications[0];
@@ -197,7 +199,9 @@ const PendingApplicationProfile: React.FC = () => {
     if (!applicationId) return;
 
     try {
-      const response = await TechnicianMangementService.getApplicationDetails(applicationId);
+      const response = await TechnicianMangementService.getApplicationDetails(
+        applicationId
+      );
       if (response.data.success && response.data.data?.applications?.[0]) {
         setApplication(response.data.data.applications[0]);
       }

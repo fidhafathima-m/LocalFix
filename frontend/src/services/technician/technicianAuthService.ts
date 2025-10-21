@@ -1,64 +1,72 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { authAPI, type ForgotPasswordData, type LoginCredentials, type OTPData, type ResendOTPData, type ResetPasswordData, type SignupData } from "../common/authApi";
+import {
+  authAPI,
+  type ForgotPasswordData,
+  type LoginCredentials,
+  type OTPData,
+  type ResendOTPData,
+  type ResetPasswordData,
+  type SignupData,
+} from "../common/authApi";
 
 export class TechnicianAuthService {
   static async forgotPassword(data: ForgotPasswordData) {
     try {
-      const response = await authAPI.forgotPassword(data)
+      const response = await authAPI.forgotPassword(data);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to get users");
+      throw this.handleError(error, "Failed to forget password fetch");
     }
   }
   static async verifyForgotPasswordOTP(otpData: OTPData) {
     try {
-      const response = await authAPI.verifyForgotPasswordOTP(otpData)
+      const response = await authAPI.verifyForgotPasswordOTP(otpData);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to get users");
+      throw this.handleError(error, "Failed to verify forget password otp");
     }
   }
   static async resendOTP(otpData: ResendOTPData) {
     try {
-      const response = await authAPI.resendOTP(otpData)
+      const response = await authAPI.resendOTP(otpData);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to get users");
+      throw this.handleError(error, "Failed to resend password");
     }
   }
   static async login(credentials: LoginCredentials) {
     try {
-      const response = await authAPI.login(credentials)
+      const response = await authAPI.login(credentials);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to get users");
+      throw this.handleError(error, "Failed to login");
     }
   }
   static async resetPassword(resetData: ResetPasswordData) {
     try {
-      const response = await authAPI.resetPassword(resetData)
+      const response = await authAPI.resetPassword(resetData);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to get users");
+      throw this.handleError(error, "Failed to reset password");
     }
   }
   static async signup(userData: SignupData) {
     try {
-      const response = await authAPI.signup(userData)
+      const response = await authAPI.signup(userData);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to get users");
+      throw this.handleError(error, "Failed to signup");
     }
   }
   static async verifyOTP(otpData: OTPData) {
     try {
-      const response = await authAPI.verifyOTP(otpData)
+      const response = await authAPI.verifyOTP(otpData);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to get users");
+      throw this.handleError(error, "Failed to verify otp");
     }
   }
-  
+
   private static handleResponse(response: any) {
     if (response.success === false) {
       throw new Error(response.message || "Operation failed");

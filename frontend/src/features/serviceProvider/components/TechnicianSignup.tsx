@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BaseSignUp from "../../../components/reusable/BaseSignup";
 import { validateSchema, signupSchema } from "../../../validation";
-import type { SignUpFormData, SignUpErrors } from "../../../components/reusable/BaseSignup";
+import type {
+  SignUpFormData,
+  SignUpErrors,
+} from "../../../components/reusable/BaseSignup";
 import { TechnicianAuthService } from "../../../services/technician/technicianAuthService";
 
 const TechnicianSignUp: React.FC = () => {
-    const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignUp = async (data: {
@@ -18,8 +21,8 @@ const TechnicianSignUp: React.FC = () => {
   }) => {
     setLoading(true);
     try {
-      const response = await TechnicianAuthService.signup(data)
-      
+      const response = await TechnicianAuthService.signup(data);
+
       if (response.success) {
         localStorage.setItem(
           "signupData",
@@ -42,15 +45,20 @@ const TechnicianSignUp: React.FC = () => {
 
         return { success: true, message: response.message };
       } else {
-        return { success: false, message: response.message, error: response.error };
+        return {
+          success: false,
+          message: response.message,
+          error: response.error,
+        };
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Technician signup error:", error);
-      const errorMessage = error?.message || "Sign up failed - Unexpected error";
+      const errorMessage =
+        error?.message || "Sign up failed - Unexpected error";
       return { success: false, message: errorMessage, error };
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -59,7 +67,7 @@ const TechnicianSignUp: React.FC = () => {
       ...data,
       userType: "serviceProvider",
     });
-    
+
     // Transform the validation errors to match SignUpErrors type
     const errors: SignUpErrors = {
       fullName: validation.errors?.fullName,
@@ -68,7 +76,7 @@ const TechnicianSignUp: React.FC = () => {
       password: validation.errors?.password,
       confirmPassword: validation.errors?.confirmPassword,
     };
-    
+
     return {
       isValid: validation.success,
       errors: errors,

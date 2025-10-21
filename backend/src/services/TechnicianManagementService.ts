@@ -36,7 +36,9 @@ import {
   APPLICATION_STATUS,
 } from "../constants";
 
-export class TechnicianManagementService implements ITechnicianManagementService {
+export class TechnicianManagementService
+  implements ITechnicianManagementService
+{
   private technicianRepository: ITechnicianManagementRepository;
 
   constructor(technicianRepository: ITechnicianManagementRepository) {
@@ -86,7 +88,13 @@ export class TechnicianManagementService implements ITechnicianManagementService
         const dbStatus = STATUS_FILTER_MAPPING[status] || status;
         filter.status = dbStatus;
       } else {
-        filter.status = { $in: [TECHNICIAN_STATUS.APPROVED, TECHNICIAN_STATUS.SUSPENDED, TECHNICIAN_STATUS.REJECTED] };
+        filter.status = {
+          $in: [
+            TECHNICIAN_STATUS.APPROVED,
+            TECHNICIAN_STATUS.SUSPENDED,
+            TECHNICIAN_STATUS.REJECTED,
+          ],
+        };
       }
 
       // Service filter
@@ -102,7 +110,9 @@ export class TechnicianManagementService implements ITechnicianManagementService
       // Search filter
       if (search) {
         const searchRegex = new RegExp(search as string, "i");
-        filter.$or = SEARCH_FIELDS.TECHNICIAN.map(field => ({ [field]: searchRegex }));
+        filter.$or = SEARCH_FIELDS.TECHNICIAN.map((field) => ({
+          [field]: searchRegex,
+        }));
       }
 
       // Location filter
@@ -129,18 +139,23 @@ export class TechnicianManagementService implements ITechnicianManagementService
         })
       );
 
-      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED, {
-        technicians: adminTechnicians,
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          pages: Math.ceil(total / limitNum),
-        },
-      });
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED,
+        {
+          technicians: adminTechnicians,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum),
+          },
+        }
+      );
     } catch (error) {
       console.error("Get technicians error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS
+      );
     }
   }
 
@@ -149,17 +164,24 @@ export class TechnicianManagementService implements ITechnicianManagementService
       const technician = await this.technicianRepository.findTechnicianById(id);
 
       if (!technician) {
-        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND);
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
+        );
       }
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_RETRIEVED, {
-        technician: adminTechnician,
-      });
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_RETRIEVED,
+        {
+          technician: adminTechnician,
+        }
+      );
     } catch (error) {
       console.error("Get technician error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN
+      );
     }
   }
 
@@ -187,13 +209,21 @@ export class TechnicianManagementService implements ITechnicianManagementService
     ): "pending" | "approved" | "rejected" | "suspended" => {
       if (
         application &&
-        [APPLICATION_STATUS.SUBMITTED, APPLICATION_STATUS.UNDER_REVIEW, TECHNICIAN_STATUS.PENDING].includes(application.status)
+        [
+          APPLICATION_STATUS.SUBMITTED,
+          APPLICATION_STATUS.UNDER_REVIEW,
+          TECHNICIAN_STATUS.PENDING,
+        ].includes(application.status)
       ) {
         return TECHNICIAN_STATUS.PENDING as "pending";
       }
-      
-      const mappedStatus = STATUS_MAPPING[status as keyof typeof STATUS_MAPPING];
-      return mappedStatus || (status as "pending" | "approved" | "rejected" | "suspended");
+
+      const mappedStatus =
+        STATUS_MAPPING[status as keyof typeof STATUS_MAPPING];
+      return (
+        mappedStatus ||
+        (status as "pending" | "approved" | "rejected" | "suspended")
+      );
     };
 
     const status = mapStatus(technician.status, application);
@@ -206,8 +236,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
       const hasRealTechnicianData =
         technician.personalInfo &&
         (technician.personalInfo.gender !== PERSONAL_INFO_DEFAULTS.GENDER ||
-          technician.personalInfo.phoneNumber !== PERSONAL_INFO_DEFAULTS.PHONE_NUMBER ||
-          technician.personalInfo.dateOfBirth !== PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH);
+          technician.personalInfo.phoneNumber !==
+            PERSONAL_INFO_DEFAULTS.PHONE_NUMBER ||
+          technician.personalInfo.dateOfBirth !==
+            PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH);
 
       let personalInfo: any;
 
@@ -217,15 +249,21 @@ export class TechnicianManagementService implements ITechnicianManagementService
           gender: technician.personalInfo?.gender,
           phoneNumber: technician.personalInfo?.phoneNumber || technician.phone,
           dateOfBirth: technician.personalInfo?.dateOfBirth,
-          languages: technician.personalInfo?.languages || PERSONAL_INFO_DEFAULTS.LANGUAGES,
+          languages:
+            technician.personalInfo?.languages ||
+            PERSONAL_INFO_DEFAULTS.LANGUAGES,
         };
       } else if (application?.personal) {
         const appPersonal = application.personal;
         personalInfo = {
           fullName: appPersonal.fullName || technician.displayName,
           gender: appPersonal.gender || PERSONAL_INFO_DEFAULTS.GENDER,
-          phoneNumber: appPersonal.phoneNumber || technician.phone || PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
-          dateOfBirth: appPersonal.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
+          phoneNumber:
+            appPersonal.phoneNumber ||
+            technician.phone ||
+            PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
+          dateOfBirth:
+            appPersonal.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
           languages: appPersonal.languages || PERSONAL_INFO_DEFAULTS.LANGUAGES,
         };
       } else {
@@ -243,21 +281,38 @@ export class TechnicianManagementService implements ITechnicianManagementService
           street: userAddress.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
           city: userAddress.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
           state: userAddress.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-          pincode: userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+          pincode:
+            userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
       } else if (technician.personalInfo?.address) {
         personalInfo.address = {
-          street: technician.personalInfo.address.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-          city: technician.personalInfo.address.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-          state: technician.personalInfo.address.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-          pincode: technician.personalInfo.address.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+          street:
+            technician.personalInfo.address.street ||
+            PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+          city:
+            technician.personalInfo.address.city ||
+            PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+          state:
+            technician.personalInfo.address.state ||
+            PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+          pincode:
+            technician.personalInfo.address.pincode ||
+            PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
       } else if (application?.personal?.address) {
         personalInfo.address = {
-          street: application.personal.address.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-          city: application.personal.address.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-          state: application.personal.address.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-          pincode: application.personal.address.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+          street:
+            application.personal.address.street ||
+            PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+          city:
+            application.personal.address.city ||
+            PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+          state:
+            application.personal.address.state ||
+            PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+          pincode:
+            application.personal.address.pincode ||
+            PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
       } else {
         personalInfo.address = undefined;
@@ -336,17 +391,26 @@ export class TechnicianManagementService implements ITechnicianManagementService
     statusData: UpdateStatusRequest
   ): Promise<SingleTechnicianResponse> {
     try {
-      const { status, emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION, reason } = statusData;
+      const {
+        status,
+        emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION,
+        reason,
+      } = statusData;
 
       if (!status || !VALID_STATUS_VALUES.includes(status as any)) {
-        return ResponseHelper.badRequest(TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED);
+        return ResponseHelper.badRequest(
+          TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED
+        );
       }
 
       // Prepare update data
       const updateData: any = {};
 
       // Store suspension/rejection reason and timestamp
-      if (status === TECHNICIAN_STATUS.SUSPENDED || status === TECHNICIAN_STATUS.REJECTED) {
+      if (
+        status === TECHNICIAN_STATUS.SUSPENDED ||
+        status === TECHNICIAN_STATUS.REJECTED
+      ) {
         updateData.suspensionReason = reason;
         updateData.suspendedAt = new Date();
       } else if (status === TECHNICIAN_STATUS.APPROVED) {
@@ -363,7 +427,9 @@ export class TechnicianManagementService implements ITechnicianManagementService
       );
 
       if (!technician) {
-        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND);
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
+        );
       }
 
       // Get user data for email
@@ -397,7 +463,10 @@ export class TechnicianManagementService implements ITechnicianManagementService
             reason
           );
           emailMessage = emailSent
-            ? TECHNICIAN_MANAGEMENT_MESSAGES.STATUS_EMAIL_SENT.replace('${status}', status)
+            ? TECHNICIAN_MANAGEMENT_MESSAGES.STATUS_EMAIL_SENT.replace(
+                "${status}",
+                status
+              )
             : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
         }
       }
@@ -405,14 +474,19 @@ export class TechnicianManagementService implements ITechnicianManagementService
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
       return ResponseHelper.success(
-        `${TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATUS_UPDATED.replace('${status}', status)}${emailMessage}`,
+        `${TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATUS_UPDATED.replace(
+          "${status}",
+          status
+        )}${emailMessage}`,
         {
           technician: adminTechnician,
         }
       );
     } catch (error) {
       console.error("Update technician status error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS
+      );
     }
   }
 
@@ -420,10 +494,15 @@ export class TechnicianManagementService implements ITechnicianManagementService
     try {
       const stats = await this.technicianRepository.getTechnicianStats();
 
-      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATS_RETRIEVED, stats);
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATS_RETRIEVED,
+        stats
+      );
     } catch (error) {
       console.error("Get technician stats error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS
+      );
     }
   }
 
@@ -447,7 +526,9 @@ export class TechnicianManagementService implements ITechnicianManagementService
       // Search filter
       if (search) {
         const searchRegex = new RegExp(search as string, "i");
-        filter.$or = SEARCH_FIELDS.APPLICATION.map(field => ({ [field]: searchRegex }));
+        filter.$or = SEARCH_FIELDS.APPLICATION.map((field) => ({
+          [field]: searchRegex,
+        }));
       }
 
       // Service filter
@@ -466,18 +547,23 @@ export class TechnicianManagementService implements ITechnicianManagementService
       );
       const total = await this.technicianRepository.countApplications(filter);
 
-      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.PENDING_APPLICATIONS_RETRIEVED, {
-        applications: applications as ITechnicianApplication[],
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          pages: Math.ceil(total / limitNum),
-        },
-      });
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.PENDING_APPLICATIONS_RETRIEVED,
+        {
+          applications: applications as ITechnicianApplication[],
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum),
+          },
+        }
+      );
     } catch (error) {
       console.error("Get pending applications error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS
+      );
     }
   }
 
@@ -487,15 +573,22 @@ export class TechnicianManagementService implements ITechnicianManagementService
         id
       );
       if (!application) {
-        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND);
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+        );
       }
 
       // Update application status
       const updatedApplication =
-        await this.technicianRepository.updateApplicationStatus(id, APPLICATION_STATUS.APPROVED);
+        await this.technicianRepository.updateApplicationStatus(
+          id,
+          APPLICATION_STATUS.APPROVED
+        );
 
       if (!updatedApplication) {
-        return ResponseHelper.badRequest(TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED);
+        return ResponseHelper.badRequest(
+          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
+        );
       }
 
       // Update user's application status
@@ -553,7 +646,9 @@ export class TechnicianManagementService implements ITechnicianManagementService
               bankName: bankData.bankName,
             },
             upiId: bankData.upiId,
-            withdrawalPreference: bankData.withdrawalPreference || BANK_DETAILS_DEFAULTS.WITHDRAWAL_PREFERENCE
+            withdrawalPreference:
+              bankData.withdrawalPreference ||
+              BANK_DETAILS_DEFAULTS.WITHDRAWAL_PREFERENCE,
           }
         );
       }
@@ -567,7 +662,9 @@ export class TechnicianManagementService implements ITechnicianManagementService
       );
     } catch (error) {
       console.error("Approve application error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION
+      );
     }
   }
 
@@ -576,17 +673,21 @@ export class TechnicianManagementService implements ITechnicianManagementService
     rejectData: RejectApplicationRequest
   ): Promise<ApplicationListResponse> {
     try {
-      const { rejectionReason, emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION } = rejectData;
+      const {
+        rejectionReason,
+        emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION,
+      } = rejectData;
 
       const application = await this.technicianRepository.findApplicationById(
         id
       );
       if (!application) {
-        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND);
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+        );
       }
 
       if (application.technicianId) {
-        //Find by technicianId (from application)
         const technician = await this.technicianRepository.findTechnicianById(
           application.technicianId.toString()
         );
@@ -597,7 +698,9 @@ export class TechnicianManagementService implements ITechnicianManagementService
             TECHNICIAN_STATUS.REJECTED
           );
         } else {
-          console.log("Technician not found by technicianId, trying by userId...");
+          console.log(
+            "Technician not found by technicianId, trying by userId..."
+          );
 
           // Find by userId as fallback
           const technicianByUser =
@@ -656,7 +759,9 @@ export class TechnicianManagementService implements ITechnicianManagementService
       );
     } catch (error) {
       console.error("Reject application error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION
+      );
     }
   }
 
@@ -666,7 +771,9 @@ export class TechnicianManagementService implements ITechnicianManagementService
         id
       );
       if (!application) {
-        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND);
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+        );
       }
 
       // Get user data
@@ -688,13 +795,18 @@ export class TechnicianManagementService implements ITechnicianManagementService
         documents: formattedDocuments,
       } as ITechnicianApplication;
 
-      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_RETRIEVED, {
-        applications: [applicationData],
-        pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-      });
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_RETRIEVED,
+        {
+          applications: [applicationData],
+          pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
+        }
+      );
     } catch (error) {
       console.error("Get application error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION
+      );
     }
   }
 
@@ -702,10 +814,15 @@ export class TechnicianManagementService implements ITechnicianManagementService
     try {
       const stats = await this.technicianRepository.getApplicationStats();
 
-      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_STATS_RETRIEVED, stats);
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_STATS_RETRIEVED,
+        stats
+      );
     } catch (error) {
       console.error("Get application stats error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION_STATS);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION_STATS
+      );
     }
   }
 
@@ -719,18 +836,25 @@ export class TechnicianManagementService implements ITechnicianManagementService
         );
 
       if (!technician) {
-        return ResponseHelper.notFound(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND_FOR_APPLICATION);
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND_FOR_APPLICATION
+        );
       }
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      return ResponseHelper.success(TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_BY_APPLICATION_RETRIEVED, {
-        technicians: [adminTechnician],
-        pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-      });
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_BY_APPLICATION_RETRIEVED,
+        {
+          technicians: [adminTechnician],
+          pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
+        }
+      );
     } catch (error) {
       console.error("Get technician by application error:", error);
-      return ResponseHelper.error(TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP);
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP
+      );
     }
   }
 }

@@ -16,15 +16,15 @@ const TechnicianForgetPassword: React.FC = () => {
   }) => {
     setLoading(true);
     try {
-      const response = await TechnicianAuthService.forgotPassword(data)
+      const response = await TechnicianAuthService.forgotPassword(data);
 
       if (response.success) {
         localStorage.setItem(
           "forgotData",
-          JSON.stringify({ 
-            phone: data.phone, 
+          JSON.stringify({
+            phone: data.phone,
             email: data.email,
-            userType: "serviceProvider"
+            userType: "serviceProvider",
           })
         );
 
@@ -56,7 +56,7 @@ const TechnicianForgetPassword: React.FC = () => {
       ...data,
       userType: "serviceProvider",
     });
-    
+
     return {
       isValid: validation.success,
       errors: validation.errors || {},

@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { ApiResponse } from "../../utils/responseHelper"; // Import ApiResponse
+import { ApiResponse } from "../../utils/responseHelper";
 
 export interface StartApplicationRequest {
   email: string;
@@ -16,7 +16,6 @@ export interface SubmitApplicationRequest {
   applicationId: string;
 }
 
-// Extend ApiResponse instead of creating a separate interface
 export interface ApplicationResponse extends ApiResponse {
   missingSteps?: string[];
 }

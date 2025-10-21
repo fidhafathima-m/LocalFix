@@ -130,7 +130,10 @@ export const useAdminActions = ({
       const { emailNotification } = result.value;
       setActionInProgress(true);
 
-      const statusPromise = AdminActionsService.updateTechnicianStatus(technicianId, newStatus)
+      const statusPromise = AdminActionsService.updateTechnicianStatus(
+        technicianId,
+        newStatus
+      );
 
       const successMessage =
         newStatus === "suspended"
@@ -152,7 +155,9 @@ export const useAdminActions = ({
               if (response.data.success) {
                 return handleSuccess(successMessage);
               } else {
-                throw new Error(response.data.message || `Failed to ${action} technician`);
+                throw new Error(
+                  response.data.message || `Failed to ${action} technician`
+                );
               }
             },
             error: (error) => {
@@ -215,7 +220,8 @@ export const useAdminActions = ({
       const { emailNotification } = result.value;
       setActionInProgress(true);
 
-      const approvePromise = AdminActionsService.approveApplication(applicationId)
+      const approvePromise =
+        AdminActionsService.approveApplication(applicationId);
 
       const successMessage = `Application approved! ${technicianName} is now an active technician.${
         emailNotification ? " Email sent." : ""
@@ -230,7 +236,9 @@ export const useAdminActions = ({
               if (response.data.success) {
                 return handleSuccess(successMessage);
               } else {
-                throw new Error(response.data.message || "Failed to approve application");
+                throw new Error(
+                  response.data.message || "Failed to approve application"
+                );
               }
             },
             error: (error) => {
@@ -318,7 +326,10 @@ export const useAdminActions = ({
       setActionInProgress(true);
 
       try {
-        const rejectPromise = AdminActionsService.rejectApplication(applicationId, rejectionReason)
+        const rejectPromise = AdminActionsService.rejectApplication(
+          applicationId,
+          rejectionReason
+        );
 
         const successMessage = `Application rejected.${
           emailNotification ? " Email sent to applicant." : ""
@@ -333,7 +344,9 @@ export const useAdminActions = ({
                 if (response.data.success) {
                   return handleSuccess(successMessage);
                 } else {
-                  throw new Error(response.data.message || "Failed to reject application");
+                  throw new Error(
+                    response.data.message || "Failed to reject application"
+                  );
                 }
               },
               error: (error) => {

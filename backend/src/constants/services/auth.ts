@@ -1,5 +1,5 @@
 import { USER_ROLES } from "../core/user";
-import {APPLICATION_STATUS} from "../core/application"
+import { APPLICATION_STATUS } from "../core/application";
 
 export const AUTH_MESSAGES = {
   // Success messages
@@ -10,7 +10,7 @@ export const AUTH_MESSAGES = {
   OTP_VERIFIED: "OTP verified successfully",
   PASSWORD_RESET: "Password reset successfully",
   LOGOUT_SUCCESS: "Logged out successfully",
-  
+
   // Error messages
   USER_NOT_FOUND: "User not found",
   EMAIL_IN_USE: "Email already in use",
@@ -23,7 +23,7 @@ export const AUTH_MESSAGES = {
   ACCOUNT_BLOCKED: "Your account is blocked by admin. Please contact support.",
   ACCOUNT_DELETED: "Your account has been deleted. Please contact support.",
   ACCOUNT_INACTIVE: "Your account is not active. Please contact support.",
-  
+
   // Validation messages
   EMAIL_OR_PHONE_REQUIRED: "Provide at least email or phone",
   PASSWORD_REQUIRED: "Password is required",
@@ -31,12 +31,11 @@ export const AUTH_MESSAGES = {
   TOKEN_MISMATCH: "Token mismatch",
   USER_TYPE_MISMATCH: "User type mismatch",
   INVALID_RESET_TOKEN: "Invalid reset token",
-  
+
   // Social auth messages
   FACEBOOK_LOGIN_SUCCESS: "Facebook login successful",
   GOOGLE_AUTH_SUCCESS: "Google authentication successful",
   SOCIAL_AUTH_FAILED: "Social authentication failed",
 } as const;
 
-// Re-export only what's needed
 export { USER_ROLES, APPLICATION_STATUS };

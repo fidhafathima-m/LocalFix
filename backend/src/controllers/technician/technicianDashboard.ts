@@ -19,7 +19,9 @@ export class TechnicianDashboardController {
       const technicianId = req.user?.id;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
@@ -43,7 +45,9 @@ export class TechnicianDashboardController {
       const technicianId = req.user?.id;
 
       if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }

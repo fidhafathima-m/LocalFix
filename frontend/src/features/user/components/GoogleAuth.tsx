@@ -33,7 +33,6 @@ const GoogleAuth: React.FC<GoogleAuthProps> = () => {
         userType: currentUserType,
       });
 
-      // ✅ UPDATED: Extract tokens from new structure
       const userData = res.data?.user || res.user;
       const accessToken = res.data?.accessToken || res.accessToken;
       const refreshToken = res.data?.refreshToken || res.refreshToken;
@@ -42,7 +41,6 @@ const GoogleAuth: React.FC<GoogleAuthProps> = () => {
         throw new Error(res.message || "Google authentication failed");
       }
 
-      // ✅ UPDATED: Pass both tokens
       dispatch(
         loginSuccess({
           user: userData as User,

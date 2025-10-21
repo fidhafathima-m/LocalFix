@@ -3,7 +3,11 @@ import { useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../../hooks/redux";
 import { loginSuccess, type User } from "../../../store/slices/authSlice";
 import { type OTPData } from "../../../services/common/authApi";
-import BaseOTP, { type OTPFormData, type UserType, type OTPContext } from "../../../components/reusable/BaseOTP";
+import BaseOTP, {
+  type OTPFormData,
+  type UserType,
+  type OTPContext,
+} from "../../../components/reusable/BaseOTP";
 import { UserAuthService } from "../../../services/user/userAuthService";
 
 interface LocationState {
@@ -21,14 +25,20 @@ const UserSignupOTP: React.FC = () => {
   // Get data from location state and localStorage
   const locationData = location.state as LocationState;
   const storageData = JSON.parse(localStorage.getItem("signupData") || "{}");
-  
+
   const formData: OTPFormData = {
     ...storageData,
     ...locationData,
     userType: "user" as UserType,
   };
 
-  const handleSubmit = async ({ otp, formData }: { otp: string; formData: OTPFormData }) => {
+  const handleSubmit = async ({
+    otp,
+    formData,
+  }: {
+    otp: string;
+    formData: OTPFormData;
+  }) => {
     const otpData: OTPData = {
       otp,
       userType: "user",
@@ -39,33 +49,29 @@ const UserSignupOTP: React.FC = () => {
       ...(formData.password && { password: formData.password }),
     };
 
-    console.log("🔍 Sending OTP data:", otpData);
+    const res = await UserAuthService.verifyOTP(otpData);
 
-    const res = await UserAuthService.verifyOTP(otpData)
 
-    console.log("🔍 Full API response:", res)
-
-    // Check if the response indicates success
     if (!res.success) {
-    console.log("🔍 OTP verification failed - response:", res); // Debug log
-    throw new Error(res.message || "OTP verification failed");
-  }
+      throw new Error(res.message || "OTP verification failed");
+    }
 
-    // ✅ FIXED: Extract user and token from data object
     const userData = res.data?.user || res.user;
     const accessToken = res.data?.accessToken || res.accessToken;
     const refreshToken = res.data?.refreshToken || res.refreshToken;
 
     if (!userData || !accessToken || !refreshToken) {
-      throw new Error("Invalid response from server: missing user data or token");
+      throw new Error(
+        "Invalid response from server: missing user data or token"
+      );
     }
 
-     const userWithRoles: User = {
+    const userWithRoles: User = {
       _id: userData._id,
       fullName: userData.fullName,
       phone: userData.phone || "",
       email: userData.email || "",
-      roles: userData.roles || [], // Use roles array
+      roles: userData.roles || [],
       isVerified: userData.isVerified || false,
     };
 
@@ -74,17 +80,19 @@ const UserSignupOTP: React.FC = () => {
       fullName: userData.fullName,
       phone: userData.phone || "",
       email: userData.email || "",
-      roles: userData.roles || ["user"], // Ensure roles array is set
+      roles: userData.roles || ["user"],
       isVerified: userData.isVerified || false,
       applicationStatus: userData.applicationStatus || "not-applied",
     };
 
     // Dispatch login success
-    dispatch(loginSuccess({
-      user: userForRedux,
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-    }));
+    dispatch(
+      loginSuccess({
+        user: userForRedux,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      })
+    );
 
     const userRoles = userData.roles || [];
     const hasServiceProviderRole = userRoles.includes("serviceProvider");

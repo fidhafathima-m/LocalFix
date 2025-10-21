@@ -1,5 +1,4 @@
-// interfaces/repository/IBaseRepository.ts
-import { Types, Document, FilterQuery, UpdateQuery } from 'mongoose';
+import { Types, Document, FilterQuery, UpdateQuery } from "mongoose";
 
 export interface IBaseRepository<T extends Document> {
   create(data: Partial<T>): Promise<T>;

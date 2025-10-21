@@ -21,13 +21,13 @@ const Header: React.FC<HeaderProps> = ({
 
   const dispatch = useAppDispatch();
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
-   const getUserType = () => {
+  const getUserType = () => {
     if (propUserType) return propUserType;
-    
+
     if (user?.roles && user.roles.length > 0) {
       return user.roles[0] as "user" | "serviceProvider" | "admin";
     }
-    
+
     return "user";
   };
 

@@ -1,12 +1,27 @@
 import { admin, protect } from "../../middleware/authMiddleware";
 import { Router } from "express";
-import {technicianManagementController} from "../../config/container";
+import { technicianManagementController } from "../../config/container";
 
 const router = Router();
 
-router.get("/", protect, admin, technicianManagementController.getAllTechnicians);
-router.get("/stats", protect, admin, technicianManagementController.getTechnicianStats);
-router.get("/:id", protect, admin, technicianManagementController.getTechnicianById);
+router.get(
+  "/",
+  protect,
+  admin,
+  technicianManagementController.getAllTechnicians
+);
+router.get(
+  "/stats",
+  protect,
+  admin,
+  technicianManagementController.getTechnicianStats
+);
+router.get(
+  "/:id",
+  protect,
+  admin,
+  technicianManagementController.getTechnicianById
+);
 router.patch(
   "/:id/status",
   protect,

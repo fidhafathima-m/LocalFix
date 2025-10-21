@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { SuccessIcon } from "../components/SuccessIcon";
 
 export const ApplicationSubmitted: React.FC = () => {
-
   const handleDashboardRedirect = () => {
     // Clear any remaining application data
     localStorage.removeItem("applicationId");
@@ -29,10 +28,7 @@ export const ApplicationSubmitted: React.FC = () => {
           >
             Go to Dashboard
           </button>
-          <Link
-            to="/"
-            className="block text-blue-600 hover:text-blue-800"
-          >
+          <Link to="/" className="block text-blue-600 hover:text-blue-800">
             Return to Home
           </Link>
         </div>

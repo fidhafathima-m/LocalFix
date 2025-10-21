@@ -35,7 +35,7 @@ export interface User {
   fullName: string;
   phone?: string;
   email?: string;
-  roles: string[]; // ✅ Only roles array, no single role property
+  roles: string[];
   applicationStatus?: ApplicationStatus;
   isVerified?: boolean;
 }
@@ -50,8 +50,6 @@ interface AuthState {
   applicationStatus: ApplicationStatus;
 }
 
-// ✅ IMPROVED: Better initial state loading
-// In your authSlice.ts - fix the initial state loading
 const getInitialState = (): AuthState => {
   try {
     const savedAuth = localStorage.getItem("auth");
@@ -59,12 +57,11 @@ const getInitialState = (): AuthState => {
     if (savedAuth) {
       const authData = JSON.parse(savedAuth);
 
-      // ✅ FIXED: Make validation less strict
       if (authData.user && authData.accessToken) {
         return {
           user: authData.user,
           accessToken: authData.accessToken,
-          refreshToken: authData.refreshToken || null, // Make refreshToken optional
+          refreshToken: authData.refreshToken || null,
           isLoggedIn: true,
           loading: false,
           error: null,
@@ -114,7 +111,6 @@ const authSlice = createSlice({
       state.applicationStatus =
         action.payload.user.applicationStatus || "not-applied";
 
-      // ✅ Save complete auth state to localStorage
       localStorage.setItem(
         "auth",
         JSON.stringify({
@@ -135,7 +131,6 @@ const authSlice = createSlice({
 
       localStorage.removeItem("auth");
     },
-    // In your authSlice.ts - modify the logout action
     logout: (state) => {
       // Save application data BEFORE clearing auth
       const user = state.user;
@@ -150,11 +145,9 @@ const authSlice = createSlice({
       // Only remove auth data, preserve application data
       localStorage.removeItem("auth");
 
-      // ✅ Preserve application data by user ID
+      // Preserve application data by user ID
       if (user?._id) {
-        console.log("🔍 Preserving application data for user:", user._id);
-        // Application data is already saved in localStorage with user ID keys
-        // Don't remove it here so user can resume later
+        console.log("Preserving application data for user:", user._id);
       }
     },
     updateTokens: (
@@ -265,7 +258,7 @@ export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
 export const selectApplicationStatus = (state: { auth: AuthState }) =>
   state.auth.applicationStatus;
 
-// ✅ NEW: Helper selector to check if user has specific role
+// Helper selector to check if user has specific role
 export const selectHasRole = (role: string) => (state: { auth: AuthState }) =>
   state.auth.user?.roles.includes(role) || false;
 

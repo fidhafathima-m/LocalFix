@@ -1,4 +1,4 @@
-import { Types, Document } from 'mongoose';
+import { Types, Document } from "mongoose";
 
 export interface IOtpVerification extends Document {
   _id: Types.ObjectId;

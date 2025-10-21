@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
-import { loginStart, loginSuccess, loginFailure, getSafeApplicationStatus, type User } from "../../../store/slices/authSlice";
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  getSafeApplicationStatus,
+  type User,
+} from "../../../store/slices/authSlice";
 import { useNavigate } from "react-router-dom";
 import BaseLogin from "../../../components/reusable/BaseLogin";
 import { validateSchema, loginSchema } from "../../../validation";
@@ -14,14 +20,14 @@ const UserLogin: React.FC = () => {
 
   const handleLogin = async (credentials: any) => {
     dispatch(loginStart());
-    
+
     try {
-      const res = await UserAuthService.login(credentials)
-      
+      const res = await UserAuthService.login(credentials);
+
       const userDataFromResponse = res.data?.user || res.user;
       const accessToken = res.data?.accessToken || res.accessToken;
       const refreshToken = res.data?.refreshToken || res.refreshToken;
-      
+
       if (res.success && userDataFromResponse && accessToken && refreshToken) {
         const userData: User = {
           _id: userDataFromResponse._id,
@@ -29,18 +35,22 @@ const UserLogin: React.FC = () => {
           phone: userDataFromResponse.phone || "",
           email: userDataFromResponse.email || "",
           roles: userDataFromResponse.roles,
-          applicationStatus: getSafeApplicationStatus(userDataFromResponse.applicationStatus),
+          applicationStatus: getSafeApplicationStatus(
+            userDataFromResponse.applicationStatus
+          ),
           isVerified: userDataFromResponse.isVerified || false,
         };
-        
-        dispatch(loginSuccess({
-          user: userData,
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-        }));
-        
+
+        dispatch(
+          loginSuccess({
+            user: userData,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          })
+        );
+
         setTimeout(() => navigate("/"), 1000);
-        
+
         return { success: true, message: res.message };
       } else {
         dispatch(loginFailure(res.message));
@@ -58,7 +68,7 @@ const UserLogin: React.FC = () => {
       ...data,
       userType: "user",
     });
-    
+
     return {
       isValid: validation.success,
       errors: validation.errors || {},

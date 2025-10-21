@@ -48,7 +48,6 @@ const BaseLogin: React.FC<LoginProps> = ({
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Default validation that can be overridden
   const defaultValidateForm = (): boolean => {
     if (!identifier.trim()) {
       setIdentifierError("Email or phone is required");
@@ -92,7 +91,8 @@ const BaseLogin: React.FC<LoginProps> = ({
         toast.success(result.message || "Login successful!");
         onSuccess?.(result);
       } else {
-        const errorMessage = result.message || "Login failed. Please try again.";
+        const errorMessage =
+          result.message || "Login failed. Please try again.";
         toast.error(errorMessage, { duration: 5000 });
         onFailure?.(errorMessage);
       }
@@ -163,11 +163,11 @@ const BaseLogin: React.FC<LoginProps> = ({
               {/* Password visibility icons */}
             </button>
           </div>
-          
+
           {passwordError && (
             <p className="text-sm text-red-500 mt-1">{passwordError}</p>
           )}
-          
+
           {showForgotPassword && (
             <Link
               to={forgotPasswordLink || getDefaultForgotPasswordLink()}
@@ -189,28 +189,30 @@ const BaseLogin: React.FC<LoginProps> = ({
         </button>
       </form>
 
-      {showGoogleAuth && (userType === "user" || userType === "serviceProvider") && (
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-500">Or continue with</p>
-          <div className="flex justify-center gap-4 mt-2">
-            <GoogleAuth userType={userType} />
+      {showGoogleAuth &&
+        (userType === "user" || userType === "serviceProvider") && (
+          <div className="text-center mt-6">
+            <p className="text-sm text-gray-500">Or continue with</p>
+            <div className="flex justify-center gap-4 mt-2">
+              <GoogleAuth userType={userType} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {showSignupLink && (userType === "user" || userType === "serviceProvider") && (
-        <div className="text-center p-3">
-          <p className="text-gray-500">
-            Don't have an account?{" "}
-            <Link
-              to={signupLink || getDefaultSignupLink()}
-              className="text-[#1877F2]"
-            >
-              Sign Up
-            </Link>
-          </p>
-        </div>
-      )}
+      {showSignupLink &&
+        (userType === "user" || userType === "serviceProvider") && (
+          <div className="text-center p-3">
+            <p className="text-gray-500">
+              Don't have an account?{" "}
+              <Link
+                to={signupLink || getDefaultSignupLink()}
+                className="text-[#1877F2]"
+              >
+                Sign Up
+              </Link>
+            </p>
+          </div>
+        )}
     </div>
   );
 

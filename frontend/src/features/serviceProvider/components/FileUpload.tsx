@@ -7,7 +7,7 @@ interface FileUploadProps {
   fieldName?: string;
   error?: string;
   maxSize?: number;
-  compact?: boolean; // Add compact prop
+  compact?: boolean;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
@@ -17,7 +17,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   accept = "image/*",
   error,
   maxSize = 5 * 1024 * 1024,
-  compact = false, // Default to false
+  compact = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +48,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       const validationError = validateFile(file);
       if (validationError) {
         alert(validationError);
-        event.target.value = ""; 
+        event.target.value = "";
         onFileChange(null);
         return;
       }
@@ -84,7 +84,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           accept={accept}
           required={required}
           className="hidden"
-          id={`file-upload-${fieldName || 'compact'}`}
+          id={`file-upload-${fieldName || "compact"}`}
         />
         <button
           type="button"
@@ -106,8 +106,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       <div
         className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors ${
           error
-          ? "border-red-300 bg-red-50" 
-          : "border-gray-300 hover:border-gray-400"
+            ? "border-red-300 bg-red-50"
+            : "border-gray-300 hover:border-gray-400"
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -137,11 +137,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           </svg>
           <p className="mt-1">Click to upload or drag and drop</p>
           <p className="text-sm text-gray-500 mt-1">
-            {accept.includes("pdf") ? "PDF, JPG, JPEG, PNG" : "Images"} up to 5MB
+            {accept.includes("pdf") ? "PDF, JPG, JPEG, PNG" : "Images"} up to
+            5MB
           </p>
           {error && (
-              <p className="text-red-500 text-sm mt-2 font-medium">{error}</p>
-            )}
+            <p className="text-red-500 text-sm mt-2 font-medium">{error}</p>
+          )}
         </div>
       </div>
     </div>

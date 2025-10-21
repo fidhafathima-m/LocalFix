@@ -15,9 +15,9 @@ const UserSchema = new Schema<IUser>(
     passwordHash: { type: String },
     isVerified: { type: Boolean, default: false },
     roles: {
-      type: [String], // Correct array syntax
+      type: [String],
       enum: ["user", "serviceProvider", "admin"],
-      default: ["user"], // Default as array
+      default: ["user"],
     },
     status: {
       type: String,
@@ -53,10 +53,12 @@ const UserSchema = new Schema<IUser>(
     applicationDate: { type: Date },
     approvalDate: { type: Date },
     rejectionReason: { type: String },
-    refreshTokens: [{
-      token: { type: String, required: true },
-      createdAt: { type: Date, default: Date.now }
-    }]
+    refreshTokens: [
+      {
+        token: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
@@ -79,7 +81,7 @@ UserSchema.index(
   }
 );
 
-// Compound index for email/phone + role queries (optional but recommended)
+// Compound index for email/phone + role queries
 UserSchema.index({ email: 1, roles: 1 });
 UserSchema.index({ phone: 1, roles: 1 });
 

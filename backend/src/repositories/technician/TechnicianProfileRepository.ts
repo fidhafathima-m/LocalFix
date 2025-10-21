@@ -1,13 +1,14 @@
-// src/repositories/technician/TechnicianRepository.ts
 import { ITechnician } from "../../interfaces/technician/ITechnician";
 import { Technician } from "../../models/technician/TechnicianSchema";
 import { Types } from "mongoose";
 import { ITechnicianProfileRepository } from "../../interfaces/repository/technician/ITechnicianProfileRepository";
 import { IUser, IUserUpdate } from "../../interfaces/user/IUser";
 import UserSchema from "../../models/UserSchema";
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
 
-export class TechnicianProfileRepository implements ITechnicianProfileRepository {
+export class TechnicianProfileRepository
+  implements ITechnicianProfileRepository
+{
   async updateTechnician(
     technicianId: string,
     updateData: any
@@ -180,14 +181,21 @@ export class TechnicianProfileRepository implements ITechnicianProfileRepository
     return await Technician.countDocuments(filter);
   }
 
-  async findAll(filter: any = {}, skip: number = 0, limit: number = 10): Promise<ITechnician[]> {
+  async findAll(
+    filter: any = {},
+    skip: number = 0,
+    limit: number = 10
+  ): Promise<ITechnician[]> {
     return await Technician.find(filter)
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
   }
 
-  async updateUser(userId: string, updateData: IUserUpdate): Promise<IUser | null> {
+  async updateUser(
+    userId: string,
+    updateData: IUserUpdate
+  ): Promise<IUser | null> {
     return await UserSchema.findByIdAndUpdate(
       userId,
       { $set: updateData },
@@ -208,18 +216,21 @@ export class TechnicianProfileRepository implements ITechnicianProfileRepository
     }
   }
 
-  async updateUserPassword(userId: string, newPassword: string): Promise<IUser | null> {
+  async updateUserPassword(
+    userId: string,
+    newPassword: string
+  ): Promise<IUser | null> {
     try {
       const saltRounds = 10;
       const passwordHash = await bcrypt.hash(newPassword, saltRounds);
-      
+
       return await UserSchema.findByIdAndUpdate(
         userId,
-        { 
-          $set: { 
+        {
+          $set: {
             passwordHash,
-            updatedAt: new Date()
-          } 
+            updatedAt: new Date(),
+          },
         },
         { new: true }
       );
@@ -232,24 +243,27 @@ export class TechnicianProfileRepository implements ITechnicianProfileRepository
   async updateLastLogin(userId: string): Promise<IUser | null> {
     return await UserSchema.findByIdAndUpdate(
       userId,
-      { 
-        $set: { 
+      {
+        $set: {
           lastLogin: new Date(),
-          updatedAt: new Date()
-        } 
+          updatedAt: new Date(),
+        },
       },
       { new: true }
     );
   }
 
-  async updateLoginDevice(userId: string, deviceInfo: string): Promise<IUser | null> {
+  async updateLoginDevice(
+    userId: string,
+    deviceInfo: string
+  ): Promise<IUser | null> {
     return await UserSchema.findByIdAndUpdate(
       userId,
-      { 
-        $set: { 
+      {
+        $set: {
           loginDevice: deviceInfo,
-          updatedAt: new Date()
-        } 
+          updatedAt: new Date(),
+        },
       },
       { new: true }
     );
@@ -263,7 +277,11 @@ export class TechnicianProfileRepository implements ITechnicianProfileRepository
     return await UserSchema.countDocuments(filter);
   }
 
-  async findAllUsers(filter: any = {}, skip: number = 0, limit: number = 10): Promise<IUser[]> {
+  async findAllUsers(
+    filter: any = {},
+    skip: number = 0,
+    limit: number = 10
+  ): Promise<IUser[]> {
     return await UserSchema.find(filter)
       .skip(skip)
       .limit(limit)
@@ -278,11 +296,11 @@ export class TechnicianProfileRepository implements ITechnicianProfileRepository
   async updateProfile(userId: string, profileData: any): Promise<IUser | null> {
     return await UserSchema.findByIdAndUpdate(
       userId,
-      { 
+      {
         $set: {
           ...profileData,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       },
       { new: true, runValidators: true }
     );

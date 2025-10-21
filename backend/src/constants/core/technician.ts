@@ -8,7 +8,7 @@ export const TECHNICIAN_STATUS = {
   SUSPENDED: "suspended",
   DRAFT: "draft",
   PENDING: "pending",
-  BLOCKED: "blocked"
+  BLOCKED: "blocked",
 } as const;
 
 export const VERIFICATION_STATUS = {

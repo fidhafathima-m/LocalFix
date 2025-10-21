@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import AccordionSection from './AccordianSections'
-import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
-import { type TechnicianProfile } from '../../../../services/common/technicianApi'
-import { TechnicianService } from '../../../../services/technician/technicianService';
+import { useState, useEffect } from "react";
+import AccordionSection from "./AccordianSections";
+import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
+import { type TechnicianProfile } from "../../../../services/common/technicianApi";
+import { TechnicianService } from "../../../../services/technician/technicianService";
 
 interface WeeklyAvailability {
   [key: string]: {
@@ -20,155 +20,165 @@ interface AvailabilityData {
 }
 
 const AvailabilityPreferences = () => {
-  const [profile, setProfile] = useState<TechnicianProfile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [profile, setProfile] = useState<TechnicianProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<AvailabilityData>({
     isAvailable: true,
     serviceAreas: [],
     workRadius: 10,
     weeklyAvailability: {
-      monday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-      tuesday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-      wednesday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-      thursday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-      friday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-      saturday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-      sunday: { enabled: false, startTime: '09:00', endTime: '19:00' }
-    }
-  })
+      monday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+      tuesday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+      wednesday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+      thursday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+      friday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+      saturday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+      sunday: { enabled: false, startTime: "09:00", endTime: "19:00" },
+    },
+  });
 
   // Available service areas
   const availableServiceAreas = [
-    'Sector 1',
-    'Sector 2', 
-    'Sector 3',
-    'Sector 4',
-    'Sector 5',
-    'Downtown',
-    'Suburbs',
-    'Industrial Area',
-    'Residential Area'
-  ]
+    "Sector 1",
+    "Sector 2",
+    "Sector 3",
+    "Sector 4",
+    "Sector 5",
+    "Downtown",
+    "Suburbs",
+    "Industrial Area",
+    "Residential Area",
+  ];
 
   // Days of week for availability
   const daysOfWeek = [
-    { key: 'monday', label: 'Monday' },
-    { key: 'tuesday', label: 'Tuesday' },
-    { key: 'wednesday', label: 'Wednesday' },
-    { key: 'thursday', label: 'Thursday' },
-    { key: 'friday', label: 'Friday' },
-    { key: 'saturday', label: 'Saturday' },
-    { key: 'sunday', label: 'Sunday' }
-  ]
+    { key: "monday", label: "Monday" },
+    { key: "tuesday", label: "Tuesday" },
+    { key: "wednesday", label: "Wednesday" },
+    { key: "thursday", label: "Thursday" },
+    { key: "friday", label: "Friday" },
+    { key: "saturday", label: "Saturday" },
+    { key: "sunday", label: "Sunday" },
+  ];
 
   useEffect(() => {
-    fetchProfile()
-  }, [])
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
     try {
-      setLoading(true)
-      const response = await TechnicianService.getProfile()
+      setLoading(true);
+      const response = await TechnicianService.getProfile();
       if (response.success) {
-        const profileData = response.data?.data?.profile
-        setProfile(profileData)
-        
+        const profileData = response.data?.data?.profile;
+        setProfile(profileData);
+
         // Populate availability data
-        const workAreas = profileData.workAreas || []
-        const serviceRadiusKm = profileData.serviceRadiusKm || 10
-        
+        const workAreas = profileData.workAreas || [];
+        const serviceRadiusKm = profileData.serviceRadiusKm || 10;
+
         // Get availability from profile or use defaults
         const availability = profileData.availability || {
           isAvailable: true,
           weeklyAvailability: {
-            monday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-            tuesday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-            wednesday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-            thursday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-            friday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-            saturday: { enabled: true, startTime: '09:00', endTime: '19:00' },
-            sunday: { enabled: false, startTime: '09:00', endTime: '19:00' }
-          }
-        }
+            monday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+            tuesday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+            wednesday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+            thursday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+            friday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+            saturday: { enabled: true, startTime: "09:00", endTime: "19:00" },
+            sunday: { enabled: false, startTime: "09:00", endTime: "19:00" },
+          },
+        };
 
         setFormData({
           isAvailable: availability.isAvailable !== false,
           serviceAreas: workAreas,
           workRadius: serviceRadiusKm,
-          weeklyAvailability: availability.weeklyAvailability || formData.weeklyAvailability
-        })
+          weeklyAvailability:
+            availability.weeklyAvailability || formData.weeklyAvailability,
+        });
       }
     } catch (error) {
-      console.error('Error fetching profile:', error)
+      console.error("Error fetching profile:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleAvailabilityToggle = (checked: boolean) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      isAvailable: checked
-    }))
-  }
+      isAvailable: checked,
+    }));
+  };
 
-  const handleServiceAreasChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value)
-    setFormData(prev => ({
+  const handleServiceAreasChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selectedOptions = Array.from(
+      e.target.selectedOptions,
+      (option) => option.value
+    );
+    setFormData((prev) => ({
       ...prev,
-      serviceAreas: selectedOptions
-    }))
-  }
+      serviceAreas: selectedOptions,
+    }));
+  };
 
   const handleWorkRadiusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      workRadius: parseInt(e.target.value) || 10
-    }))
-  }
+      workRadius: parseInt(e.target.value) || 10,
+    }));
+  };
 
   const handleDayToggle = (dayKey: string, enabled: boolean) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       weeklyAvailability: {
         ...prev.weeklyAvailability,
         [dayKey]: {
           ...prev.weeklyAvailability[dayKey],
-          enabled
-        }
-      }
-    }))
-  }
+          enabled,
+        },
+      },
+    }));
+  };
 
-  const handleTimeChange = (dayKey: string, field: 'startTime' | 'endTime', value: string) => {
-    setFormData(prev => ({
+  const handleTimeChange = (
+    dayKey: string,
+    field: "startTime" | "endTime",
+    value: string
+  ) => {
+    setFormData((prev) => ({
       ...prev,
       weeklyAvailability: {
         ...prev.weeklyAvailability,
         [dayKey]: {
           ...prev.weeklyAvailability[dayKey],
-          [field]: value
-        }
-      }
-    }))
-  }
+          [field]: value,
+        },
+      },
+    }));
+  };
 
   const handleSave = async () => {
     try {
-      setSaving(true)
-      
+      setSaving(true);
+
       const updateData = {
         availability: {
           isAvailable: formData.isAvailable,
-          weeklyAvailability: formData.weeklyAvailability
+          weeklyAvailability: formData.weeklyAvailability,
         },
         workAreas: formData.serviceAreas,
-        serviceRadiusKm: formData.workRadius
-      }
+        serviceRadiusKm: formData.workRadius,
+      };
 
-      const response = await TechnicianService.updateAvailability(updateData)
-      
+      const response = await TechnicianService.updateAvailability(updateData);
+
       if (response.data.success) {
         // Update local profile state
         if (profile) {
@@ -178,41 +188,45 @@ const AvailabilityPreferences = () => {
             serviceRadiusKm: formData.workRadius,
             availability: {
               isAvailable: formData.isAvailable,
-              weeklyAvailability: formData.weeklyAvailability
-            }
-          })
+              weeklyAvailability: formData.weeklyAvailability,
+            },
+          });
         }
-        alert('Availability preferences updated successfully!')
+        alert("Availability preferences updated successfully!");
       }
     } catch (error) {
-      console.error('Error updating availability:', error)
-      alert('Failed to update availability preferences')
+      console.error("Error updating availability:", error);
+      alert("Failed to update availability preferences");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const getStatusDisplay = () => {
     if (formData.isAvailable) {
       return (
         <div className="flex items-start">
           <div className="text-green-500 bg-green-100 rounded-full p-1 mr-2">
-            <CheckOutlinedIcon className='h-5 w-5' />
+            <CheckOutlinedIcon className="h-5 w-5" />
           </div>
-          <span className="text-green-500 text-sm font-medium">Available for new jobs</span>
+          <span className="text-green-500 text-sm font-medium">
+            Available for new jobs
+          </span>
         </div>
-      )
+      );
     } else {
       return (
         <div className="flex items-start">
           <div className="text-red-500 bg-red-100 rounded-full p-1 mr-2">
-            <CheckOutlinedIcon className='h-5 w-5' />
+            <CheckOutlinedIcon className="h-5 w-5" />
           </div>
-          <span className="text-red-500 text-sm font-medium">Not available for new jobs</span>
+          <span className="text-red-500 text-sm font-medium">
+            Not available for new jobs
+          </span>
         </div>
-      )
+      );
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -221,7 +235,7 @@ const AvailabilityPreferences = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
       </AccordionSection>
-    )
+    );
   }
 
   return (
@@ -231,35 +245,45 @@ const AvailabilityPreferences = () => {
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-sm font-medium">Overall Availability Status</h3>
           <label className="relative inline-block w-12 h-6 cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="opacity-0 w-0 h-0" 
+            <input
+              type="checkbox"
+              className="opacity-0 w-0 h-0"
               checked={formData.isAvailable}
               onChange={(e) => handleAvailabilityToggle(e.target.checked)}
             />
-            <span className={`absolute top-0 left-0 right-0 bottom-0 rounded-full transition-colors ${
-              formData.isAvailable ? 'bg-green-500' : 'bg-gray-300'
-            }`}></span>
-            <span className={`absolute left-1 bottom-1 bg-white w-4 h-4 rounded-full transition-transform ${
-              formData.isAvailable ? 'transform translate-x-6' : 'transform translate-x-0'
-            }`}></span>
+            <span
+              className={`absolute top-0 left-0 right-0 bottom-0 rounded-full transition-colors ${
+                formData.isAvailable ? "bg-green-500" : "bg-gray-300"
+              }`}
+            ></span>
+            <span
+              className={`absolute left-1 bottom-1 bg-white w-4 h-4 rounded-full transition-transform ${
+                formData.isAvailable
+                  ? "transform translate-x-6"
+                  : "transform translate-x-0"
+              }`}
+            ></span>
           </label>
         </div>
-        
+
         {getStatusDisplay()}
 
         {/* Service Areas and Work Radius */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 mb-6">
           <div>
-            <label className="block text-sm font-medium mb-1">Service Areas</label>
-            <select 
+            <label className="block text-sm font-medium mb-1">
+              Service Areas
+            </label>
+            <select
               multiple
               value={formData.serviceAreas}
               onChange={handleServiceAreasChange}
               className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
             >
-              {availableServiceAreas.map(area => (
-                <option key={area} value={area}>{area}</option>
+              {availableServiceAreas.map((area) => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
               ))}
             </select>
             <p className="text-xs text-gray-500 mt-1">
@@ -268,12 +292,12 @@ const AvailabilityPreferences = () => {
             {formData.serviceAreas.length > 0 && (
               <div className="mt-2">
                 <p className="text-xs text-green-600 font-medium">
-                  Selected: {formData.serviceAreas.join(', ')}
+                  Selected: {formData.serviceAreas.join(", ")}
                 </p>
               </div>
             )}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium mb-1">
               Preferred Work Radius: {formData.workRadius} km
@@ -305,11 +329,14 @@ const AvailabilityPreferences = () => {
           <h3 className="text-sm font-medium mb-3">Weekly Availability</h3>
           <div className="space-y-3">
             {daysOfWeek.map(({ key, label }) => {
-              const dayAvailability = formData.weeklyAvailability[key]
-              const isEnabled = dayAvailability?.enabled ?? (key !== 'sunday')
-              
+              const dayAvailability = formData.weeklyAvailability[key];
+              const isEnabled = dayAvailability?.enabled ?? key !== "sunday";
+
               return (
-                <div key={key} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                <div
+                  key={key}
+                  className="flex items-center p-3 bg-gray-50 rounded-lg"
+                >
                   <input
                     type="checkbox"
                     id={key}
@@ -325,8 +352,10 @@ const AvailabilityPreferences = () => {
                       <span className="text-sm text-gray-600 mr-2">Start:</span>
                       <input
                         type="time"
-                        value={dayAvailability?.startTime || '09:00'}
-                        onChange={(e) => handleTimeChange(key, 'startTime', e.target.value)}
+                        value={dayAvailability?.startTime || "09:00"}
+                        onChange={(e) =>
+                          handleTimeChange(key, "startTime", e.target.value)
+                        }
                         disabled={!isEnabled}
                         className="w-24 p-1 border border-gray-300 rounded text-center text-sm disabled:bg-gray-100 disabled:text-gray-400"
                       />
@@ -335,8 +364,10 @@ const AvailabilityPreferences = () => {
                       <span className="text-sm text-gray-600 mr-2">End:</span>
                       <input
                         type="time"
-                        value={dayAvailability?.endTime || '19:00'}
-                        onChange={(e) => handleTimeChange(key, 'endTime', e.target.value)}
+                        value={dayAvailability?.endTime || "19:00"}
+                        onChange={(e) =>
+                          handleTimeChange(key, "endTime", e.target.value)
+                        }
                         disabled={!isEnabled}
                         className="w-24 p-1 border border-gray-300 rounded text-center text-sm disabled:bg-gray-100 disabled:text-gray-400"
                       />
@@ -346,20 +377,20 @@ const AvailabilityPreferences = () => {
                     )}
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
 
         {/* Save Button */}
         <div className="flex justify-end pt-4 border-t border-gray-200">
-          <button 
+          <button
             onClick={handleSave}
             disabled={saving || formData.serviceAreas.length === 0}
             className={`px-6 py-2 rounded font-medium flex items-center ${
               saving || formData.serviceAreas.length === 0
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-500 text-white hover:bg-blue-600'
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-blue-500 text-white hover:bg-blue-600"
             }`}
           >
             {saving ? (
@@ -368,13 +399,13 @@ const AvailabilityPreferences = () => {
                 Saving...
               </>
             ) : (
-              'Save Changes'
+              "Save Changes"
             )}
           </button>
         </div>
       </div>
     </AccordionSection>
-  )
-}
+  );
+};
 
-export default AvailabilityPreferences
+export default AvailabilityPreferences;

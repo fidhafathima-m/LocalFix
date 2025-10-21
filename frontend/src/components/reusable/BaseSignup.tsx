@@ -3,12 +3,8 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import GoogleAuth from "../../features/user/components/GoogleAuth";
-import {
-  VisibilityOutlined,
-  VisibilityOffOutlined
-} from '@mui/icons-material'
+import { VisibilityOutlined, VisibilityOffOutlined } from "@mui/icons-material";
 
-// Use more flexible types with index signature
 export interface SignUpFormData {
   fullName: string;
   email: string;
@@ -142,7 +138,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
         email: formData.email || undefined,
         phone: formData.phone || undefined,
         password: formData.password,
-        userType: userType, // Use the prop directly to ensure correct type
+        userType: userType,
       });
 
       if (result.success) {
@@ -170,13 +166,13 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
   };
 
   const getDefaultTitle = () => {
-    return userType === "serviceProvider" 
-      ? "Join as Service Provider" 
+    return userType === "serviceProvider"
+      ? "Join as Service Provider"
       : "Create Your Account";
   };
 
   const getDefaultSubtitle = () => {
-    return userType === "serviceProvider" 
+    return userType === "serviceProvider"
       ? "Start your service business with LocalFix"
       : "Join LocalFix to get your appliances fixed by local experts";
   };
@@ -261,7 +257,11 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 cursor-pointer"
               onClick={togglePasswordVisibility}
             >
-              {showPassword ? <VisibilityOffOutlined/> : <VisibilityOutlined/>}
+              {showPassword ? (
+                <VisibilityOffOutlined />
+              ) : (
+                <VisibilityOutlined />
+              )}
             </button>
           </div>
           {errors.password && (
@@ -285,11 +285,17 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 cursor-pointer"
               onClick={toggleConfirmPasswordVisibility}
             >
-              {showConfirmPassword ? <VisibilityOffOutlined/> : <VisibilityOutlined/>}
+              {showConfirmPassword ? (
+                <VisibilityOffOutlined />
+              ) : (
+                <VisibilityOutlined />
+              )}
             </button>
           </div>
           {errors.confirmPassword && (
-            <p className="text-sm text-red-500 mt-1">{errors.confirmPassword}</p>
+            <p className="text-sm text-red-500 mt-1">
+              {errors.confirmPassword}
+            </p>
           )}
         </div>
 
@@ -297,7 +303,9 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
           type="submit"
           disabled={loading}
           className={`w-full bg-blue-600 text-white py-2 rounded transition-colors ${
-            loading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700 cursor-pointer"
+            loading
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-blue-700 cursor-pointer"
           }`}
         >
           {loading ? "Creating Account..." : "Create Account"}

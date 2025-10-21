@@ -104,179 +104,164 @@ const PendingTechnicianApplication: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isResubmitting, setIsResubmitting] = useState(false);
-  const { accessToken, isLoggedIn } = useAppSelector((state) => state.auth);
+  const { user, accessToken, isLoggedIn } = useAppSelector(
+    (state) => state.auth
+  );
   const navigate = useNavigate();
 
- const fetchApplicationData = useCallback(async () => {
-  if (!isLoggedIn || !accessToken) {
-    setLoading(false);
-    return;
-  }
-
-  try {
-    setLoading(true);
-    setError(null);
-
-    const applicationId = localStorage.getItem("applicationId");
-
-    if (!applicationId) {
-      console.log("🔍 No applicationId in localStorage, fetching user applications");
-      try {
-        const userApplicationsResponse = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/technician-application/user/applications`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        console.log('🔍 User applications response:', userApplicationsResponse.data);
-
-        // ✅ FIXED: Handle different response structures
-        let applications = [];
-        
-        if (userApplicationsResponse.data.data?.applications) {
-          applications = userApplicationsResponse.data.data.applications;
-        } else if (userApplicationsResponse.data.applications) {
-          applications = userApplicationsResponse.data.applications;
-        } else if (userApplicationsResponse.data.data) {
-          // If data is directly the applications array
-          applications = Array.isArray(userApplicationsResponse.data.data) 
-            ? userApplicationsResponse.data.data 
-            : [];
-        }
-
-        const latestApplication = applications[0];
-
-        if (latestApplication) {
-          console.log("🔍 Found user application:", latestApplication);
-          localStorage.setItem("applicationId", latestApplication._id);
-          setApplicationData(latestApplication);
-          setApplicationStatus(latestApplication.status);
-
-          if (latestApplication.status === "draft") {
-            navigate("/technicians/apply");
-            return;
-          }
-          return;
-        } else {
-          console.log("🔍 No applications found for user");
-          setError("No application found. Please start a new application.");
-          setLoading(false);
-          return;
-        }
-      } catch (userAppsError) {
-        console.error("Error fetching user applications:", userAppsError);
-        setError("Failed to load your applications");
-        setLoading(false);
-        return;
-      }
+  const fetchApplicationData = useCallback(async () => {
+    if (!isLoggedIn || !accessToken) {
+      setLoading(false);
+      return;
     }
 
-    // If we have applicationId, fetch that specific application
-    console.log("🔍 FETCHING APPLICATION WITH ID:", applicationId);
-    const applicationResponse = await axios.get(
-      `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
+    try {
+      setLoading(true);
+      setError(null);
 
-    console.log('🔍 Full API Response:', applicationResponse);
-    console.log('🔍 Response data:', applicationResponse.data);
+      const applicationId = localStorage.getItem("applicationId");
 
-    // ✅ FIXED: Correctly handle the nested response structure
-    let appData = null;
-    
-    // Your backend returns: { success: true, data: { application: {...} } }
-    if (applicationResponse.data.data && applicationResponse.data.data.application) {
-      appData = applicationResponse.data.data.application;
-    } 
-    // Sometimes it might be: { success: true, data: {...} } (direct application data)
-    else if (applicationResponse.data.data) {
-      appData = applicationResponse.data.data;
-    }
-    // Or direct: { application: {...} }
-    else if (applicationResponse.data.application) {
-      appData = applicationResponse.data.application;
-    }
-    // Fallback: use the entire data object if nothing else matches
-    else if (applicationResponse.data) {
-      appData = applicationResponse.data;
-    }
-
-    console.log('🔍 EXTRACTED APPLICATION DATA:', appData);
-
-    // ✅ FIXED: Check if appData is still nested with data property
-    if (appData && appData.data && appData.data.application) {
-      appData = appData.data.application;
-      console.log('🔍 EXTRACTED NESTED APPLICATION DATA:', appData);
-    }
-
-    if (appData) {
-      if (appData.status === "draft") {
-        navigate("/technicians/apply");
-        return;
-      }
-
-      setApplicationData(appData);
-      setApplicationStatus(appData.status);
-      console.log('✅ APPLICATION DATA SET:', appData);
-
-      if (appData.status === "approved") {
+      if (!applicationId) {
         try {
-          const technicianResponse = await axios.get(
-            `${import.meta.env.VITE_BASE_URL}/technicians/by-application/${applicationId}`,
+          const userApplicationsResponse = await axios.get(
+            `${
+              import.meta.env.VITE_BASE_URL
+            }/technician-application/user/applications`,
             {
               headers: {
                 Authorization: `Bearer ${accessToken}`,
               },
             }
           );
-          
-          console.log('🔍 Technician response:', technicianResponse.data);
-          
-          // Handle different response structures for technician data
-          let technicianData = null;
-          if (technicianResponse.data.data?.technician) {
-            technicianData = technicianResponse.data.data.technician;
-          } else if (technicianResponse.data.technician) {
-            technicianData = technicianResponse.data.technician;
-          } else if (technicianResponse.data.data) {
-            technicianData = technicianResponse.data.data;
+
+          let applications = [];
+
+          if (userApplicationsResponse.data.data?.applications) {
+            applications = userApplicationsResponse.data.data.applications;
+          } else if (userApplicationsResponse.data.applications) {
+            applications = userApplicationsResponse.data.applications;
+          } else if (userApplicationsResponse.data.data) {
+            applications = Array.isArray(userApplicationsResponse.data.data)
+              ? userApplicationsResponse.data.data
+              : [];
           }
-          
-          if (technicianData) {
-            setTechnicianData(technicianData);
+
+          const latestApplication = applications[0];
+
+          if (latestApplication) {
+            localStorage.setItem("applicationId", latestApplication._id);
+            setApplicationData(latestApplication);
+            setApplicationStatus(latestApplication.status);
+
+            if (latestApplication.status === "draft") {
+              navigate("/technicians/apply");
+              return;
+            }
+            return;
+          } else {
+            setError("No application found. Please start a new application.");
+            setLoading(false);
+            return;
           }
-        } catch (techError) {
-          console.log("No technician data found yet", techError);
+        } catch (userAppsError) {
+          console.error("Error fetching user applications:", userAppsError);
+          setError("Failed to load your applications");
+          setLoading(false);
+          return;
         }
       }
-    } else {
-      console.error("❌ No application data found in response");
-      setError("Failed to load application data - invalid response structure");
-    }
-  } catch (error: any) {
-    console.error("Error fetching application data:", error);
 
-    if (error.response?.status === 401) {
-      setError("Your session has expired. Please log in again.");
-    } else if (error.response?.status === 404) {
-      console.log("🔍 Application not found, clearing localStorage");
-      localStorage.removeItem("applicationId");
-      localStorage.removeItem("currentTechnicianApplication");
-      setError("Application not found. Please start a new application.");
-    } else {
-      setError("Failed to load application data");
+      const applicationResponse = await axios.get(
+        `${
+          import.meta.env.VITE_BASE_URL
+        }/technician-application/${applicationId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      let appData = null;
+
+      if (
+        applicationResponse.data.data &&
+        applicationResponse.data.data.application
+      ) {
+        appData = applicationResponse.data.data.application;
+      } else if (applicationResponse.data.data) {
+        appData = applicationResponse.data.data;
+      } else if (applicationResponse.data.application) {
+        appData = applicationResponse.data.application;
+      } else if (applicationResponse.data) {
+        appData = applicationResponse.data;
+      }
+
+      if (appData && appData.data && appData.data.application) {
+        appData = appData.data.application;
+      }
+
+      if (appData) {
+        if (appData.status === "draft") {
+          navigate("/technicians/apply");
+          return;
+        }
+
+        setApplicationData(appData);
+        setApplicationStatus(appData.status);
+
+        if (appData.status === "approved") {
+          try {
+            const technicianResponse = await axios.get(
+              `${
+                import.meta.env.VITE_BASE_URL
+              }/technicians/by-application/${applicationId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              }
+            );
+
+            // Handle different response structures for technician data
+            let technicianData = null;
+            if (technicianResponse.data.data?.technician) {
+              technicianData = technicianResponse.data.data.technician;
+            } else if (technicianResponse.data.technician) {
+              technicianData = technicianResponse.data.technician;
+            } else if (technicianResponse.data.data) {
+              technicianData = technicianResponse.data.data;
+            }
+
+            if (technicianData) {
+              setTechnicianData(technicianData);
+            }
+          } catch (techError) {
+            console.log("No technician data found yet", techError);
+          }
+        }
+      } else {
+        console.error("No application data found in response");
+        setError(
+          "Failed to load application data - invalid response structure"
+        );
+      }
+    } catch (error: any) {
+      console.error("Error fetching application data:", error);
+
+      if (error.response?.status === 401) {
+        setError("Your session has expired. Please log in again.");
+      } else if (error.response?.status === 404) {
+        localStorage.removeItem("applicationId");
+        localStorage.removeItem("currentTechnicianApplication");
+        setError("Application not found. Please start a new application.");
+      } else {
+        setError("Failed to load application data");
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-}, [accessToken, isLoggedIn, navigate]);
+  }, [accessToken, isLoggedIn, navigate]);
 
   // Function to get all available documents dynamically
   const getAvailableDocuments = (): AvailableDocument[] => {
@@ -526,8 +511,22 @@ const PendingTechnicianApplication: React.FC = () => {
         }
       );
 
+      console.log("🔍 Start new application response:", response.data);
+
       if (response.data.success) {
-        localStorage.setItem("applicationId", response.data.data.applicationId);
+        localStorage.removeItem("applicationId");
+        localStorage.removeItem("currentTechnicianApplication");
+        localStorage.removeItem("technicianApplicationData");
+
+        if (user?._id) {
+          localStorage.removeItem(`techApp-${user._id}`);
+          localStorage.removeItem(`techApp-step-${user._id}`);
+          localStorage.removeItem(`techApp-applicationId-${user._id}`);
+          localStorage.removeItem(`techApp-timestamp-${user._id}`);
+        }
+
+        const newApplicationId = response.data.data.applicationId;
+        localStorage.setItem("applicationId", newApplicationId);
 
         toast.success(
           "New application started! You can now update your information.",
@@ -537,9 +536,9 @@ const PendingTechnicianApplication: React.FC = () => {
           }
         );
 
-        navigate("/technicians/apply");
+        window.location.href = "/technicians/apply";
       } else {
-        setError("Failed to start new application");
+        setError(response.data.message || "Failed to start new application");
       }
     } catch (error: any) {
       console.error("Error starting new application:", error);
@@ -548,13 +547,16 @@ const PendingTechnicianApplication: React.FC = () => {
         toast.error("Your session has expired. Please log in again.");
         navigate("/technicians/login");
       } else {
-        setError("Failed to start new application. Please try again.");
+        const errorMessage =
+          error.response?.data?.message ||
+          "Failed to start new application. Please try again.";
+        setError(errorMessage);
+        toast.error(errorMessage, { duration: 4000, position: "top-center" });
       }
     } finally {
       setIsResubmitting(false);
     }
   };
-
   useEffect(() => {
     const checkApplicationStatus = async () => {
       if (!isLoggedIn || !accessToken) {
@@ -657,35 +659,32 @@ const PendingTechnicianApplication: React.FC = () => {
     }
   };
 
-  // Add this helper function to get the profile photo URL
-const getProfilePhotoUrl = (): string | null => {
-  if (!applicationData?.documents) return null;
-  
-  // Check for passport photo first
-  const passportPhoto = applicationData.documents.passportPhoto;
-  if (passportPhoto?.url && !passportPhoto.uploadFailed) {
-    return passportPhoto.url;
-  }
-  
-  // Check for profile photo as fallback
-  const profilePhoto = applicationData.documents.profilePhoto;
-  if (profilePhoto?.url && !profilePhoto.uploadFailed) {
-    return profilePhoto.url;
-  }
-  
-  return null;
-};
+  const getProfilePhotoUrl = (): string | null => {
+    if (!applicationData?.documents) return null;
 
-// Add this helper function to get initials as fallback
-const getInitials = (name: string) => {
-  return name
-    ? name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-    : "U";
-};
+    const passportPhoto = applicationData.documents.passportPhoto;
+    if (passportPhoto?.url && !passportPhoto.uploadFailed) {
+      return passportPhoto.url;
+    }
+
+    const profilePhoto = applicationData.documents.profilePhoto;
+    if (profilePhoto?.url && !profilePhoto.uploadFailed) {
+      return profilePhoto.url;
+    }
+
+    return null;
+  };
+
+  //helper function to get initials as fallback
+  const getInitials = (name: string) => {
+    return name
+      ? name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+      : "U";
+  };
 
   const getStatusBadge = () => {
     const status = applicationData?.status;
@@ -813,7 +812,6 @@ const getInitials = (name: string) => {
           {/* Header Card */}
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center">
-
               {/* With this profile photo section */}
               {getProfilePhotoUrl() ? (
                 <div className="h-12 w-12 rounded-full overflow-hidden mr-4 border-2 border-gray-200">
@@ -1060,9 +1058,6 @@ const getInitials = (name: string) => {
               <p className="text-xs text-gray-500 mt-3">
                 <strong>Quick Resubmit:</strong> Resubmit your current
                 application as-is
-                <br />
-                <strong>Edit & Improve:</strong> Modify your current application
-                before resubmitting
                 <br />
                 <strong>Start Completely Fresh:</strong> Create a new
                 application (keeps your documents)
