@@ -26,7 +26,7 @@ export class TechnicianApplicationService {
       throw this.handleError(error, "Failed to get users");
     }
   }
-  static async submitApplication(data: { applicationId: string }) {
+  static async submitApplication(data: { applicationId: string,userId: string }) {
     try {
       const response = await technicianAPI.submitApplication(data)
       return this.handleResponse(response);

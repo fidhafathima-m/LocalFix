@@ -108,8 +108,6 @@ const Header: React.FC<HeaderProps> = ({
       return [<div key="placeholder" className="h-6"></div>];
     }
 
-     console.log("🔍 Generating links for userType:", userType);
-
     switch (userType) {
       case "user":
         if (!isLoggedIn) {

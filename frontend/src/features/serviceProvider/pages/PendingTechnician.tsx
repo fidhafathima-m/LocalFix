@@ -107,7 +107,7 @@ const PendingTechnicianApplication: React.FC = () => {
   const { accessToken, isLoggedIn } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
 
-  const fetchApplicationData = useCallback(async () => {
+ const fetchApplicationData = useCallback(async () => {
   if (!isLoggedIn || !accessToken) {
     setLoading(false);
     return;
@@ -120,11 +120,62 @@ const PendingTechnicianApplication: React.FC = () => {
     const applicationId = localStorage.getItem("applicationId");
 
     if (!applicationId) {
-      setError("No application found");
-      setLoading(false);
-      return;
+      console.log("🔍 No applicationId in localStorage, fetching user applications");
+      try {
+        const userApplicationsResponse = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/technician-application/user/applications`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        console.log('🔍 User applications response:', userApplicationsResponse.data);
+
+        // ✅ FIXED: Handle different response structures
+        let applications = [];
+        
+        if (userApplicationsResponse.data.data?.applications) {
+          applications = userApplicationsResponse.data.data.applications;
+        } else if (userApplicationsResponse.data.applications) {
+          applications = userApplicationsResponse.data.applications;
+        } else if (userApplicationsResponse.data.data) {
+          // If data is directly the applications array
+          applications = Array.isArray(userApplicationsResponse.data.data) 
+            ? userApplicationsResponse.data.data 
+            : [];
+        }
+
+        const latestApplication = applications[0];
+
+        if (latestApplication) {
+          console.log("🔍 Found user application:", latestApplication);
+          localStorage.setItem("applicationId", latestApplication._id);
+          setApplicationData(latestApplication);
+          setApplicationStatus(latestApplication.status);
+
+          if (latestApplication.status === "draft") {
+            navigate("/technicians/apply");
+            return;
+          }
+          return;
+        } else {
+          console.log("🔍 No applications found for user");
+          setError("No application found. Please start a new application.");
+          setLoading(false);
+          return;
+        }
+      } catch (userAppsError) {
+        console.error("Error fetching user applications:", userAppsError);
+        setError("Failed to load your applications");
+        setLoading(false);
+        return;
+      }
     }
 
+    // If we have applicationId, fetch that specific application
+    console.log("🔍 FETCHING APPLICATION WITH ID:", applicationId);
     const applicationResponse = await axios.get(
       `${import.meta.env.VITE_BASE_URL}/technician-application/${applicationId}`,
       {
@@ -134,14 +185,38 @@ const PendingTechnicianApplication: React.FC = () => {
       }
     );
 
-    console.log('Full API Response:', applicationResponse);
-    console.log('Response data:', applicationResponse.data);
-    console.log('Response data.data:', applicationResponse.data.data);
+    console.log('🔍 Full API Response:', applicationResponse);
+    console.log('🔍 Response data:', applicationResponse.data);
 
-    // FIX: Check the correct nested structure
-    if (applicationResponse.data.data?.data?.application) {
-      const appData = applicationResponse.data.data.data.application;
+    // ✅ FIXED: Correctly handle the nested response structure
+    let appData = null;
+    
+    // Your backend returns: { success: true, data: { application: {...} } }
+    if (applicationResponse.data.data && applicationResponse.data.data.application) {
+      appData = applicationResponse.data.data.application;
+    } 
+    // Sometimes it might be: { success: true, data: {...} } (direct application data)
+    else if (applicationResponse.data.data) {
+      appData = applicationResponse.data.data;
+    }
+    // Or direct: { application: {...} }
+    else if (applicationResponse.data.application) {
+      appData = applicationResponse.data.application;
+    }
+    // Fallback: use the entire data object if nothing else matches
+    else if (applicationResponse.data) {
+      appData = applicationResponse.data;
+    }
 
+    console.log('🔍 EXTRACTED APPLICATION DATA:', appData);
+
+    // ✅ FIXED: Check if appData is still nested with data property
+    if (appData && appData.data && appData.data.application) {
+      appData = appData.data.application;
+      console.log('🔍 EXTRACTED NESTED APPLICATION DATA:', appData);
+    }
+
+    if (appData) {
       if (appData.status === "draft") {
         navigate("/technicians/apply");
         return;
@@ -149,6 +224,7 @@ const PendingTechnicianApplication: React.FC = () => {
 
       setApplicationData(appData);
       setApplicationStatus(appData.status);
+      console.log('✅ APPLICATION DATA SET:', appData);
 
       if (appData.status === "approved") {
         try {
@@ -160,21 +236,40 @@ const PendingTechnicianApplication: React.FC = () => {
               },
             }
           );
+          
+          console.log('🔍 Technician response:', technicianResponse.data);
+          
+          // Handle different response structures for technician data
+          let technicianData = null;
           if (technicianResponse.data.data?.technician) {
-            setTechnicianData(technicianResponse.data.data.technician);
+            technicianData = technicianResponse.data.data.technician;
+          } else if (technicianResponse.data.technician) {
+            technicianData = technicianResponse.data.technician;
+          } else if (technicianResponse.data.data) {
+            technicianData = technicianResponse.data.data;
+          }
+          
+          if (technicianData) {
+            setTechnicianData(technicianData);
           }
         } catch (techError) {
           console.log("No technician data found yet", techError);
         }
       }
     } else {
-      setError("Failed to load application data");
+      console.error("❌ No application data found in response");
+      setError("Failed to load application data - invalid response structure");
     }
   } catch (error: any) {
     console.error("Error fetching application data:", error);
 
     if (error.response?.status === 401) {
       setError("Your session has expired. Please log in again.");
+    } else if (error.response?.status === 404) {
+      console.log("🔍 Application not found, clearing localStorage");
+      localStorage.removeItem("applicationId");
+      localStorage.removeItem("currentTechnicianApplication");
+      setError("Application not found. Please start a new application.");
     } else {
       setError("Failed to load application data");
     }

@@ -9,19 +9,25 @@ export type ApplicationStatus =
   | "approved"
   | "rejected";
 
-export const isValidApplicationStatus = (status: string): status is ApplicationStatus => {
+export const isValidApplicationStatus = (
+  status: string
+): status is ApplicationStatus => {
   return [
     "not-applied",
-    "draft", 
+    "draft",
     "submitted",
     "under_review",
     "approved",
-    "rejected"
+    "rejected",
   ].includes(status);
 };
 
-export const getSafeApplicationStatus = (status?: string): ApplicationStatus => {
-  return isValidApplicationStatus(status || "") ? status as ApplicationStatus : "not-applied";
+export const getSafeApplicationStatus = (
+  status?: string
+): ApplicationStatus => {
+  return isValidApplicationStatus(status || "")
+    ? (status as ApplicationStatus)
+    : "not-applied";
 };
 
 export interface User {
@@ -49,10 +55,10 @@ interface AuthState {
 const getInitialState = (): AuthState => {
   try {
     const savedAuth = localStorage.getItem("auth");
-    
+
     if (savedAuth) {
       const authData = JSON.parse(savedAuth);
-      
+
       // ✅ FIXED: Make validation less strict
       if (authData.user && authData.accessToken) {
         return {
@@ -93,7 +99,11 @@ const authSlice = createSlice({
     },
     loginSuccess: (
       state,
-      action: PayloadAction<{ user: User; accessToken: string; refreshToken: string }>
+      action: PayloadAction<{
+        user: User;
+        accessToken: string;
+        refreshToken: string;
+      }>
     ) => {
       state.loading = false;
       state.user = action.payload.user;
@@ -101,14 +111,18 @@ const authSlice = createSlice({
       state.refreshToken = action.payload.refreshToken;
       state.isLoggedIn = true;
       state.error = null;
-      state.applicationStatus = action.payload.user.applicationStatus || "not-applied";
+      state.applicationStatus =
+        action.payload.user.applicationStatus || "not-applied";
 
       // ✅ Save complete auth state to localStorage
-      localStorage.setItem("auth", JSON.stringify({
-        user: action.payload.user,
-        accessToken: action.payload.accessToken,
-        refreshToken: action.payload.refreshToken,
-      }));
+      localStorage.setItem(
+        "auth",
+        JSON.stringify({
+          user: action.payload.user,
+          accessToken: action.payload.accessToken,
+          refreshToken: action.payload.refreshToken,
+        })
+      );
     },
     loginFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -121,7 +135,11 @@ const authSlice = createSlice({
 
       localStorage.removeItem("auth");
     },
+    // In your authSlice.ts - modify the logout action
     logout: (state) => {
+      // Save application data BEFORE clearing auth
+      const user = state.user;
+
       state.user = null;
       state.accessToken = null;
       state.refreshToken = null;
@@ -129,9 +147,20 @@ const authSlice = createSlice({
       state.applicationStatus = "not-applied";
       state.error = null;
 
+      // Only remove auth data, preserve application data
       localStorage.removeItem("auth");
+
+      // ✅ Preserve application data by user ID
+      if (user?._id) {
+        console.log("🔍 Preserving application data for user:", user._id);
+        // Application data is already saved in localStorage with user ID keys
+        // Don't remove it here so user can resume later
+      }
     },
-    updateTokens: (state, action: PayloadAction<{ accessToken: string; refreshToken: string }>) => {
+    updateTokens: (
+      state,
+      action: PayloadAction<{ accessToken: string; refreshToken: string }>
+    ) => {
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
 
@@ -139,41 +168,54 @@ const authSlice = createSlice({
       const currentAuth = localStorage.getItem("auth");
       if (currentAuth) {
         const authData = JSON.parse(currentAuth);
-        localStorage.setItem("auth", JSON.stringify({
-          ...authData,
-          accessToken: action.payload.accessToken,
-          refreshToken: action.payload.refreshToken,
-        }));
+        localStorage.setItem(
+          "auth",
+          JSON.stringify({
+            ...authData,
+            accessToken: action.payload.accessToken,
+            refreshToken: action.payload.refreshToken,
+          })
+        );
       }
     },
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
-        state.applicationStatus = action.payload.applicationStatus || state.applicationStatus;
-        
+        state.applicationStatus =
+          action.payload.applicationStatus || state.applicationStatus;
+
         // Update localStorage
         const currentAuth = localStorage.getItem("auth");
         if (currentAuth) {
           const authData = JSON.parse(currentAuth);
-          localStorage.setItem("auth", JSON.stringify({
-            ...authData,
-            user: state.user,
-          }));
+          localStorage.setItem(
+            "auth",
+            JSON.stringify({
+              ...authData,
+              user: state.user,
+            })
+          );
         }
       }
     },
-    updateApplicationStatus: (state, action: PayloadAction<ApplicationStatus>) => {
+    updateApplicationStatus: (
+      state,
+      action: PayloadAction<ApplicationStatus>
+    ) => {
       state.applicationStatus = action.payload;
       if (state.user) {
         state.user.applicationStatus = action.payload;
-        
+
         const currentAuth = localStorage.getItem("auth");
         if (currentAuth) {
           const authData = JSON.parse(currentAuth);
-          localStorage.setItem("auth", JSON.stringify({
-            ...authData,
-            user: state.user,
-          }));
+          localStorage.setItem(
+            "auth",
+            JSON.stringify({
+              ...authData,
+              user: state.user,
+            })
+          );
         }
       }
     },
@@ -211,15 +253,20 @@ export const {
 
 export const selectAuth = (state: { auth: AuthState }) => state.auth;
 export const selectUser = (state: { auth: AuthState }) => state.auth.user;
-export const selectAccessToken = (state: { auth: AuthState }) => state.auth.accessToken;
-export const selectRefreshToken = (state: { auth: AuthState }) => state.auth.refreshToken;
-export const selectIsLoggedIn = (state: { auth: AuthState }) => state.auth.isLoggedIn;
-export const selectAuthLoading = (state: { auth: AuthState }) => state.auth.loading;
+export const selectAccessToken = (state: { auth: AuthState }) =>
+  state.auth.accessToken;
+export const selectRefreshToken = (state: { auth: AuthState }) =>
+  state.auth.refreshToken;
+export const selectIsLoggedIn = (state: { auth: AuthState }) =>
+  state.auth.isLoggedIn;
+export const selectAuthLoading = (state: { auth: AuthState }) =>
+  state.auth.loading;
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
-export const selectApplicationStatus = (state: { auth: AuthState }) => state.auth.applicationStatus;
+export const selectApplicationStatus = (state: { auth: AuthState }) =>
+  state.auth.applicationStatus;
 
 // ✅ NEW: Helper selector to check if user has specific role
-export const selectHasRole = (role: string) => (state: { auth: AuthState }) => 
+export const selectHasRole = (role: string) => (state: { auth: AuthState }) =>
   state.auth.user?.roles.includes(role) || false;
 
 export default authSlice.reducer;

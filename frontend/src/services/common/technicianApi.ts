@@ -342,7 +342,7 @@ export const technicianAPI = {
     }
   },
 
-  submitApplication: async (data: { applicationId: string }) => {
+  submitApplication: async (data: { applicationId: string, userId: string }) => {
     try {
       const response = await api.post<{
         success: boolean;
