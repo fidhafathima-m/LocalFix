@@ -3,13 +3,8 @@ import { AdminSidebar } from "../components/AdminSidebar";
 import {
   SearchOutlined,
   ExpandMoreOutlined,
-  FileDownloadOutlined,
-  PeopleAltOutlined,
-  VerifiedUserOutlined,
-  PersonOffOutlined,
-  PersonAddAltOutlined,
+  // FileDownloadOutlined,
 } from "@mui/icons-material";
-import Search from "../components/Search";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
@@ -224,7 +219,6 @@ const TechnicianManagement: React.FC = () => {
   }, [searchQuery, serviceFilter, ratingFilter, activeTab]);
 
   // Count calculations
-  const allTechnicians = technicians.length;
   const pendingApplications = applications.length;
   const suspendedTechnicians = technicians.filter(
     (t) => t.status === "suspended"
@@ -526,9 +520,6 @@ const TechnicianManagement: React.FC = () => {
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto ml-[240px]">
-        {/* Header with search */}
-        <Search />
-
         {/* Dashboard content */}
         <div className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-start mb-6">
@@ -539,50 +530,10 @@ const TechnicianManagement: React.FC = () => {
                 performance.
               </p>
             </div>
-            <button className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+            {/* <button className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
               <FileDownloadOutlined className="h-4 w-4 mr-2" />
               Export Technicians
-            </button>
-          </div>
-
-          {/* Stats cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-blue-50 p-4 rounded-lg flex items-start border border-blue-100">
-              <div className="p-2 bg-blue-100 rounded-md mr-3">
-                <PeopleAltOutlined className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Technicians</p>
-                <p className="text-xl font-bold">{allTechnicians}</p>
-              </div>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg flex items-start border border-green-100">
-              <div className="p-2 bg-green-100 rounded-md mr-3">
-                <VerifiedUserOutlined className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Active Technicians</p>
-                <p className="text-xl font-bold">{approvedTechnicians}</p>
-              </div>
-            </div>
-            <div className="bg-red-50 p-4 rounded-lg flex items-start border border-red-100">
-              <div className="p-2 bg-red-100 rounded-md mr-3">
-                <PersonOffOutlined className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Suspended Technicians</p>
-                <p className="text-xl font-bold">{suspendedTechnicians}</p>
-              </div>
-            </div>
-            <div className="bg-yellow-50 p-4 rounded-lg flex items-start border border-yellow-100">
-              <div className="p-2 bg-yellow-100 rounded-md mr-3">
-                <PersonAddAltOutlined className="h-5 w-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Pending Applications</p>
-                <p className="text-xl font-bold">{pendingApplications}</p>
-              </div>
-            </div>
+            </button> */}
           </div>
 
           {/* Tabs */}

@@ -141,50 +141,46 @@ export interface ITechnicianApplication {
   user?: any;
 }
 
-export interface TechnicianListResponse
-  extends ApiResponse<{
-    technicians: IAdminTechnician[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  }> {}
-
-export interface SingleTechnicianResponse
-  extends ApiResponse<{
-    technician: IAdminTechnician;
-  }> {}
-
-export interface ApplicationListResponse
-  extends ApiResponse<{
-    applications: ITechnicianApplication[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  }> {}
-
-export interface TechnicianStatsResponse
-  extends ApiResponse<{
+// FIXED: Remove duplicate properties since ApiResponse already has them
+export interface TechnicianListResponse extends ApiResponse<{
+  technicians: IAdminTechnician[];
+  pagination: {
+    page: number;
+    limit: number;
     total: number;
-    active: number;
-    pending: number;
-    suspended: number;
-    recent: number;
-  }> {}
+    pages: number;
+  };
+}> {}
 
-export interface ApplicationStatsResponse
-  extends ApiResponse<{
+export interface SingleTechnicianResponse extends ApiResponse<{
+  technician: IAdminTechnician;
+}> {}
+
+export interface ApplicationListResponse extends ApiResponse<{
+  applications: ITechnicianApplication[];
+  pagination: {
+    page: number;
+    limit: number;
     total: number;
-    pending: number;
-    approved: number;
-    rejected: number;
-    recent: number;
-  }> {}
+    pages: number;
+  };
+}> {}
+
+export interface TechnicianStatsResponse extends ApiResponse<{
+  total: number;
+  active: number;
+  pending: number;
+  suspended: number;
+  recent: number;
+}> {}
+
+export interface ApplicationStatsResponse extends ApiResponse<{
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  recent: number;
+}> {}
 
 export interface UpdateStatusRequest {
   status: "approved" | "suspended" | "rejected";

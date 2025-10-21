@@ -2,7 +2,7 @@ import { ApiResponse } from "../../utils/responseHelper";
 import { IUserBase } from "../common/IUserBase";
 
 export interface IUser extends IUserBase {
-  // any admin-specific properties here
+  // any admin-specific properties here 
 }
 
 export interface IUserWithAddress extends IUser {

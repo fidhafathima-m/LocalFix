@@ -92,7 +92,11 @@ export class UserRepository
       query.roles = "serviceProvider";
     }
 
-    return this.update(query, { $set: { passwordHash } } as any);
+    return this.model.findOneAndUpdate(
+      query,
+      { $set: { passwordHash } },
+      { new: true }
+    );
   }
 
   async updateApplicationStatus(

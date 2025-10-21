@@ -203,10 +203,34 @@ export const ApplicationForm: React.FC = () => {
         `techApp-applicationId-${user._id}`
       );
 
-      if (savedUserData && savedUserStep) {
+      const hasMeaningfulData =
+        savedUserData && savedUserData !== "{}" && savedUserData !== "null";
 
+      if (hasMeaningfulData && savedUserStep) {
         const parsedData = JSON.parse(savedUserData);
         const savedStepNumber = parseInt(savedUserStep);
+
+        // CRITICAL FIX: Only show "restored" banner if user was beyond step 1
+        // If user was only on step 1, treat it as a new application
+        if (savedStepNumber <= 1) {
+          console.log("User was only on step 1 - treating as new application");
+          setHasRestoredFromLocalStorage(false);
+          return;
+        }
+
+        const isEmptyApplication =
+          !parsedData.fullName &&
+          !parsedData.phoneNumber &&
+          !parsedData.idType &&
+          !parsedData.services?.length;
+
+        if (isEmptyApplication) {
+          console.log(
+            "Found empty application data - treating as new application"
+          );
+          setHasRestoredFromLocalStorage(false);
+          return;
+        }
 
         // Fetch actual document status from backend if we have an application ID
         let backendDocuments = null;
@@ -276,9 +300,13 @@ export const ApplicationForm: React.FC = () => {
         }
 
         setHasRestoredFromLocalStorage(true);
+      } else {
+        // No data found - definitely a new applicant
+        setHasRestoredFromLocalStorage(false);
       }
     } catch (error) {
       console.error("RESTORE FROM LOCALSTORAGE FAILED:", error);
+      setHasRestoredFromLocalStorage(false);
     }
   };
 
@@ -292,7 +320,6 @@ export const ApplicationForm: React.FC = () => {
   // Auto-save to localStorage
   useEffect(() => {
     if (user?._id && formData.fullName) {
-
       try {
         const safeFormData = { ...formData };
 
@@ -339,7 +366,6 @@ export const ApplicationForm: React.FC = () => {
           `techApp-timestamp-${user._id}`,
           new Date().toISOString()
         );
-
       } catch (error) {
         console.error("AUTO-SAVE FAILED:", error);
       }
@@ -352,7 +378,6 @@ export const ApplicationForm: React.FC = () => {
       return null;
     }
 
-
     // Check if we already have a restored application
     if (hasRestoredFromLocalStorage && applicationId) {
       return applicationId;
@@ -363,7 +388,6 @@ export const ApplicationForm: React.FC = () => {
         email: user.email!,
         userId: user._id,
       });
-
 
       if (response.success) {
         const applicationData = response.data || response;
@@ -430,90 +454,102 @@ export const ApplicationForm: React.FC = () => {
   }, [applicationId, user?._id]);
 
   // Check existing application status
-useEffect(() => {
-  const checkExistingApplication = async () => {
-
-    const currentPath = window.location.pathname;
-    if (currentPath.includes("/pending-technician")) {
-      return;
-    }
-    if (hasRestoredFromLocalStorage) {
-      return;
-    }
-
-    if (user?.applicationStatus === "submitted" || user?.applicationStatus === "under_review") {
-      clearLocalApplicationData();
-      window.location.replace("/pending-technician/dashboard");
-      return;
-    }
-
-    if (user?.applicationStatus === "approved") {
-      clearLocalApplicationData();
-      window.location.replace("/technician/dashboard");
-      return;
-    }
-
-    const savedAppId = localStorage.getItem("applicationId");
-
-    if (savedAppId) {
-      const applicationUser = localStorage.getItem("currentTechnicianApplication");
-
-      if (applicationUser !== user?._id) {
-        localStorage.removeItem("applicationId");
-        localStorage.removeItem("currentTechnicianApplication");
-        if (user?._id) {
-          localStorage.removeItem(`techApp-${user._id}`);
-          localStorage.removeItem(`techApp-step-${user._id}`);
-          localStorage.removeItem(`techApp-applicationId-${user._id}`);
-          localStorage.removeItem(`techApp-timestamp-${user._id}`);
-        }
-        setApplicationId(null);
+  useEffect(() => {
+    const checkExistingApplication = async () => {
+      const currentPath = window.location.pathname;
+      if (currentPath.includes("/pending-technician")) {
+        return;
+      }
+      if (hasRestoredFromLocalStorage) {
         return;
       }
 
-      setApplicationId(savedAppId);
+      if (
+        user?.applicationStatus === "submitted" ||
+        user?.applicationStatus === "under_review"
+      ) {
+        clearLocalApplicationData();
+        window.location.replace("/pending-technician/dashboard");
+        return;
+      }
 
-      try {
-        const response = await TechnicianApplicationService.getApplication(savedAppId);
+      if (user?.applicationStatus === "approved") {
+        clearLocalApplicationData();
+        window.location.replace("/technician/dashboard");
+        return;
+      }
 
-        if (response.success) {
-          const applicationData = response.data?.application || response.application;
+      const savedAppId = localStorage.getItem("applicationId");
 
-          if (applicationData) {
-            const appStatus = applicationData.status;
-            setApplicationStatus(appStatus);
+      if (savedAppId) {
+        const applicationUser = localStorage.getItem(
+          "currentTechnicianApplication"
+        );
 
-            const currentPath = window.location.pathname;
-            
-            if (
-              (appStatus === "submitted" || appStatus === "under_review") &&
-              !currentPath.includes("/pending-technician")
-            ) {
-              clearLocalApplicationData();
-              window.location.replace("/pending-technician/dashboard");
-              return;
-            }
+        if (applicationUser !== user?._id) {
+          localStorage.removeItem("applicationId");
+          localStorage.removeItem("currentTechnicianApplication");
+          if (user?._id) {
+            localStorage.removeItem(`techApp-${user._id}`);
+            localStorage.removeItem(`techApp-step-${user._id}`);
+            localStorage.removeItem(`techApp-applicationId-${user._id}`);
+            localStorage.removeItem(`techApp-timestamp-${user._id}`);
+          }
+          setApplicationId(null);
+          return;
+        }
 
-            if (
-              appStatus === "approved" &&
-              !currentPath.includes("/technician/dashboard")
-            ) {
-              clearLocalApplicationData();
-              window.location.replace("/technician/dashboard");
-              return;
+        setApplicationId(savedAppId);
+
+        try {
+          const response = await TechnicianApplicationService.getApplication(
+            savedAppId
+          );
+
+          if (response.success) {
+            const applicationData =
+              response.data?.application || response.application;
+
+            if (applicationData) {
+              const appStatus = applicationData.status;
+              setApplicationStatus(appStatus);
+
+              const currentPath = window.location.pathname;
+
+              if (
+                (appStatus === "submitted" || appStatus === "under_review") &&
+                !currentPath.includes("/pending-technician")
+              ) {
+                clearLocalApplicationData();
+                window.location.replace("/pending-technician/dashboard");
+                return;
+              }
+
+              if (
+                appStatus === "approved" &&
+                !currentPath.includes("/technician/dashboard")
+              ) {
+                clearLocalApplicationData();
+                window.location.replace("/technician/dashboard");
+                return;
+              }
             }
           }
+        } catch (error) {
+          console.error("Error checking application status:", error);
         }
-      } catch (error) {
-        console.error("Error checking application status:", error);
       }
-    }
-  };
+    };
 
-  if (user?._id && accessToken) {
-    checkExistingApplication();
-  }
-}, [user?._id, accessToken, hasRestoredFromLocalStorage, user?.applicationStatus]);
+    if (user?._id && accessToken) {
+      checkExistingApplication();
+    }
+  }, [
+    user?._id,
+    accessToken,
+    hasRestoredFromLocalStorage,
+    user?.applicationStatus,
+  ]);
 
   // Fetch saved application from backend
   useEffect(() => {
@@ -1124,9 +1160,8 @@ useEffect(() => {
     try {
       const response = await TechnicianApplicationService.submitApplication({
         applicationId: applicationId,
-        userId: user._id, 
+        userId: user._id,
       });
-
 
       if (response.success) {
         dispatch(updateApplicationStatus("submitted"));
@@ -1179,7 +1214,6 @@ useEffect(() => {
           error.message;
         const missingSteps = error.response?.data?.missingSteps;
 
-
         if (error.response?.status === 401) {
           localStorage.removeItem("auth");
           alert("Your session has expired. Please log in again.");
@@ -1217,7 +1251,6 @@ useEffect(() => {
       setIsLoading(false);
     }
   };
-
 
   if (isSubmitted && submissionSuccess) {
     return <ApplicationSubmitted />;

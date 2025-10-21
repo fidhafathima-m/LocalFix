@@ -12,11 +12,81 @@ import {
 } from "../../interfaces/admin/ITechnicianManagement";
 import { ITechnicianManagementRepository } from "../../interfaces/repository/admin/ITechnicianManagementRepository";
 
+// Define interfaces for filter and data objects
+interface TechnicianFilter {
+  status?: string;
+  createdAt?: {
+    $gte?: Date;
+    $lte?: Date;
+  };
+  services?: string | { $in: string[] };
+  [key: string]: unknown;
+}
+
+interface ApplicationFilter {
+  status?: string | { $in: string[] };
+  submittedAt?: {
+    $gte?: Date;
+    $lte?: Date;
+  };
+  [key: string]: unknown;
+}
+
+interface PersonalInfo {
+  fullName?: string;
+  gender?: string;
+  phoneNumber?: string;
+  dateOfBirth?: Date;
+  address?: string;
+  languages?: string[];
+}
+
+interface SkillsInfo {
+  services?: string[];
+  yearsOfExperience?: number;
+}
+
+interface AvailabilityInfo {
+  serviceAreas?: string[];
+  workRadius?: string | number;
+}
+
+interface DocumentsInfo {
+  passportPhoto?: { url?: string };
+  profilePhoto?: { url?: string };
+  [key: string]: unknown;
+}
+
+interface ApplicationData {
+  technicianId: Types.ObjectId;
+  personal?: PersonalInfo;
+  skills?: SkillsInfo;
+  availability?: AvailabilityInfo;
+  documents?: DocumentsInfo;
+}
+
+interface PaymentDetails {
+  bankAccount?: {
+    accountNumber?: string;
+    ifscCode?: string;
+    accountHolderName?: string;
+  };
+  upiId?: string;
+  [key: string]: unknown;
+}
+
+interface StatusUpdateData {
+  rejectionReason?: string;
+  rejectedAt?: Date;
+  reviewNotes?: string;
+  [key: string]: unknown;
+}
+
 export class TechnicianManagementRepository
   implements ITechnicianManagementRepository
 {
   async findAllTechnicians(
-    filter: any,
+    filter: TechnicianFilter,
     skip: number,
     limit: number
   ): Promise<ITechnician[]> {
@@ -30,7 +100,7 @@ export class TechnicianManagementRepository
     return technicians as unknown as ITechnician[];
   }
 
-  async countTechnicians(filter: any): Promise<number> {
+  async countTechnicians(filter: TechnicianFilter): Promise<number> {
     return await Technician.countDocuments(filter);
   }
 
@@ -45,10 +115,10 @@ export class TechnicianManagementRepository
   async updateTechnicianStatus(
     id: string,
     status: string,
-    additionalData?: any
+    additionalData?: StatusUpdateData
   ): Promise<ITechnician | null> {
     try {
-      const updateData: any = { status };
+      const updateData: { status: string } & StatusUpdateData = { status };
 
       if (additionalData) {
         Object.assign(updateData, additionalData);
@@ -73,7 +143,7 @@ export class TechnicianManagementRepository
 
   async updateTechnicianPersonalInfo(
     technicianId: string,
-    personalInfo: any
+    personalInfo: PersonalInfo
   ): Promise<ITechnician | null> {
     const technician = await Technician.findByIdAndUpdate(
       technicianId,
@@ -124,7 +194,7 @@ export class TechnicianManagementRepository
   }
 
   async findAllApplications(
-    filter: any,
+    filter: ApplicationFilter,
     skip: number,
     limit: number
   ): Promise<ITechnicianApplication[]> {
@@ -135,7 +205,7 @@ export class TechnicianManagementRepository
       .lean();
   }
 
-  async countApplications(filter: any): Promise<number> {
+  async countApplications(filter: ApplicationFilter): Promise<number> {
     return await TechnicianApplication.countDocuments(filter);
   }
 
@@ -148,10 +218,16 @@ export class TechnicianManagementRepository
   async updateApplicationStatus(
     applicationId: string,
     status: string,
-    additionalData?: any
+    additionalData?: StatusUpdateData
   ): Promise<ITechnicianApplication | null> {
     try {
-      const updateData: any = {
+      const updateData: {
+        status: string;
+        updatedAt: Date;
+        rejectionReason?: string;
+        rejectedAt?: Date;
+        reviewNotes?: string;
+      } = {
         status,
         updatedAt: new Date(),
       };
@@ -214,7 +290,7 @@ export class TechnicianManagementRepository
   async updateUserApplicationStatus(
     userId: Types.ObjectId,
     applicationStatus: string
-  ): Promise<any> {
+  ): Promise<{ _id: Types.ObjectId; applicationStatus: string } | null> {
     return await User.findByIdAndUpdate(
       userId,
       { $set: { applicationStatus } },
@@ -222,7 +298,13 @@ export class TechnicianManagementRepository
     );
   }
 
-  async findUserAddress(userId: Types.ObjectId): Promise<any> {
+  async findUserAddress(userId: Types.ObjectId): Promise<{
+    street?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    landmark?: string;
+  } | null> {
     try {
       const address = await UserAddressSchema.findOne({
         userId,
@@ -238,7 +320,7 @@ export class TechnicianManagementRepository
     }
   }
 
-  async findOrCreateTechnician(application: any): Promise<ITechnician> {
+  async findOrCreateTechnician(application: ApplicationData): Promise<ITechnician> {
     try {
       let technician = await Technician.findOne({
         userId: application.technicianId,
@@ -265,7 +347,7 @@ export class TechnicianManagementRepository
               workAreas:
                 application.availability?.serviceAreas || technician.workAreas,
               serviceRadiusKm: application.availability?.workRadius
-                ? parseInt(application.availability.workRadius)
+                ? parseInt(application.availability.workRadius as string)
                 : technician.serviceRadiusKm,
               status: "approved",
               profilePictureUrl:
@@ -303,7 +385,7 @@ export class TechnicianManagementRepository
           experienceYears: application.skills?.yearsOfExperience || 0,
           workAreas: application.availability?.serviceAreas || [],
           serviceRadiusKm: application.availability?.workRadius
-            ? parseInt(application.availability.workRadius)
+            ? parseInt(application.availability.workRadius as string)
             : 10,
           status: "approved",
           profilePictureUrl:
@@ -345,7 +427,13 @@ export class TechnicianManagementRepository
     return technician as unknown as ITechnician | null;
   }
 
-  async findUserById(userId: Types.ObjectId): Promise<any> {
+  async findUserById(userId: Types.ObjectId): Promise<{
+    email?: string;
+    phone?: string;
+    fullName?: string;
+    createdAt?: Date;
+    _id: Types.ObjectId;
+  } | null> {
     try {
       const user = await User.findById(userId)
         .select("email phone fullName createdAt")
@@ -358,7 +446,12 @@ export class TechnicianManagementRepository
     }
   }
 
-  async findApplicationByTechnicianId(technicianId: string): Promise<any> {
+  async findApplicationByTechnicianId(technicianId: string): Promise<{
+    personal?: PersonalInfo;
+    skills?: SkillsInfo;
+    documents?: DocumentsInfo;
+    status?: string;
+  } | null> {
     try {
       const application = await TechnicianApplication.findOne({
         technicianId: new Types.ObjectId(technicianId),
@@ -385,10 +478,11 @@ export class TechnicianManagementRepository
       return null;
     }
   }
+
   async updateTechnicianPaymentDetails(
     technicianId: string,
-    paymentDetails: any
-  ): Promise<any> {
+    paymentDetails: PaymentDetails
+  ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
       {

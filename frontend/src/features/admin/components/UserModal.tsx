@@ -73,14 +73,9 @@ export const UserModal: React.FC<UserModalProps> = ({
   };
 
   const handleSave = async () => {
-    // Validation
-    if (!formData.fullName.trim()) {
+    // Validation with optional chaining
+    if (!formData.fullName?.trim()) {
       toast.error("Full name is required");
-      return;
-    }
-
-    if (!formData.phone.trim()) {
-      toast.error("Phone number is required");
       return;
     }
 
@@ -88,14 +83,17 @@ export const UserModal: React.FC<UserModalProps> = ({
 
     setIsSaving(true);
     try {
-
       const response = await adminAPI.updateUser(user._id, formData);
-
       if (response.data.success && response.data.data) {
-        const updatedUser = response.data.data.user;
-        onUserUpdated(updatedUser);
-        toast.success("User updated successfully!");
-        setEditingMode(false);
+        const updatedUser = response.data.data.data?.user;
+
+        if (updatedUser) {
+          onUserUpdated(updatedUser);
+          toast.success("User updated successfully!");
+          setEditingMode(false);
+        } else {
+          throw new Error("User data not found in response");
+        }
       } else {
         throw new Error(response.data.message || "Failed to update user");
       }

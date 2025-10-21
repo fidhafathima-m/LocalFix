@@ -115,7 +115,7 @@ export class AuthService implements IAuthService {
       const record = await this.otpRepository.findLatest(
         phone,
         email,
-        "signup"
+        OTP_PURPOSES.SIGNUP
       );
 
       if (!record) {
@@ -662,11 +662,10 @@ export class AuthService implements IAuthService {
       // Delete any existing OTP records for this phone/email and purpose
       await this.otpRepository.deleteMany(phone, email, purpose);
 
-      // Save new OTP record
       const otpData: any = {
         otpHash,
         purpose,
-        expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MINUTES), // 5 minutes
+        expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
       };
       if (phone) otpData.phone = phone;
       if (email) otpData.email = email;

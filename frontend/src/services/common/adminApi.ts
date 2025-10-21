@@ -1,3 +1,4 @@
+import { ADMIN_ROUTES } from "../../routes/adminRoutes";
 import api from "../../utils/axiosConfig";
 
 export interface User {
@@ -64,61 +65,89 @@ interface ApiResponse<T> {
   success: boolean;
   message: string;
   data?: T;
+  statusCode?: number;
   error?: string;
+}
+
+interface UsersResponse {
+  users: User[];
+}
+
+interface UserResponse {
+  data: {
+    user: User;
+  };
+}
+
+interface TechniciansResponse {
+  technicians: Technician[];
+}
+
+interface TechnicianResponse {
+  data: {
+    technician: Technician;
+  };
+}
+
+interface ApplicationsResponse {
+  applications: TechnicianApplication[];
 }
 
 export const adminAPI = {
   // Users
-  getUsers: () => api.get<ApiResponse<{ users: User[] }>>("/admin/users"),
+  getUsers: () => api.get<ApiResponse<UsersResponse>>(ADMIN_ROUTES.USERS),
 
   updateUser: (userId: string, updates: Partial<User>) =>
-    api.put<ApiResponse<{ user: User }>>(`/admin/users/${userId}`, updates),
+    api.put<ApiResponse<UserResponse>>(
+      ADMIN_ROUTES.USER_BY_ID(userId),
+      updates
+    ),
 
   deleteUser: (userId: string) =>
-    api.delete<ApiResponse<void>>(`/admin/users/${userId}`),
+    api.delete<ApiResponse<void>>(ADMIN_ROUTES.USER_BY_ID(userId)),
 
   updateUserStatus: (userId: string, status: string) =>
-    api.patch<ApiResponse<{ user: User }>>(`/admin/users/${userId}/status`, {
+    api.patch<ApiResponse<UserResponse>>(ADMIN_ROUTES.USER_STATUS(userId), {
       status,
     }),
 
   // Technicians
   getTechnicians: (filters: { status?: string } = {}) =>
-    api.get<ApiResponse<{ technicians: Technician[] }>>("/admin/technicians", {
+    api.get<ApiResponse<TechniciansResponse>>(ADMIN_ROUTES.TECHNICIANS, {
       params: filters,
     }),
 
   getPendingApplications: () =>
-    api.get<ApiResponse<{ applications: TechnicianApplication[] }>>(
-      "/admin/technicians/applications/pending"
+    api.get<ApiResponse<ApplicationsResponse>>(
+      ADMIN_ROUTES.APPLICATIONS_PENDING
     ),
 
   approveApplication: (applicationId: string) =>
     api.patch<ApiResponse<void>>(
-      `/admin/technicians/applications/${applicationId}/approve`
+      ADMIN_ROUTES.APPLICATION_APPROVE(applicationId)
     ),
 
   rejectApplication: (applicationId: string, rejectionReason: string) =>
     api.patch<ApiResponse<void>>(
-      `/admin/technicians/applications/${applicationId}/reject`,
+      ADMIN_ROUTES.APPLICATION_REJECT(applicationId),
       { rejectionReason }
     ),
 
   updateTechnicianStatus: (technicianId: string, status: string) =>
-    api.patch<ApiResponse<{ technician: Technician }>>(
-      `/admin/technicians/${technicianId}/status`,
+    api.patch<ApiResponse<TechnicianResponse>>(
+      ADMIN_ROUTES.TECHNICIAN_STATUS(technicianId),
       { status }
     ),
 
   // Application details
   getApplicationDetails: (applicationId: string) =>
-    api.get<ApiResponse<{ applications: TechnicianApplication[] }>>(
-      `/admin/technicians/applications/${applicationId}`
+    api.get<ApiResponse<ApplicationsResponse>>(
+      ADMIN_ROUTES.APPLICATION_BY_ID(applicationId)
     ),
 
   // Technician details
   getTechnicianById: (technicianId: string) =>
-    api.get<ApiResponse<{ technician: Technician }>>(
-      `/admin/technicians/${technicianId}`
+    api.get<ApiResponse<TechnicianResponse>>(
+      ADMIN_ROUTES.TECHNICIAN_BY_ID(technicianId)
     ),
 };

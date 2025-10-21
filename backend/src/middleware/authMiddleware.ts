@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import User from "../models/UserSchema";
 import { Types } from "mongoose";
 import { ResponseHelper } from "../utils/responseHelper";
@@ -32,7 +32,7 @@ export const protect = async (
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
 
     const userId = decoded._id || decoded.id;
 

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { TECHNICIAN_ROUTES } from "../../routes/technicianRoutes";
 import api from "../../utils/axiosConfig";
 
 export interface TechnicianProfile {
@@ -162,7 +163,7 @@ export const technicianAPI = {
         message: string;
         data: { profile: TechnicianProfile };
         statusCode: number;
-      }>("/technician/profile");
+      }>(TECHNICIAN_ROUTES.PROFILE.BASE);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -185,7 +186,7 @@ export const technicianAPI = {
         message: string;
         data: { profile: TechnicianProfile };
         statusCode: number;
-      }>("/technician/profile", data);
+      }>(TECHNICIAN_ROUTES.PROFILE.BASE, data);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -208,7 +209,7 @@ export const technicianAPI = {
         message: string;
         data: { address: any };
         statusCode: number;
-      }>("/technician/address");
+      }>(TECHNICIAN_ROUTES.ADDRESS);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -231,7 +232,7 @@ export const technicianAPI = {
         message: string;
         data: { address: any };
         statusCode: number;
-      }>("/technician/address", addressData);
+      }>(TECHNICIAN_ROUTES.ADDRESS, addressData);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -254,7 +255,7 @@ export const technicianAPI = {
         message: string;
         data: { application: ApplicationData };
         statusCode: number;
-      }>(`/technician-application/${applicationId}`);
+      }>(TECHNICIAN_ROUTES.APPLICATION.BY_ID(applicationId));
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -277,7 +278,7 @@ export const technicianAPI = {
         message: string;
         data: { applications: ApplicationData[] };
         statusCode: number;
-      }>("/technician-application/user/applications");
+      }>(TECHNICIAN_ROUTES.APPLICATION.USER_APPLICATIONS);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -300,7 +301,7 @@ export const technicianAPI = {
         message: string;
         data: { applicationId: string; redirectTo?: string };
         statusCode: number;
-      }>("/technician-application/start", data);
+      }>(TECHNICIAN_ROUTES.APPLICATION.START, data);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -323,7 +324,7 @@ export const technicianAPI = {
         message: string;
         data: any;
         statusCode: number;
-      }>("/technician-application/save-step", formData, {
+      }>(TECHNICIAN_ROUTES.APPLICATION.SAVE_STEP, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       return normalizeResponse(response);
@@ -351,7 +352,7 @@ export const technicianAPI = {
         message: string;
         data?: { user: any };
         statusCode: number;
-      }>("/technician-application/submit", data);
+      }>(TECHNICIAN_ROUTES.APPLICATION.SUBMIT, data);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -374,7 +375,7 @@ export const technicianAPI = {
         message: string;
         data: any;
         statusCode: number;
-      }>(`/technician-application/${applicationId}/resubmit`);
+      }>(TECHNICIAN_ROUTES.APPLICATION.RESUBMIT(applicationId));
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -397,7 +398,7 @@ export const technicianAPI = {
         message: string;
         data: { applicationId: string };
         statusCode: number;
-      }>("/technician-application/start-new-after-rejection", data);
+      }>(TECHNICIAN_ROUTES.APPLICATION.START_NEW_AFTER_REJECTION, data);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -421,7 +422,7 @@ export const technicianAPI = {
         message: string;
         data: { profilePictureUrl: string };
         statusCode: number;
-      }>("/technician/profile/upload-photo", formData, {
+      }>(TECHNICIAN_ROUTES.PROFILE.UPLOAD_PHOTO, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       return normalizeResponse(response);
@@ -446,7 +447,7 @@ export const technicianAPI = {
         message: string;
         data: { profile: TechnicianProfile };
         statusCode: number;
-      }>("/technician/profile/personal-info", data);
+      }>(TECHNICIAN_ROUTES.PROFILE.PERSONAL_INFO, data);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -469,7 +470,7 @@ export const technicianAPI = {
         message: string;
         data: { profile: TechnicianProfile };
         statusCode: number;
-      }>("/technician/profile/identity-verification", data);
+      }>(TECHNICIAN_ROUTES.PROFILE.IDENTITY_VERIFICATION, data);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -492,7 +493,7 @@ export const technicianAPI = {
         message: string;
         data: { document: any };
         statusCode: number;
-      }>("/technician/profile/documents", formData, {
+      }>(TECHNICIAN_ROUTES.PROFILE.DOCUMENTS, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       return normalizeResponse(response);
@@ -522,7 +523,7 @@ export const technicianAPI = {
         message: string;
         data: { profile: TechnicianProfile };
         statusCode: number;
-      }>("/technician/profile/skills-services", data);
+      }>(TECHNICIAN_ROUTES.PROFILE.SKILLS_SERVICES, data);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -558,7 +559,7 @@ export const technicianAPI = {
         message: string;
         data: { profile: TechnicianProfile };
         statusCode: number;
-      }>("/technician/profile/availability", data);
+      }>(TECHNICIAN_ROUTES.PROFILE.AVAILABILITY, data);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -592,7 +593,7 @@ export const technicianAPI = {
         message: string;
         data: { profile: TechnicianProfile };
         statusCode: number;
-      }>("/technician/profile/bank-payment", data);
+      }>(TECHNICIAN_ROUTES.PROFILE.BANK_PAYMENT, data);
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {

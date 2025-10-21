@@ -1,12 +1,13 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { SuccessIcon } from "../components/SuccessIcon";
 
 export const ApplicationSubmitted: React.FC = () => {
+  const navigate = useNavigate();
   const handleDashboardRedirect = () => {
     // Clear any remaining application data
     localStorage.removeItem("applicationId");
     localStorage.removeItem("currentTechnicianApplication");
-    window.location.replace("/pending-technician/dashboard");
+    navigate("/pending-technician/dashboard", { replace: true });
   };
 
   return (

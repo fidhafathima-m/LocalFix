@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { AUTH_ROUTES } from "../../routes/authRoutes";
 import api from "../../utils/axiosConfig";
 
 export interface LoginCredentials {
@@ -88,7 +89,6 @@ const normalizeAuthResponse = (response: AuthResponse): AuthResponse => {
     user: response.data?.user || response.user,
     accessToken: response.data?.accessToken || response.accessToken,
     refreshToken: response.data?.refreshToken || response.refreshToken,
-    // Add token extraction for forgot password flow
     token:
       response.data?.token ||
       response.data?.data?.token ||
@@ -98,10 +98,11 @@ const normalizeAuthResponse = (response: AuthResponse): AuthResponse => {
 
   return normalized;
 };
+
 export const authAPI = {
   refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/refresh-token", {
+      const response = await api.post<AuthResponse>(AUTH_ROUTES.REFRESH_TOKEN, {
         refreshToken,
       });
       return normalizeAuthResponse(response.data);
@@ -119,7 +120,7 @@ export const authAPI = {
 
   logout: async (refreshToken?: string): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/logout", {
+      const response = await api.post<AuthResponse>(AUTH_ROUTES.LOGOUT, {
         refreshToken,
       });
       return normalizeAuthResponse(response.data);
@@ -134,9 +135,13 @@ export const authAPI = {
       };
     }
   },
+
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/login", credentials);
+      const response = await api.post<AuthResponse>(
+        AUTH_ROUTES.LOGIN,
+        credentials
+      );
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
@@ -152,7 +157,10 @@ export const authAPI = {
 
   signup: async (userData: SignupData): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/signup", userData);
+      const response = await api.post<AuthResponse>(
+        AUTH_ROUTES.SIGNUP,
+        userData
+      );
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
@@ -169,7 +177,7 @@ export const authAPI = {
   verifyOTP: async (otpData: OTPData): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>(
-        "/auth/verify-otp",
+        AUTH_ROUTES.VERIFY_OTP,
         otpData
       );
       return normalizeAuthResponse(response.data);
@@ -187,10 +195,13 @@ export const authAPI = {
 
   verifyForgotPasswordOTP: async (otpData: OTPData): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/verify-reset-otp", {
-        ...otpData,
-        context: "forgot",
-      });
+      const response = await api.post<AuthResponse>(
+        AUTH_ROUTES.VERIFY_RESET_OTP,
+        {
+          ...otpData,
+          context: "forgot",
+        }
+      );
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
@@ -207,7 +218,7 @@ export const authAPI = {
   resendOTP: async (otpData: ResendOTPData): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>(
-        "/auth/resend-otp",
+        AUTH_ROUTES.RESEND_OTP,
         otpData
       );
       return normalizeAuthResponse(response.data);
@@ -226,7 +237,7 @@ export const authAPI = {
   forgotPassword: async (data: ForgotPasswordData): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>(
-        "/auth/forgot-password",
+        AUTH_ROUTES.FORGOT_PASSWORD,
         data
       );
       return normalizeAuthResponse(response.data);
@@ -247,7 +258,7 @@ export const authAPI = {
   ): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>(
-        "/auth/reset-password",
+        AUTH_ROUTES.RESET_PASSWORD,
         resetData
       );
       return normalizeAuthResponse(response.data);
@@ -265,7 +276,10 @@ export const authAPI = {
 
   googleAuth: async (tokenData: GoogleAuthData): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/google", tokenData);
+      const response = await api.post<AuthResponse>(
+        AUTH_ROUTES.GOOGLE_AUTH,
+        tokenData
+      );
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
@@ -281,7 +295,7 @@ export const authAPI = {
 
   getProfile: async (): Promise<AuthResponse> => {
     try {
-      const response = await api.get<AuthResponse>("/auth/profile");
+      const response = await api.get<AuthResponse>(AUTH_ROUTES.PROFILE);
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
@@ -297,7 +311,9 @@ export const authAPI = {
 
   addRole: async (role: string): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/add-role", { role });
+      const response = await api.post<AuthResponse>(AUTH_ROUTES.ADD_ROLE, {
+        role,
+      });
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
       if (error.response?.data) {
@@ -314,7 +330,7 @@ export const authAPI = {
   removeRole: async (role: string): Promise<AuthResponse> => {
     try {
       const response = await api.delete<AuthResponse>(
-        `/auth/remove-role/${role}`
+        AUTH_ROUTES.REMOVE_ROLE(role)
       );
       return normalizeAuthResponse(response.data);
     } catch (error: any) {
@@ -331,7 +347,7 @@ export const authAPI = {
 
   switchRole: async (role: string): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/switch-role", {
+      const response = await api.post<AuthResponse>(AUTH_ROUTES.SWITCH_ROLE, {
         role,
       });
       return normalizeAuthResponse(response.data);

@@ -158,7 +158,7 @@ const LoggedInBanner = ({ tech }: { tech: any }) => {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
-              className="p-3 px-6 rounded bg-white text-blue-600 font-semibold hover:bg-gray-100 transition"
+              className="p-3 px-6 rounded bg-white text-blue-600 font-semibold hover:bg-gray-100 transition cursor-pointer"
               onClick={handleApplyNow}
             >
               Apply Now
