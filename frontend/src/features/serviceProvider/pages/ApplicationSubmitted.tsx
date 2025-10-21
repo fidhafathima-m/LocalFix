@@ -1,21 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { SuccessIcon } from "../components/SuccessIcon";
 
 export const ApplicationSubmitted: React.FC = () => {
-  const [countdown, setCountdown] = useState(5);
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      localStorage.removeItem("applicationId");
-      localStorage.removeItem("currentTechnicianApplication");
-      navigate("/pending-technician/dashboard");
-    }
-  }, [countdown, navigate]);
+  const handleDashboardRedirect = () => {
+    // Clear any remaining application data
+    localStorage.removeItem("applicationId");
+    localStorage.removeItem("currentTechnicianApplication");
+    window.location.replace("/pending-technician/dashboard");
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
@@ -29,21 +22,15 @@ export const ApplicationSubmitted: React.FC = () => {
           <br />
           Your application has been received and is being reviewed.
         </p>
-        <div className="bg-blue-50 rounded-md p-4 mb-8">
-          <p className="text-blue-800 text-sm">
-            You will be redirected to your technician dashboard in{" "}
-            <span className="font-bold">{countdown}</span> seconds.
-          </p>
-        </div>
         <div className="space-y-4">
-          <Link
-            to="/pending-technician/dashboard"
-            className="block bg-blue-600 text-white py-2.5 rounded-md hover:bg-blue-700"
+          <button
+            onClick={handleDashboardRedirect}
+            className="w-full bg-blue-600 text-white py-2.5 rounded-md hover:bg-blue-700"
           >
-            Go to Dashboard Now
-          </Link>
+            Go to Dashboard
+          </button>
           <Link
-            to="/technicians"
+            to="/"
             className="block text-blue-600 hover:text-blue-800"
           >
             Return to Home

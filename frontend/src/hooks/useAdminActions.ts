@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
-import { adminAPI } from "../services/adminApi";
+import { AdminActionsService } from "../services/admin/AdminActionsService";
 
 interface UseAdminActionsProps {
   onStatusUpdate?: () => void;
@@ -130,7 +130,7 @@ export const useAdminActions = ({
       const { emailNotification } = result.value;
       setActionInProgress(true);
 
-      const statusPromise = adminAPI.updateTechnicianStatus(technicianId, newStatus);
+      const statusPromise = AdminActionsService.updateTechnicianStatus(technicianId, newStatus)
 
       const successMessage =
         newStatus === "suspended"
@@ -215,7 +215,7 @@ export const useAdminActions = ({
       const { emailNotification } = result.value;
       setActionInProgress(true);
 
-      const approvePromise = adminAPI.approveApplication(applicationId);
+      const approvePromise = AdminActionsService.approveApplication(applicationId)
 
       const successMessage = `Application approved! ${technicianName} is now an active technician.${
         emailNotification ? " Email sent." : ""
@@ -318,7 +318,7 @@ export const useAdminActions = ({
       setActionInProgress(true);
 
       try {
-        const rejectPromise = adminAPI.rejectApplication(applicationId, rejectionReason);
+        const rejectPromise = AdminActionsService.rejectApplication(applicationId, rejectionReason)
 
         const successMessage = `Application rejected.${
           emailNotification ? " Email sent to applicant." : ""

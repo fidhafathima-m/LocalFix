@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { CloseOutlined, CheckCircleOutlineOutlined } from "@mui/icons-material";
 import type { User } from "../pages/UserManagement";
 import toast from "react-hot-toast";
-import { adminAPI } from "../../../services/adminApi";
+import { adminAPI } from "../../../services/common/adminApi";
 
 type Status = "Active" | "Inactive" | "Blocked";
 

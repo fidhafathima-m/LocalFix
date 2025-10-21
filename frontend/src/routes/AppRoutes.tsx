@@ -78,11 +78,21 @@ const AppRoutes = () => {
             <Route path="/technicians/reset-password" element={<TechnicianResetPasswordPage />} />
             <Route
               path="/pending-technician/dashboard"
-              element={<PendingTechnicianApplication />}
+              element={
+                <ProtectedRoute allowedRoles={["serviceProvider"]}>
+                  <PendingTechnicianApplication />
+                </ProtectedRoute>
+              
+            }
             />
             <Route
               path="/technician/dashboard"
-              element={<ApprovedTechnicianDashboard />}
+              element={
+                <ProtectedRoute allowedRoles={["serviceProvider"]}>
+                  <ApprovedTechnicianDashboard />
+                </ProtectedRoute>
+              
+            }
             />
             <Route
               path="/technician/profile"

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { IAuthService } from "../../interfaces/services/user/IAuthService";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
+import { AuthRequest } from "@/middleware/authMiddleware";
 
 export class AuthController {
   private authService: IAuthService;
@@ -120,4 +121,25 @@ export class AuthController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
+
+  async refreshToken(req: Request, res: Response): Promise<void> {
+    const { refreshToken } = req.body;
+    
+    const result = await this.authService.refreshToken(refreshToken);
+    
+    if (result.success) {
+      res.status(200).json(result);
+    } else {
+      res.status(result.statusCode || 401).json(result);
+    }
+  }
+
+  async logout(req: AuthRequest, res: Response): Promise<void> {
+    const { refreshToken } = req.body;
+    const userId = req.user?.id;
+    
+    const result = await this.authService.logout(userId!, refreshToken);
+    
+    res.status(result.statusCode || 200).json(result);
+  }
 }

@@ -1,8 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import BaseNewPassword from "../../../components/reusable/BaseNewPassword";
-import { authAPI, type ResetPasswordData } from "../../../services/authApi";
+import { type ResetPasswordData } from "../../../services/common/authApi";
 import { validateSchema, newPasswordSchema } from "../../../validation";
+import { AdminAuthService } from "../../../services/admin/AdminAuthService";
 
 interface AdminResetPasswordProps {
   phone?: string;
@@ -31,7 +32,7 @@ const AdminResetPassword: React.FC<AdminResetPasswordProps> = ({
         ...(token && { token }),
       };
 
-      const response = await authAPI.resetPassword(payload);
+      const response = await AdminAuthService.resetPassword(payload);
 
       if (response.success) {
         localStorage.removeItem("forgotData");

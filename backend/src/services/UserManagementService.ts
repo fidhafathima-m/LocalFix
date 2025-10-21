@@ -50,7 +50,7 @@ export class UserManagementService implements IUserManagementService {
         return ResponseHelper.badRequest(USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE);
       }
 
-      const user = await this.userManagementRepository.findUserById(userId);
+      const user = await this.userManagementRepository.findById(userId);
       if (!user) {
         return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
       }
@@ -90,7 +90,7 @@ export class UserManagementService implements IUserManagementService {
         }
       }
 
-      const user = await this.userManagementRepository.findUserById(userId);
+      const user = await this.userManagementRepository.findById(userId);
       if (!user) {
         return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
       }
@@ -120,7 +120,7 @@ export class UserManagementService implements IUserManagementService {
       if (phone) updateData.phone = phone;
       if (status) updateData.status = status;
 
-      const updatedUser = await this.userManagementRepository.updateUser(
+      const updatedUser = await this.userManagementRepository.update(
         userId,
         updateData
       );
@@ -140,7 +140,7 @@ export class UserManagementService implements IUserManagementService {
 
   async deleteUser(userId: string): Promise<UserManagementResponse> {
     try {
-      const user = await this.userManagementRepository.findUserById(userId);
+      const user = await this.userManagementRepository.findById(userId);
       if (!user) {
         return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
       }
@@ -181,7 +181,7 @@ export class UserManagementService implements IUserManagementService {
 
   async getUserById(userId: string): Promise<UserManagementResponse> {
     try {
-      const user = await this.userManagementRepository.findUserById(userId);
+      const user = await this.userManagementRepository.findById(userId);
 
       if (!user) {
         return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);

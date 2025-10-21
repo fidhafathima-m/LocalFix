@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import api from "../utils/axiosConfig";
+import api from "../../utils/axiosConfig";
 
 export interface LoginCredentials {
   identifier: string;
@@ -70,25 +70,72 @@ export interface AuthResponse {
   message: string;
   data?: {
     user?: User; // Updated to use new User interface
-    token?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    token?: string
+    [key: string]: any
   };
   user?: User; // Updated to use new User interface
+  accessToken?: string;
+  refreshToken?: string;
   token?: string;
   error?: string;
   statusCode?: number;
 }
 
 // Helper function to normalize response structure
+// In your authApi.ts, update the normalizeAuthResponse function:
 const normalizeAuthResponse = (response: AuthResponse): AuthResponse => {
-  return {
+  const normalized = {
     ...response,
-    // Extract user and token to root level for easy access
     user: response.data?.user || response.user,
-    token: response.data?.token || response.token
+    accessToken: response.data?.accessToken || response.accessToken,
+    refreshToken: response.data?.refreshToken || response.refreshToken,
+    // Add token extraction for forgot password flow
+    token: response.data?.token || 
+           response.data?.data?.token || 
+           response.accessToken ||
+           response.token
   };
+  
+  return normalized;
 };
-
 export const authAPI = {
+  refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
+    try {
+      const response = await api.post<AuthResponse>("/auth/refresh-token", {
+        refreshToken
+      });
+      return normalizeAuthResponse(response.data);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeAuthResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Token refresh failed",
+        error: "Network error",
+      };
+    }
+  },
+
+  logout: async (refreshToken?: string): Promise<AuthResponse> => {
+    try {
+      const response = await api.post<AuthResponse>("/auth/logout", {
+        refreshToken
+      });
+      return normalizeAuthResponse(response.data);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeAuthResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Logout failed",
+        error: "Network error",
+      };
+    }
+  },
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>("/auth/login", credentials);

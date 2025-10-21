@@ -24,7 +24,7 @@ import {
   updateApplicationStatus,
   updateUser,
 } from "../../../store/slices/authSlice";
-import { technicianAPI } from "../../../services/technicianApi";
+import { TechnicianApplicationService } from "../../../services/technician/technicianApplicationService";
 
 const STEPS = [
   "Personal Information",
@@ -71,6 +71,14 @@ const stepFields: Record<string, string[]> = {
   "Review & Submit": [],
 };
 
+interface FileMetadata {
+  _isFile: true;
+  name: string;
+  size: number;
+  type: string;
+  lastModified: number;
+}
+
 export const ApplicationForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps] = useState<number[]>([]);
@@ -79,9 +87,19 @@ export const ApplicationForm: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [, setApplicationStatus] = useState<string | null>(null);
-  const { user, token } = useAppSelector((state) => state.auth);
+  const { user, accessToken } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
+  const [hasRestoredFromLocalStorage, setHasRestoredFromLocalStorage] =
+    useState(false);
+
+  useEffect(() => {
+    console.log("🔍 ApplicationForm - Auth State:", {
+      user: user,
+      accessToken: accessToken ? "Token exists" : "No token",
+      isLoggedIn: !!accessToken,
+    });
+  }, [user, accessToken]);
 
   // File related
   const [, setPreview] = useState<string | null>(null);
@@ -91,7 +109,7 @@ export const ApplicationForm: React.FC = () => {
     // Step 1: Personal Information
     fullName: "",
     phoneNumber: "",
-    email: "",
+    email: user?.email || "",
     dateOfBirth: "",
     gender: "",
     // Step 2: Identity & Verification
@@ -107,7 +125,7 @@ export const ApplicationForm: React.FC = () => {
       landmark: "",
     },
     location: {
-      coordinates: [0, 0] as number[], // [lng, lat]
+      coordinates: [0, 0] as number[],
       formattedAddress: "",
     },
     // Step 3: Skills & Services
@@ -170,153 +188,391 @@ export const ApplicationForm: React.FC = () => {
     agreement: false,
   });
 
-  const startApplication = async (): Promise<string | null> => {
-  if (!user?._id) {
-    toast.error("Please log in to start application");
+  const fetchDocumentStatus = async (appId: string) => {
+    if (!appId) return null;
+
+    try {
+      const response = await TechnicianApplicationService.getApplication(appId);
+      if (response.success && response.data?.application?.documents) {
+        return response.data.application.documents;
+      }
+    } catch (error) {
+      console.error("Failed to fetch document status:", error);
+    }
     return null;
-  }
+  };
+  const restoreApplicationFromLocalStorage = async () => {
+    if (!user?._id) return;
 
-  if (!formData.email || formData.email.trim() === "") {
-    toast.error("Please enter your email address first");
-    return null;
-  }
+    console.log("🔄 ATTEMPTING TO RESTORE APPLICATION FROM LOCALSTORAGE");
 
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(formData.email)) {
-    alert("Please enter a valid email address");
-    return null;
-  }
+    try {
+      const savedUserData = localStorage.getItem(`techApp-${user._id}`);
+      const savedUserStep = localStorage.getItem(`techApp-step-${user._id}`);
+      const savedAppId = localStorage.getItem(
+        `techApp-applicationId-${user._id}`
+      );
 
-  try {
-    const response = await technicianAPI.startApplication({
-      email: formData.email.trim(),
-      userId: user._id,
-    });
+      console.log("🔍 RESTORE CHECK:", {
+        hasSavedData: !!savedUserData,
+        savedStep: savedUserStep,
+        savedAppId: savedAppId,
+        currentUser: user._id,
+      });
 
-    console.log("🔍 Start Application Response:", response);
+      if (savedUserData && savedUserStep) {
+        console.log("🎯 RESTORING APPLICATION DATA FROM LOCALSTORAGE");
 
-    // ✅ FIXED: Check response structure properly
-    if (response.success) {
-      // Extract data from both possible locations
-      const applicationData = response.data || response;
-      const newApplicationId = applicationData.applicationId || applicationData.data?.applicationId;
-      const redirectTo = applicationData.redirectTo || applicationData.data?.redirectTo;
+        const parsedData = JSON.parse(savedUserData);
+        const savedStepNumber = parseInt(savedUserStep);
 
-      console.log("🔍 Extracted Application ID:", newApplicationId);
-      console.log("🔍 Redirect To:", redirectTo);
-
-      if (redirectTo) {
-        const currentPath = window.location.pathname;
-        if (!currentPath.includes(redirectTo)) {
-          window.location.href = redirectTo;
+        // Fetch actual document status from backend if we have an application ID
+        let backendDocuments = null;
+        if (savedAppId) {
+          backendDocuments = await fetchDocumentStatus(savedAppId);
         }
-        return null;
-      }
 
-      if (newApplicationId) {
-        setApplicationId(newApplicationId);
-        localStorage.setItem("applicationId", newApplicationId);
-        localStorage.setItem("currentTechnicianApplication", user._id);
-        toast.success("Application started successfully!");
-        return newApplicationId;
-      } else {
-        console.error("No application ID in response:", response);
-        toast.error("Failed to get application ID from server");
-        return null;
+        // Restore form data
+        setFormData((prev) => {
+          const restoredData = {
+            ...prev,
+            ...parsedData,
+            email: user?.email || prev.email,
+          };
+
+          // Handle file restoration - USE BACKEND DATA IF AVAILABLE
+          const fileFields = [
+            "idProof",
+            "addressProof",
+            "policeVerification",
+            "tradeLicense",
+            "certifications",
+            "passportPhoto",
+          ];
+
+          fileFields.forEach((field) => {
+            const fileMeta = (parsedData as any)[field];
+
+            // If backend has this document, create enhanced metadata
+            if (
+              backendDocuments &&
+              backendDocuments[field] &&
+              backendDocuments[field].url
+            ) {
+              const backendDoc = backendDocuments[field];
+              (restoredData as any)[field] = {
+                _isFile: true,
+                name: backendDoc.filename || `Uploaded ${field}`,
+                size: backendDoc.size || 0,
+                type: backendDoc.mimetype || "application/octet-stream",
+                lastModified:
+                  new Date(backendDoc.uploadedAt).getTime() || Date.now(),
+                uploadedAt: backendDoc.uploadedAt,
+                // Add backend-specific data
+                _fromBackend: true,
+                url: backendDoc.url,
+                verified: backendDoc.verified || false,
+              };
+            }
+            // Otherwise use local metadata if available
+            else if (fileMeta && fileMeta._isFile) {
+              (restoredData as any)[field] = fileMeta;
+            }
+          });
+
+          console.log("✅ FORM DATA RESTORED WITH BACKEND DOCUMENT INFO");
+          return restoredData;
+        });
+
+        // Restore step
+        if (savedStepNumber > 0 && savedStepNumber <= STEPS.length) {
+          setCurrentStep(savedStepNumber);
+          console.log("✅ STEP RESTORED:", savedStepNumber);
+        }
+
+        // Restore application ID if exists
+        if (savedAppId) {
+          setApplicationId(savedAppId);
+          console.log("✅ APPLICATION ID RESTORED:", savedAppId);
+        }
+
+        setHasRestoredFromLocalStorage(true);
       }
-    } else {
-      console.error("API returned failure:", response);
-      toast.error(response.message || "Failed to start application");
+    } catch (error) {
+      console.error("❌ RESTORE FROM LOCALSTORAGE FAILED:", error);
+    }
+  };
+
+  // NEW: Restore application from localStorage on component mount and user login
+  useEffect(() => {
+    // Restore when user logs in or component mounts
+    if (user?._id && !hasRestoredFromLocalStorage) {
+      restoreApplicationFromLocalStorage();
+    }
+  }, [user?._id, hasRestoredFromLocalStorage, user?.email]);
+
+  // Auto-save to localStorage
+  useEffect(() => {
+    if (user?._id && formData.fullName) {
+      // Only save if we have actual data
+      console.log("💾 AUTO-SAVING APPLICATION DATA");
+
+      try {
+        const safeFormData = { ...formData };
+
+        // Handle file objects for localStorage
+        const fileFields: (keyof typeof formData)[] = [
+          "idProof",
+          "addressProof",
+          "policeVerification",
+          "tradeLicense",
+          "certifications",
+          "passportPhoto",
+        ];
+
+        fileFields.forEach((field) => {
+          const fileValue = safeFormData[field];
+          if (fileValue instanceof File) {
+            (safeFormData[field] as FileMetadata | null) = {
+              _isFile: true,
+              name: fileValue.name,
+              size: fileValue.size,
+              type: fileValue.type,
+              lastModified: fileValue.lastModified,
+            };
+          }
+        });
+
+        localStorage.setItem(
+          `techApp-${user._id}`,
+          JSON.stringify(safeFormData)
+        );
+        localStorage.setItem(
+          `techApp-step-${user._id}`,
+          currentStep.toString()
+        );
+
+        if (applicationId) {
+          localStorage.setItem(
+            `techApp-applicationId-${user._id}`,
+            applicationId
+          );
+        }
+
+        localStorage.setItem(
+          `techApp-timestamp-${user._id}`,
+          new Date().toISOString()
+        );
+
+        console.log("✅ AUTO-SAVE SUCCESS");
+      } catch (error) {
+        console.error("❌ AUTO-SAVE FAILED:", error);
+      }
+    }
+  }, [formData, currentStep, user?._id, applicationId]);
+
+  const startApplication = async (): Promise<string | null> => {
+    if (!user?._id) {
+      toast.error("Please log in to start application");
       return null;
     }
-  } catch (err: unknown) {
-    console.error("Start application error:", err);
 
-    if (axios.isAxiosError(err)) {
-      if (err.response?.status === 400) {
-        toast.error(err.response.data.message || "Bad request");
-      } else if (err.response?.status === 500) {
-        toast.error("Server error. Please try again later.");
-      } else {
-        toast.error("Failed to start application");
-      }
-    } else {
-      toast.error("Failed to start application");
+    console.log("🚀 START APPLICATION CALLED for user:", user._id);
+
+    // Check if we already have a restored application
+    if (hasRestoredFromLocalStorage && applicationId) {
+      console.log("🔄 USING RESTORED APPLICATION:", applicationId);
+      return applicationId;
     }
-    return null;
-  }
-};
 
+    try {
+      const response = await TechnicianApplicationService.startApplication({
+        email: user.email!,
+        userId: user._id,
+      });
+
+      console.log("🔍 Start Application Response:", response);
+
+      if (response.success) {
+        const applicationData = response.data || response;
+        const newApplicationId =
+          applicationData.applicationId || applicationData.data?.applicationId;
+        const redirectTo =
+          applicationData.redirectTo || applicationData.data?.redirectTo;
+
+        if (redirectTo) {
+          const currentPath = window.location.pathname;
+          if (!currentPath.includes(redirectTo)) {
+            window.location.href = redirectTo;
+          }
+          return null;
+        }
+
+        if (newApplicationId) {
+          setApplicationId(newApplicationId);
+          localStorage.setItem("applicationId", newApplicationId);
+          localStorage.setItem("currentTechnicianApplication", user._id);
+          localStorage.setItem(
+            `techApp-applicationId-${user._id}`,
+            newApplicationId
+          );
+
+          console.log("✅ APPLICATION STARTED:", newApplicationId);
+          return newApplicationId;
+        } else {
+          console.error("No application ID in response:", response);
+          toast.error("Failed to get application ID from server");
+          return null;
+        }
+      } else {
+        console.error("API returned failure:", response);
+        // Don't show error toast - user can continue with local data
+        return null;
+      }
+    } catch (err: unknown) {
+      console.error("Start application error:", err);
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        toast.error("Session expired. Please log in again.");
+        localStorage.removeItem("auth");
+        window.location.href = "/login";
+      }
+      return null;
+    }
+  };
+
+  // Load existing application ID from localStorage
   useEffect(() => {
     const savedAppId = localStorage.getItem("applicationId");
     if (savedAppId) setApplicationId(savedAppId);
   }, []);
 
+  // Save application ID to localStorage when it changes
   useEffect(() => {
-    if (applicationId) localStorage.setItem("applicationId", applicationId);
-  }, [applicationId]);
-
-  useEffect(() => {
-    const checkExistingApplication = async () => {
-      const savedAppId = localStorage.getItem("applicationId");
-
-      if (savedAppId) {
-        const applicationUser = localStorage.getItem(
-          "currentTechnicianApplication"
+    if (applicationId) {
+      localStorage.setItem("applicationId", applicationId);
+      if (user?._id) {
+        localStorage.setItem(
+          `techApp-applicationId-${user._id}`,
+          applicationId
         );
+      }
+    }
+  }, [applicationId, user?._id]);
 
-        if (applicationUser !== user?._id) {
-          localStorage.removeItem("applicationId");
-          localStorage.removeItem("currentTechnicianApplication");
-          localStorage.removeItem(`techApp-${savedAppId}`);
-          setApplicationId(null);
-          return;
+  // Check existing application status (only if we haven't restored from localStorage)
+useEffect(() => {
+  const checkExistingApplication = async () => {
+
+    const currentPath = window.location.pathname;
+    if (currentPath.includes("/pending-technician")) {
+      console.log("🔍 Already on pending dashboard, skipping check");
+      return;
+    }
+    if (hasRestoredFromLocalStorage) {
+      console.log("🔍 SKIPPING BACKEND CHECK - USING LOCAL DATA");
+      return;
+    }
+
+    // ✅ FIXED: First check if user already has a submitted application
+    if (user?.applicationStatus === "submitted" || user?.applicationStatus === "under_review") {
+      console.log("📋 User has submitted application, redirecting to pending dashboard");
+      clearLocalApplicationData();
+      window.location.replace("/pending-technician/dashboard");
+      return;
+    }
+
+    if (user?.applicationStatus === "approved") {
+      console.log("✅ User has approved application, redirecting to technician dashboard");
+      clearLocalApplicationData();
+      window.location.replace("/technician/dashboard");
+      return;
+    }
+
+    const savedAppId = localStorage.getItem("applicationId");
+    console.log("🔍 CHECK EXISTING APPLICATION - savedAppId:", savedAppId);
+
+    if (savedAppId) {
+      const applicationUser = localStorage.getItem("currentTechnicianApplication");
+
+      if (applicationUser !== user?._id) {
+        console.log("🔄 USER CHANGED - CLEARING OLD APPLICATION DATA");
+        localStorage.removeItem("applicationId");
+        localStorage.removeItem("currentTechnicianApplication");
+        if (user?._id) {
+          localStorage.removeItem(`techApp-${user._id}`);
+          localStorage.removeItem(`techApp-step-${user._id}`);
+          localStorage.removeItem(`techApp-applicationId-${user._id}`);
+          localStorage.removeItem(`techApp-timestamp-${user._id}`);
         }
+        setApplicationId(null);
+        return;
+      }
 
-        setApplicationId(savedAppId);
+      setApplicationId(savedAppId);
 
-        try {
-          const response = await technicianAPI.getApplication(savedAppId);
+      try {
+        console.log("🔍 FETCHING APPLICATION STATUS FOR:", savedAppId);
+        const response = await TechnicianApplicationService.getApplication(savedAppId);
+        console.log("🔍 APPLICATION STATUS RESPONSE:", response);
 
-          if (response.data.success && response.data.data?.application) {
-            const appData = response.data.data.application;
-            setApplicationStatus(appData.status);
+        // ✅ FIXED: Check response structure properly
+        if (response.success) {
+          const applicationData = response.data?.application || response.application;
+          console.log("🔍 APPLICATION DATA:", applicationData);
 
+          if (applicationData) {
+            const appStatus = applicationData.status;
+            setApplicationStatus(appStatus);
+
+            console.log("🔍 APPLICATION STATUS:", appStatus, "Current path:", window.location.pathname);
+
+            // ✅ FIXED: Check if we're already on the correct page to avoid infinite redirects
+            const currentPath = window.location.pathname;
+            
             if (
-              (appData.status === "submitted" ||
-                appData.status === "under_review") &&
-              !window.location.pathname.includes("/application")
+              (appStatus === "submitted" || appStatus === "under_review") &&
+              !currentPath.includes("/pending-technician")
             ) {
-              window.location.href = "/pending-technician/dashboard";
+              console.log("📋 Application already submitted, redirecting to pending dashboard");
+              clearLocalApplicationData();
+              // Use replace to prevent going back to application form
+              window.location.replace("/pending-technician/dashboard");
               return;
             }
 
             if (
-              appData.status === "approved" &&
-              !window.location.pathname.includes("/application")
+              appStatus === "approved" &&
+              !currentPath.includes("/technician/dashboard")
             ) {
-              window.location.href = "/technician/dashboard";
+              console.log("✅ Application approved, redirecting to technician dashboard");
+              clearLocalApplicationData();
+              window.location.replace("/technician/dashboard");
               return;
             }
           }
-        } catch (error) {
-          console.error("Error checking application status:", error);
-          localStorage.removeItem("applicationId");
-          localStorage.removeItem("currentTechnicianApplication");
         }
+      } catch (error) {
+        console.error("Error checking application status:", error);
+        // Don't remove applicationId on error - might be temporary network issue
       }
-    };
+    }
+  };
 
+  // Only run this check if we have a user and access token
+  if (user?._id && accessToken) {
     checkExistingApplication();
-  }, [user?._id, token]);
+  }
+}, [user?._id, accessToken, hasRestoredFromLocalStorage, user?.applicationStatus]); // ✅ Added user.applicationStatus dependency
 
+  // Fetch saved application from backend (only if no local data)
   useEffect(() => {
     const fetchSavedApplication = async () => {
-      if (!applicationId) return;
+      if (!applicationId || !user?._id || hasRestoredFromLocalStorage) return;
 
       try {
-        const response = await technicianAPI.getApplication(applicationId);
+        const response = await TechnicianApplicationService.getApplication(
+          applicationId
+        );
 
         if (response.data.success && response.data.data?.application) {
           const application = response.data.data.application;
@@ -386,12 +642,22 @@ export const ApplicationForm: React.FC = () => {
           );
         }
       } catch (error) {
-        console.error("Failed to load saved application:", error);
+        console.error("Failed to load saved application from backend:", error);
       }
     };
 
     fetchSavedApplication();
-  }, [applicationId, token]);
+  }, [applicationId, accessToken, user?._id, hasRestoredFromLocalStorage]);
+
+  // NEW: Clear localStorage when application is submitted
+  const clearLocalApplicationData = () => {
+    if (user?._id) {
+      localStorage.removeItem(`techApp-${user._id}`);
+      localStorage.removeItem(`techApp-step-${user._id}`);
+      localStorage.removeItem(`techApp-applicationId-${user._id}`);
+      localStorage.removeItem(`techApp-timestamp-${user._id}`);
+    }
+  };
 
   // Save formData locally on every change
   useEffect(() => {
@@ -449,7 +715,30 @@ export const ApplicationForm: React.FC = () => {
 
     return null;
   };
+  const handleFileChange = (field: string) => (file: File | null) => {
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
 
+    // Only update if it's an actual File or null (not FileMetadata)
+    // This prevents overwriting the metadata when user doesn't choose a new file
+    if (file === null || file instanceof File) {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: file,
+      }));
+    }
+
+    if (file instanceof File) {
+      setPreview(URL.createObjectURL(file));
+    } else {
+      setPreview(null);
+    }
+  };
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -469,40 +758,27 @@ export const ApplicationForm: React.FC = () => {
       const checked = (e.target as HTMLInputElement).checked;
 
       setFormData((prev) => {
-        // Services checkboxes
         if (name.startsWith("service-")) {
           const service = name.replace("service-", "");
           const updatedServices = checked
             ? [...prev.services, service]
             : prev.services.filter((s) => s !== service);
-          return {
-            ...prev,
-            services: updatedServices,
-          };
+          return { ...prev, services: updatedServices };
         }
-        // Languages checkboxes
         if (name.startsWith("language-")) {
           const language = name.replace("language-", "");
           const updatedLanguages = checked
             ? [...prev.languages, language]
             : prev.languages.filter((l) => l !== language);
-          return {
-            ...prev,
-            languages: updatedLanguages,
-          };
+          return { ...prev, languages: updatedLanguages };
         }
-        // Service areas checkboxes
         if (name.startsWith("area-")) {
           const area = name.replace("area-", "");
           const updatedAreas = checked
             ? [...prev.serviceAreas, area]
             : prev.serviceAreas.filter((a) => a !== area);
-          return {
-            ...prev,
-            serviceAreas: updatedAreas,
-          };
+          return { ...prev, serviceAreas: updatedAreas };
         }
-        // Availability checkboxes
         if (name.startsWith("available-")) {
           const day = name.replace("available-", "");
           return {
@@ -516,17 +792,12 @@ export const ApplicationForm: React.FC = () => {
             },
           };
         }
-        // Agreement checkbox
         if (name === "agreement") {
-          return {
-            ...prev,
-            agreement: checked,
-          };
+          return { ...prev, agreement: checked };
         }
         return prev;
       });
     } else {
-      // Handle time inputs for availability
       if (name.includes("-Time-")) {
         const [timeType, day] = name.split("-Time-");
         setFormData((prev) => ({
@@ -539,9 +810,7 @@ export const ApplicationForm: React.FC = () => {
             },
           },
         }));
-      }
-      // Handle nested address fields
-      else if (name.startsWith("address.")) {
+      } else if (name.startsWith("address.")) {
         const addressField = name.replace(
           "address.",
           ""
@@ -553,44 +822,17 @@ export const ApplicationForm: React.FC = () => {
             [addressField]: value,
           },
         }));
+      } else {
+        setFormData((prev) => ({ ...prev, [name]: value }));
       }
-      // Handle all other text/select inputs
-      else {
-        setFormData((prev) => ({
-          ...prev,
-          [name]: value,
-        }));
-      }
-    }
-  };
-
-  const handleFileChange = (field: string) => (file: File | null) => {
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-    setFormData((prev) => ({
-      ...prev,
-      [field]: file,
-    }));
-
-    if (file) {
-      setPreview(URL.createObjectURL(file));
-    } else {
-      setPreview(null);
     }
   };
 
   const validateStepFields = (step: number): Record<string, string> => {
     let stepErrors: Record<string, string> = {};
 
-    // Helper function to flatten form data
     const flattenFormData = (data: any): Record<string, any> => {
       const flattened: Record<string, any> = {};
-
       for (const [key, value] of Object.entries(data)) {
         if (
           value &&
@@ -605,7 +847,6 @@ export const ApplicationForm: React.FC = () => {
           flattened[key] = value;
         }
       }
-
       return flattened;
     };
 
@@ -632,7 +873,6 @@ export const ApplicationForm: React.FC = () => {
           "address.pincode": formData.address.pincode,
           "address.landmark": formData.address.landmark,
         };
-
         const identityValidation = validateStepSchema<IdentityData>(
           stepSchemas[2],
           step2Data
@@ -659,16 +899,13 @@ export const ApplicationForm: React.FC = () => {
           workRadius: formData.workRadius,
           availability: formData.availability,
         };
-
         const availabilityValidation = validateStepSchema<AvailabilityData>(
           stepSchemas[4],
           step4Data
         );
-
         if (!availabilityValidation.success && availabilityValidation.errors) {
           stepErrors = availabilityValidation.errors;
         }
-
         const timeErrors = validateAvailability(formData.availability);
         stepErrors = { ...stepErrors, ...timeErrors };
         break;
@@ -684,6 +921,7 @@ export const ApplicationForm: React.FC = () => {
         }
         break;
       }
+      // In ApplicationForm.tsx, update the Documents step validation
       case 6: {
         const documentsValidation = validateStepSchema<DocumentsData>(
           stepSchemas[6],
@@ -704,12 +942,16 @@ export const ApplicationForm: React.FC = () => {
 
         fileFields.forEach(({ field, name }) => {
           const file = (formData as any)[field];
+
+          // Only validate if it's an actual File object (new upload)
+          // Skip validation for FileMetadata (already uploaded) or backend files
           if (file instanceof File) {
             const sizeError = validateFileSize(file, name);
             if (sizeError) {
               stepErrors[field] = sizeError;
             }
           }
+          // If it's FileMetadata or has _fromBackend, it's already validated and uploaded
         });
         break;
       }
@@ -728,9 +970,9 @@ export const ApplicationForm: React.FC = () => {
       default:
         break;
     }
-
     return stepErrors;
   };
+
   const getMaxDate = (): string => {
     const today = new Date();
     const maxDate = new Date(
@@ -743,162 +985,159 @@ export const ApplicationForm: React.FC = () => {
 
   const calculateAge = (dateOfBirth: string): number | null => {
     if (!dateOfBirth) return null;
-
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
-
     if (isNaN(birthDate.getTime())) return null;
-
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-
     if (
       monthDiff < 0 ||
       (monthDiff === 0 && today.getDate() < birthDate.getDate())
     ) {
       age--;
     }
-
     return age;
   };
 
   const handleNext = async () => {
-  if (isLoading) return;
+    if (isLoading) return;
 
-  const stepErrors = validateStepFields(currentStep);
-
-  if (Object.keys(stepErrors).length > 0) {
-    setErrors(stepErrors);
-    return;
-  } else {
-    setErrors({});
-  }
-  setIsLoading(true);
-
-  let currentApplicationId = applicationId;
-
-  if (!currentApplicationId) {
-    currentApplicationId = await startApplication();
-    if (!currentApplicationId) {
-      toast.error("Failed to start application");
-      setIsLoading(false);
+    const stepErrors = validateStepFields(currentStep);
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
       return;
-    }
-  }
-
-  const stepName = STEPS[currentStep - 1];
-  const stepForm = new FormData();
-
-  stepForm.append("step", stepName);
-  stepForm.append("applicationId", currentApplicationId);
-
-  const currentStepFields = stepFields[stepName] || [];
-
-  if (stepName === "Documents") {
-    const documentFields = [
-      "idProof",
-      "addressProof",
-      "policeVerification",
-      "tradeLicense",
-      "certifications",
-      "passportPhoto",
-    ];
-
-    documentFields.forEach((field) => {
-      const file = (formData as any)[field];
-      if (file instanceof File) {
-        stepForm.append(field, file);
-      }
-    });
-  } else {
-    // Handle other steps normally
-    currentStepFields.forEach((field) => {
-      let value = (formData as any)[field];
-
-      if (value !== null && value !== undefined) {
-        if (value instanceof File) {
-          return;
-        }
-
-        if (field === "agreement") {
-          stepForm.append(field, value ? "true" : "false");
-        } else if (
-          (field === "address" || field === "location") &&
-          typeof value === "object"
-        ) {
-          const addressString = JSON.stringify(value);
-          stepForm.append(field, addressString);
-        }
-        // Handle availability object
-        else if (field === "availability" && typeof value === "object") {
-          value = JSON.stringify(value);
-          stepForm.append(field, value);
-        }
-        // Handle arrays
-        else if (Array.isArray(value)) {
-          value = JSON.stringify(value);
-          stepForm.append(field, value);
-        }
-        // Handle all other values
-        else {
-          stepForm.append(field, String(value));
-        }
-      }
-    });
-  }
-
-  try {
-    const response = await technicianAPI.saveStep(stepForm);
-
-    console.log("🔍 Save Step Response:", response);
-
-    // ✅ FIXED: Check response properly
-    if (response.success) {
-      toast.success("Step saved successfully!");
-      
-      // Move to next step
-      if (currentStep < STEPS.length) {
-        setCurrentStep((prev) => prev + 1);
-      }
     } else {
-      toast.error(response.message || "Failed to save step");
+      setErrors({});
     }
-  } catch (err: unknown) {
-    console.error("Error saving step:", err);
+    setIsLoading(true);
 
-    if (axios.isAxiosError(err)) {
-      console.error("Axios error details:", {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        headers: err.response?.headers,
+    let currentApplicationId = applicationId;
+
+    if (!currentApplicationId) {
+      currentApplicationId = await startApplication();
+      if (!currentApplicationId) {
+        toast.error("Failed to start application");
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    const stepName = STEPS[currentStep - 1];
+    const stepForm = new FormData();
+
+    stepForm.append("step", stepName);
+    stepForm.append("applicationId", currentApplicationId);
+
+    const currentStepFields = stepFields[stepName] || [];
+
+    if (currentStep === 6) {
+      // Check if we have any FileMetadata objects (restored files)
+      const hasRestoredFiles = Object.values(formData).some(
+        (value) =>
+          value && typeof value === "object" && (value as any)._isFile === true
+      );
+
+      if (hasRestoredFiles) {
+        // Clear any file validation errors for restored files
+        const fileFields = [
+          "idProof",
+          "addressProof",
+          "policeVerification",
+          "tradeLicense",
+          "certifications",
+          "passportPhoto",
+        ];
+        fileFields.forEach((field) => {
+          if (
+            stepErrors[field] &&
+            (formData as any)[field] &&
+            (formData as any)[field]._isFile
+          ) {
+            delete stepErrors[field];
+          }
+        });
+      }
+    }
+
+    if (stepName === "Documents") {
+      const documentFields = [
+        "idProof",
+        "addressProof",
+        "policeVerification",
+        "tradeLicense",
+        "certifications",
+        "passportPhoto",
+      ];
+      documentFields.forEach((field) => {
+        const file = (formData as any)[field];
+        if (file instanceof File) {
+          stepForm.append(field, file);
+        }
       });
-
-      const errorMessage = err.response?.data?.message || err.message;
-
-      if (err.code === "ECONNABORTED") {
-        toast.error(
-          "Request timeout. Please check your internet connection and try again."
-        );
-      } else if (err.response?.status === 413) {
-        toast.error("File too large. Please upload smaller files.");
-      } else if (err.response?.status === 415) {
-        toast.error(
-          "Unsupported file type. Please upload PDF, JPG, or PNG files."
-        );
-      } else {
-        toast.error(`Failed to save step: ${errorMessage}`);
-      }
-    } else if (err instanceof Error) {
-      toast.error(`Failed to save step: ${err.message}`);
     } else {
-      toast.error("Failed to save this step. Please try again.");
+      currentStepFields.forEach((field) => {
+        let value = (formData as any)[field];
+        if (value !== null && value !== undefined) {
+          if (value instanceof File) return;
+          if (field === "agreement") {
+            stepForm.append(field, value ? "true" : "false");
+          } else if (
+            (field === "address" || field === "location") &&
+            typeof value === "object"
+          ) {
+            const addressString = JSON.stringify(value);
+            stepForm.append(field, addressString);
+          } else if (field === "availability" && typeof value === "object") {
+            value = JSON.stringify(value);
+            stepForm.append(field, value);
+          } else if (Array.isArray(value)) {
+            value = JSON.stringify(value);
+            stepForm.append(field, value);
+          } else {
+            stepForm.append(field, String(value));
+          }
+        }
+      });
     }
-  } finally {
-    setIsLoading(false);
-  }
-};
+
+    try {
+      const response = await TechnicianApplicationService.saveStep(stepForm);
+      console.log("🔍 Save Step Response:", response);
+
+      if (response.success) {
+        toast.success("Step saved successfully!");
+        if (currentStep < STEPS.length) {
+          setCurrentStep((prev) => prev + 1);
+        }
+      } else {
+        toast.error(response.message || "Failed to save step");
+      }
+    } catch (err: unknown) {
+      console.error("Error saving step:", err);
+      if (axios.isAxiosError(err)) {
+        const errorMessage = err.response?.data?.message || err.message;
+        if (err.code === "ECONNABORTED") {
+          toast.error(
+            "Request timeout. Please check your internet connection and try again."
+          );
+        } else if (err.response?.status === 413) {
+          toast.error("File too large. Please upload smaller files.");
+        } else if (err.response?.status === 415) {
+          toast.error(
+            "Unsupported file type. Please upload PDF, JPG, or PNG files."
+          );
+        } else {
+          toast.error(`Failed to save step: ${errorMessage}`);
+        }
+      } else if (err instanceof Error) {
+        toast.error(`Failed to save step: ${err.message}`);
+      } else {
+        toast.error("Failed to save this step. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
@@ -908,140 +1147,150 @@ export const ApplicationForm: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-  if (isLoading) return;
+    if (isLoading) return;
 
-  const currentToken = localStorage.getItem("token");
-
-  if (!currentToken) {
-    console.error("No token found in localStorage");
-    alert("Your session has expired. Please log in again.");
-    window.location.href =
-      "/login?redirect=" + encodeURIComponent(window.location.pathname);
-    setIsLoading(false);
-    return;
-  }
-
-  if (!user?._id) {
-    console.error("No user data found");
-    alert("User information not found. Please log in again.");
-    window.location.href = "/technician/login";
-    return;
-  }
-
-  if (!applicationId) {
-    console.error("No application ID found");
-    alert("Application not found. Please start a new application.");
-    return;
-  }
-
-  setIsLoading(true);
-
-  try {
-    const response = await technicianAPI.submitApplication({
-      applicationId: applicationId,
-    });
-
-    console.log("🔍 Submit Application Response:", response);
-
-    // ✅ FIXED: Check response properly
-    if (response.success) {
-      dispatch(updateApplicationStatus("submitted"));
-
-      if (response.data?.user) {
-        dispatch(
-          updateUser({
-            ...user,
-            applicationStatus: "submitted",
-          })
-        );
-      } else {
-        dispatch(
-          updateUser({
-            applicationStatus: "submitted",
-          })
-        );
-      }
-
-      const currentUser = localStorage.getItem("user");
-      if (currentUser) {
-        const userData = JSON.parse(currentUser);
-        userData.applicationStatus = "submitted";
-        localStorage.setItem("user", JSON.stringify(userData));
-      }
-
-      // ✅ FIXED: Set both states to trigger success page
-      setIsSubmitted(true);
-      setSubmissionSuccess(true);
-
-      localStorage.removeItem(`techApp-${applicationId}`);
-      
-      // ✅ FIXED: Show success toast
-      toast.success("Application submitted successfully!");
-      
-      console.log("✅ Application submitted successfully, should redirect to success page");
-    } else {
-      // Handle API error response
-      console.error("Submit application failed:", response);
-      toast.error(response.message || "Failed to submit application");
+    const currentToken = accessToken;
+    if (!currentToken) {
+      console.error("No token found in auth state");
+      alert("Your session has expired. Please log in again.");
+      window.location.href =
+        "/login?redirect=" + encodeURIComponent(window.location.pathname);
+      setIsLoading(false);
+      return;
     }
-  } catch (error: unknown) {
-    console.error("Submission error:", error);
 
-    if (axios.isAxiosError(error)) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.statusText ||
-        error.message;
-      const missingSteps = error.response?.data?.missingSteps;
+    if (!user?._id) {
+      console.error("No user data found");
+      alert("User information not found. Please log in again.");
+      window.location.href = "/technician/login";
+      return;
+    }
 
-      console.log("Error details:", {
-        message: errorMessage,
-        missingSteps: missingSteps,
-        response: error.response?.data,
-        status: error.response?.status,
+    if (!applicationId) {
+      console.error("No application ID found");
+      alert("Application not found. Please start a new application.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // ✅ FIXED: Pass userId to submitApplication
+      const response = await TechnicianApplicationService.submitApplication({
+        applicationId: applicationId,
+        userId: user._id, // Add this line
       });
 
-      if (error.response?.status === 401) {
-        // Clear auth data and redirect to login
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        alert("Your session has expired. Please log in again.");
-        window.location.href = "/login";
-      } else if (error.response?.status === 403) {
-        alert(
-          "Access denied. You do not have permission to submit this application."
-        );
-      } else if (missingSteps && missingSteps.length > 0) {
-        alert(
-          `Please complete the following steps before submitting: ${missingSteps.join(
-            ", "
-          )}`
+      console.log("🔍 Submit Application Response:", response);
+
+      if (response.success) {
+        dispatch(updateApplicationStatus("submitted"));
+
+        if (response.data?.user) {
+          dispatch(
+            updateUser({
+              ...user,
+              applicationStatus: "submitted",
+            })
+          );
+        } else {
+          dispatch(
+            updateUser({
+              ...user,
+              applicationStatus: "submitted",
+            })
+          );
+        }
+
+        const currentUser = localStorage.getItem("user");
+        if (currentUser) {
+          const userData = JSON.parse(currentUser);
+          userData.applicationStatus = "submitted";
+          localStorage.setItem("user", JSON.stringify(userData));
+        }
+
+        // NEW: Clear local application data after successful submission
+        clearLocalApplicationData();
+
+        setIsSubmitted(true);
+        setSubmissionSuccess(true);
+
+        toast.success("Application submitted successfully!");
+
+        console.log(
+          "✅ Application submitted successfully, should redirect to success page"
         );
 
-        // Navigate to first missing step
-        const firstMissingStep = missingSteps[0];
-        const stepIndex = STEPS.findIndex(
-          (step) => step === firstMissingStep
-        );
-        if (stepIndex !== -1) {
-          setCurrentStep(stepIndex + 1);
-        }
+        clearLocalApplicationData();
+
+        // ✅ FIXED: Add a small delay to ensure state updates before redirect
+        setTimeout(() => {
+          window.location.replace("/pending-technician/dashboard");
+        }, 2000);
       } else {
-        alert(
-          `There was an error submitting the application: ${errorMessage}`
-        );
+        console.error("Submit application failed:", response);
+        toast.error(response.message || "Failed to submit application");
       }
-    } else if (error instanceof Error) {
-      alert(
-        `There was an error submitting the application: ${error.message}`
-      );
-    } else {
-      alert("There was an unknown error submitting the application.");
+    } catch (error: unknown) {
+      console.error("Submission error:", error);
+      if (axios.isAxiosError(error)) {
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.statusText ||
+          error.message;
+        const missingSteps = error.response?.data?.missingSteps;
+
+        console.log("Error details:", { message: errorMessage, missingSteps });
+
+        if (error.response?.status === 401) {
+          localStorage.removeItem("auth");
+          alert("Your session has expired. Please log in again.");
+          window.location.href = "/login";
+        } else if (error.response?.status === 403) {
+          alert(
+            "Access denied. You do not have permission to submit this application."
+          );
+        } else if (missingSteps && missingSteps.length > 0) {
+          alert(
+            `Please complete the following steps before submitting: ${missingSteps.join(
+              ", "
+            )}`
+          );
+          const firstMissingStep = missingSteps[0];
+          const stepIndex = STEPS.findIndex(
+            (step) => step === firstMissingStep
+          );
+          if (stepIndex !== -1) {
+            setCurrentStep(stepIndex + 1);
+          }
+        } else {
+          alert(
+            `There was an error submitting the application: ${errorMessage}`
+          );
+        }
+      } else if (error instanceof Error) {
+        alert(
+          `There was an error submitting the application: ${error.message}`
+        );
+      } else {
+        alert("There was an unknown error submitting the application.");
+      }
+    } finally {
+      setIsLoading(false);
     }
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+
+  useEffect(() => {
+  console.log("🔍 APPLICATION FORM STATE UPDATE:", {
+    applicationId,
+    currentStep,
+    isSubmitted,
+    submissionSuccess,
+    hasRestoredFromLocalStorage,
+    user: user?._id
+  });
+}, [applicationId, currentStep, isSubmitted, submissionSuccess, hasRestoredFromLocalStorage, user]);
+
   if (isSubmitted && submissionSuccess) {
     return <ApplicationSubmitted />;
   }
@@ -1111,10 +1360,13 @@ export const ApplicationForm: React.FC = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="Enter your email address"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
+                  readOnly
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Email is taken from your account and cannot be changed here
+                </p>
                 {errors.email && (
                   <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                 )}
@@ -2463,6 +2715,20 @@ export const ApplicationForm: React.FC = () => {
   };
   return (
     <div className="bg-white rounded-lg shadow-md p-8">
+      {/* NEW: Add resume notification banner */}
+      {hasRestoredFromLocalStorage && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex items-center">
+            <CheckCircleIcon className="w-5 h-5 text-blue-500 mr-2" />
+            <p className="text-blue-800 font-medium">Application Restored</p>
+          </div>
+          <p className="text-sm text-blue-700 mt-1">
+            Your previous application has been restored. You can continue from
+            where you left off.
+          </p>
+        </div>
+      )}
+
       <StepIndicator
         steps={STEPS}
         currentStep={currentStep}

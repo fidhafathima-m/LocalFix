@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
 import whyJoin from "../data/whyJoin";
@@ -6,20 +7,22 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAppSelector } from "../../../hooks/redux";
 
-interface TechnicianUser {
-  fullName: string;
-  role: "serviceProvider" | "customer" | string;
-  email?: string;
-}
 
 const TechHome = () => {
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
+
+  console.log("🔍 TechHome - isLoggedIn:", isLoggedIn);
+  console.log("🔍 TechHome - user:", user);
+  console.log("🔍 TechHome - user roles:", user?.roles);
+
+  // ✅ FIXED: Check if user has serviceProvider role in roles array
+  const isServiceProvider = user?.roles?.includes("serviceProvider") || false;
 
   return (
     <div>
       <Header userType="serviceProvider" />
 
-      {isLoggedIn && user?.role === "serviceProvider" ? (
+      {isLoggedIn && isServiceProvider ? (
         <LoggedInBanner tech={user} />
       ) : (
         <PublicBanner />
@@ -98,8 +101,10 @@ const PublicBanner = () => {
 };
 
 // Banner for logged-in technicians
-const LoggedInBanner = ({ tech }: { tech: TechnicianUser }) => {
-  const { user, token } = useAppSelector((state) => state.auth);
+// In TechHome.tsx - fix LoggedInBanner
+// Banner for logged-in technicians
+const LoggedInBanner = ({ tech }: { tech: any }) => { // Change to any or proper type
+  const { user, accessToken } = useAppSelector((state) => state.auth);
 
   const handleApplyNow = async () => {
     if (!user?._id) {
@@ -117,7 +122,7 @@ const LoggedInBanner = ({ tech }: { tech: TechnicianUser }) => {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
@@ -142,6 +147,7 @@ const LoggedInBanner = ({ tech }: { tech: TechnicianUser }) => {
       window.location.href = "/technicians/apply";
     }
   };
+
   return (
     <section>
       <div className="bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] min-h-[400px] lg:h-96 relative">
@@ -159,13 +165,12 @@ const LoggedInBanner = ({ tech }: { tech: TechnicianUser }) => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link
-              to="#"
+            <button
               className="p-3 px-6 rounded bg-white text-blue-600 font-semibold hover:bg-gray-100 transition"
               onClick={handleApplyNow}
             >
               Apply Now
-            </Link>
+            </button>
           </div>
         </div>
       </div>

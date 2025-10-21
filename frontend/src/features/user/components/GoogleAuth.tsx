@@ -2,8 +2,8 @@ import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAppDispatch } from "../../../hooks/redux";
 import { loginSuccess, type User } from "../../../store/slices/authSlice";
 import toast from "react-hot-toast";
-import { authAPI } from "../../../services/authApi";
 import { useNavigate, useLocation } from "react-router-dom";
+import { UserAuthService } from "../../../services/user/userAuthService";
 
 interface GoogleAuthProps {
   userType?: "user" | "serviceProvider" | "admin";
@@ -28,42 +28,52 @@ const GoogleAuth: React.FC<GoogleAuthProps> = () => {
     }
 
     try {
-      const res = await authAPI.googleAuth({
+      const res = await UserAuthService.googleAuth({
         token: credentialResponse.credential,
         userType: currentUserType,
       });
 
+      // ✅ UPDATED: Extract tokens from new structure
+      const userData = res.data?.user || res.user;
+      const accessToken = res.data?.accessToken || res.accessToken;
+      const refreshToken = res.data?.refreshToken || res.refreshToken;
 
-      if (!res.success || !res.user || !res.token) {
+      if (!res.success || !userData || !accessToken || !refreshToken) {
         throw new Error(res.message || "Google authentication failed");
       }
 
+      // ✅ UPDATED: Pass both tokens
       dispatch(
         loginSuccess({
-          user: res.user as User,
-          token: res.token,
+          user: userData as User,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
         })
       );
 
       toast.success(res.message || "Signed in with Google!");
 
+      const userRoles = userData.roles || [];
+      const hasServiceProviderRole = userRoles.includes("serviceProvider");
+      const hasAdminRole = userRoles.includes("admin");
+
       // Redirect based on userType and application status
-      if (res.user.role === "serviceProvider") {
-        if (res.user.applicationStatus === "approved") {
+      if (hasServiceProviderRole) {
+        if (userData.applicationStatus === "approved") {
           navigate("/technician/dashboard");
         } else if (
-          res.user.applicationStatus === "submitted" ||
-          res.user.applicationStatus === "under_review"
+          userData.applicationStatus === "submitted" ||
+          userData.applicationStatus === "under_review"
         ) {
           navigate("/pending-technician/dashboard");
-        } else if (res.user.applicationStatus === "rejected") {
+        } else if (userData.applicationStatus === "rejected") {
           navigate("/pending-technician/dashboard");
-        } else if (res.user.applicationStatus === "draft") {
+        } else if (userData.applicationStatus === "draft") {
           navigate("/technician/apply");
         } else {
           navigate("/technicians");
         }
-      } else if (res.user.role === "admin") {
+      } else if (hasAdminRole) {
         navigate("/admin/dashboard");
       } else {
         navigate("/");

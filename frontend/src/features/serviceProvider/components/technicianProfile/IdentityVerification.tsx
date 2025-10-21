@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import AccordionSection from './AccordianSections'
 import { AccessTimeOutlined, FileUploadOutlined, CheckCircleOutline, Cancel } from '@mui/icons-material'
-import { technicianAPI, type TechnicianProfile } from '../../../../services/technicianApi'
+import { type TechnicianProfile } from '../../../../services/common/technicianApi'
+import { TechnicianService } from '../../../../services/technician/technicianService';
 
 interface IdentityVerificationData {
   governmentIdType?: string;
@@ -32,7 +33,7 @@ const IdentityVerification = () => {
   const fetchProfile = async () => {
   try {
     setLoading(true)
-    const response = await technicianAPI.getProfile()
+    const response = await TechnicianService.getProfile();
     if (response.success) {
       const profileData = response.data?.data?.profile
       setProfile(profileData)
@@ -90,7 +91,7 @@ const IdentityVerification = () => {
       }
     }
 
-    const response = await technicianAPI.updateIdentityVerification(updateData)
+    const response = await TechnicianService.updateIdentityVerification(updateData);
     
     if (response.data.success) {
       // Update local profile state with proper null checks
@@ -124,7 +125,7 @@ const IdentityVerification = () => {
       uploadFormData.append('documentType', formData.governmentIdType || 'id_proof')
 
       // Upload document
-      const response = await technicianAPI.uploadDocument(uploadFormData)
+      const response = await TechnicianService.uploadDocument(uploadFormData)
       
       if (response.data.success) {
         // Update form data with the uploaded document URL

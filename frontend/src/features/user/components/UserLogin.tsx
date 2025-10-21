@@ -2,10 +2,10 @@
 import React from "react";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
 import { loginStart, loginSuccess, loginFailure, getSafeApplicationStatus, type User } from "../../../store/slices/authSlice";
-import { authAPI } from "../../../services/authApi";
 import { useNavigate } from "react-router-dom";
 import BaseLogin from "../../../components/reusable/BaseLogin";
 import { validateSchema, loginSchema } from "../../../validation";
+import { UserAuthService } from "../../../services/user/userAuthService";
 
 const UserLogin: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -16,29 +16,29 @@ const UserLogin: React.FC = () => {
     dispatch(loginStart());
     
     try {
-      const res = await authAPI.login(credentials);
+      const res = await UserAuthService.login(credentials)
       
-      // ✅ FIXED: Extract user and token from data object
       const userDataFromResponse = res.data?.user || res.user;
-      const tokenFromResponse = res.data?.token || res.token;
+      const accessToken = res.data?.accessToken || res.accessToken;
+      const refreshToken = res.data?.refreshToken || res.refreshToken;
       
-      if (res.success && userDataFromResponse && tokenFromResponse) {
+      if (res.success && userDataFromResponse && accessToken && refreshToken) {
         const userData: User = {
           _id: userDataFromResponse._id,
           fullName: userDataFromResponse.fullName,
           phone: userDataFromResponse.phone || "",
           email: userDataFromResponse.email || "",
-          role: userDataFromResponse.role,
+          roles: userDataFromResponse.roles,
           applicationStatus: getSafeApplicationStatus(userDataFromResponse.applicationStatus),
           isVerified: userDataFromResponse.isVerified || false,
         };
         
         dispatch(loginSuccess({
           user: userData,
-          token: tokenFromResponse,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
         }));
         
-        // User-specific success logic
         setTimeout(() => navigate("/"), 1000);
         
         return { success: true, message: res.message };

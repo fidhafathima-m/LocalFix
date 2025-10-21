@@ -1,20 +1,10 @@
+// interfaces/admin/IUserManagements.ts
 import { ApiResponse } from "../../utils/responseHelper";
-import { Types } from "mongoose";
+import { IUserBase } from "../common/IUserBase";
 
-export interface IUser {
-  _id: Types.ObjectId;
-  fullName: string;
-  email?: string;
-  phone?: string;
-  role: "user" | "serviceProvider" | "admin";
-  status: "Active" | "Inactive" | "Blocked";
-  isVerified: boolean;
-  applicationStatus: "not-applied" | "pending" | "approved" | "rejected";
-  isDeleted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  addresses?: any[];
-  defaultAddress?: any;
+// Extend from the common base interface
+export interface IUser extends IUserBase {
+  // Add any admin-specific properties here if needed
 }
 
 export interface IUserWithAddress extends IUser {

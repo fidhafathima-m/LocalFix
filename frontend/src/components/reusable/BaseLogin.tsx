@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import GoogleAuth from "../../features/user/components/GoogleAuth";
 
-// Props interface for maximum reusability
 interface LoginProps {
   userType: "user" | "serviceProvider" | "admin";
   onSubmit: (credentials: {

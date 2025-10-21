@@ -1,7 +1,7 @@
 import { IOTPCreate, IOtpVerification } from "../../../interfaces/user/IOTP";
+import { IBaseRepository } from "../IBaseRepository";
 
-export interface IOTPRepository {
-  create(otpData: IOTPCreate): Promise<IOtpVerification>;
+export interface IOTPRepository extends IBaseRepository<IOtpVerification> {
   findLatest(
     phone?: string,
     email?: string,

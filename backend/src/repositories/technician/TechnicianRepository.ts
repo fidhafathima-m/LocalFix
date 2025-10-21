@@ -1,92 +1,42 @@
-// src/repositories/technician/TechnicianRepository.ts
+import { Model, Types } from 'mongoose';
+import { BaseRepository } from '../BaseRepository';
+import { ITechnicianRepository } from "../../interfaces/repository/technician/ITechnicianRepository";
 import { ITechnician } from "../../interfaces/technician/ITechnician";
 import { Technician } from "../../models/technician/TechnicianSchema";
-import { Types } from "mongoose";
-import { ITechnicianRepository } from "../../interfaces/repository/technician/ITechnicianRepository";
 
-export class TechnicianRepository implements ITechnicianRepository {
+export class TechnicianRepository 
+  extends BaseRepository<ITechnician> 
+  implements ITechnicianRepository {
+  
+  constructor() {
+    super(Technician as Model<ITechnician>);
+  }
+
   async findByUserId(userId: string): Promise<ITechnician | null> {
-    return await Technician.findOne({ userId: new Types.ObjectId(userId) });
+    return this.findOne({ userId: new Types.ObjectId(userId) });
   }
 
-  async findById(id: string): Promise<ITechnician | null> {
-    return await Technician.findById(id);
-  }
+  async updateByUserId(userId: string, updateData: any): Promise<ITechnician | null> {
+    const processedUpdateData = {
+      ...updateData,
+      personalInfo: updateData.personalInfo
+        ? {
+            ...updateData.personalInfo,
+            languages: Array.isArray(updateData.personalInfo?.languages)
+              ? updateData.personalInfo.languages
+              : [],
+          }
+        : undefined,
+    };
 
-  async create(technicianData: any): Promise<ITechnician> {
-    try {
-      const processedData = {
-        ...technicianData,
-        personalInfo: {
-          ...technicianData.personalInfo,
-          languages: Array.isArray(technicianData.personalInfo?.languages)
-            ? technicianData.personalInfo.languages
-            : [],
-        },
-      };
-
-      const technician = new Technician(processedData);
-      const savedTechnician = await technician.save();
-      return savedTechnician;
-    } catch (error) {
-      console.error("Error creating technician:", error);
-      throw error;
-    }
-  }
-
-  async updateByUserId(
-    userId: string,
-    updateData: any
-  ): Promise<ITechnician | null> {
-    try {
-      const processedUpdateData = {
-        ...updateData,
-        personalInfo: updateData.personalInfo
-          ? {
-              ...updateData.personalInfo,
-              languages: Array.isArray(updateData.personalInfo?.languages)
-                ? updateData.personalInfo.languages
-                : [],
-            }
-          : undefined,
-      };
-
-      const technician = await Technician.findOneAndUpdate(
-        { userId: new Types.ObjectId(userId) },
-        { $set: processedUpdateData },
-        { new: true, runValidators: true }
-      );
-      return technician;
-    } catch (error) {
-      console.error("Error updating technician:", error);
-      throw error;
-    }
-  }
-
-  async updateTechnicianStatus(
-    id: string,
-    updateData: any
-  ): Promise<ITechnician | null> {
-    return await Technician.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true }
+    return this.model.findOneAndUpdate(
+      { userId: new Types.ObjectId(userId) },
+      { $set: processedUpdateData },
+      { new: true, runValidators: true }
     );
   }
 
-  async save(technician: any): Promise<ITechnician> {
-    if (technician && typeof technician.save === "function") {
-      return await technician.save();
-    } else {
-      const updatedTechnician = await Technician.findOneAndUpdate(
-        { _id: technician._id },
-        { $set: technician },
-        { new: true }
-      );
-      if (!updatedTechnician) {
-        throw new Error("Technician not found");
-      }
-      return updatedTechnician;
-    }
+  async updateTechnicianStatus(id: string, updateData: any): Promise<ITechnician | null> {
+    return this.update(id, { $set: updateData } as any);
   }
 }

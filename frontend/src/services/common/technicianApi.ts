@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import api from "../utils/axiosConfig";
+import api from "../../utils/axiosConfig";
 
 export interface TechnicianProfile {
   _id: string;
@@ -342,7 +342,7 @@ export const technicianAPI = {
     }
   },
 
-  submitApplication: async (data: { applicationId: string }) => {
+  submitApplication: async (data: { applicationId: string, userId: string }) => {
     try {
       const response = await api.post<{
         success: boolean;

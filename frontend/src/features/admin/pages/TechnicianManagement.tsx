@@ -21,7 +21,7 @@ import {
   fetchTechniciansStart,
   fetchTechniciansSuccess,
 } from "../../../store/slices/adminSlice";
-import { adminAPI } from "../../../services/adminApi";
+import { TechnicianMangementService } from "../../../services/admin/TechnicianManagementService";
 import { useAdminActions } from "../../../hooks/useAdminActions";
 import {
   QuickActionButtons,
@@ -117,8 +117,8 @@ const TechnicianManagement: React.FC = () => {
       dispatch(fetchApplicationsStart());
 
       const [techniciansResponse, applicationsResponse] = await Promise.all([
-        adminAPI.getTechnicians(),
-        adminAPI.getPendingApplications(),
+        TechnicianMangementService.getTechnicians(),
+        TechnicianMangementService.getPendingTechnicians(),
       ]);
 
       if (techniciansResponse.data.success && techniciansResponse.data.data) {

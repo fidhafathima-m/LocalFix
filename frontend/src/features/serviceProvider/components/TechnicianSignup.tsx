@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BaseSignUp from "../../../components/reusable/BaseSignup";
-import { authAPI } from "../../../services/authApi";
 import { validateSchema, signupSchema } from "../../../validation";
 import type { SignUpFormData, SignUpErrors } from "../../../components/reusable/BaseSignup";
+import { TechnicianAuthService } from "../../../services/technician/technicianAuthService";
 
 const TechnicianSignUp: React.FC = () => {
     const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ const TechnicianSignUp: React.FC = () => {
   }) => {
     setLoading(true);
     try {
-      const response = await authAPI.signup(data);
+      const response = await TechnicianAuthService.signup(data)
       
       if (response.success) {
         localStorage.setItem(

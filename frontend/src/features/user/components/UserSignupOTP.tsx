@@ -2,8 +2,9 @@ import React from "react";
 import { useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../../hooks/redux";
 import { loginSuccess, type User } from "../../../store/slices/authSlice";
-import { authAPI, type OTPData } from "../../../services/authApi";
+import { type OTPData } from "../../../services/common/authApi";
 import BaseOTP, { type OTPFormData, type UserType, type OTPContext } from "../../../components/reusable/BaseOTP";
+import { UserAuthService } from "../../../services/user/userAuthService";
 
 interface LocationState {
   phone?: string;
@@ -38,30 +39,60 @@ const UserSignupOTP: React.FC = () => {
       ...(formData.password && { password: formData.password }),
     };
 
-    const res = await authAPI.verifyOTP(otpData);
+    console.log("🔍 Sending OTP data:", otpData);
+
+    const res = await UserAuthService.verifyOTP(otpData)
+
+    console.log("🔍 Full API response:", res)
 
     // Check if the response indicates success
     if (!res.success) {
-      throw new Error(res.message || "OTP verification failed");
-    }
+    console.log("🔍 OTP verification failed - response:", res); // Debug log
+    throw new Error(res.message || "OTP verification failed");
+  }
 
     // ✅ FIXED: Extract user and token from data object
-    const userData = res.data?.user;
-    const token = res.data?.token;
+    const userData = res.data?.user || res.user;
+    const accessToken = res.data?.accessToken || res.accessToken;
+    const refreshToken = res.data?.refreshToken || res.refreshToken;
 
-    if (!userData || !token) {
+    if (!userData || !accessToken || !refreshToken) {
       throw new Error("Invalid response from server: missing user data or token");
     }
 
+     const userWithRoles: User = {
+      _id: userData._id,
+      fullName: userData.fullName,
+      phone: userData.phone || "",
+      email: userData.email || "",
+      roles: userData.roles || [], // Use roles array
+      isVerified: userData.isVerified || false,
+    };
+
+    const userForRedux: User = {
+      _id: userData._id,
+      fullName: userData.fullName,
+      phone: userData.phone || "",
+      email: userData.email || "",
+      roles: userData.roles || ["user"], // Ensure roles array is set
+      isVerified: userData.isVerified || false,
+      applicationStatus: userData.applicationStatus || "not-applied",
+    };
+
     // Dispatch login success
     dispatch(loginSuccess({
-      user: userData as User,
-      token: token,
+      user: userForRedux,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
     }));
+
+    const userRoles = userData.roles || [];
+    const hasServiceProviderRole = userRoles.includes("serviceProvider");
+    const hasAdminRole = userRoles.includes("admin");
 
     // Determine redirect path based on user role and application status
     let redirectPath = "/";
-    if (userData.role === "serviceProvider") {
+    if (hasServiceProviderRole) {
       if (userData.applicationStatus === "approved") {
         redirectPath = "/technicians/dashboard";
       } else if (
@@ -72,7 +103,7 @@ const UserSignupOTP: React.FC = () => {
       } else {
         redirectPath = "/technicians";
       }
-    } else if (userData.role === "admin") {
+    } else if (hasAdminRole) {
       redirectPath = "/admin/dashboard";
     }
 
@@ -82,14 +113,15 @@ const UserSignupOTP: React.FC = () => {
     return {
       success: true,
       message: res.message || "OTP verified successfully",
-      user: userData,
-      token: token,
+      user: userWithRoles,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
       redirectPath,
     };
   };
 
   const handleResendOTP = async (formData: OTPFormData) => {
-    const res = await authAPI.resendOTP({
+    const res = await UserAuthService.resendOTP({
       phone: formData.phone,
       email: formData.email,
       purpose: "signup",
