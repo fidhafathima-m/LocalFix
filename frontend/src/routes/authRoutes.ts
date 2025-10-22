@@ -1,6 +1,5 @@
-// constants/authRoutes.ts
-
 export const AUTH_ROUTES = {
+  
   // Authentication routes
   LOGIN: "/auth/login",
   SIGNUP: "/auth/signup",

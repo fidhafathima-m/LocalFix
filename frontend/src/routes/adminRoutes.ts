@@ -1,4 +1,5 @@
 export const ADMIN_ROUTES = {
+  
   // User routes
   USERS: "/admin/users",
   USER_BY_ID: (userId: string) => `/admin/users/${userId}`,

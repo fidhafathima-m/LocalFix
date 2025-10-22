@@ -1,6 +1,5 @@
-// constants/technicianRoutes.ts
-
 export const TECHNICIAN_ROUTES = {
+
   // Profile routes
   PROFILE: {
     BASE: "/technician/profile",
@@ -12,7 +11,7 @@ export const TECHNICIAN_ROUTES = {
     AVAILABILITY: "/technician/profile/availability",
     BANK_PAYMENT: "/technician/profile/bank-payment",
   },
-
+  
   // Address routes
   ADDRESS: "/technician/address",
 
