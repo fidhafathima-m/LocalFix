@@ -103,6 +103,7 @@ export interface DocumentsInfo {
 
 
 export interface ITechnician extends Document {
+  statusCode(statusCode: any): unknown;
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   displayName: string;
