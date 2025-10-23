@@ -1,5 +1,6 @@
 import { ApiResponse } from "../../utils/responseHelper";
 import { Types } from "mongoose";
+import { AvailabilityInfo, BankInfo, DocumentsInfo, IdentityInfo } from "../technician/ITechnician";
 
 export interface IAdminTechnician {
   _id: Types.ObjectId;
@@ -31,7 +32,7 @@ export interface IAdminTechnician {
     fullName: string;
     gender?: string;
     phoneNumber?: string;
-    dateOfBirth?: string;
+    dateOfBirth?: string | Date | undefined;
     languages?: string[];
     address?: {
       street: string;
@@ -46,7 +47,7 @@ export interface IAdminTechnician {
     drivingLicense?: { url: string; verified: boolean };
     [key: string]: any;
   };
-  availability?: any;
+  availability?: AvailabilityInfo;
   suspensionReason?: string;
   suspendedAt?: Date;
 }
@@ -69,6 +70,10 @@ export interface ITechnician {
   };
   userId: Types.ObjectId;
   displayName: string;
+  totalJobs?: number;
+  completedJobs?: number;
+  ongoingJobs?: number;
+  totalEarnings?: number;
   bio: string;
   experienceYears: number;
   services: string[];
@@ -118,7 +123,7 @@ export interface ITechnicianApplication {
       pincode: string;
     };
   };
-  identity: Record<string, any>;
+  identity: IdentityInfo;
   skills: {
     services?: string[];
     yearsOfExperience?: number;
@@ -126,9 +131,9 @@ export interface ITechnicianApplication {
     serviceAreas?: string[];
     workRadius?: string;
   };
-  availability: Record<string, any>;
-  bank: Record<string, any>;
-  documents: Record<string, any>;
+  availability: AvailabilityInfo;
+  bank: BankInfo;
+  documents: DocumentsInfo;
   agreement: boolean;
   submittedAt?: Date;
   reviewNotes?: string;
@@ -138,7 +143,7 @@ export interface ITechnicianApplication {
   lastSubmittedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
-  user?: any;
+  user?: unknown;
 }
 
 // FIXED: Remove duplicate properties since ApiResponse already has them

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../../hooks/redux";
@@ -119,11 +118,11 @@ const TechSignupOTP: React.FC = () => {
         refreshToken: refreshToken,
         redirectPath,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("OTP verification error:", error);
       return {
         success: false,
-        message: error.message || "OTP verification failed",
+        message:  error instanceof Error ? error.message : "OTP verification failed",
       };
     } finally {
       setLoading(false);
@@ -144,10 +143,10 @@ const TechSignupOTP: React.FC = () => {
         success: res.success,
         message: res.message,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        message: error.message || "Failed to resend OTP",
+        message: error instanceof Error ? error.message : "Failed to resend OTP",
       };
     } finally {
       setLoading(false);

@@ -41,6 +41,7 @@ export const OTP_PURPOSES = {
   SIGNUP: "signup",
   RESET: "reset",
   LOGIN: "login",
+  APPLICATION: "application",
   VERIFICATION: "verification",
 } as const;
 

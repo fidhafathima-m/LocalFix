@@ -9,7 +9,7 @@ import { uploadToCloudinary } from "../utils/cloudinary";
 import UserAddressSchema from "../models/UserAddressSchema";
 import { ITechnicianDocument } from "../interfaces/technician/ITechnicianDocuments";
 import { ITechnicianApplicationRepository } from "../interfaces/repository/technician/ITechnicianApplicationRepository";
-import { ITechnicianApplicationService } from "../interfaces/services/technician/ITechnicianApplicationService";
+import { FilesCollection, ITechnicianApplicationService, UploadedFile } from "../interfaces/services/technician/ITechnicianApplicationService";
 import { ITechnicianRepository } from "../interfaces/repository/technician/ITechnicianRepository";
 import { ITechnicianDocumentRepository } from "../interfaces/repository/technician/ITechnicianDocumentRepository";
 import { IUserRepository } from "../interfaces/repository/user/IUserRepository";
@@ -24,6 +24,50 @@ import {
   APPLICATION_STATUS,
   USER_ROLES,
 } from "../constants";
+import { ITechnicianApplication } from "@/models/technician/TechnicianApplicationSchema";
+import { DocumentsInfo, IdentityInfo, PersonalInfo, SkillsInfo, AvailabilityInfo, BankInfo } from "@/interfaces/technician/ITechnician";
+
+// Interface definitions
+interface AddressData {
+  street?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  landmark?: string;
+}
+
+interface StepData {
+  address?: string | AddressData;
+  location?: IdentityInfo['location'];
+  agreement?: string | boolean;
+  governmentIdType?: string;
+  governmentIdNumber?: string;
+  idDocument?: string;
+  verified?: boolean;
+  verificationStatus?: "pending" | "approved" | "rejected";
+  verifiedAt?: Date;
+  [key: string]: unknown;
+}
+
+// Update DocumentData to match DocumentFile interface
+interface DocumentData {
+  url: string;
+  publicId?: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+  uploadedAt: Date;
+  verified: boolean;
+  uploadFailed?: boolean;
+  error?: string;
+}
+
+// Update DocumentsCollection to be compatible with DocumentsInfo
+type DocumentsCollection = {
+  [K in keyof DocumentsInfo]?: DocumentData;
+} & {
+  [key: string]: DocumentData | undefined;
+};
 
 export class TechnicianApplicationService
   implements ITechnicianApplicationService
@@ -135,20 +179,22 @@ export class TechnicianApplicationService
         }
       }
 
-      // Create new application
-      const application = await this.applicationRepository.create({
+      // Create new application with proper typing
+      const applicationData: Partial<ITechnicianApplication> = {
         email: email.toLowerCase().trim(),
         technicianId: new Types.ObjectId(userId),
         status: APPLICATION_STATUS.DRAFT,
         stepsCompleted: [],
-        personal: {},
-        identity: {},
-        skills: {},
-        availability: {},
-        bank: {},
-        documents: {},
+        personal: {} as PersonalInfo,
+        identity: {} as IdentityInfo,
+        skills: {} as SkillsInfo,
+        availability: {} as AvailabilityInfo,
+        bank: {} as BankInfo,
+        documents: {} as DocumentsInfo,
         agreement: false,
-      });
+      };
+
+      const application = await this.applicationRepository.create(applicationData);
 
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.APPLICATION_STARTED,
@@ -159,8 +205,9 @@ export class TechnicianApplicationService
           },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Start application error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_START_APPLICATION
       );
@@ -169,7 +216,7 @@ export class TechnicianApplicationService
 
   async saveStep(
     data: SaveStepRequest,
-    files?: any
+    files?: FilesCollection
   ): Promise<ApplicationResponse> {
     try {
       const { applicationId, step, ...stepData } = data;
@@ -180,16 +227,14 @@ export class TechnicianApplicationService
         );
       }
 
-      const application = await this.applicationRepository.findById(
-        applicationId
-      );
+      const application = await this.applicationRepository.findById(applicationId);
       if (!application) {
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
         );
       }
 
-      const processedStepData = { ...stepData };
+      const processedStepData: StepData = { ...stepData };
 
       // Parse JSON fields
       const jsonFields = [
@@ -200,14 +245,15 @@ export class TechnicianApplicationService
       ];
       jsonFields.forEach((field) => {
         if (
-          (processedStepData as any)[field] &&
-          typeof (processedStepData as any)[field] === "string"
+          processedStepData[field] &&
+          typeof processedStepData[field] === "string"
         ) {
           try {
-            (processedStepData as any)[field] = JSON.parse(
-              (processedStepData as any)[field]
-            );
-          } catch (e) {}
+            processedStepData[field] = JSON.parse(processedStepData[field] as string);
+          } catch (e) {
+            // Keep original value if parsing fails
+            console.warn(`Failed to parse ${field} as JSON`);
+          }
         }
       });
 
@@ -241,8 +287,9 @@ export class TechnicianApplicationService
           },
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Save step error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_SAVE_STEP
       );
@@ -250,28 +297,20 @@ export class TechnicianApplicationService
   }
 
   private async handleIdentityVerificationStep(
-    application: any,
-    stepData: any
+    application: ITechnicianApplication,
+    stepData: StepData
   ): Promise<void> {
     // Save address to UserAddress collection
     if (stepData.address || stepData.location) {
       try {
-        let addressData = stepData.address;
+        let addressData: string | AddressData | undefined = stepData.address;
         let locationData = stepData.location;
 
         if (typeof addressData === "string") {
           try {
-            addressData = JSON.parse(addressData);
+            addressData = JSON.parse(addressData) as AddressData;
           } catch (e) {
             console.error("Could not parse address as JSON");
-          }
-        }
-
-        if (typeof locationData === "string") {
-          try {
-            locationData = JSON.parse(locationData);
-          } catch (e) {
-            console.error("Could not parse location as JSON");
           }
         }
 
@@ -295,34 +334,37 @@ export class TechnicianApplicationService
 
           await userAddress.save();
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error saving to UserAddress:", error);
       }
     }
 
-    if (!application.identity) {
-      application.identity = {};
+    // Use type assertion for Mongoose document operations
+    const app = application as any;
+    if (!app.identity) {
+      app.identity = {};
     }
 
-    application.identity = {
-      ...application.identity,
+    // Create update data with proper typing
+    const updateData: Partial<IdentityInfo> = {
+      ...app.identity,
       ...stepData,
     };
 
-    if (stepData.location && typeof stepData.location === "object") {
-      application.identity.location = stepData.location;
-    }
+    app.identity = updateData;
   }
 
   private async handleDocumentsStep(
-    application: any,
-    files: any
+    application: ITechnicianApplication,
+    files?: FilesCollection
   ): Promise<void> {
-    if (!application.documents || typeof application.documents !== "object") {
-      application.documents = {};
+    const app = application as any;
+    
+    if (!app.documents) {
+      app.documents = {};
     }
 
-    const documents: any = application.documents;
+    const documents: DocumentsCollection = app.documents;
     const documentFields = [
       DOCUMENT_TYPES.ID_PROOF,
       DOCUMENT_TYPES.ADDRESS_PROOF,
@@ -337,9 +379,28 @@ export class TechnicianApplicationService
         const file = files[field];
 
         try {
-          let fileToUpload = Array.isArray(file) ? file[0] : file;
+          let fileToUpload: UploadedFile;
+          if (Array.isArray(file)) {
+            fileToUpload = file[0];
+          } else {
+            fileToUpload = file;
+          }
 
-          const uploadResult = await uploadToCloudinary(fileToUpload);
+          // Convert UploadedFile to Express.Multer.File for uploadToCloudinary
+          const fileForUpload: Express.Multer.File = {
+            fieldname: fileToUpload.fieldname || field,
+            originalname: fileToUpload.originalname,
+            encoding: fileToUpload.encoding,
+            mimetype: fileToUpload.mimetype,
+            size: fileToUpload.size,
+            stream: fileToUpload.stream as any,
+            destination: fileToUpload.destination || '',
+            filename: fileToUpload.filename || fileToUpload.originalname,
+            path: fileToUpload.path || '',
+            buffer: fileToUpload.buffer || Buffer.from(''),
+          };
+
+          const uploadResult = await uploadToCloudinary(fileForUpload);
 
           if (uploadResult && uploadResult.secure_url) {
             documents[field] = {
@@ -354,7 +415,7 @@ export class TechnicianApplicationService
             };
 
             await this.documentRepository.create({
-              technicianId: application.technicianId,
+              technicianId: application.technicianId!,
               applicationId: application._id,
               type: this.mapDocumentType(field),
               fileUrl: uploadResult.secure_url,
@@ -372,13 +433,15 @@ export class TechnicianApplicationService
             documents[field] = {
               url: "",
               filename: fileToUpload.originalname,
+              mimetype: fileToUpload.mimetype,
+              size: fileToUpload.size,
               uploadedAt: new Date(),
               uploadFailed: true,
               error: TECH_APPLICATION_MESSAGES.CLOUDINARY_UPLOAD_FAILED,
               verified: false,
             };
           }
-        } catch (uploadError) {
+        } catch (uploadError: unknown) {
           console.error(`Error uploading ${field}:`, uploadError);
           let errorMessage = "Unknown upload error";
           if (uploadError instanceof Error) {
@@ -389,9 +452,12 @@ export class TechnicianApplicationService
             errorMessage = JSON.stringify(uploadError);
           }
 
+          const fileToUpload: UploadedFile = Array.isArray(file) ? file[0] : file;
           documents[field] = {
             url: "",
-            filename: file.originalname,
+            filename: fileToUpload.originalname,
+            mimetype: fileToUpload.mimetype,
+            size: fileToUpload.size,
             uploadedAt: new Date(),
             uploadFailed: true,
             error: errorMessage,
@@ -401,7 +467,7 @@ export class TechnicianApplicationService
       }
     }
 
-    application.documents = documents;
+    app.documents = documents;
   }
 
   private mapDocumentType(field: string): ITechnicianDocument["type"] {
@@ -417,35 +483,36 @@ export class TechnicianApplicationService
   }
 
   private async handleAgreementStep(
-    application: any,
-    stepData: any
+    application: ITechnicianApplication,
+    stepData: StepData
   ): Promise<void> {
     if (stepData.agreement !== undefined) {
       const agreementValue =
         stepData.agreement === "true" || stepData.agreement === true;
-      application.agreement = agreementValue;
+      (application as any).agreement = agreementValue;
     }
   }
 
-  private async handleReviewStep(application: any): Promise<void> {
+  private async handleReviewStep(application: ITechnicianApplication): Promise<void> {
     // No specific data processing for review step, just mark as completed
   }
 
   private async handleGenericStep(
-    application: any,
+    application: ITechnicianApplication,
     step: string,
-    stepData: any
+    stepData: StepData
   ): Promise<void> {
     const stepMapping: Record<string, string> = STEP_MAPPING;
 
     const applicationField = stepMapping[step];
     if (applicationField) {
-      const currentData = application[applicationField] || {};
+      const app = application as any;
+      const currentData = app[applicationField] || {};
       const newData = {
         ...currentData,
         ...stepData,
       };
-      application.set(applicationField, newData);
+      app[applicationField] = newData;
     }
   }
 
@@ -463,9 +530,7 @@ export class TechnicianApplicationService
         return ResponseHelper.badRequest("Invalid application ID format");
       }
 
-      const application = await this.applicationRepository.findById(
-        applicationId
-      );
+      const application = await this.applicationRepository.findById(applicationId);
       if (!application) {
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
@@ -498,8 +563,9 @@ export class TechnicianApplicationService
           data: { application: applicationData },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get application error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION
       );
@@ -511,9 +577,7 @@ export class TechnicianApplicationService
     userId: string
   ): Promise<ApplicationResponse> {
     try {
-      const application = await this.applicationRepository.findById(
-        applicationId
-      );
+      const application = await this.applicationRepository.findById(applicationId);
       if (!application) {
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
@@ -522,27 +586,30 @@ export class TechnicianApplicationService
 
       let languagesArray: string[] = [];
 
-      if (Array.isArray(application.skills?.languages)) {
-        languagesArray = application.skills.languages.filter(
-          (lang) => lang && String(lang).trim() !== ""
-        );
+      const skillsLanguages = application.skills?.languages as unknown;
+
+      if (Array.isArray(skillsLanguages)) {
+        languagesArray = (skillsLanguages as string[]).filter(
+        (lang) => lang && String(lang).trim() !== ""
+      );
       } else if (
-        typeof application.skills?.languages === "string" &&
-        application.skills.languages.trim() !== ""
+        skillsLanguages &&
+      typeof skillsLanguages === "string" &&
+      skillsLanguages.trim() !== ""
       ) {
         try {
-          const parsed = JSON.parse(application.skills.languages);
+          const parsed = JSON.parse(skillsLanguages);
           if (Array.isArray(parsed)) {
             languagesArray = parsed.filter(
-              (lang) => lang && String(lang).trim() !== ""
+              (lang: string) => lang && String(lang).trim() !== ""
             );
           }
         } catch (e) {
           // If not JSON, split by comma
-          languagesArray = application.skills.languages
+          languagesArray = skillsLanguages
             .split(",")
             .map((lang: string) => lang.trim())
-            .filter((lang) => lang !== "");
+            .filter((lang: string) => lang !== "");
         }
       }
 
@@ -612,7 +679,7 @@ export class TechnicianApplicationService
       // Create or update technician record
       let technician = await this.technicianRepository.findByUserId(userId);
 
-      let addressData = {};
+      let addressData: Record<string, unknown> = {};
       if (application.identity?.address) {
         if (typeof application.identity.address === "string") {
           try {
@@ -622,20 +689,20 @@ export class TechnicianApplicationService
             addressData = {};
           }
         } else {
-          addressData = application.identity.address;
+          addressData = application.identity.address as Record<string, unknown>;
         }
       }
 
       if (!technician) {
         technician = await this.technicianRepository.create({
           userId: new Types.ObjectId(userId),
-          displayName: application.personal?.fullName || USER_ROLES.TECHNICIAN,
-          bio: application.skills?.bio || "",
-          experienceYears: parseInt(application.skills?.yearsOfExperience) || 0,
-          services: application.skills?.services || [],
+          displayName: (application.personal?.fullName as string) || USER_ROLES.TECHNICIAN,
+          bio: (application.skills?.bio as string) || "",
+          experienceYears: parseInt(application.skills?.yearsOfExperience as string) || 0,
+          services: application.skills?.services as string[] || [],
           serviceRates: {},
-          workAreas: application.skills?.serviceAreas || [],
-          serviceRadiusKm: parseInt(application.skills?.workRadius) || 10,
+          workAreas: application.skills?.serviceAreas as string[] || [],
+          serviceRadiusKm: parseInt(application.skills?.workRadius as string) || 10,
           currentLocation: {
             type: "Point",
             coordinates: [0, 0],
@@ -643,48 +710,48 @@ export class TechnicianApplicationService
           averageRating: 0,
           ratingCount: 0,
           status: APPLICATION_STATUS.SUBMITTED,
-          profilePictureUrl: application.documents?.passportPhoto?.url || "",
+          profilePictureUrl: (application.documents?.passportPhoto?.url as string) || "",
           personalInfo: {
-            fullName: application.personal?.fullName || "",
-            gender: application.personal?.gender || "",
-            phoneNumber: application.personal?.phoneNumber || "",
-            dateOfBirth: application.personal?.dateOfBirth || "",
+            fullName: (application.personal?.fullName as string) || "",
+            gender: (application.personal?.gender as string) || "",
+            phoneNumber: (application.personal?.phoneNumber as string) || "",
+            dateOfBirth: (application.personal?.dateOfBirth as string) || "",
             languages: languagesArray,
             address: addressData,
           },
         });
       } else {
         await this.technicianRepository.updateByUserId(userId, {
-          displayName: application.personal?.fullName || technician.displayName,
-          bio: application.skills?.bio || technician.bio,
+          displayName: (application.personal?.fullName as string) || technician.displayName,
+          bio: (application.skills?.bio as string) || technician.bio,
           experienceYears:
-            parseInt(application.skills?.yearsOfExperience) ||
+            parseInt(application.skills?.yearsOfExperience as string) ||
             technician.experienceYears,
-          services: application.skills?.services || technician.services,
-          workAreas: application.skills?.serviceAreas || technician.workAreas,
+          services: (application.skills?.services as string[]) || technician.services,
+          workAreas: (application.skills?.serviceAreas as string[]) || technician.workAreas,
           serviceRadiusKm:
-            parseInt(application.skills?.workRadius) ||
+            parseInt(application.skills?.workRadius as string) ||
             technician.serviceRadiusKm,
           profilePictureUrl:
-            application.documents?.passportPhoto?.url ||
+            (application.documents?.passportPhoto?.url as string) ||
             technician.profilePictureUrl,
           status: APPLICATION_STATUS.SUBMITTED,
           personalInfo: {
             ...technician.personalInfo,
             fullName:
-              application.personal?.fullName ||
+              (application.personal?.fullName as string) ||
               technician.personalInfo?.fullName ||
               "",
             gender:
-              application.personal?.gender ||
+              (application.personal?.gender as string) ||
               technician.personalInfo?.gender ||
               "",
             phoneNumber:
-              application.personal?.phoneNumber ||
+              (application.personal?.phoneNumber as string) ||
               technician.personalInfo?.phoneNumber ||
               "",
             dateOfBirth:
-              application.personal?.dateOfBirth ||
+              (application.personal?.dateOfBirth as string) ||
               technician.personalInfo?.dateOfBirth ||
               "",
             languages: languagesArray,
@@ -707,8 +774,9 @@ export class TechnicianApplicationService
           },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Submit application error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.badRequest(
         TECH_APPLICATION_MESSAGES.FAILED_TO_SUBMIT_APPLICATION
       );
@@ -719,9 +787,7 @@ export class TechnicianApplicationService
     applicationId: string
   ): Promise<ApplicationResponse> {
     try {
-      const application = await this.applicationRepository.findById(
-        applicationId
-      );
+      const application = await this.applicationRepository.findById(applicationId);
       if (!application) {
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
@@ -739,8 +805,9 @@ export class TechnicianApplicationService
           data: { application: applicationData },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get application status error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_GET_STATUS
       );
@@ -759,8 +826,9 @@ export class TechnicianApplicationService
           data: { applications },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get user applications error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION
       );
@@ -772,9 +840,7 @@ export class TechnicianApplicationService
     userId: string
   ): Promise<ApplicationResponse> {
     try {
-      const application = await this.applicationRepository.findById(
-        applicationId
-      );
+      const application = await this.applicationRepository.findById(applicationId);
       if (!application) {
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
@@ -826,8 +892,9 @@ export class TechnicianApplicationService
           },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Resubmit application error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_RESUBMIT_APPLICATION
       );
@@ -859,18 +926,18 @@ export class TechnicianApplicationService
 
         personal: {
           email: email.toLowerCase().trim(),
-        },
-        identity: {},
-        skills: {},
-        availability: {},
-        bank: {},
+        } as PersonalInfo,
+        identity: {} as IdentityInfo,
+        skills: {} as SkillsInfo,
+        availability: {} as AvailabilityInfo,
+        bank: {} as BankInfo,
 
-        documents: rejectedApplication.documents || {},
+        documents: rejectedApplication.documents || {} as DocumentsInfo,
 
         agreement: false,
         previousApplicationId: rejectedApplication._id,
         resubmittedCount: (rejectedApplication.resubmittedCount || 0) + 1,
-      });
+      } as Partial<ITechnicianApplication>);
 
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.NEW_APPLICATION_STARTED,
@@ -882,8 +949,9 @@ export class TechnicianApplicationService
           },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Start new application after rejection error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_START_NEW_APPLICATION
       );

@@ -45,10 +45,9 @@ const UserForgetPassword: React.FC = () => {
       } else {
         return { success: false, message: response.message };
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Forgot password error:", error);
-      const errorMessage = error.message || "Failed to send OTP";
+      const errorMessage = error instanceof Error ? error.message : "Failed to send OTP";
       return { success: false, message: errorMessage, error };
     } finally {
       setLoading(false);

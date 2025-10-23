@@ -71,12 +71,83 @@ const stepFields: Record<string, string[]> = {
   "Review & Submit": [],
 };
 
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark: string;
+}
+
+interface Location {
+  coordinates: number[];
+  formattedAddress: string;
+}
+
+interface AvailabilityDay {
+  available: boolean;
+  startTime: string;
+  endTime: string;
+}
+
+interface Availability {
+  monday: AvailabilityDay;
+  tuesday: AvailabilityDay;
+  wednesday: AvailabilityDay;
+  thursday: AvailabilityDay;
+  friday: AvailabilityDay;
+  saturday: AvailabilityDay;
+  sunday: AvailabilityDay;
+}
+
+interface FormDataState {
+  // Step 1: Personal Information
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  dateOfBirth: string;
+  gender: string;
+  // Step 2: Identity & Verification
+  idType: string;
+  idNumber: string;
+  idProof: File | FileMetadata | null;
+  addressProof: File | FileMetadata | null;
+  address: Address;
+  location: Location;
+  // Step 3: Skills & Services
+  services: string[];
+  yearsOfExperience: string;
+  certifications: File | FileMetadata | null;
+  languages: string[];
+  bio: string;
+  // Step 4: Availability & Work Preferences
+  serviceAreas: string[];
+  workRadius: string;
+  availability: Availability;
+  // Step 5: Banking Details
+  accountHolderName: string;
+  accountNumber: string;
+  ifscCode: string;
+  upiId: string;
+  bankName: string;
+  // Step 6: Documents
+  policeVerification: File | FileMetadata | null;
+  tradeLicense: File | FileMetadata | null;
+  passportPhoto: File | FileMetadata | null;
+  // Step 7: Agreement & Consent
+  agreement: boolean;
+}
+
 interface FileMetadata {
   _isFile: true;
   name: string;
   size: number;
   type: string;
   lastModified: number;
+  uploadedAt?: string;
+  _fromBackend?: boolean;
+  url?: string;
+  verified?: boolean;
 }
 
 export const ApplicationForm: React.FC = () => {
@@ -257,7 +328,7 @@ export const ApplicationForm: React.FC = () => {
           ];
 
           fileFields.forEach((field) => {
-            const fileMeta = (parsedData as any)[field];
+            const fileMeta = parsedData[field];
 
             // If backend has this document, create enhanced metadata
             if (
@@ -266,7 +337,7 @@ export const ApplicationForm: React.FC = () => {
               backendDocuments[field].url
             ) {
               const backendDoc = backendDocuments[field];
-              (restoredData as any)[field] = {
+              restoredData[field] = {
                 _isFile: true,
                 name: backendDoc.filename || `Uploaded ${field}`,
                 size: backendDoc.size || 0,
@@ -282,7 +353,7 @@ export const ApplicationForm: React.FC = () => {
             }
             // Otherwise use local metadata if available
             else if (fileMeta && fileMeta._isFile) {
-              (restoredData as any)[field] = fileMeta;
+              restoredData[field] = fileMeta;
             }
           });
 
@@ -817,8 +888,8 @@ export const ApplicationForm: React.FC = () => {
   const validateStepFields = (step: number): Record<string, string> => {
     let stepErrors: Record<string, string> = {};
 
-    const flattenFormData = (data: any): Record<string, any> => {
-      const flattened: Record<string, any> = {};
+    const flattenFormData = (data: FormDataState): Record<string, unknown> => {
+      const flattened: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(data)) {
         if (
           value &&
@@ -926,7 +997,7 @@ export const ApplicationForm: React.FC = () => {
         ];
 
         fileFields.forEach(({ field, name }) => {
-          const file = (formData as any)[field];
+          const file = formData[field as keyof FormDataState];
 
           // Only validate if it's an actual File object
           if (file instanceof File) {
@@ -1018,9 +1089,10 @@ export const ApplicationForm: React.FC = () => {
       // Check if we have any FileMetadata objects
       const hasRestoredFiles = Object.values(formData).some(
         (value) =>
-          value && typeof value === "object" && (value as any)._isFile === true
+          value &&
+          typeof value === "object" &&
+          (value as unknown as FileMetadata)._isFile === true
       );
-
       if (hasRestoredFiles) {
         // Clear any file validation errors for restored files
         const fileFields = [
@@ -1032,10 +1104,12 @@ export const ApplicationForm: React.FC = () => {
           "passportPhoto",
         ];
         fileFields.forEach((field) => {
+          const fieldValue = formData[field as keyof FormDataState];
           if (
             stepErrors[field] &&
-            (formData as any)[field] &&
-            (formData as any)[field]._isFile
+            fieldValue &&
+            typeof fieldValue === "object" &&
+            (fieldValue as unknown as FileMetadata)._isFile
           ) {
             delete stepErrors[field];
           }
@@ -1053,14 +1127,14 @@ export const ApplicationForm: React.FC = () => {
         "passportPhoto",
       ];
       documentFields.forEach((field) => {
-        const file = (formData as any)[field];
+        const file = formData[field as keyof FormDataState];
         if (file instanceof File) {
           stepForm.append(field, file);
         }
       });
     } else {
       currentStepFields.forEach((field) => {
-        let value = (formData as any)[field];
+        let value = formData[field as keyof FormDataState];
         if (value !== null && value !== undefined) {
           if (value instanceof File) return;
           if (field === "agreement") {

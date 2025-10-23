@@ -3,10 +3,10 @@ import { IBaseRepository } from "../IBaseRepository";
 
 export interface ITechnicianRepository extends IBaseRepository<ITechnician> {
   findByUserId(userId: string): Promise<ITechnician | null>;
-  updateByUserId(userId: string, updateData: any): Promise<ITechnician | null>;
+  updateByUserId(userId: string, updateData: Partial<ITechnician>): Promise<ITechnician | null>;
   updateTechnicianStatus(
     id: string,
-    updateData: any
+    updateData: Partial<ITechnician>
   ): Promise<ITechnician | null>;
-  save(technician: any): Promise<ITechnician>;
+  save(technician: ITechnician): Promise<ITechnician>;
 }

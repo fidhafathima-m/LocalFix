@@ -1,3 +1,4 @@
+import { ITechnician } from "@/types/technicianApplicationTypes";
 import {
   AvailabilityPreferencesUpdate,
   BankPaymentUpdate,
@@ -8,31 +9,31 @@ import {
 } from "../../../interfaces/technician/ITechnicianProfile";
 
 export interface ITechnicianProfileService {
-  getTechnicianProfile(technicianId: string): Promise<any>;
+  getTechnicianProfile(technicianId: string): Promise<ITechnician>;
   updatePersonalInformation(
     technicianId: string,
     updateData: PersonalInfoUpdate
-  ): Promise<any>;
+  ): Promise<ITechnician>;
   updateIdentityVerification(
     technicianId: string,
     updateData: IdentityVerificationUpdate
-  ): Promise<any>;
+  ): Promise<ITechnician>;
   updateSkillsServices(
     technicianId: string,
     updateData: SkillsServicesUpdate
-  ): Promise<any>;
+  ): Promise<ITechnician>;
   updateAvailabilityPreferences(
     technicianId: string,
     updateData: AvailabilityPreferencesUpdate
-  ): Promise<any>;
+  ): Promise<ITechnician>;
   updateBankPaymentDetails(
     technicianId: string,
     updateData: BankPaymentUpdate
-  ): Promise<any>;
+  ): Promise<ITechnician>;
   updatePassword(
     technicianId: string,
     updateData: SecuritySettingsUpdate
-  ): Promise<any>;
+  ): Promise<ITechnician>;
   uploadDocument(
     technicianId: string,
     documentData: {
@@ -40,5 +41,5 @@ export interface ITechnicianProfileService {
       fileUrl: string;
       fileName: string;
     }
-  ): Promise<any>;
+  ): Promise<ITechnician>;
 }

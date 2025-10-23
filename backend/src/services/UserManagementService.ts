@@ -22,6 +22,11 @@ import {
   USER_FILTERS,
 } from "../constants";
 
+// Type guard function for status validation
+function isValidStatus(status: string): status is IUser['status'] {
+  return VALID_STATUSES.includes(status as IUser['status']);
+}
+
 export class UserManagementService implements IUserManagementService {
   constructor(private userManagementRepository: IUserManagementRepository) {}
 
@@ -45,7 +50,7 @@ export class UserManagementService implements IUserManagementService {
     try {
       const { status } = statusData;
 
-      if (!VALID_STATUSES.includes(status as any)) {
+      if (!isValidStatus(status)) {
         return ResponseHelper.badRequest(
           USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE
         );
@@ -95,7 +100,7 @@ export class UserManagementService implements IUserManagementService {
       const { fullName, email, phone, status } = userData;
 
       if (status) {
-        if (!VALID_STATUSES.includes(status as any)) {
+        if (!isValidStatus(status)) {
           return ResponseHelper.badRequest(
             USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE
           );

@@ -51,11 +51,10 @@ const TechnicianSignUp: React.FC = () => {
           error: response.error,
         };
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Technician signup error:", error);
-      const errorMessage =
-        error?.message || "Sign up failed - Unexpected error";
+      const errorMessage = error instanceof Error ?
+        error?.message : "Sign up failed - Unexpected error";
       return { success: false, message: errorMessage, error };
     } finally {
       setLoading(false);

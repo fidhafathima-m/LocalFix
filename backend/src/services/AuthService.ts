@@ -27,6 +27,49 @@ import {
   USER_STATUS,
   USER_ROLES,
 } from "../constants";
+import { IUser } from "@/interfaces/user/IUser";
+
+interface OtpCreationData {
+  otpHash: string;
+  purpose: "signup" | "reset" | "login" | "application";
+  expiresAt: Date;
+  phone?: string;
+  email?: string;
+}
+
+interface JwtPayload {
+  _id: string;
+  roles?: string[];
+  type: string;
+  purpose?: string;
+  identifier?: string;
+  userType?: string;
+  timestamp?: number;
+}
+
+interface FacebookGraphResponse {
+  id: string;
+  name: string;
+  email?: string;
+  picture?: {
+    data?: {
+      url: string;
+    };
+  };
+}
+
+interface GoogleTokenPayload {
+  email?: string;
+  name?: string;
+  sub: string;
+  picture?: string;
+}
+
+interface UserIdentifierQuery {
+  phone?: string;
+  email?: string;
+  roles?: string | string[];
+}
 
 export class AuthService implements IAuthService {
   private userRepository: IUserRepository;
@@ -74,7 +117,7 @@ export class AuthService implements IAuthService {
       const otp = generateOTP();
       const otpHash = await bcrypt.hash(otp, 10);
 
-      const otpData: any = {
+      const otpData: OtpCreationData = {
         otpHash,
         purpose: OTP_PURPOSES.SIGNUP,
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
@@ -98,8 +141,10 @@ export class AuthService implements IAuthService {
       return ResponseHelper.success(
         `OTP sent to ${sentChannels.join(", ")}. Verify to complete signup.`
       );
-    } catch (error: any) {
-      return ResponseHelper.error(error.message);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -123,7 +168,9 @@ export class AuthService implements IAuthService {
       }
 
       if (record.expiresAt < new Date()) {
-        await this.otpRepository.deleteById(record._id!.toString());
+        if (record._id) {
+          await this.otpRepository.deleteById(record._id.toString());
+        }
         return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_EXPIRED);
       }
 
@@ -133,7 +180,7 @@ export class AuthService implements IAuthService {
       }
 
       // FIND EXISTING USER
-      let user = null;
+      let user: IUser | null = null;
       if (email) {
         user = await this.userRepository.findByEmail(email);
       }
@@ -223,7 +270,7 @@ export class AuthService implements IAuthService {
           ? await bcrypt.hash(password, 10)
           : undefined;
 
-        const userData: any = {
+        const userData: Partial<IUser> = {
           fullName: fullName!,
           phone: phone || undefined,
           email: email || undefined,
@@ -270,9 +317,11 @@ export class AuthService implements IAuthService {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Verify OTP error:", error);
-      return ResponseHelper.error(error.message);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -287,7 +336,7 @@ export class AuthService implements IAuthService {
       const decoded = jwt.verify(
         refreshToken,
         process.env.REFRESH_TOKEN_SECRET as string
-      ) as any;
+      ) as JwtPayload;
 
       if (decoded.type !== "refresh") {
         return ResponseHelper.unauthorized("Invalid token type");
@@ -317,14 +366,16 @@ export class AuthService implements IAuthService {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
-    } catch (error: any) {
-      if (error.name === "TokenExpiredError") {
+    } catch (error: unknown) {
+      if (error instanceof jwt.TokenExpiredError) {
         return ResponseHelper.unauthorized("Refresh token expired");
       }
-      if (error.name === "JsonWebTokenError") {
+      if (error instanceof jwt.JsonWebTokenError) {
         return ResponseHelper.unauthorized("Invalid refresh token");
       }
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -338,7 +389,7 @@ export class AuthService implements IAuthService {
         normalizedIdentifier = identifier.toLowerCase();
       }
 
-      let user;
+      let user: IUser | null;
 
       if (role) {
         user = await this.userRepository.findByIdentifier(
@@ -406,8 +457,10 @@ export class AuthService implements IAuthService {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
-    } catch (error: any) {
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -422,11 +475,11 @@ export class AuthService implements IAuthService {
       }
 
       // Find user by phone or email
-      let user;
+      let user: IUser | null;
       if (phone) {
         user = await this.userRepository.findByPhone(phone);
-      } else if (email) {
-        user = await this.userRepository.findByEmail(email);
+      } else {
+        user = await this.userRepository.findByEmail(email!);
       }
 
       // Check if user exists
@@ -476,7 +529,7 @@ export class AuthService implements IAuthService {
       const otp = generateOTP();
       const otpHash = await bcrypt.hash(otp, 10);
 
-      const otpData: any = {
+      const otpData: OtpCreationData = {
         otpHash,
         purpose: OTP_PURPOSES.RESET,
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
@@ -492,13 +545,15 @@ export class AuthService implements IAuthService {
         sentChannels.push(`phone: ${phone}`);
       }
       if (email) {
-        await sendEmailOTP(email, otp);
+        await sendEmailOTP(email!, otp);
         sentChannels.push(`email: ${email}`);
       }
 
       return ResponseHelper.success(`OTP sent to ${sentChannels.join(", ")}.`);
-    } catch (error: any) {
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -535,7 +590,7 @@ export class AuthService implements IAuthService {
           const decoded = jwt.verify(
             token,
             process.env.JWT_SECRET as string
-          ) as any;
+          ) as JwtPayload;
 
           // Verify token purpose and expiration
           if (decoded.purpose !== "password_reset") {
@@ -577,9 +632,11 @@ export class AuthService implements IAuthService {
       }
 
       return ResponseHelper.success(AUTH_MESSAGES.PASSWORD_RESET);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Reset password error:", error);
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -595,7 +652,9 @@ export class AuthService implements IAuthService {
       }
 
       if (record.expiresAt < new Date()) {
-        await this.otpRepository.deleteById(record._id!.toString());
+        if (record._id) {
+          await this.otpRepository.deleteById(record._id.toString());
+        }
         return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_EXPIRED);
       }
 
@@ -606,9 +665,11 @@ export class AuthService implements IAuthService {
 
       // For technicians, verify the user exists with correct role
       if (userType === USER_ROLES.SERVICE_PROVIDER) {
-        const userQuery: any = phone ? { phone } : { email };
-        userQuery.roles = USER_ROLES.SERVICE_PROVIDER;
-        const user = await this.userRepository.findByIdentifier(userQuery);
+        const identifier = phone || email!;
+        const user = await this.userRepository.findByIdentifier(
+          identifier,
+          USER_ROLES.SERVICE_PROVIDER
+        );
         if (!user) {
           return ResponseHelper.notFound(`${userType} not found`);
         }
@@ -631,10 +692,14 @@ export class AuthService implements IAuthService {
         userType: userType,
         identifier: phone || email,
       });
-    } catch (error: any) {
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
+
+  // Update the resendOTP method
   async resendOTP(
     phone?: string,
     email?: string,
@@ -646,10 +711,15 @@ export class AuthService implements IAuthService {
         return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
       }
 
+      // Validate purpose parameter
+      if (!purpose || !Object.values(OTP_PURPOSES).includes(purpose as any)) {
+        return ResponseHelper.badRequest("Valid OTP purpose is required");
+      }
+
       // For forgot password, check if user exists
       if (purpose === OTP_PURPOSES.RESET) {
-        const userQuery: any = phone ? { phone } : { email };
-        const user = await this.userRepository.findByIdentifier(userQuery);
+        const identifier = phone || email!;
+        const user = await this.userRepository.findByIdentifier(identifier);
         if (!user) {
           return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
         }
@@ -662,9 +732,9 @@ export class AuthService implements IAuthService {
       // Delete any existing OTP records for this phone/email and purpose
       await this.otpRepository.deleteMany(phone, email, purpose);
 
-      const otpData: any = {
+      const otpData: OtpCreationData = {
         otpHash,
-        purpose,
+        purpose: purpose as "signup" | "reset" | "login" | "application",
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
       };
       if (phone) otpData.phone = phone;
@@ -684,9 +754,11 @@ export class AuthService implements IAuthService {
       }
 
       return ResponseHelper.success(`OTP resent to ${sentChannels.join(", ")}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Resend OTP error:", error);
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -696,7 +768,7 @@ export class AuthService implements IAuthService {
   ): Promise<AuthResponse> {
     try {
       // Verify token with Facebook Graph API
-      const fbRes = await axios.get(
+      const fbRes = await axios.get<FacebookGraphResponse>(
         `https://graph.facebook.com/${userID}?fields=id,name,email,picture&access_token=${accessToken}`
       );
 
@@ -705,7 +777,7 @@ export class AuthService implements IAuthService {
       // Check if social account already exists
       let account = await this.socialAccountRepository.findByProviderId(id);
 
-      let user;
+      let user: IUser | null;
       if (!account) {
         // Create a new user if doesn't exist
         user = await this.userRepository.findByEmail(email!);
@@ -721,7 +793,7 @@ export class AuthService implements IAuthService {
         }
 
         account = await this.socialAccountRepository.create({
-          userId: user._id,
+          userId: user._id!,
           provider: "facebook",
           providerId: id,
           email: email!,
@@ -757,9 +829,11 @@ export class AuthService implements IAuthService {
         refreshToken: tokens.refreshToken,
         user: userResponse,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Facebook login error:", error);
-      return ResponseHelper.error(AUTH_MESSAGES.SOCIAL_AUTH_FAILED);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -776,7 +850,7 @@ export class AuthService implements IAuthService {
         audience: process.env.GOOGLE_CLIENT_ID,
       });
 
-      const payload = ticket.getPayload();
+      const payload = ticket.getPayload() as GoogleTokenPayload | undefined;
       if (!payload) {
         return ResponseHelper.badRequest(
           AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN
@@ -793,7 +867,7 @@ export class AuthService implements IAuthService {
       let socialAccount = await this.socialAccountRepository.findByProviderId(
         googleId
       );
-      let user;
+      let user: IUser | null;
 
       if (socialAccount) {
         user = await this.userRepository.findById(
@@ -872,9 +946,11 @@ export class AuthService implements IAuthService {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Google auth error:", error);
-      return ResponseHelper.error(AUTH_MESSAGES.SOCIAL_AUTH_FAILED);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -890,40 +966,50 @@ export class AuthService implements IAuthService {
       }
 
       return ResponseHelper.success("Logged out successfully");
-    } catch (error: any) {
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
-  private generateAccessToken(user: any): string {
-    return jwt.sign(
-      {
-        _id: user._id,
-        roles: user.roles,
-        type: "access",
-      },
-      process.env.JWT_SECRET as string,
-      {
-        expiresIn: (process.env.ACCESS_TOKEN_EXPIRY || "15m") as any,
-      }
-    );
+  private generateAccessToken(user: IUser): string {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET environment variable is not defined");
+    }
+
+    const payload = {
+      _id: user._id?.toString(),
+      roles: user.roles,
+      type: "access" as const,
+    };
+
+    return jwt.sign(payload, jwtSecret, {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "15m",
+    } as jwt.SignOptions);
   }
 
-  private generateRefreshToken(user: any): string {
-    return jwt.sign(
-      {
-        _id: user._id,
-        type: "refresh",
-      },
-      process.env.REFRESH_TOKEN_SECRET as string,
-      {
-        expiresIn: (process.env.REFRESH_TOKEN_EXPIRY || "7d") as any,
-      }
-    );
+  private generateRefreshToken(user: IUser): string {
+    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+    if (!refreshTokenSecret) {
+      throw new Error(
+        "REFRESH_TOKEN_SECRET environment variable is not defined"
+      );
+    }
+
+    const payload = {
+      _id: user._id?.toString(),
+      type: "refresh" as const,
+    };
+
+    return jwt.sign(payload, refreshTokenSecret, {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d",
+    } as jwt.SignOptions);
   }
 
   // Generate both tokens
-  private generateTokens(user: any): {
+  private generateTokens(user: IUser): {
     accessToken: string;
     refreshToken: string;
   } {

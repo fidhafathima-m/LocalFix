@@ -9,6 +9,28 @@ interface GoogleAuthProps {
   userType?: "user" | "serviceProvider" | "admin";
 }
 
+interface GoogleAuthResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    user: User;
+    accessToken: string;
+    refreshToken: string;
+  };
+  user?: User;
+  accessToken?: string;
+  refreshToken?: string;
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 const GoogleAuth: React.FC<GoogleAuthProps> = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -31,7 +53,7 @@ const GoogleAuth: React.FC<GoogleAuthProps> = () => {
       const res = await UserAuthService.googleAuth({
         token: credentialResponse.credential,
         userType: currentUserType,
-      });
+      }) as GoogleAuthResponse;
 
       const userData = res.data?.user || res.user;
       const accessToken = res.data?.accessToken || res.accessToken;
@@ -43,7 +65,7 @@ const GoogleAuth: React.FC<GoogleAuthProps> = () => {
 
       dispatch(
         loginSuccess({
-          user: userData as User,
+          user: userData,
           accessToken: accessToken,
           refreshToken: refreshToken,
         })
@@ -77,15 +99,19 @@ const GoogleAuth: React.FC<GoogleAuthProps> = () => {
         navigate("/");
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Google auth error:", error);
 
       let errorMessage = "Google Sign In failed";
 
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
+      if (typeof error === 'object' && error !== null && 'response' in error) {
+        const apiError = error as ApiError;
+        if (apiError.response?.data?.message) {
+          errorMessage = apiError.response.data.message;
+        } else if (apiError.message) {
+          errorMessage = apiError.message;
+        }
+      } else if (error instanceof Error) {
         errorMessage = error.message;
       }
 

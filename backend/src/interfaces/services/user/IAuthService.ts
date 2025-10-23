@@ -7,8 +7,11 @@ import {
   SocialAuthData,
 } from "../../../interfaces/user/IAuthService";
 
+export type AuthUser = ['user' | 'serviceProvider' | 'admin']
+
+
 export interface AuthResponse extends ApiResponse {
-  user?: any;
+  user?: AuthUser;
   token?: string;
 }
 

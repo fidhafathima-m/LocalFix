@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import {
   CalendarTodayOutlined,
@@ -21,20 +20,25 @@ interface DashboardData {
     averageRating: number;
   };
   bookings: {
-    bookings: any[];
+    bookings: unknown[];
     isNewTechnician?: boolean;
   };
   earnings: {
-    earnings: any[];
+    earnings: unknown[];
     isNewTechnician?: boolean;
   };
   reviews: {
-    reviews: any[];
+    reviews: unknown[];
     isNewTechnician?: boolean;
   };
   profile: TechnicianProfile;
   suspensionReason?: string;
   suspendedAt?: string;
+}
+
+// Type guard to check if value is a valid string array for languages
+function isValidStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
 const ApprovedTechnicianDashboard: React.FC = () => {
@@ -57,7 +61,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         setError(null);
 
         const response = await TechnicianService.getProfile();
-
 
         if (!response.success) {
           throw new Error("Failed to fetch profile: API returned unsuccessful");
@@ -191,6 +194,41 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     };
   };
 
+  // Helper function to get languages as array
+  const getLanguagesArray = (languages: unknown): string[] => {
+    if (!languages) return [];
+
+    // If it's already a valid string array
+    if (isValidStringArray(languages)) {
+      return languages.filter((lang) => lang && String(lang).trim() !== "");
+    }
+
+    // If it's a string that might contain languages
+    if (typeof languages === "string") {
+      if (languages.trim() === "") return [];
+
+      // Try to parse as JSON
+      try {
+        const parsed = JSON.parse(languages);
+        if (isValidStringArray(parsed)) {
+          return parsed.filter((lang) => lang && String(lang).trim() !== "");
+        }
+      } catch {
+        // If not JSON, try comma-separated
+        if (languages.includes(",")) {
+          return languages
+            .split(",")
+            .map((lang) => lang.trim())
+            .filter((lang) => lang !== "");
+        }
+        // Single language string
+        return [languages.trim()];
+      }
+    }
+
+    return [];
+  };
+
   // Suspension Banner Component
   const SuspensionBanner = () => (
     <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -268,37 +306,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     );
   };
 
-  // Helper function to get languages as array
-  const getLanguagesArray = (languages: any): string[] => {
-    if (!languages) return [];
-
-    if (Array.isArray(languages)) {
-      return languages.filter((lang) => lang && String(lang).trim() !== "");
-    }
-
-    if (typeof languages === "string") {
-      if (languages.trim() === "") return [];
-
-      try {
-        const parsed = JSON.parse(languages);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((lang) => lang && String(lang).trim() !== "");
-        }
-      } catch (e) {
-        console.error(e);
-        if (languages.includes(",")) {
-          return languages
-            .split(",")
-            .map((lang) => lang.trim())
-            .filter((lang) => lang !== "");
-        }
-        return [languages.trim()];
-      }
-    }
-
-    return [];
-  };
-
   const renderStars = (rating: number, filled = false) => {
     return (
       <div className="flex">
@@ -341,7 +348,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           })
         : "Not specified";
     } catch (error) {
-      console.error(error);
+      console.error("Error formatting date:", error);
       return "Not specified";
     }
   };
@@ -474,7 +481,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
       )}
 
       {/* Bio Section */}
-      {dashboardData?.profile.bio && (
+      {dashboardData.profile.bio && (
         <div className="mb-6">
           <h4 className="font-medium text-gray-900 mb-2">About Me</h4>
           <p className="text-gray-600 text-sm">{dashboardData.profile.bio}</p>
@@ -489,36 +496,36 @@ const ApprovedTechnicianDashboard: React.FC = () => {
             <div>
               <dt className="text-sm text-gray-500">Full Name</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.personalInfo?.fullName ||
-                  dashboardData?.profile.displayName ||
+                {dashboardData.profile.personalInfo?.fullName ||
+                  dashboardData.profile.displayName ||
                   "Not specified"}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Email</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.email}
+                {dashboardData.profile.email}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Phone</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.personalInfo?.phoneNumber ||
-                  dashboardData?.profile.phone ||
+                {dashboardData.profile.personalInfo?.phoneNumber ||
+                  dashboardData.profile.phone ||
                   "Not provided"}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Gender</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.personalInfo?.gender || "Not specified"}
+                {dashboardData.profile.personalInfo?.gender || "Not specified"}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Date of Birth</dt>
               <dd className="text-sm font-medium">
                 {formatDate(
-                  dashboardData?.profile.personalInfo?.dateOfBirth || ""
+                  dashboardData.profile.personalInfo?.dateOfBirth || ""
                 )}
               </dd>
             </div>
@@ -527,7 +534,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
               <dd className="text-sm font-medium">
                 {(() => {
                   const languagesArray = getLanguagesArray(
-                    dashboardData?.profile.personalInfo?.languages
+                    dashboardData.profile.personalInfo?.languages
                   );
 
                   return languagesArray.length > 0
@@ -548,13 +555,13 @@ const ApprovedTechnicianDashboard: React.FC = () => {
             <div>
               <dt className="text-sm text-gray-500">Experience</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.experienceYears} years
+                {dashboardData.profile.experienceYears} years
               </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">Services</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.services.length > 0
+                {dashboardData.profile.services.length > 0
                   ? dashboardData.profile.services.join(", ")
                   : "No services specified"}
               </dd>
@@ -562,7 +569,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
             <div>
               <dt className="text-sm text-gray-500">Work Areas</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.workAreas.length > 0
+                {dashboardData.profile.workAreas.length > 0
                   ? dashboardData.profile.workAreas.join(", ")
                   : "No work areas specified"}
               </dd>
@@ -570,8 +577,8 @@ const ApprovedTechnicianDashboard: React.FC = () => {
             <div>
               <dt className="text-sm text-gray-500">Rating</dt>
               <dd className="text-sm font-medium">
-                {dashboardData?.profile.averageRating.toFixed(1)} (
-                {dashboardData?.profile.ratingCount} reviews)
+                {dashboardData.profile.averageRating.toFixed(1)} (
+                {dashboardData.profile.ratingCount} reviews)
               </dd>
             </div>
             <div>
@@ -591,28 +598,28 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           <div>
             <dt className="text-sm text-gray-500">Street</dt>
             <dd className="text-sm font-medium">
-              {dashboardData?.profile.personalInfo?.address?.street ||
+              {dashboardData.profile.personalInfo?.address?.street ||
                 "Not specified"}
             </dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">City</dt>
             <dd className="text-sm font-medium">
-              {dashboardData?.profile.personalInfo?.address?.city ||
+              {dashboardData.profile.personalInfo?.address?.city ||
                 "Not specified"}
             </dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">State</dt>
             <dd className="text-sm font-medium">
-              {dashboardData?.profile.personalInfo?.address?.state ||
+              {dashboardData.profile.personalInfo?.address?.state ||
                 "Not specified"}
             </dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">Pincode</dt>
             <dd className="text-sm font-medium">
-              {dashboardData?.profile.personalInfo?.address?.pincode ||
+              {dashboardData.profile.personalInfo?.address?.pincode ||
                 "Not specified"}
             </dd>
           </div>

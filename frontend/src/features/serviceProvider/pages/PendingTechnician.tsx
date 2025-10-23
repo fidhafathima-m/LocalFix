@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useCallback } from "react";
 import {
   ErrorOutlineOutlined,
@@ -94,19 +93,15 @@ interface AvailableDocument {
   mimetype?: string;
 }
 
+
 const PendingTechnicianApplication: React.FC = () => {
-  const [applicationData, setApplicationData] =
-    useState<ApplicationData | null>(null);
-  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(
-    null
-  );
+  const [applicationData, setApplicationData] = useState<ApplicationData | null>(null);
+  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(null);
   const [applicationStatus, setApplicationStatus] = useState<string>("pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isResubmitting, setIsResubmitting] = useState(false);
-  const { user, accessToken, isLoggedIn } = useAppSelector(
-    (state) => state.auth
-  );
+  const { user, accessToken, isLoggedIn } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const fetchApplicationData = useCallback(async () => {
@@ -134,7 +129,7 @@ const PendingTechnicianApplication: React.FC = () => {
             }
           );
 
-          let applications = [];
+          let applications: ApplicationData[] = [];
 
           if (userApplicationsResponse.data.data?.applications) {
             applications = userApplicationsResponse.data.data.applications;
@@ -182,7 +177,7 @@ const PendingTechnicianApplication: React.FC = () => {
         }
       );
 
-      let appData = null;
+      let appData: ApplicationData | null = null;
 
       if (
         applicationResponse.data.data &&
@@ -197,8 +192,8 @@ const PendingTechnicianApplication: React.FC = () => {
         appData = applicationResponse.data;
       }
 
-      if (appData && appData.data && appData.data.application) {
-        appData = appData.data.application;
+      if (appData && (appData as unknown as { data: { application: ApplicationData } }).data?.application) {
+        appData = (appData as unknown as { data: { application: ApplicationData } }).data.application;
       }
 
       if (appData) {
@@ -224,7 +219,7 @@ const PendingTechnicianApplication: React.FC = () => {
             );
 
             // Handle different response structures for technician data
-            let technicianData = null;
+            let technicianData: TechnicianData | null = null;
             if (technicianResponse.data.data?.technician) {
               technicianData = technicianResponse.data.data.technician;
             } else if (technicianResponse.data.technician) {
@@ -246,12 +241,12 @@ const PendingTechnicianApplication: React.FC = () => {
           "Failed to load application data - invalid response structure"
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching application data:", error);
 
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         setError("Your session has expired. Please log in again.");
-      } else if (error.response?.status === 404) {
+      } else if (axios.isAxiosError(error) && error.response?.status === 404) {
         localStorage.removeItem("applicationId");
         localStorage.removeItem("currentTechnicianApplication");
         setError("Application not found. Please start a new application.");
@@ -469,15 +464,15 @@ const PendingTechnicianApplication: React.FC = () => {
       } else {
         setError(response.data.message || "Failed to resubmit application");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error resubmitting application:", error);
 
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         toast.error("Your session has expired. Please log in again.");
         navigate("/technicians/login");
       } else {
         const errorMessage =
-          error.response?.data?.message ||
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
           "Failed to resubmit application. Please try again.";
         setError(errorMessage);
         toast.error(errorMessage, { duration: 4000, position: "top-center" });
@@ -540,15 +535,15 @@ const PendingTechnicianApplication: React.FC = () => {
       } else {
         setError(response.data.message || "Failed to start new application");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error starting new application:", error);
 
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         toast.error("Your session has expired. Please log in again.");
         navigate("/technicians/login");
       } else {
         const errorMessage =
-          error.response?.data?.message ||
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
           "Failed to start new application. Please try again.";
         setError(errorMessage);
         toast.error(errorMessage, { duration: 4000, position: "top-center" });
@@ -557,6 +552,7 @@ const PendingTechnicianApplication: React.FC = () => {
       setIsResubmitting(false);
     }
   };
+
   useEffect(() => {
     const checkApplicationStatus = async () => {
       if (!isLoggedIn || !accessToken) {
@@ -601,10 +597,10 @@ const PendingTechnicianApplication: React.FC = () => {
           navigate("/technicians/apply");
           return;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error checking application status:", error);
 
-        if (error.response?.status === 401) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
           setError("Your session has expired. Please log in again.");
         } else {
           setError("Failed to load application data");
@@ -675,7 +671,7 @@ const PendingTechnicianApplication: React.FC = () => {
     return null;
   };
 
-  //helper function to get initials as fallback
+  // Helper function to get initials as fallback
   const getInitials = (name: string) => {
     return name
       ? name
@@ -729,11 +725,6 @@ const PendingTechnicianApplication: React.FC = () => {
         };
     }
   };
-
-  if (applicationStatus === "approved" && technicianData) {
-    window.location.href = "/technician/dashboard";
-    return null;
-  }
 
   if (loading) {
     return (
@@ -809,10 +800,9 @@ const PendingTechnicianApplication: React.FC = () => {
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
         <div className="max-w-3xl mx-auto space-y-4">
           {/* Header Card */}
-          {/* Header Card */}
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center">
-              {/* With this profile photo section */}
+              {/* Profile photo section */}
               {getProfilePhotoUrl() ? (
                 <div className="h-12 w-12 rounded-full overflow-hidden mr-4 border-2 border-gray-200">
                   <img

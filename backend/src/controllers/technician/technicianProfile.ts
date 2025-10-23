@@ -11,6 +11,21 @@ export class TechnicianProfileController {
     this.profileService = profileService;
   }
 
+  // Helper method to handle service responses
+  private handleServiceResponse(result: any, res: Response, successMessage?: string): void {
+    // Check if result already has statusCode (is a response object)
+    if (result && 'statusCode' in result) {
+      res.status(result.statusCode).json(result);
+    } else {
+      // If it's a raw data object, wrap it in a success response
+      const successResponse = ResponseHelper.success(
+        successMessage || "Operation completed successfully",
+        result
+      );
+      res.status(successResponse.statusCode).json(successResponse);
+    }
+  }
+
   getProfile = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const technicianId = req.user?.id;
@@ -23,10 +38,8 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.getTechnicianProfile(
-        technicianId
-      );
-      res.status(result.statusCode).json(result);
+      const result = await this.profileService.getTechnicianProfile(technicianId);
+      this.handleServiceResponse(result, res, "Profile retrieved successfully");
     } catch (error) {
       console.error("Get profile controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -54,7 +67,7 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-      res.status(result.statusCode).json(result);
+      this.handleServiceResponse(result, res, "Personal information updated successfully");
     } catch (error) {
       console.error("Update personal info controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -82,7 +95,7 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-      res.status(result.statusCode).json(result);
+      this.handleServiceResponse(result, res, "Identity verification updated successfully");
     } catch (error) {
       console.error("Update identity verification controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -110,7 +123,7 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-      res.status(result.statusCode).json(result);
+      this.handleServiceResponse(result, res, "Skills and services updated successfully");
     } catch (error) {
       console.error("Update skills services controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -138,7 +151,7 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-      res.status(result.statusCode).json(result);
+      this.handleServiceResponse(result, res, "Availability updated successfully");
     } catch (error) {
       console.error("Update availability controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -166,7 +179,7 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-      res.status(result.statusCode).json(result);
+      this.handleServiceResponse(result, res, "Bank and payment details updated successfully");
     } catch (error) {
       console.error("Update bank payment controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -191,7 +204,7 @@ export class TechnicianProfileController {
         technicianId,
         updateData
       );
-      res.status(result.statusCode).json(result);
+      this.handleServiceResponse(result, res, "Password updated successfully");
     } catch (error) {
       console.error("Update password controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -216,7 +229,7 @@ export class TechnicianProfileController {
         technicianId,
         documentData
       );
-      res.status(result.statusCode).json(result);
+      this.handleServiceResponse(result, res, "Document uploaded successfully");
     } catch (error) {
       console.error("Upload document controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -329,7 +342,7 @@ export class TechnicianProfileController {
         technicianId,
         { isAvailable: false }
       );
-      res.status(result.statusCode).json(result);
+      this.handleServiceResponse(result, res, "Profile deactivated successfully");
     } catch (error) {
       console.error("Deactivate profile error:", error);
       const errorResponse = ResponseHelper.error(

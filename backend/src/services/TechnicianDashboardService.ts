@@ -11,12 +11,51 @@ import {
   PERSONAL_INFO_DEFAULTS,
   LANGUAGE_FORMAT_OPTIONS,
 } from "../constants";
+import { ITechnician } from "@/interfaces/technician/ITechnician";
+import { IUser } from "@/interfaces/user/IUser";
+import { IAddress } from "@/interfaces/user/IAddress";
 
 interface DashboardOverview {
   upcomingBookings?: number;
   monthlyEarnings?: number;
   totalJobs?: number;
   averageRating: number;
+}
+
+interface PersonalInfoData {
+  fullName: string;
+  gender: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  languages: string[];
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+}
+
+interface TechnicianProfile {
+  _id: string;
+  userId: string;
+  displayName: string;
+  email: string;
+  phone: string;
+  services: string[];
+  experienceYears: number;
+  workAreas: string[];
+  averageRating: number;
+  ratingCount: number;
+  profilePictureUrl: string;
+  isVerified: boolean;
+  bio: string;
+  status: string;
+  suspensionReason?: string;
+  suspendedAt?: Date;
+  personalInfo: PersonalInfoData;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export class TechnicianDashboardService implements ITechnicianDashboardService {
@@ -58,8 +97,10 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
           data: { overview },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get dashboard overview error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(DASHBOARD_MESSAGES.FAILED_FETCH_OVERVIEW);
     }
   }
@@ -81,7 +122,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         technician.userId as Types.ObjectId
       );
 
-      const formatLanguages = (languages: any): string[] => {
+      const formatLanguages = (languages: unknown): string[] => {
         if (!languages) {
           return [];
         }
@@ -103,7 +144,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
 
             if (Array.isArray(parsed)) {
               const result = parsed.filter(
-                (lang) => lang && String(lang).trim() !== ""
+                (lang: unknown) => lang && String(lang).trim() !== ""
               );
               return result.slice(0, LANGUAGE_FORMAT_OPTIONS.MAX_LANGUAGES);
             }
@@ -127,8 +168,11 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         return [];
       };
 
-      const getPersonalInfo = (technician: any, userAddress?: any) => {
-        const personalInfo: any = {
+      const getPersonalInfo = (
+        technician: ITechnician,
+        userAddress?: IAddress
+      ): PersonalInfoData => {
+        const personalInfo: PersonalInfoData = {
           fullName:
             technician.personalInfo?.fullName ||
             technician.displayName ||
@@ -143,52 +187,50 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
             technician.personalInfo?.dateOfBirth ||
             PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
           languages: formatLanguages(technician.personalInfo?.languages),
-        };
-
-        // Handle address
-        if (userAddress) {
-          personalInfo.address = {
-            street: userAddress.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-            city: userAddress.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-            state: userAddress.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-            pincode:
-              userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
-          };
-        } else if (technician.personalInfo?.address) {
-          personalInfo.address = {
-            street:
-              technician.personalInfo.address.street ||
-              PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-            city:
-              technician.personalInfo.address.city ||
-              PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-            state:
-              technician.personalInfo.address.state ||
-              PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-            pincode:
-              technician.personalInfo.address.pincode ||
-              PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
-          };
-        } else {
-          personalInfo.address = {
+          address: {
             street: PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
             city: PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
             state: PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
             pincode: PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+          },
+        };
+
+        // Handle address - convert null to undefined
+        const addressData = userAddress || undefined;
+
+        if (addressData) {
+          personalInfo.address = {
+            street: addressData.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+            city: addressData.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+            state: addressData.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+            pincode:
+              addressData.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+          };
+        } else if (technician.personalInfo?.address) {
+          const address = technician.personalInfo.address;
+          personalInfo.address = {
+            street: address.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+            city: address.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+            state: address.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+            pincode: address.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
           };
         }
 
         return personalInfo;
       };
 
-      const personalInfo = getPersonalInfo(technician, userAddress);
+      // Convert null to undefined when calling the function
+      const personalInfo = getPersonalInfo(
+        technician,
+        userAddress as IAddress | undefined
+      );
 
-      const profile = {
-        _id: technician._id?.toString(),
-        userId: technician.userId?.toString(),
+      const profile: TechnicianProfile = {
+        _id: technician._id?.toString() || "",
+        userId: technician.userId?.toString() || "",
         displayName: technician.displayName,
-        email: user.email,
-        phone: user.phone || technician.phone,
+        email: user.email || "",
+        phone: user.phone || technician.phone || "",
         services: technician.services || [],
         experienceYears:
           technician.experienceYears || DASHBOARD_DEFAULTS.EXPERIENCE_YEARS,
@@ -213,8 +255,10 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
           data: { profile },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get technician profile error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(DASHBOARD_MESSAGES.FAILED_FETCH_PROFILE);
     }
   }

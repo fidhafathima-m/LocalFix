@@ -1,10 +1,11 @@
-import { ITechnician } from "../../interfaces/technician/ITechnician";
+import { AvailabilityInfo, BankInfo, DocumentsInfo, ITechnician, PersonalInfo } from "../../interfaces/technician/ITechnician";
 import { Technician } from "../../models/technician/TechnicianSchema";
 import { Types } from "mongoose";
-import { ITechnicianProfileRepository } from "../../interfaces/repository/technician/ITechnicianProfileRepository";
+import { DocumentUpdateData, ITechnicianProfileRepository, ProfileData, VerificationData } from "../../interfaces/repository/technician/ITechnicianProfileRepository";
 import { IUser, IUserUpdate } from "../../interfaces/user/IUser";
 import UserSchema from "../../models/UserSchema";
 import bcrypt from "bcrypt";
+import { FilterQuery } from "@/interfaces/repository/admin/ITechnicianManagementRepository";
 
 interface TechnicianUpdateData {
   displayName?: string;
@@ -15,67 +16,12 @@ interface TechnicianUpdateData {
   profilePictureUrl?: string;
   phone?: string;
   personalInfo?: PersonalInfo;
-  availability?: AvailabilityData;
-  paymentDetails?: PaymentData;
+  availability?: AvailabilityInfo;
+  paymentDetails?: BankInfo;
   identityVerification?: VerificationData;
   [key: string]: unknown;
 }
 
-interface PersonalInfo {
-  fullName?: string;
-  gender?: string;
-  phoneNumber?: string;
-  dateOfBirth?: Date;
-  address?: string;
-  languages?: string[];
-  [key: string]: unknown;
-}
-
-interface DocumentData {
-  type: string;
-  url: string;
-  name: string;
-  verified?: boolean;
-  status?: string;
-  verifiedAt?: Date;
-  uploadedAt?: Date;
-  [key: string]: unknown;
-}
-
-interface DocumentUpdateData {
-  verified?: boolean;
-  status?: string;
-  verifiedAt?: Date;
-  [key: string]: unknown;
-}
-
-interface AvailabilityData {
-  isAvailable?: boolean;
-  workingDays?: string[];
-  startTime?: string;
-  endTime?: string;
-  serviceAreas?: string[];
-  workRadius?: number;
-  [key: string]: unknown;
-}
-
-interface PaymentData {
-  bankAccount?: {
-    accountNumber?: string;
-    ifscCode?: string;
-    accountHolderName?: string;
-  };
-  upiId?: string;
-  [key: string]: unknown;
-}
-
-interface VerificationData {
-  status?: string;
-  verifiedAt?: Date;
-  verifiedBy?: string;
-  documents?: string[];
-  [key: string]: unknown;
-}
 
 interface TechnicianFilter {
   status?: string;
@@ -90,19 +36,13 @@ interface UserFilter {
   [key: string]: unknown;
 }
 
-interface ProfileData {
-  fullName?: string;
-  phone?: string;
-  profilePicture?: string;
-  [key: string]: unknown;
-}
 
 export class TechnicianProfileRepository
   implements ITechnicianProfileRepository
 {
   async updateTechnician(
     technicianId: string,
-    updateData: TechnicianUpdateData
+    updateData: Partial<ITechnician>
   ): Promise<ITechnician | null> {
     try {
       const processedUpdateData = {
@@ -130,7 +70,7 @@ export class TechnicianProfileRepository
 
   async addDocument(
     technicianId: string,
-    documentData: DocumentData
+    documentData: DocumentsInfo
   ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
@@ -149,7 +89,7 @@ export class TechnicianProfileRepository
   async updateDocument(
     technicianId: string,
     documentId: string,
-    updateData: DocumentUpdateData
+    updateData: Partial<DocumentUpdateData>
   ): Promise<ITechnician | null> {
     return await Technician.findOneAndUpdate(
       {
@@ -184,7 +124,7 @@ export class TechnicianProfileRepository
 
   async updateTechnicianPersonalInfo(
     technicianId: string,
-    personalInfo: any
+    personalInfo: PersonalInfo
   ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
@@ -204,7 +144,7 @@ export class TechnicianProfileRepository
 
   async updateAvailability(
     technicianId: string,
-    availabilityData: any
+    availabilityData: AvailabilityInfo
   ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
@@ -219,7 +159,7 @@ export class TechnicianProfileRepository
 
   async updatePaymentDetails(
     technicianId: string,
-    paymentData: PaymentData
+    paymentData: BankInfo
   ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
@@ -234,7 +174,7 @@ export class TechnicianProfileRepository
 
   async updateIdentityVerification(
     technicianId: string,
-    verificationData: any
+    verificationData: VerificationData
   ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
@@ -268,12 +208,12 @@ export class TechnicianProfileRepository
     });
   }
 
-  async countTechnicians(filter: any = {}): Promise<number> {
+  async countTechnicians(filter: FilterQuery = {}): Promise<number> {
     return await Technician.countDocuments(filter);
   }
 
   async findAll(
-    filter: any = {},
+    filter: FilterQuery = {},
     skip: number = 0,
     limit: number = 10
   ): Promise<ITechnician[]> {
@@ -364,12 +304,12 @@ export class TechnicianProfileRepository
     return await UserSchema.find({ role }).sort({ createdAt: -1 });
   }
 
-  async countUsers(filter: any = {}): Promise<number> {
+  async countUsers(filter: FilterQuery = {}): Promise<number> {
     return await UserSchema.countDocuments(filter);
   }
 
   async findAllUsers(
-    filter: any = {},
+    filter: FilterQuery = {},
     skip: number = 0,
     limit: number = 10
   ): Promise<IUser[]> {
@@ -384,7 +324,7 @@ export class TechnicianProfileRepository
     return result !== null;
   }
 
-  async updateProfile(userId: string, profileData: any): Promise<IUser | null> {
+  async updateProfile(userId: string, profileData: ProfileData): Promise<IUser | null> {
     return await UserSchema.findByIdAndUpdate(
       userId,
       {

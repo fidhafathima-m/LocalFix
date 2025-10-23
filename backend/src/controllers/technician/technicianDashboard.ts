@@ -29,7 +29,18 @@ export class TechnicianDashboardController {
       const result = await this.dashboardService.getDashboardOverview(
         technicianId
       );
-      res.status(result.statusCode).json(result);
+      
+      // Check if result already has statusCode (is a response object)
+      if (result && 'statusCode' in result) {
+        res.status(Number(result.statusCode)).json(result);
+      } else {
+        // If it's a raw technician object, wrap it in a success response
+        const successResponse = ResponseHelper.success(
+          "Dashboard overview retrieved successfully",
+          result
+        );
+        res.status(successResponse.statusCode).json(successResponse);
+      }
     } catch (error) {
       console.error("Get dashboard overview controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -55,7 +66,18 @@ export class TechnicianDashboardController {
       const result = await this.dashboardService.getTechnicianProfile(
         technicianId
       );
-      res.status(result.statusCode).json(result);
+      
+      // Check if result already has statusCode (is a response object)
+      if (result && 'statusCode' in result) {
+        res.status(Number(result.statusCode)).json(result);
+      } else {
+        // If it's a raw technician object, wrap it in a success response
+        const successResponse = ResponseHelper.success(
+          "Technician profile retrieved successfully",
+          result
+        );
+        res.status(successResponse.statusCode).json(successResponse);
+      }
     } catch (error) {
       console.error("Get technician profile controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);

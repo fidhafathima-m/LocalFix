@@ -24,9 +24,10 @@ export class TechnicianApplicationController {
 
   saveStep = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+      const files = this.convertExpressFiles(req.files);
       const result = await this.applicationService.saveStep(
         req.body,
-        req.files
+        files
       );
       res.status(result.statusCode).json(result);
     } catch (error) {
@@ -35,6 +36,49 @@ export class TechnicianApplicationController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
+
+  private convertExpressFiles(files: any): any {
+    if (!files) return undefined;
+    
+    // If files is an array
+    if (Array.isArray(files)) {
+      return files.map(file => ({
+        fieldname: file.fieldname,
+        originalname: file.originalname,
+        encoding: file.encoding,
+        mimetype: file.mimetype,
+        buffer: file.buffer,
+        size: file.size
+      }));
+    }
+    
+    // If files is an object with field names as keys
+    const convertedFiles: any = {};
+    for (const [fieldname, fileArray] of Object.entries(files)) {
+      if (Array.isArray(fileArray)) {
+        convertedFiles[fieldname] = fileArray.map((file: any) => ({
+          fieldname: file.fieldname,
+          originalname: file.originalname,
+          encoding: file.encoding,
+          mimetype: file.mimetype,
+          buffer: file.buffer,
+          size: file.size
+        }));
+      } else {
+        const file = fileArray as any;
+        convertedFiles[fieldname] = [{
+          fieldname: file.fieldname,
+          originalname: file.originalname,
+          encoding: file.encoding,
+          mimetype: file.mimetype,
+          buffer: file.buffer,
+          size: file.size
+        }];
+      }
+    }
+    
+    return convertedFiles;
+  }
 
   getApplication = async (req: Request, res: Response): Promise<void> => {
     try {

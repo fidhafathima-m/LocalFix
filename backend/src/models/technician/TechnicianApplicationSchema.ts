@@ -1,3 +1,4 @@
+import { AvailabilityInfo, BankInfo, DocumentsInfo, IdentityInfo, PersonalInfo, SkillsInfo } from "@/interfaces/technician/ITechnician";
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface ITechnicianApplication extends Document {
@@ -6,12 +7,12 @@ export interface ITechnicianApplication extends Document {
   email: string;
   status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
   stepsCompleted: string[];
-  personal: Record<string, any>;
-  identity: Record<string, any>;
-  skills: Record<string, any>;
-  availability: Record<string, any>;
-  bank: Record<string, any>;
-  documents: Record<string, any>;
+  personal: PersonalInfo;
+  identity: IdentityInfo;
+  skills?: SkillsInfo;
+  availability?: AvailabilityInfo;
+  bank?: BankInfo;
+  documents: DocumentsInfo;
   agreement: boolean;
   submittedAt?: Date;
   reviewNotes?: string;

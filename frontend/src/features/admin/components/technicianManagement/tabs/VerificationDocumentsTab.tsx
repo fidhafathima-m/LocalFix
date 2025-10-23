@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from "react";
 import type { TechnicianDetails } from "../../../../../validation/types/technicianTypes";
 
 interface VerificationDocumentsTabProps {
@@ -6,12 +6,35 @@ interface VerificationDocumentsTabProps {
   isSuspended?: boolean;
 }
 
+interface DocumentData {
+  url?: string;
+  verified?: boolean;
+  [key: string]: unknown;
+}
+
 const VerificationDocumentsTab: React.FC<VerificationDocumentsTabProps> = ({
   technician,
   isSuspended,
 }) => {
-  const getDocuments = () => {
+  const getDocuments = (): Record<string, DocumentData> => {
     return technician.documents || {};
+  };
+
+  const documentNames: Record<string, string> = {
+    aadhaarCard: "Aadhaar Card",
+    panCard: "PAN Card",
+    drivingLicense: "Driving License",
+    profilePhoto: "Profile Photo",
+    passportPhoto: "Passport Photo",
+    idProof: "ID Proof",
+    addressProof: "Address Proof",
+  };
+
+  const getDisplayName = (key: string): string => {
+    return documentNames[key] ||
+      key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (str) => str.toUpperCase());
   };
 
   return (
@@ -26,32 +49,16 @@ const VerificationDocumentsTab: React.FC<VerificationDocumentsTabProps> = ({
       )}
       <h2 className="text-lg font-medium mb-6">Verification & Documents</h2>
       <div className="space-y-6">
-        {/* Document Status */}
-
         {/* Show all available documents dynamically */}
         {Object.keys(getDocuments()).length > 0 && (
           <div className="border-t pt-6">
             <h3 className="font-medium mb-4">All Documents</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(getDocuments()).map(
-                ([key, doc]: [string, any]) => {
+                ([key, doc]) => {
                   if (!doc || typeof doc !== "object") return null;
 
-                  const documentNames: Record<string, string> = {
-                    aadhaarCard: "Aadhaar Card",
-                    panCard: "PAN Card",
-                    drivingLicense: "Driving License",
-                    profilePhoto: "Profile Photo",
-                    passportPhoto: "Passport Photo",
-                    idProof: "ID Proof",
-                    addressProof: "Address Proof",
-                  };
-
-                  const displayName =
-                    documentNames[key] ||
-                    key
-                      .replace(/([A-Z])/g, " $1")
-                      .replace(/^./, (str) => str.toUpperCase());
+                  const displayName = getDisplayName(key);
 
                   return (
                     <div

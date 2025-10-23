@@ -18,7 +18,7 @@ export class TechnicianRepository
 
   async updateByUserId(
     userId: string,
-    updateData: any
+    updateData: Partial<ITechnician>
   ): Promise<ITechnician | null> {
     const processedUpdateData = {
       ...updateData,
@@ -41,8 +41,8 @@ export class TechnicianRepository
 
   async updateTechnicianStatus(
     id: string,
-    updateData: any
+    updateData: Partial<ITechnician>
   ): Promise<ITechnician | null> {
-    return this.update(id, { $set: updateData } as any);
+    return this.update(id, { $set: updateData });
   }
 }

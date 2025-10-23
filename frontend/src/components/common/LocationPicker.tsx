@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useCallback, useRef } from "react";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 
@@ -31,6 +30,40 @@ interface OSMLocationPickerProps {
   className?: string;
 }
 
+interface OSMAddressData {
+  address?: {
+    road?: string;
+    pedestrian?: string;
+    footway?: string;
+    residential?: string;
+    highway?: string;
+    path?: string;
+    house_number?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    municipality?: string;
+    county?: string;
+    state?: string;
+    region?: string;
+    postcode?: string;
+    hamlet?: string;
+    locality?: string;
+  };
+  display_name?: string;
+  error?: string;
+}
+
+interface AddressComponents {
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark: string;
+}
+
 export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
   onLocationSelect,
   initialLocation,
@@ -51,8 +84,8 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
     libraries: LIBRARIES,
   });
 
-  const extractAddressComponents = (data: any) => {
-    const addressComponents: any = {
+  const extractAddressComponents = (data: OSMAddressData): AddressComponents => {
+    const addressComponents: AddressComponents = {
       street: "",
       city: "",
       state: "",
@@ -114,10 +147,9 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
 
       // Clean up the data
       Object.keys(addressComponents).forEach((key) => {
-        if (
-          addressComponents[key as keyof typeof addressComponents] === undefined
-        ) {
-          addressComponents[key as keyof typeof addressComponents] = "";
+        const componentKey = key as keyof AddressComponents;
+        if (addressComponents[componentKey] === undefined) {
+          addressComponents[componentKey] = "";
         }
       });
     }
@@ -144,7 +176,7 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data: OSMAddressData = await response.json();
 
       if (data.error) {
         throw new Error(data.error);
@@ -153,7 +185,7 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
       const addressComponents = extractAddressComponents(data);
 
       return {
-        formattedAddress: data.display_name,
+        formattedAddress: data.display_name || "",
         addressComponents,
       };
     } catch (error) {

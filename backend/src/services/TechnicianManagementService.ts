@@ -35,6 +35,45 @@ import {
   TECHNICIAN_STATUS,
   APPLICATION_STATUS,
 } from "../constants";
+import { IUser } from "@/interfaces/user/IUser";
+import { IAddress } from "@/interfaces/user/IAddress";
+import { IUserAddress } from "@/models/UserAddressSchema";
+
+interface DocumentInfo {
+  url: string;
+  verified: boolean;
+  uploadedAt: Date;
+  type: string;
+}
+
+interface FormattedDocuments {
+  [key: string]: DocumentInfo;
+}
+
+interface PersonalInfo {
+  fullName: string;
+  gender: string;
+  phoneNumber: string;
+  dateOfBirth: string | Date | undefined;
+  languages: string[];
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+}
+
+// Update the FilterQuery interface in your service to match the repository
+interface FilterQuery {
+  status?: string | { $in: string[] };
+  services?: string;
+  averageRating?: { $gte?: number; $lte?: number };
+  workAreas?: { $in: RegExp[] };
+  $or?: Array<{ [key: string]: RegExp }>;
+  "skills.services"?: string;
+  [key: string]: unknown; // Add index signature to match repository FilterQuery
+}
 
 export class TechnicianManagementService
   implements ITechnicianManagementService
@@ -46,13 +85,13 @@ export class TechnicianManagementService
   }
 
   // Helper function to format documents from TechnicianApplication.documents
-  private formatApplicationDocuments(documents: any) {
-    if (!documents) return {};
+  private formatApplicationDocuments(documents: unknown): FormattedDocuments {
+    if (!documents || typeof documents !== 'object') return {};
 
-    const formatted: any = {};
+    const formatted: FormattedDocuments = {};
 
     DOCUMENT_FIELDS.forEach((key) => {
-      const doc = documents[key];
+      const doc = (documents as Record<string, any>)[key];
       if (doc && doc.url) {
         formatted[key] = {
           url: doc.url,
@@ -81,7 +120,7 @@ export class TechnicianManagementService
       } = filters;
 
       // Build filter object
-      const filter: any = {};
+      const filter: FilterQuery = {};
 
       // Status filter
       if (status && status !== "all") {
@@ -104,7 +143,10 @@ export class TechnicianManagementService
 
       // Rating filter
       if (rating && rating !== FILTER_DEFAULTS.RATING) {
-        filter.averageRating = RATING_FILTER_MAPPING[rating as string];
+        const ratingFilter = RATING_FILTER_MAPPING[rating as keyof typeof RATING_FILTER_MAPPING];
+        if (ratingFilter) {
+          filter.averageRating = ratingFilter;
+        }
       }
 
       // Search filter
@@ -120,8 +162,8 @@ export class TechnicianManagementService
         filter.workAreas = { $in: [new RegExp(location as string, "i")] };
       }
 
-      const pageNum = parseInt(page as any);
-      const limitNum = parseInt(limit as any);
+      const pageNum = Number(page);
+      const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
 
       // Get technicians with user data populated
@@ -151,8 +193,9 @@ export class TechnicianManagementService
           },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get technicians error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS
       );
@@ -177,8 +220,9 @@ export class TechnicianManagementService
           technician: adminTechnician,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get technician error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN
       );
@@ -205,7 +249,7 @@ export class TechnicianManagementService
 
     const mapStatus = (
       status: string,
-      application?: any
+      application?: ITechnicianApplication
     ): "pending" | "approved" | "rejected" | "suspended" => {
       if (
         application &&
@@ -213,7 +257,7 @@ export class TechnicianManagementService
           APPLICATION_STATUS.SUBMITTED,
           APPLICATION_STATUS.UNDER_REVIEW,
           TECHNICIAN_STATUS.PENDING,
-        ].includes(application.status)
+        ].includes(application.status as any)
       ) {
         return TECHNICIAN_STATUS.PENDING as "pending";
       }
@@ -226,13 +270,13 @@ export class TechnicianManagementService
       );
     };
 
-    const status = mapStatus(technician.status, application);
+    const status = mapStatus(technician.status, application || undefined);
 
     const getPersonalInfo = (
       technician: ITechnician,
-      application?: any,
-      userAddress?: any
-    ) => {
+      application?: ITechnicianApplication,
+      userAddress?: IAddress | null | IUserAddress
+    ): PersonalInfo => {
       const hasRealTechnicianData =
         technician.personalInfo &&
         (technician.personalInfo.gender !== PERSONAL_INFO_DEFAULTS.GENDER ||
@@ -241,30 +285,28 @@ export class TechnicianManagementService
           technician.personalInfo.dateOfBirth !==
             PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH);
 
-      let personalInfo: any;
+      let personalInfo: PersonalInfo;
 
       if (hasRealTechnicianData) {
         personalInfo = {
           fullName: technician.personalInfo?.fullName || technician.displayName,
-          gender: technician.personalInfo?.gender,
-          phoneNumber: technician.personalInfo?.phoneNumber || technician.phone,
-          dateOfBirth: technician.personalInfo?.dateOfBirth,
-          languages:
-            technician.personalInfo?.languages ||
-            PERSONAL_INFO_DEFAULTS.LANGUAGES,
+          gender: technician.personalInfo?.gender || PERSONAL_INFO_DEFAULTS.GENDER,
+          phoneNumber: technician.personalInfo?.phoneNumber || technician.phone || PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
+          dateOfBirth: technician.personalInfo?.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
+          languages: Array.isArray(technician.personalInfo?.languages) 
+            ? technician.personalInfo.languages 
+            : PERSONAL_INFO_DEFAULTS.LANGUAGES,
+          address: undefined,
         };
       } else if (application?.personal) {
         const appPersonal = application.personal;
         personalInfo = {
           fullName: appPersonal.fullName || technician.displayName,
           gender: appPersonal.gender || PERSONAL_INFO_DEFAULTS.GENDER,
-          phoneNumber:
-            appPersonal.phoneNumber ||
-            technician.phone ||
-            PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
-          dateOfBirth:
-            appPersonal.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
-          languages: appPersonal.languages || PERSONAL_INFO_DEFAULTS.LANGUAGES,
+          phoneNumber: appPersonal.phoneNumber || technician.phone || PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
+          dateOfBirth: appPersonal.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
+          languages: Array.isArray(appPersonal.languages) ? appPersonal.languages : PERSONAL_INFO_DEFAULTS.LANGUAGES,
+          address: undefined,
         };
       } else {
         personalInfo = {
@@ -273,6 +315,7 @@ export class TechnicianManagementService
           phoneNumber: technician.phone || PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
           dateOfBirth: PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
           languages: PERSONAL_INFO_DEFAULTS.LANGUAGES,
+          address: undefined,
         };
       }
 
@@ -281,49 +324,32 @@ export class TechnicianManagementService
           street: userAddress.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
           city: userAddress.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
           state: userAddress.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-          pincode:
-            userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+          pincode: userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
       } else if (technician.personalInfo?.address) {
+        const address = technician.personalInfo.address;
         personalInfo.address = {
-          street:
-            technician.personalInfo.address.street ||
-            PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-          city:
-            technician.personalInfo.address.city ||
-            PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-          state:
-            technician.personalInfo.address.state ||
-            PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-          pincode:
-            technician.personalInfo.address.pincode ||
-            PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+          street: address.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+          city: address.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+          state: address.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+          pincode: address.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
       } else if (application?.personal?.address) {
+        const address = application.personal.address;
         personalInfo.address = {
-          street:
-            application.personal.address.street ||
-            PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-          city:
-            application.personal.address.city ||
-            PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-          state:
-            application.personal.address.state ||
-            PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-          pincode:
-            application.personal.address.pincode ||
-            PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+          street: address.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
+          city: address.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
+          state: address.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
+          pincode: address.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
-      } else {
-        personalInfo.address = undefined;
       }
 
       return personalInfo;
     };
 
-    const personalInfo = getPersonalInfo(technician, application, userAddress);
+    const personalInfo = getPersonalInfo(technician, application || undefined, userAddress);
 
-    const getDocuments = (technician: ITechnician, application?: any) => {
+    const getDocuments = (technician: ITechnician, application?: ITechnicianApplication): FormattedDocuments => {
       if (application?.documents) {
         const formattedDocs = this.formatApplicationDocuments(
           application.documents
@@ -332,11 +358,12 @@ export class TechnicianManagementService
       }
 
       // Fallback for profile picture
-      const fallbackDocs: any = {};
+      const fallbackDocs: FormattedDocuments = {};
       if (technician.profilePictureUrl) {
         fallbackDocs.profilePhoto = {
           url: technician.profilePictureUrl,
           verified: true,
+          uploadedAt: new Date(),
           type: "profilePhoto",
         };
       }
@@ -345,7 +372,7 @@ export class TechnicianManagementService
     };
 
     // Format documents
-    const documents = getDocuments(technician, application);
+    const documents = getDocuments(technician, application || undefined);
 
     // Create the admin technician view
     const adminTechnician: IAdminTechnician = {
@@ -354,18 +381,18 @@ export class TechnicianManagementService
       displayName: technician.displayName,
       email: user?.email || "",
       phone: user?.phone || technician.phone || "",
-      services: technician.services,
-      experienceYears: technician.experienceYears,
-      workAreas: technician.workAreas,
-      serviceRadiusKm: technician.serviceRadiusKm,
+      services: technician.services || [],
+      experienceYears: technician.experienceYears || 0,
+      workAreas: technician.workAreas || [],
+      serviceRadiusKm: technician.serviceRadiusKm || 0,
       status: status,
-      averageRating: technician.averageRating,
-      ratingCount: technician.ratingCount,
-      totalJobs: 0,
-      completedJobs: 0,
-      ongoingJobs: 0,
-      totalEarnings: 0,
-      profilePictureUrl: technician.profilePictureUrl,
+      averageRating: technician.averageRating || 0,
+      ratingCount: technician.ratingCount || 0,
+      totalJobs: technician.totalJobs || 0,
+      completedJobs: technician.completedJobs || 0,
+      ongoingJobs: technician.ongoingJobs || 0,
+      totalEarnings: technician.totalEarnings || 0,
+      profilePictureUrl: technician.profilePictureUrl || "",
       createdAt: technician.createdAt,
       updatedAt: technician.updatedAt,
       user: user
@@ -397,14 +424,14 @@ export class TechnicianManagementService
         reason,
       } = statusData;
 
-      if (!status || !VALID_STATUS_VALUES.includes(status as any)) {
+      if (!status || !VALID_STATUS_VALUES.includes(status)) {
         return ResponseHelper.badRequest(
           TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED
         );
       }
 
       // Prepare update data
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
 
       // Store suspension/rejection reason and timestamp
       if (
@@ -482,8 +509,9 @@ export class TechnicianManagementService
           technician: adminTechnician,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Update technician status error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS
       );
@@ -498,8 +526,9 @@ export class TechnicianManagementService
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATS_RETRIEVED,
         stats
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get technician stats error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS
       );
@@ -519,7 +548,7 @@ export class TechnicianManagementService
       } = filters;
 
       // Build filter object
-      const filter: any = {
+      const filter: FilterQuery = {
         status: { $in: (status as string).split(",") },
       };
 
@@ -536,8 +565,8 @@ export class TechnicianManagementService
         filter["skills.services"] = service;
       }
 
-      const pageNum = parseInt(page as any);
-      const limitNum = parseInt(limit as any);
+      const pageNum = Number(page);
+      const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
 
       const applications = await this.technicianRepository.findAllApplications(
@@ -559,8 +588,9 @@ export class TechnicianManagementService
           },
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get pending applications error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS
       );
@@ -640,12 +670,12 @@ export class TechnicianManagementService
           technician._id.toString(),
           {
             bankAccount: {
-              holderName: bankData.accountHolderName,
-              accountNumber: bankData.accountNumber,
-              ifscCode: bankData.ifscCode,
-              bankName: bankData.bankName,
+              holderName: bankData.accountHolderName || "",
+              accountNumber: bankData.accountNumber || "",
+              ifscCode: bankData.ifscCode || "",
+              bankName: bankData.bankName || "",
             },
-            upiId: bankData.upiId,
+            upiId: bankData.upiId || "",
             withdrawalPreference:
               bankData.withdrawalPreference ||
               BANK_DETAILS_DEFAULTS.WITHDRAWAL_PREFERENCE,
@@ -660,8 +690,9 @@ export class TechnicianManagementService
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Approve application error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION
       );
@@ -757,8 +788,9 @@ export class TechnicianManagementService
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Reject application error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION
       );
@@ -802,8 +834,9 @@ export class TechnicianManagementService
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get application error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION
       );
@@ -818,8 +851,9 @@ export class TechnicianManagementService
         TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_STATS_RETRIEVED,
         stats
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get application stats error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION_STATS
       );
@@ -850,8 +884,9 @@ export class TechnicianManagementService
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get technician by application error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP
       );

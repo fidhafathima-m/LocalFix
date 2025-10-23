@@ -102,7 +102,7 @@ export const STATUS_FILTER_MAPPING: Record<string, string> = {
   rejected: "rejected",
 } as const;
 
-export const RATING_FILTER_MAPPING: Record<string, any> = {
+export const RATING_FILTER_MAPPING = {
   "5 Star": RATING_FILTERS["5_STAR"],
   "4+ Star": RATING_FILTERS["4_PLUS_STAR"],
   "3+ Star": RATING_FILTERS["3_PLUS_STAR"],

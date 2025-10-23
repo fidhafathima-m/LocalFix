@@ -15,6 +15,28 @@ interface UserModalProps {
   onUserUpdated: (updatedUser: User) => void;
 }
 
+interface FormData {
+  fullName: string;
+  email: string;
+  phone: string;
+  status: Status;
+}
+
+interface ApiResponse {
+  data: {
+    success: boolean;
+    message?: string;
+    data?: {
+      data?: {
+        user?: User;
+      };
+    };
+  };
+}
+
+// Define string fields that exist in User interface
+type StringField = "fullName" | "email" | "phone" | "status";
+
 export const UserModal: React.FC<UserModalProps> = ({
   user,
   isOpen,
@@ -26,7 +48,7 @@ export const UserModal: React.FC<UserModalProps> = ({
   const [editingMode, setEditingMode] = useState(isEditing);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     fullName: user.fullName,
     email: user.email ?? "",
     phone: user.phone,
@@ -83,7 +105,7 @@ export const UserModal: React.FC<UserModalProps> = ({
 
     setIsSaving(true);
     try {
-      const response = await adminAPI.updateUser(user._id, formData);
+      const response: ApiResponse = await adminAPI.updateUser(user._id, formData);
       if (response.data.success && response.data.data) {
         const updatedUser = response.data.data.data?.user;
 
@@ -97,12 +119,31 @@ export const UserModal: React.FC<UserModalProps> = ({
       } else {
         throw new Error(response.data.message || "Failed to update user");
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error updating user:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to update user");
+      const errorMessage = err instanceof Error ? err.message : "Failed to update user";
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const getFieldValue = (field: keyof FormData): string => {
+    return formData[field];
+  };
+
+  const getUserFieldValue = (field: StringField): string => {
+    const value = user[field];
+    return value ?? "—";
+  };
+
+  // Helper function for non-string fields
+  const getWalletBalance = (): string => {
+    return `₹${user.wallet.balance.toFixed(2)}`;
+  };
+
+  const getRegistrationDate = (): string => {
+    return new Date(user.createdAt).toLocaleDateString();
   };
 
   return (
@@ -195,35 +236,45 @@ export const UserModal: React.FC<UserModalProps> = ({
 
             {/* Details */}
             <div className="space-y-4">
-              {["email", "phone"].map((field) => (
-                <DetailItem
-                  key={field}
-                  label={field === "email" ? "Email" : "Phone"}
-                  value={
-                    editingMode ? (
-                      <input
-                        type={field === "email" ? "email" : "tel"}
-                        name={field}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        value={(formData as any)[field]}
-                        onChange={handleChange}
-                        className="border-b border-gray-300 focus:outline-none focus:border-blue-500 w-full px-1 py-1"
-                      />
-                    ) : (
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      (user as any)[field] ?? "—"
-                    )
-                  }
-                />
-              ))}
-
+              <DetailItem
+                label="Email"
+                value={
+                  editingMode ? (
+                    <input
+                      type="email"
+                      name="email"
+                      value={getFieldValue("email")}
+                      onChange={handleChange}
+                      className="border-b border-gray-300 focus:outline-none focus:border-blue-500 w-full px-1 py-1"
+                    />
+                  ) : (
+                    getUserFieldValue("email")
+                  )
+                }
+              />
+              <DetailItem
+                label="Phone"
+                value={
+                  editingMode ? (
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={getFieldValue("phone")}
+                      onChange={handleChange}
+                      className="border-b border-gray-300 focus:outline-none focus:border-blue-500 w-full px-1 py-1"
+                    />
+                  ) : (
+                    getUserFieldValue("phone")
+                  )
+                }
+              />
               <DetailItem
                 label="Registered On"
-                value={new Date(user.createdAt).toLocaleDateString()}
+                value={getRegistrationDate()}
               />
               <DetailItem
                 label="Wallet Balance"
-                value={`₹${user.wallet.balance.toFixed(2)}`}
+                value={getWalletBalance()}
               />
             </div>
           </div>

@@ -5,7 +5,7 @@ import api from "../../utils/axiosConfig";
 export interface LoginCredentials {
   identifier: string;
   password: string;
-  role: "user" | "serviceProvider" | "admin";
+  roles: string[];
 }
 
 export interface SignupData {

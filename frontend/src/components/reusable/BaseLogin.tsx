@@ -9,7 +9,7 @@ interface LoginProps {
   onSubmit: (credentials: {
     identifier: string;
     password: string;
-    role: string;
+    roles: string[];
   }) => Promise<{ success: boolean; message?: string }>;
   onSuccess?: (userData: any) => void;
   onFailure?: (error: string) => void;
@@ -84,7 +84,7 @@ const BaseLogin: React.FC<LoginProps> = ({
       const result = await onSubmit({
         identifier,
         password,
-        role: userType,
+        roles: [userType],
       });
 
       if (result.success) {

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
 import whyJoin from "../data/whyJoin";
@@ -6,6 +5,26 @@ import heroImage from "../../../assets/images/hero.jpg";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAppSelector } from "../../../hooks/redux";
+
+interface User {
+  _id: string;
+  fullName?: string;
+  phone?: string;
+  roles?: string[];
+}
+
+interface WhyJoinItem {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+}
+
+interface ApplicationResponse {
+  data?: {
+    redirectTo?: string;
+    applicationId?: string;
+  };
+}
 
 const TechHome = () => {
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
@@ -17,7 +36,7 @@ const TechHome = () => {
       <Header userType="serviceProvider" />
 
       {isLoggedIn && isServiceProvider ? (
-        <LoggedInBanner tech={user} />
+        <LoggedInBanner user={user} />
       ) : (
         <PublicBanner />
       )}
@@ -95,8 +114,8 @@ const PublicBanner = () => {
 };
 
 // Banner for logged-in technicians
-const LoggedInBanner = ({ tech }: { tech: any }) => {
-  const { user, accessToken } = useAppSelector((state) => state.auth);
+const LoggedInBanner = ({ user }: { user: User | null }) => {
+  const { accessToken } = useAppSelector((state) => state.auth);
 
   const handleApplyNow = async () => {
     if (!user?._id) {
@@ -106,7 +125,7 @@ const LoggedInBanner = ({ tech }: { tech: any }) => {
 
     try {
       // Check if user already has an application
-      const checkResponse = await axios.post(
+      const checkResponse = await axios.post<ApplicationResponse>(
         `${import.meta.env.VITE_BASE_URL}/technician-application/start`,
         {
           phone: user.phone || "",
@@ -147,7 +166,7 @@ const LoggedInBanner = ({ tech }: { tech: any }) => {
           {/* Welcome message */}
           <div className=" text-white p-6 rounded-lg mb-6 max-w-2xl">
             <h2 className="font-bold text-2xl mb-4">
-              Welcome, {tech?.fullName}! 👋
+              Welcome, {user?.fullName || "Technician"}! 👋
             </h2>
             <p className="text-lg mb-4">You're signed in as a technician.</p>
             <p className="text-sm">
@@ -186,7 +205,7 @@ const WhyJoinSection = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 lg:gap-6 p-4 lg:p-10">
-            {whyJoin.map((why, idx) => (
+            {(whyJoin as WhyJoinItem[]).map((why, idx) => (
               <div key={idx} className="p-6 lg:p-10 shadow rounded bg-white">
                 <span className="bg-blue-100 p-3 lg:p-5 rounded-full text-blue-700 inline-block">
                   <why.icon />
