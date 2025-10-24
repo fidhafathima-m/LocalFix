@@ -1,6 +1,9 @@
-import { ITechnician } from "@/interfaces/technician/ITechnician"
+import {
+  DashboardOverviewResponseDto,
+  TechnicianProfileResponseDto,
+} from "../../dtos/technicianDashboardDtos";
 
 export interface ITechnicianDashboardService {
-    getDashboardOverview(technicianId: string): Promise<ITechnician>
-    getTechnicianProfile(technicianId: string): Promise<ITechnician>
+  getDashboardOverview(technicianId: string): Promise<DashboardOverviewResponseDto>;
+  getTechnicianProfile(technicianId: string): Promise<TechnicianProfileResponseDto>;
 }

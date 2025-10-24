@@ -2,15 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import axios from "axios";
-import {
-  AuthResponse,
-  OTPResponse,
-  LoginCredentials,
-  SignupData,
-  OTPVerificationData,
-  ResetPasswordData,
-  SocialAuthData,
-} from "../interfaces/user/IAuthService";
+
 import { generateOTP } from "../utils/generateOTP";
 import { sendPhoneOTP } from "../utils/sendPhoneOTP";
 import { sendEmailOTP } from "../utils/sendEmailOTP";
@@ -29,47 +21,21 @@ import {
 } from "../constants";
 import { IUser } from "@/interfaces/user/IUser";
 
-interface OtpCreationData {
-  otpHash: string;
-  purpose: "signup" | "reset" | "login" | "application";
-  expiresAt: Date;
-  phone?: string;
-  email?: string;
-}
-
-interface JwtPayload {
-  _id: string;
-  roles?: string[];
-  type: string;
-  purpose?: string;
-  identifier?: string;
-  userType?: string;
-  timestamp?: number;
-}
-
-interface FacebookGraphResponse {
-  id: string;
-  name: string;
-  email?: string;
-  picture?: {
-    data?: {
-      url: string;
-    };
-  };
-}
-
-interface GoogleTokenPayload {
-  email?: string;
-  name?: string;
-  sub: string;
-  picture?: string;
-}
-
-interface UserIdentifierQuery {
-  phone?: string;
-  email?: string;
-  roles?: string | string[];
-}
+// Import DTOs
+import {
+  SignupDataDto,
+  LoginCredentialsDto,
+  OTPVerificationDataDto,
+  ResetPasswordDataDto,
+  SocialAuthDataDto,
+  AuthResponseDto,
+  OtpCreationDataDto,
+  JwtPayloadDto,
+  FacebookGraphResponseDto,
+  GoogleTokenPayloadDto,
+  UserResponseDto,
+  AuthTokensDto,
+} from "../interfaces/dtos/authDtos";
 
 export class AuthService implements IAuthService {
   private userRepository: IUserRepository;
@@ -88,7 +54,7 @@ export class AuthService implements IAuthService {
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
 
-  async signup(signupData: SignupData): Promise<AuthResponse> {
+  async signup(signupData: SignupDataDto): Promise<AuthResponseDto> {
     try {
       const { email, phone, userType } = signupData;
 
@@ -117,7 +83,7 @@ export class AuthService implements IAuthService {
       const otp = generateOTP();
       const otpHash = await bcrypt.hash(otp, 10);
 
-      const otpData: OtpCreationData = {
+      const otpData: OtpCreationDataDto = {
         otpHash,
         purpose: OTP_PURPOSES.SIGNUP,
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
@@ -148,7 +114,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async verifyOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
+  async verifyOtp(otpData: OTPVerificationDataDto): Promise<AuthResponseDto> {
     try {
       const { phone, email, otp, fullName, password, userType } = otpData;
 
@@ -302,15 +268,8 @@ export class AuthService implements IAuthService {
       // Delete used OTP
       await this.otpRepository.deleteMany(phone, email, "signup");
 
-      // Create clean user response
-      const userResponse = {
-        _id: user._id,
-        fullName: user.fullName,
-        phone: user.phone,
-        email: user.email,
-        roles: user.roles,
-        applicationStatus: user.applicationStatus || "not-applied",
-      };
+      // Create user response DTO
+      const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
       return ResponseHelper.success(AUTH_MESSAGES.SIGNUP_SUCCESS, {
         user: userResponse,
@@ -325,8 +284,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  // Refresh token endpoint
-  async refreshToken(refreshToken: string): Promise<AuthResponse> {
+  async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
     try {
       if (!refreshToken) {
         return ResponseHelper.unauthorized("Refresh token required");
@@ -336,7 +294,7 @@ export class AuthService implements IAuthService {
       const decoded = jwt.verify(
         refreshToken,
         process.env.REFRESH_TOKEN_SECRET as string
-      ) as JwtPayload;
+      ) as JwtPayloadDto;
 
       if (decoded.type !== "refresh") {
         return ResponseHelper.unauthorized("Invalid token type");
@@ -379,7 +337,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  async login(credentials: LoginCredentialsDto): Promise<AuthResponseDto> {
     try {
       const { identifier, password, role } = credentials;
 
@@ -441,16 +399,7 @@ export class AuthService implements IAuthService {
         tokens.refreshToken
       );
 
-      const userResponse = {
-        _id: user._id,
-        fullName: user.fullName,
-        phone: user.phone,
-        email: user.email,
-        roles: user.roles,
-        applicationStatus: user.applicationStatus || "not-applied",
-        isVerified: user.isVerified,
-        status: user.status,
-      };
+      const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
       return ResponseHelper.success(AUTH_MESSAGES.LOGIN_SUCCESS, {
         user: userResponse,
@@ -468,7 +417,7 @@ export class AuthService implements IAuthService {
     phone?: string,
     email?: string,
     userType?: string
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     try {
       if (!phone && !email) {
         return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
@@ -529,7 +478,7 @@ export class AuthService implements IAuthService {
       const otp = generateOTP();
       const otpHash = await bcrypt.hash(otp, 10);
 
-      const otpData: OtpCreationData = {
+      const otpData: OtpCreationDataDto = {
         otpHash,
         purpose: OTP_PURPOSES.RESET,
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
@@ -557,7 +506,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async resetPassword(resetData: ResetPasswordData): Promise<AuthResponse> {
+  async resetPassword(resetData: ResetPasswordDataDto): Promise<AuthResponseDto> {
     try {
       const { phone, email, otp, token, password, userType } = resetData;
 
@@ -590,7 +539,7 @@ export class AuthService implements IAuthService {
           const decoded = jwt.verify(
             token,
             process.env.JWT_SECRET as string
-          ) as JwtPayload;
+          ) as JwtPayloadDto;
 
           // Verify token purpose and expiration
           if (decoded.purpose !== "password_reset") {
@@ -640,7 +589,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async verifyResetOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
+  async verifyResetOtp(otpData: OTPVerificationDataDto): Promise<AuthResponseDto> {
     try {
       const { phone, email, otp, userType } = otpData;
 
@@ -699,13 +648,12 @@ export class AuthService implements IAuthService {
     }
   }
 
-  // Update the resendOTP method
   async resendOTP(
     phone?: string,
     email?: string,
     purpose?: string,
     userType?: string
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     try {
       if (!email && !phone) {
         return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
@@ -732,7 +680,7 @@ export class AuthService implements IAuthService {
       // Delete any existing OTP records for this phone/email and purpose
       await this.otpRepository.deleteMany(phone, email, purpose);
 
-      const otpData: OtpCreationData = {
+      const otpData: OtpCreationDataDto = {
         otpHash,
         purpose: purpose as "signup" | "reset" | "login" | "application",
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
@@ -765,10 +713,10 @@ export class AuthService implements IAuthService {
   async facebookLogin(
     accessToken: string,
     userID: string
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     try {
       // Verify token with Facebook Graph API
-      const fbRes = await axios.get<FacebookGraphResponse>(
+      const fbRes = await axios.get<FacebookGraphResponseDto>(
         `https://graph.facebook.com/${userID}?fields=id,name,email,picture&access_token=${accessToken}`
       );
 
@@ -815,14 +763,7 @@ export class AuthService implements IAuthService {
         tokens.refreshToken
       );
 
-      const userResponse = {
-        _id: user._id!.toString(),
-        fullName: user.fullName,
-        email: user.email,
-        roles: user.roles,
-        applicationStatus: user.applicationStatus || "not-applied",
-        isVerified: user.isVerified,
-      };
+      const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
       return ResponseHelper.success(AUTH_MESSAGES.FACEBOOK_LOGIN_SUCCESS, {
         accessToken: tokens.accessToken,
@@ -837,7 +778,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async googleAuth(socialData: SocialAuthData): Promise<AuthResponse> {
+  async googleAuth(socialData: SocialAuthDataDto): Promise<AuthResponseDto> {
     try {
       const { token, userType } = socialData;
 
@@ -850,7 +791,7 @@ export class AuthService implements IAuthService {
         audience: process.env.GOOGLE_CLIENT_ID,
       });
 
-      const payload = ticket.getPayload() as GoogleTokenPayload | undefined;
+      const payload = ticket.getPayload() as GoogleTokenPayloadDto | undefined;
       if (!payload) {
         return ResponseHelper.badRequest(
           AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN
@@ -932,14 +873,7 @@ export class AuthService implements IAuthService {
         tokens.refreshToken
       );
 
-      const userResponse = {
-        _id: user._id!.toString(),
-        fullName: user.fullName,
-        email: user.email,
-        roles: user.roles,
-        applicationStatus: user.applicationStatus || "not-applied",
-        isVerified: user.isVerified,
-      };
+      const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
       return ResponseHelper.success(AUTH_MESSAGES.GOOGLE_AUTH_SUCCESS, {
         user: userResponse,
@@ -954,8 +888,7 @@ export class AuthService implements IAuthService {
     }
   }
 
-  // Logout - revoke refresh token
-  async logout(userId: string, refreshToken?: string): Promise<AuthResponse> {
+  async logout(userId: string, refreshToken?: string): Promise<AuthResponseDto> {
     try {
       if (refreshToken) {
         // Remove specific refresh token
@@ -973,16 +906,30 @@ export class AuthService implements IAuthService {
     }
   }
 
+  // Helper method to map IUser to UserResponseDto
+  private mapToUserResponseDto(user: IUser): UserResponseDto {
+    return {
+      _id: user._id!.toString(),
+      fullName: user.fullName,
+      phone: user.phone,
+      email: user.email,
+      roles: user.roles,
+      applicationStatus: user.applicationStatus || "not-applied",
+      isVerified: user.isVerified,
+      status: user.status,
+    };
+  }
+
   private generateAccessToken(user: IUser): string {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       throw new Error("JWT_SECRET environment variable is not defined");
     }
 
-    const payload = {
-      _id: user._id?.toString(),
+    const payload: JwtPayloadDto = {
+      _id: user._id?.toString() || "",
       roles: user.roles,
-      type: "access" as const,
+      type: "access",
     };
 
     return jwt.sign(payload, jwtSecret, {
@@ -998,9 +945,9 @@ export class AuthService implements IAuthService {
       );
     }
 
-    const payload = {
-      _id: user._id?.toString(),
-      type: "refresh" as const,
+    const payload: JwtPayloadDto = {
+      _id: user._id?.toString() || "",
+      type: "refresh",
     };
 
     return jwt.sign(payload, refreshTokenSecret, {
@@ -1009,10 +956,7 @@ export class AuthService implements IAuthService {
   }
 
   // Generate both tokens
-  private generateTokens(user: IUser): {
-    accessToken: string;
-    refreshToken: string;
-  } {
+  private generateTokens(user: IUser): AuthTokensDto {
     return {
       accessToken: this.generateAccessToken(user),
       refreshToken: this.generateRefreshToken(user),

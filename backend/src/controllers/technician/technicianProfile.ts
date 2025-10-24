@@ -3,6 +3,8 @@ import { ITechnicianProfileService } from "../../interfaces/services/technician/
 import { AuthRequest } from "../../middleware/authMiddleware";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
+import { TechnicianProfileResponseDto } from "@/interfaces/dtos/technicianProfileDtos";
+import { TechnicianProfileMapper } from "../../mappers/technicianProfileMappers";
 
 export class TechnicianProfileController {
   private profileService: ITechnicianProfileService;
@@ -38,7 +40,7 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.getTechnicianProfile(technicianId);
+      const result: TechnicianProfileResponseDto = await this.profileService.getTechnicianProfile(technicianId);
       this.handleServiceResponse(result, res, "Profile retrieved successfully");
     } catch (error) {
       console.error("Get profile controller error:", error);
@@ -63,7 +65,7 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.updatePersonalInformation(
+      const result: TechnicianProfileResponseDto = await this.profileService.updatePersonalInformation(
         technicianId,
         updateData
       );
@@ -91,7 +93,7 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.updateIdentityVerification(
+      const result: TechnicianProfileResponseDto = await this.profileService.updateIdentityVerification(
         technicianId,
         updateData
       );
@@ -119,7 +121,7 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.updateSkillsServices(
+      const result: TechnicianProfileResponseDto = await this.profileService.updateSkillsServices(
         technicianId,
         updateData
       );
@@ -147,7 +149,7 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.updateAvailabilityPreferences(
+      const result: TechnicianProfileResponseDto = await this.profileService.updateAvailabilityPreferences(
         technicianId,
         updateData
       );
@@ -175,7 +177,7 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.updateBankPaymentDetails(
+      const result: TechnicianProfileResponseDto = await this.profileService.updateBankPaymentDetails(
         technicianId,
         updateData
       );
@@ -200,7 +202,7 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.updatePassword(
+      const result: TechnicianProfileResponseDto = await this.profileService.updatePassword(
         technicianId,
         updateData
       );
@@ -225,7 +227,7 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.uploadDocument(
+      const result: TechnicianProfileResponseDto = await this.profileService.uploadDocument(
         technicianId,
         documentData
       );
@@ -239,77 +241,7 @@ export class TechnicianProfileController {
 
   getStaticData = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const staticData = {
-        languages: [
-          { value: "english", label: "English" },
-          { value: "spanish", label: "Spanish" },
-          { value: "french", label: "French" },
-          { value: "german", label: "German" },
-          { value: "hindi", label: "Hindi" },
-        ],
-        genders: [
-          { value: "male", label: "Male" },
-          { value: "female", label: "Female" },
-          { value: "other", label: "Other" },
-          { value: "prefer-not-to-say", label: "Prefer not to say" },
-        ],
-        idTypes: [
-          { value: "passport", label: "Passport" },
-          { value: "driver_license", label: "Driver's License" },
-          { value: "national_id", label: "National ID" },
-          { value: "aadhaar", label: "Aadhaar Card" },
-        ],
-        services: [
-          { value: "ac-repair", label: "AC Repair", basePrice: 499 },
-          {
-            value: "washing-machine",
-            label: "Washing Machine Repair",
-            basePrice: 399,
-          },
-          {
-            value: "refrigerator",
-            label: "Refrigerator Repair",
-            basePrice: 599,
-          },
-          { value: "fan-repair", label: "Fan Repair", basePrice: 299 },
-          { value: "tv-repair", label: "TV Repair", basePrice: 699 },
-        ],
-        serviceAreas: [
-          { value: "sector-1", label: "Sector 1" },
-          { value: "sector-2", label: "Sector 2" },
-          { value: "sector-3", label: "Sector 3" },
-          { value: "sector-4", label: "Sector 4" },
-        ],
-        documentTypes: [
-          { value: "id_proof", label: "ID Proof" },
-          { value: "address_proof", label: "Address Proof" },
-          { value: "police_verification", label: "Police Verification" },
-          { value: "certificate", label: "Professional Certificate" },
-        ],
-        verificationStatuses: [
-          { value: "pending", label: "Pending", color: "yellow" },
-          { value: "approved", label: "Approved", color: "green" },
-          { value: "rejected", label: "Rejected", color: "red" },
-          {
-            value: "needs_reupload",
-            label: "Needs Re-upload",
-            color: "orange",
-          },
-        ],
-        withdrawalPreferences: [
-          { value: "auto", label: "Automatic weekly withdrawal" },
-          { value: "manual", label: "Manual withdrawal request" },
-        ],
-        daysOfWeek: [
-          { value: "monday", label: "Monday" },
-          { value: "tuesday", label: "Tuesday" },
-          { value: "wednesday", label: "Wednesday" },
-          { value: "thursday", label: "Thursday" },
-          { value: "friday", label: "Friday" },
-          { value: "saturday", label: "Saturday" },
-          { value: "sunday", label: "Sunday" },
-        ],
-      };
+      const staticData = TechnicianProfileMapper.toStaticDataDto();
 
       const successResponse = ResponseHelper.success(
         "Static data retrieved successfully",
@@ -338,7 +270,7 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.updateAvailabilityPreferences(
+      const result: TechnicianProfileResponseDto = await this.profileService.updateAvailabilityPreferences(
         technicianId,
         { isAvailable: false }
       );

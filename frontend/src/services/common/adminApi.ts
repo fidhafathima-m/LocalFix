@@ -74,9 +74,7 @@ interface UsersResponse {
 }
 
 interface UserResponse {
-  data: {
-    user: User;
-  };
+  user: User;
 }
 
 interface TechniciansResponse {

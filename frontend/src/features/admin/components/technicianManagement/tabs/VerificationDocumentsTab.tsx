@@ -7,8 +7,10 @@ interface VerificationDocumentsTabProps {
 }
 
 interface DocumentData {
+  type: string;
   url?: string;
   verified?: boolean;
+  uploadedAt?: string;
   [key: string]: unknown;
 }
 
@@ -16,8 +18,24 @@ const VerificationDocumentsTab: React.FC<VerificationDocumentsTabProps> = ({
   technician,
   isSuspended,
 }) => {
-  const getDocuments = (): Record<string, DocumentData> => {
-    return technician.documents || {};
+  // Fix: Handle both array and object formats for documents
+  const getDocuments = (): DocumentData[] => {
+    if (!technician.documents) return [];
+    
+    // If it's already an array, return it
+    if (Array.isArray(technician.documents)) {
+      return technician.documents;
+    }
+    
+    // If it's an object, convert to array
+    if (typeof technician.documents === 'object') {
+      return Object.entries(technician.documents).map(([key, value]) => ({
+        type: key,
+        ...(value)
+      }));
+    }
+    
+    return [];
   };
 
   const documentNames: Record<string, string> = {
@@ -26,16 +44,20 @@ const VerificationDocumentsTab: React.FC<VerificationDocumentsTabProps> = ({
     drivingLicense: "Driving License",
     profilePhoto: "Profile Photo",
     passportPhoto: "Passport Photo",
-    idProof: "ID Proof",
-    addressProof: "Address Proof",
+    idProof: "ID Proof Document",
+    addressProof: "Address Proof Document",
+    policeVerification: "Police Verification",
+    certificate: "Professional Certificate",
   };
 
-  const getDisplayName = (key: string): string => {
-    return documentNames[key] ||
-      key
+  const getDisplayName = (type: string): string => {
+    return documentNames[type] ||
+      type
         .replace(/([A-Z])/g, " $1")
         .replace(/^./, (str) => str.toUpperCase());
   };
+
+  const documents = getDocuments();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -50,48 +72,46 @@ const VerificationDocumentsTab: React.FC<VerificationDocumentsTabProps> = ({
       <h2 className="text-lg font-medium mb-6">Verification & Documents</h2>
       <div className="space-y-6">
         {/* Show all available documents dynamically */}
-        {Object.keys(getDocuments()).length > 0 && (
+        {documents.length > 0 ? (
           <div className="border-t pt-6">
             <h3 className="font-medium mb-4">All Documents</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(getDocuments()).map(
-                ([key, doc]) => {
-                  if (!doc || typeof doc !== "object") return null;
+              {documents.map((doc, index) => {
+                const displayName = getDisplayName(doc.type);
 
-                  const displayName = getDisplayName(key);
-
-                  return (
-                    <div
-                      key={key}
-                      className="border border-gray-200 rounded-lg p-4"
-                    >
-                      <h4 className="font-medium mb-2">{displayName}</h4>
+                return (
+                  <div
+                    key={doc.type || index}
+                    className="border border-gray-200 rounded-lg p-4"
+                  >
+                    <h4 className="font-medium mb-2">{displayName}</h4>
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span
-                          className={`px-2 py-1 rounded text-xs ${
-                            doc.verified
-                              ? "bg-green-100 text-green-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {doc.verified ? "Verified" : "Submitted"}
-                        </span>
                         {doc.url && (
                           <a
                             href={doc.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 text-sm"
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                           >
                             View
                           </a>
                         )}
                       </div>
+                      {doc.uploadedAt && (
+                        <p className="text-xs text-gray-500">
+                          Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
-                  );
-                }
-              )}
+                  </div>
+                );
+              })}
             </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No documents uploaded yet.</p>
           </div>
         )}
 

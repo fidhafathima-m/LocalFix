@@ -101,37 +101,56 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    console.log("=== AXIOS INTERCEPTOR DEBUG ===");
+    console.log("Error status:", error.response?.status);
+    console.log("Error message:", error.response?.data?.message);
+    console.log("URL:", originalRequest?.url);
+    console.log("Is retry:", originalRequest?._retry);
+
+    // Handle token expiration (401 errors)
+    if (error.response?.status === 401 && !originalRequest?._retry) {
+      console.log("Token expired, attempting refresh...");
+      
       if (isRefreshing) {
+        console.log("Refresh already in progress, queuing request...");
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
+            console.log("Queue resolved with token");
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return api(originalRequest);
           })
-          .catch((err) => Promise.reject(err));
+          .catch((err) => {
+            console.log("Queue rejected:", err);
+            return Promise.reject(err);
+          });
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       const { refreshToken } = getTokens();
+      console.log("Refresh token exists:", !!refreshToken);
 
       if (!refreshToken) {
+        console.log("No refresh token found, redirecting to login");
         clearTokens();
         window.location.href = "/login";
         return Promise.reject(error);
       }
 
       try {
+        console.log("Calling refresh token API...");
         const refreshResponse = await authAPI.refreshToken(refreshToken);
+        console.log("Refresh response:", refreshResponse);
 
         if (
           refreshResponse.success &&
           refreshResponse.accessToken &&
           refreshResponse.refreshToken
         ) {
+          console.log("Token refresh successful, updating tokens...");
           setTokens(refreshResponse.accessToken, refreshResponse.refreshToken);
 
           // Update the Authorization header
@@ -141,11 +160,15 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${refreshResponse.accessToken}`;
 
           processQueue(null, refreshResponse.accessToken);
+          
+          console.log("Retrying original request...");
           return api(originalRequest);
         } else {
-          throw new Error("Token refresh failed");
+          console.log("Token refresh failed - invalid response");
+          throw new Error("Token refresh failed - invalid response");
         }
       } catch (refreshError) {
+        console.log("Token refresh error:", refreshError);
         processQueue(refreshError, null);
         clearTokens();
         window.location.href = "/login";

@@ -6,57 +6,19 @@ import { IUserAddressRepository } from "../interfaces/repository/user/IUserAddre
 import { ResponseHelper } from "../utils/responseHelper";
 import {
   DASHBOARD_MESSAGES,
-  TECHNICIAN_STATUS,
-  DASHBOARD_DEFAULTS,
-  PERSONAL_INFO_DEFAULTS,
-  LANGUAGE_FORMAT_OPTIONS,
 } from "../constants";
 import { ITechnician } from "@/interfaces/technician/ITechnician";
 import { IUser } from "@/interfaces/user/IUser";
 import { IAddress } from "@/interfaces/user/IAddress";
 
-interface DashboardOverview {
-  upcomingBookings?: number;
-  monthlyEarnings?: number;
-  totalJobs?: number;
-  averageRating: number;
-}
-
-interface PersonalInfoData {
-  fullName: string;
-  gender: string;
-  phoneNumber: string;
-  dateOfBirth: string;
-  languages: string[];
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    pincode: string;
-  };
-}
-
-interface TechnicianProfile {
-  _id: string;
-  userId: string;
-  displayName: string;
-  email: string;
-  phone: string;
-  services: string[];
-  experienceYears: number;
-  workAreas: string[];
-  averageRating: number;
-  ratingCount: number;
-  profilePictureUrl: string;
-  isVerified: boolean;
-  bio: string;
-  status: string;
-  suspensionReason?: string;
-  suspendedAt?: Date;
-  personalInfo: PersonalInfoData;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Import DTOs and Mapper
+import {
+  DashboardOverviewResponseDto,
+  TechnicianProfileResponseDto,
+  DashboardOverviewDto,
+  TechnicianProfileDto,
+} from "../interfaces/dtos/technicianDashboardDtos";
+import { TechnicianDashboardMapper } from "../mappers/technicianDashboardMappers";
 
 export class TechnicianDashboardService implements ITechnicianDashboardService {
   private technicianRepository: ITechnicianRepository;
@@ -73,28 +35,21 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     this.userAddressRepository = userAddressRepository;
   }
 
-  async getDashboardOverview(technicianId: string): Promise<any> {
+  async getDashboardOverview(technicianId: string): Promise<DashboardOverviewResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician = await this.technicianRepository.findByUserId(technicianId);
 
       if (!technician) {
         return ResponseHelper.notFound(DASHBOARD_MESSAGES.TECHNICIAN_NOT_FOUND);
       }
 
-      const overview: DashboardOverview = {
-        averageRating:
-          technician.averageRating || DASHBOARD_DEFAULTS.AVERAGE_RATING,
-        upcomingBookings: DASHBOARD_DEFAULTS.UPCOMING_BOOKINGS,
-        monthlyEarnings: DASHBOARD_DEFAULTS.MONTHLY_EARNINGS,
-        totalJobs: DASHBOARD_DEFAULTS.TOTAL_JOBS,
-      };
+      // ✅ Map to DTO
+      const overviewDto = TechnicianDashboardMapper.toDashboardOverviewDto(technician);
 
       return ResponseHelper.success(
         DASHBOARD_MESSAGES.DASHBOARD_OVERVIEW_RETRIEVED,
         {
-          data: { overview },
+          overview: overviewDto, // ✅ Direct property, no nested "data"
         }
       );
     } catch (error: unknown) {
@@ -105,11 +60,9 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     }
   }
 
-  async getTechnicianProfile(technicianId: string): Promise<any> {
+  async getTechnicianProfile(technicianId: string): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician = await this.technicianRepository.findByUserId(technicianId);
       const user = await this.userRepository.findById(technicianId);
 
       if (!technician || !user) {
@@ -122,137 +75,17 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         technician.userId as Types.ObjectId
       );
 
-      const formatLanguages = (languages: unknown): string[] => {
-        if (!languages) {
-          return [];
-        }
-
-        if (Array.isArray(languages)) {
-          const result = languages.filter(
-            (lang) => lang && String(lang).trim() !== ""
-          );
-          return result.slice(0, LANGUAGE_FORMAT_OPTIONS.MAX_LANGUAGES);
-        }
-
-        if (typeof languages === "string") {
-          if (languages.trim() === "") {
-            return [];
-          }
-
-          try {
-            const parsed = JSON.parse(languages);
-
-            if (Array.isArray(parsed)) {
-              const result = parsed.filter(
-                (lang: unknown) => lang && String(lang).trim() !== ""
-              );
-              return result.slice(0, LANGUAGE_FORMAT_OPTIONS.MAX_LANGUAGES);
-            }
-            // If it's a JSON string of a single value
-            if (parsed && typeof parsed === "string") {
-              return [parsed.trim()];
-            }
-          } catch (e) {
-            // If not JSON, split by comma or use as single language
-            if (languages.includes(LANGUAGE_FORMAT_OPTIONS.DELIMITERS.COMMA)) {
-              const result = languages
-                .split(LANGUAGE_FORMAT_OPTIONS.DELIMITERS.COMMA)
-                .map((lang: string) => lang.trim())
-                .filter((lang) => lang !== "");
-              return result.slice(0, LANGUAGE_FORMAT_OPTIONS.MAX_LANGUAGES);
-            }
-            return [languages.trim()];
-          }
-        }
-
-        return [];
-      };
-
-      const getPersonalInfo = (
-        technician: ITechnician,
-        userAddress?: IAddress
-      ): PersonalInfoData => {
-        const personalInfo: PersonalInfoData = {
-          fullName:
-            technician.personalInfo?.fullName ||
-            technician.displayName ||
-            PERSONAL_INFO_DEFAULTS.FULL_NAME,
-          gender:
-            technician.personalInfo?.gender || PERSONAL_INFO_DEFAULTS.GENDER,
-          phoneNumber:
-            technician.personalInfo?.phoneNumber ||
-            technician.phone ||
-            PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
-          dateOfBirth:
-            technician.personalInfo?.dateOfBirth ||
-            PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
-          languages: formatLanguages(technician.personalInfo?.languages),
-          address: {
-            street: PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-            city: PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-            state: PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-            pincode: PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
-          },
-        };
-
-        // Handle address - convert null to undefined
-        const addressData = userAddress || undefined;
-
-        if (addressData) {
-          personalInfo.address = {
-            street: addressData.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-            city: addressData.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-            state: addressData.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-            pincode:
-              addressData.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
-          };
-        } else if (technician.personalInfo?.address) {
-          const address = technician.personalInfo.address;
-          personalInfo.address = {
-            street: address.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
-            city: address.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
-            state: address.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-            pincode: address.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
-          };
-        }
-
-        return personalInfo;
-      };
-
-      // Convert null to undefined when calling the function
-      const personalInfo = getPersonalInfo(
+      // ✅ Map to DTO
+      const profileDto = TechnicianDashboardMapper.toTechnicianProfileDto(
         technician,
+        user,
         userAddress as IAddress | undefined
       );
-
-      const profile: TechnicianProfile = {
-        _id: technician._id?.toString() || "",
-        userId: technician.userId?.toString() || "",
-        displayName: technician.displayName,
-        email: user.email || "",
-        phone: user.phone || technician.phone || "",
-        services: technician.services || [],
-        experienceYears:
-          technician.experienceYears || DASHBOARD_DEFAULTS.EXPERIENCE_YEARS,
-        workAreas: technician.workAreas || [],
-        averageRating:
-          technician.averageRating || DASHBOARD_DEFAULTS.AVERAGE_RATING,
-        ratingCount: technician.ratingCount || DASHBOARD_DEFAULTS.RATING_COUNT,
-        profilePictureUrl: technician.profilePictureUrl || "",
-        isVerified: technician.status === TECHNICIAN_STATUS.APPROVED,
-        bio: technician.bio || PERSONAL_INFO_DEFAULTS.BIO,
-        status: technician.status,
-        suspensionReason: technician.suspensionReason,
-        suspendedAt: technician.suspendedAt,
-        personalInfo,
-        createdAt: technician.createdAt,
-        updatedAt: technician.updatedAt,
-      };
 
       return ResponseHelper.success(
         DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_RETRIEVED,
         {
-          data: { profile },
+          profile: profileDto, // ✅ Direct property, no nested "data"
         }
       );
     } catch (error: unknown) {

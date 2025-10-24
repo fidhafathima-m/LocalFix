@@ -3,6 +3,17 @@ import { AuthRequest } from "../../middleware/authMiddleware";
 import { ITechnicianManagementService } from "../../interfaces/services/admin/ITechnicianManagementService";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
+import {
+  TechnicianListResponseDto,
+  SingleTechnicianResponseDto,
+  ApplicationListResponseDto,
+  TechnicianStatsResponseDto,
+  ApplicationStatsResponseDto,
+  UpdateStatusRequestDto,
+  RejectApplicationRequestDto,
+  TechnicianFiltersDto,
+  ApplicationFiltersDto,
+} from "../../interfaces/dtos/technicianDtos";
 
 export class TechnicianManagementController {
   private technicianService: ITechnicianManagementService;
@@ -13,7 +24,8 @@ export class TechnicianManagementController {
 
   getAllTechnicians = async (req: Request, res: Response): Promise<void> => {
     try {
-      const result = await this.technicianService.getAllTechnicians(req.query);
+      const filters: TechnicianFiltersDto = req.query;
+      const result: TechnicianListResponseDto = await this.technicianService.getAllTechnicians(filters);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technicians controller error:", error);
@@ -25,7 +37,7 @@ export class TechnicianManagementController {
   getTechnicianById = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      const result = await this.technicianService.getTechnicianById(id);
+      const result: SingleTechnicianResponseDto = await this.technicianService.getTechnicianById(id);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technician controller error:", error);
@@ -40,9 +52,10 @@ export class TechnicianManagementController {
   ): Promise<void> => {
     try {
       const { id } = req.params;
-      const result = await this.technicianService.updateTechnicianStatus(
+      const statusData: UpdateStatusRequestDto = req.body;
+      const result: SingleTechnicianResponseDto = await this.technicianService.updateTechnicianStatus(
         id,
-        req.body
+        statusData
       );
       res.status(result.statusCode).json(result);
     } catch (error) {
@@ -54,7 +67,7 @@ export class TechnicianManagementController {
 
   getTechnicianStats = async (req: Request, res: Response): Promise<void> => {
     try {
-      const result = await this.technicianService.getTechnicianStats();
+      const result: TechnicianStatsResponseDto = await this.technicianService.getTechnicianStats();
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technician stats controller error:", error);
@@ -68,8 +81,9 @@ export class TechnicianManagementController {
     res: Response
   ): Promise<void> => {
     try {
-      const result = await this.technicianService.getPendingApplications(
-        req.query
+      const filters: ApplicationFiltersDto = req.query;
+      const result: ApplicationListResponseDto = await this.technicianService.getPendingApplications(
+        filters
       );
       res.status(result.statusCode).json(result);
     } catch (error) {
@@ -85,7 +99,7 @@ export class TechnicianManagementController {
   ): Promise<void> => {
     try {
       const { id } = req.params;
-      const result = await this.technicianService.approveApplication(id);
+      const result: ApplicationListResponseDto = await this.technicianService.approveApplication(id);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Approve application controller error:", error);
@@ -100,9 +114,9 @@ export class TechnicianManagementController {
   ): Promise<void> => {
     try {
       const { id } = req.params;
-      const { rejectionReason } = req.body;
+      const rejectData: RejectApplicationRequestDto = req.body;
 
-      if (!rejectionReason) {
+      if (!rejectData.rejectionReason) {
         const badRequestResponse = ResponseHelper.badRequest(
           "Rejection reason is required"
         );
@@ -110,9 +124,7 @@ export class TechnicianManagementController {
         return;
       }
 
-      const result = await this.technicianService.rejectApplication(id, {
-        rejectionReason,
-      });
+      const result: ApplicationListResponseDto = await this.technicianService.rejectApplication(id, rejectData);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Reject application controller error:", error);
@@ -124,7 +136,7 @@ export class TechnicianManagementController {
   getApplicationById = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      const result = await this.technicianService.getApplicationById(id);
+      const result: ApplicationListResponseDto = await this.technicianService.getApplicationById(id);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application controller error:", error);
@@ -135,7 +147,7 @@ export class TechnicianManagementController {
 
   getApplicationStats = async (req: Request, res: Response): Promise<void> => {
     try {
-      const result = await this.technicianService.getApplicationStats();
+      const result: ApplicationStatsResponseDto = await this.technicianService.getApplicationStats();
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application stats controller error:", error);
@@ -150,7 +162,7 @@ export class TechnicianManagementController {
   ): Promise<void> => {
     try {
       const { applicationId } = req.params;
-      const result = await this.technicianService.getTechnicianByApplicationId(
+      const result: TechnicianListResponseDto = await this.technicianService.getTechnicianByApplicationId(
         applicationId
       );
       res.status(result.statusCode).json(result);

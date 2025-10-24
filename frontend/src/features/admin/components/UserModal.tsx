@@ -22,18 +22,6 @@ interface FormData {
   status: Status;
 }
 
-interface ApiResponse {
-  data: {
-    success: boolean;
-    message?: string;
-    data?: {
-      data?: {
-        user?: User;
-      };
-    };
-  };
-}
-
 // Define string fields that exist in User interface
 type StringField = "fullName" | "email" | "phone" | "status";
 
@@ -95,39 +83,44 @@ export const UserModal: React.FC<UserModalProps> = ({
   };
 
   const handleSave = async () => {
-    // Validation with optional chaining
-    if (!formData.fullName?.trim()) {
-      toast.error("Full name is required");
-      return;
-    }
+  // Validation with optional chaining
+  if (!formData.fullName?.trim()) {
+    toast.error("Full name is required");
+    return;
+  }
 
-    if (isSaving) return;
+  if (isSaving) return;
 
-    setIsSaving(true);
-    try {
-      const response: ApiResponse = await adminAPI.updateUser(user._id, formData);
-      if (response.data.success && response.data.data) {
-        const updatedUser = response.data.data.data?.user;
+  setIsSaving(true);
+  try {
+    // Remove the ApiResponse type - let TypeScript infer it
+    const response = await adminAPI.updateUser(user._id, formData);
+    
+    console.log("Full API Response:", response);
+    
+    if (response.data.success) {
+      // Based on your API interface, the user data is at:
+      // response.data.data?.user (NOT response.data.user)
+      const updatedUser = response.data.data?.user;
 
-        if (updatedUser) {
-          onUserUpdated(updatedUser);
-          toast.success("User updated successfully!");
-          setEditingMode(false);
-        } else {
-          throw new Error("User data not found in response");
-        }
+      if (updatedUser) {
+        onUserUpdated(updatedUser);
+        toast.success("User updated successfully!");
+        setEditingMode(false);
       } else {
-        throw new Error(response.data.message || "Failed to update user");
+        throw new Error("User data not found in response");
       }
-    } catch (err: unknown) {
-      console.error("Error updating user:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to update user";
-      toast.error(errorMessage);
-    } finally {
-      setIsSaving(false);
+    } else {
+      throw new Error(response.data.message || "Failed to update user");
     }
-  };
-
+  } catch (err: unknown) {
+    console.error("Error updating user:", err);
+    const errorMessage = err instanceof Error ? err.message : "Failed to update user";
+    toast.error(errorMessage);
+  } finally {
+    setIsSaving(false);
+  }
+};
   const getFieldValue = (field: keyof FormData): string => {
     return formData[field];
   };
@@ -137,12 +130,21 @@ export const UserModal: React.FC<UserModalProps> = ({
     return value ?? "—";
   };
 
-  // Helper function for non-string fields
+  // Helper function for non-string fields with null checks
   const getWalletBalance = (): string => {
-    return `₹${user.wallet.balance.toFixed(2)}`;
+    // Check if wallet exists and has balance
+    if (!user.wallet) {
+      return "₹0.00";
+    }
+    
+    const balance = user.wallet.balance ?? 0;
+    return `₹${balance.toFixed(2)}`;
   };
 
   const getRegistrationDate = (): string => {
+    if (!user.createdAt) {
+      return "—";
+    }
     return new Date(user.createdAt).toLocaleDateString();
   };
 
@@ -178,7 +180,7 @@ export const UserModal: React.FC<UserModalProps> = ({
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-2">
                 <span className="text-gray-600 text-xl font-medium">
-                  {user.fullName.charAt(0)}
+                  {user.fullName?.charAt(0) || "U"}
                 </span>
               </div>
 
@@ -191,7 +193,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                   className="text-lg font-medium border-b border-gray-300 focus:outline-none focus:border-blue-500 text-center px-2 py-1"
                 />
               ) : (
-                <h3 className="text-lg font-medium">{user.fullName}</h3>
+                <h3 className="text-lg font-medium">{user.fullName || "Unknown User"}</h3>
               )}
 
               <div className="flex items-center mt-1 space-x-2">
@@ -218,7 +220,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                         : "bg-gray-100 text-gray-600"
                     }`}
                   >
-                    {user.status}
+                    {user.status || "Unknown"}
                   </span>
                 )}
 

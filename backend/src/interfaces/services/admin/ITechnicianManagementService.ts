@@ -1,39 +1,30 @@
-import {
-  TechnicianListResponse,
-  SingleTechnicianResponse,
-  ApplicationListResponse,
-  TechnicianStatsResponse,
-  ApplicationStatsResponse,
-  UpdateStatusRequest,
-  RejectApplicationRequest,
-  TechnicianFilters,
-  ApplicationFilters,
-} from "../../admin/ITechnicianManagement";
+import { ApplicationFiltersDto, ApplicationListResponseDto, ApplicationStatsResponseDto, RejectApplicationRequestDto, SingleTechnicianResponseDto, TechnicianFiltersDto, TechnicianListResponseDto, TechnicianStatsResponseDto, UpdateStatusRequestDto } from "@/interfaces/dtos/technicianDtos";
+
 
 export interface ITechnicianManagementService {
   // Technician methods
   getAllTechnicians(
-    filters: TechnicianFilters
-  ): Promise<TechnicianListResponse>;
-  getTechnicianById(id: string): Promise<SingleTechnicianResponse>;
+    filters: TechnicianFiltersDto
+  ): Promise<TechnicianListResponseDto>;
+  getTechnicianById(id: string): Promise<SingleTechnicianResponseDto>;
   updateTechnicianStatus(
     id: string,
-    statusData: UpdateStatusRequest
-  ): Promise<SingleTechnicianResponse>;
-  getTechnicianStats(): Promise<TechnicianStatsResponse>;
+    statusData: UpdateStatusRequestDto
+  ): Promise<SingleTechnicianResponseDto>;
+  getTechnicianStats(): Promise<TechnicianStatsResponseDto>;
   getTechnicianByApplicationId(
     applicationId: string
-  ): Promise<TechnicianListResponse>;
+  ): Promise<TechnicianListResponseDto>;
 
   // Application methods
   getPendingApplications(
-    filters: ApplicationFilters
-  ): Promise<ApplicationListResponse>;
-  approveApplication(id: string): Promise<ApplicationListResponse>;
+    filters: ApplicationFiltersDto
+  ): Promise<ApplicationListResponseDto>;
+  approveApplication(id: string): Promise<ApplicationListResponseDto>;
   rejectApplication(
     id: string,
-    rejectData: RejectApplicationRequest
-  ): Promise<ApplicationListResponse>;
-  getApplicationById(id: string): Promise<ApplicationListResponse>;
-  getApplicationStats(): Promise<ApplicationStatsResponse>;
+    rejectData: RejectApplicationRequestDto
+  ): Promise<ApplicationListResponseDto>;
+  getApplicationById(id: string): Promise<ApplicationListResponseDto>;
+  getApplicationStats(): Promise<ApplicationStatsResponseDto>;
 }
