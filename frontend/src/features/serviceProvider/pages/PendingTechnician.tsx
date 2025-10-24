@@ -258,6 +258,62 @@ const PendingTechnicianApplication: React.FC = () => {
     }
   }, [accessToken, isLoggedIn, navigate]);
 
+ const handleEditApplication = () => {
+  console.log("🔍 handleEditApplication - STARTING");
+  
+  if (!applicationData?._id) {
+    toast.error("Application ID not found");
+    return;
+  }
+
+  // 🚨 ONLY clear application-related data, NOT authentication data
+  const authData = {
+    accessToken: localStorage.getItem("accessToken"),
+    refreshToken: localStorage.getItem("refreshToken"),
+    user: localStorage.getItem("user"),
+    isLoggedIn: localStorage.getItem("isLoggedIn"),
+  };
+
+  // Clear only application data
+  localStorage.removeItem("applicationId");
+  localStorage.removeItem("currentTechnicianApplication");
+  localStorage.removeItem("technicianApplicationData");
+  localStorage.removeItem("isEditMode");
+  
+  if (user?._id) {
+    localStorage.removeItem(`techApp-${user._id}`);
+    localStorage.removeItem(`techApp-step-${user._id}`);
+    localStorage.removeItem(`techApp-applicationId-${user._id}`);
+    localStorage.removeItem(`techApp-timestamp-${user._id}`);
+  }
+
+  // Restore authentication data
+  if (authData.accessToken) localStorage.setItem("accessToken", authData.accessToken);
+  if (authData.refreshToken) localStorage.setItem("refreshToken", authData.refreshToken);
+  if (authData.user) localStorage.setItem("user", authData.user);
+  if (authData.isLoggedIn) localStorage.setItem("isLoggedIn", authData.isLoggedIn);
+
+  // Set edit mode and application ID
+  localStorage.setItem("applicationId", applicationData._id);
+  localStorage.setItem("isEditMode", "true");
+  
+  console.log("🔍 Navigating to edit application");
+  
+  // Use a small timeout to ensure the state is properly set
+  setTimeout(() => {
+    window.location.href = "/technicians/apply";
+  }, 100);
+};
+
+// Add this debug useEffect to your PendingTechnicianApplication component
+useEffect(() => {
+  console.log("🔍 PendingTechnicianApplication mounted");
+  console.log("🔍 Current application status:", applicationData?.status);
+  console.log("🔍 Current path:", window.location.pathname);
+}, [applicationData?.status]);
+
+// Also check if you have any other useEffects that might redirect
+
   // Function to get all available documents dynamically
   const getAvailableDocuments = (): AvailableDocument[] => {
     if (!applicationData?.documents) return [];
@@ -849,8 +905,8 @@ const PendingTechnicianApplication: React.FC = () => {
               </div>
               {applicationData.status !== "rejected" && (
                 <button
-                  onClick={() => (window.location.href = "/technician/profile")}
-                  className="text-blue-500 flex items-center text-sm font-medium"
+                  onClick={handleEditApplication}
+                  className="text-blue-500 flex items-center text-sm font-medium cursor-pointer hover:text-blue-700"
                 >
                   <EditOutlined className="w-4 h-4 mr-1" />
                   Edit Application
@@ -1143,21 +1199,6 @@ const PendingTechnicianApplication: React.FC = () => {
             </div>
           )}
 
-          {/* Update Documents */}
-          {applicationData.status !== "rejected" && (
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h2 className="font-medium mb-3">Update Documents</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Need to update or add missing documents? You can do that here.
-              </p>
-              <button
-                onClick={() => (window.location.href = "/technician/apply")}
-                className="w-full flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <span className="text-sm font-medium">Manage Documents</span>
-              </button>
-            </div>
-          )}
 
           {/* Need Help */}
           <div className="bg-white rounded-lg shadow-sm p-4">

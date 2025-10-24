@@ -76,5 +76,10 @@ router.post(
   protect,
   technicianApplicationController.startNewAfterRejection
 );
+router.get(
+  "/:applicationId/edit",
+  protect,
+  technicianApplicationController.getApplicationForEdit
+);
 
 export default router;

@@ -414,6 +414,49 @@ export const technicianAPI = {
     }
   },
 
+getApplicationForEdit: async (applicationId: string) => {
+  try {
+    console.log('🔍 getApplicationForEdit called with ID:', applicationId);
+    console.log('🔍 Route being called:', TECHNICIAN_ROUTES.APPLICATION.EDIT(applicationId));
+    
+    // First try the edit endpoint
+    try {
+      const response = await api.get<{
+        success: boolean;
+        message: string;
+        data: { application: ApplicationData };
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.APPLICATION.EDIT(applicationId)); 
+      console.log('🔍 getApplicationForEdit response:', response.data);
+      return normalizeResponse(response);
+    } catch (editError: any) {
+      console.log('❌ Edit endpoint failed, falling back to regular endpoint:', editError.message);
+      
+      // Fallback to regular getApplication endpoint
+      const fallbackResponse = await api.get<{
+        success: boolean;
+        message: string;
+        data: { application: ApplicationData };
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.APPLICATION.BY_ID(applicationId));
+      
+      console.log('🔍 Fallback response:', fallbackResponse.data);
+      return normalizeResponse(fallbackResponse);
+    }
+  } catch (error: any) {
+    console.error('❌ Both endpoints failed:', error);
+    if (error.response?.data) {
+      return normalizeResponse(error.response.data);
+    }
+    return {
+      success: false,
+      message: error.message || "Failed to get application for editing",
+      error: "Network error",
+      data: null,
+      statusCode: 500,
+    };
+  }
+},
   // technician profile
   uploadPhoto: async (formData: FormData) => {
     try {

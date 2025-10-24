@@ -933,7 +933,7 @@ export class AuthService implements IAuthService {
     };
 
     return jwt.sign(payload, jwtSecret, {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "15m",
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1h",
     } as jwt.SignOptions);
   }
 

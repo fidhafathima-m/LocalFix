@@ -25,6 +25,9 @@ import {
   updateUser,
 } from "../../../store/slices/authSlice";
 import { TechnicianApplicationService } from "../../../services/technician/technicianApplicationService";
+import type { ApplicationData } from "../../../store/slices/technicianSlice";
+import { EditOffOutlined } from "@mui/icons-material";
+import Swal from "sweetalert2"
 
 const STEPS = [
   "Personal Information",
@@ -152,7 +155,7 @@ interface FileMetadata {
 
 export const ApplicationForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps] = useState<number[]>([]);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -163,6 +166,9 @@ export const ApplicationForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasRestoredFromLocalStorage, setHasRestoredFromLocalStorage] =
     useState(false);
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [existingApplicationData, setExistingApplicationData] = useState<ApplicationData | null>(null);
 
   // File related
   const [, setPreview] = useState<string | null>(null);
@@ -250,6 +256,267 @@ export const ApplicationForm: React.FC = () => {
     // Step 7: Agreement & Consent
     agreement: false,
   });
+
+   useEffect(() => {
+    console.log("🚨 REDIRECT BLOCKER ACTIVATED");
+
+    // Create a global flag to block redirects
+    (window as any).__BLOCK_REDIRECTS__ = true;
+    
+    // Store original functions
+    const originalFetch = window.fetch;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const originalXMLHttpRequest = window.XMLHttpRequest;
+    
+    // Intercept fetch requests that might cause redirects
+    window.fetch = function(...args) {
+      const url = args[0];
+      if (typeof url === 'string' && (
+        url.includes('/pending-technician/dashboard') || 
+        url.includes('/technician/dashboard')
+      )) {
+        console.log("🚨 BLOCKED FETCH REDIRECT:", url);
+        return Promise.reject(new Error("Redirect blocked"));
+      }
+      return originalFetch.apply(this, args);
+    };
+
+    return () => {
+      // Restore when component unmounts
+      window.fetch = originalFetch;
+      (window as any).__BLOCK_REDIRECTS__ = false;
+    };
+  }, []);
+  
+  // 🚨 COMPLETELY DISABLE THE REDIRECT USEFFECT
+  useEffect(() => {
+    console.log("🚨 MAIN REDIRECT LOGIC DISABLED");
+    // This useEffect intentionally does nothing to prevent redirects
+  }, [user?._id, accessToken, hasRestoredFromLocalStorage, user?.applicationStatus]);
+
+  // 🚨 ADD THIS TO CATCH ANY REDIRECT ATTEMPTS
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if ((window as any).__BLOCK_REDIRECTS__) {
+        console.log("🚨 Blocking page unload/navigation");
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // Add this useEffect for debugging
+useEffect(() => {
+  console.log('ApplicationForm State:', {
+    isEditMode,
+    applicationId,
+    existingApplicationData: existingApplicationData ? {
+      id: existingApplicationData._id,
+      status: existingApplicationData.status,
+      stepsCompleted: existingApplicationData.stepsCompleted
+    } : null,
+    hasRestoredFromLocalStorage
+  });
+}, [isEditMode, applicationId, existingApplicationData, hasRestoredFromLocalStorage]);
+
+  useEffect(() => {
+  if (existingApplicationData?.stepsCompleted) {
+    const completedStepIndexes = existingApplicationData.stepsCompleted
+      .map(step => STEPS.indexOf(step))
+      .filter(index => index !== -1);
+    setCompletedSteps(completedStepIndexes);
+  }
+}, [existingApplicationData]);
+
+  // Replace the existing checkEditMode useEffect with this:
+useEffect(() => {
+  const checkEditMode = async () => {
+  const currentPath = window.location.pathname;
+  const isEditPath = currentPath.includes('/technicians/apply');
+  
+  // Get application ID from localStorage or URL
+  let appId = applicationId;
+  if (!appId) {
+    appId = localStorage.getItem("applicationId");
+    if (appId) setApplicationId(appId);
+  }
+  
+  if (isEditPath && appId) {
+    try {
+      setIsEditMode(true);
+      console.log('🔍 Edit mode detected, loading application:', appId);
+
+      // Clear any existing form data first
+      localStorage.removeItem("currentTechnicianApplication");
+      
+      // Use the getApplicationForEdit service
+      const response = await TechnicianApplicationService.getApplicationForEdit(appId);
+      
+      console.log('🔍 Edit mode response:', response);
+      
+      if (response.success) {
+        // Handle different response structures
+        const appData = response.data?.application || response.data?.data?.application || response.data;
+        
+        if (appData) {
+          setExistingApplicationData(appData);
+          populateFormWithExistingData(appData);
+        } else {
+          console.error('❌ No application data in response');
+          toast.error('No application data found');
+        }
+      } else {
+        console.error('❌ Failed to load application for editing:', response.message);
+        toast.error(response.message || 'Failed to load application data');
+        
+        // Fallback to regular getApplication if edit endpoint fails
+        console.log('🔄 Trying fallback to regular getApplication...');
+        const fallbackResponse = await TechnicianApplicationService.getApplication(appId);
+        if (fallbackResponse.success) {
+          const fallbackData = fallbackResponse.data?.application || fallbackResponse.data?.data?.application;
+          setExistingApplicationData(fallbackData);
+          populateFormWithExistingData(fallbackData);
+          console.log('✅ Fallback successful');
+        } else {
+          console.error('❌ Fallback also failed');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error loading application for editing:', error);
+      toast.error('Failed to load application data for editing');
+    }
+  }
+};
+
+  checkEditMode();
+}, [applicationId]);
+
+// Add this useEffect to clean up edit mode flags
+useEffect(() => {
+  return () => {
+    // Clean up edit mode flags when component unmounts
+    localStorage.removeItem("isEditMode");
+  };
+}, []);
+
+// Function to populate form with existing data
+ // Replace your current populateFormWithExistingData function with this:
+const populateFormWithExistingData = (appData: ApplicationData) => {
+  if (!appData) {
+    console.error('No application data provided for population');
+    return;
+  }
+
+  console.log('🔍 DEBUG - Raw application data:', appData);
+  console.log('🔍 DEBUG - Identity data:', appData.identity);
+  console.log('🔍 DEBUG - Skills data:', appData.skills);
+  console.log('🔍 DEBUG - Availability data:', appData.availability);
+
+  try {
+    // Parse availability data safely
+    let availabilityData = formData.availability; // Start with default
+    if (appData.availability) {
+      try {
+        if (typeof appData.availability === 'string') {
+          availabilityData = JSON.parse(appData.availability);
+        } else {
+          availabilityData = {
+            ...formData.availability, // Start with default structure
+            ...appData.availability // Override with actual data
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing availability:', error);
+        availabilityData = formData.availability; // Fallback to default
+      }
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      // Personal Information
+      fullName: appData.personal?.fullName || '',
+      phoneNumber: appData.personal?.phoneNumber || appData.phone || '',
+      email: appData.personal?.email || user?.email || '',
+      dateOfBirth: appData.personal?.dateOfBirth || '',
+      gender: appData.personal?.gender || '',
+      
+      // Identity & Verification - FIXED
+      idType: appData.identity?.idType || '',
+      idNumber: appData.identity?.idNumber || '',
+      address: {
+        street: appData.identity?.address?.street || '',
+        city: appData.identity?.address?.city || '',
+        state: appData.identity?.address?.state || '',
+        pincode: appData.identity?.address?.pincode || '',
+        landmark: appData.identity?.address?.landmark || '',
+      },
+      location: appData.identity?.location || prev.location,
+      
+      // Skills & Services - FIXED yearsOfExperience
+      services: appData.skills?.services || [],
+      yearsOfExperience: appData.skills?.yearsOfExperience?.toString() || '',
+      languages: appData.skills?.languages || [],
+      bio: appData.skills?.bio || '',
+      
+      // Availability & Work Preferences - FIXED
+      serviceAreas: appData.availability?.serviceAreas || [],
+      workRadius: appData.availability?.workRadius?.toString() || '',
+      availability: availabilityData,
+      
+      // Banking Details
+      accountHolderName: appData.bank?.accountHolderName || '',
+      accountNumber: appData.bank?.accountNumber || '',
+      ifscCode: appData.bank?.ifscCode || '',
+      upiId: appData.bank?.upiId || '',
+      bankName: appData.bank?.bankName || '',
+      
+      // Agreement
+      agreement: appData.agreement || false,
+    }));
+
+    // Handle documents separately
+    const documentMetadata = convertDocumentsToFileMetadata(appData.documents);
+    setFormData(prev => ({
+      ...prev,
+      ...documentMetadata,
+    }));
+
+    console.log('Form populated successfully');
+  } catch (error) {
+    console.error('Error populating form data:', error);
+    toast.error('Error loading application data');
+  }
+};
+
+// Helper function to handle document conversion
+const convertDocumentsToFileMetadata = (documents: Record<string, any> = {}) => {
+  const fileMetadata: any = {};
+  
+  Object.entries(documents).forEach(([key, doc]) => {
+    if (doc.url && !doc.uploadFailed) {
+      fileMetadata[key] = {
+        _isFile: true,
+        name: doc.filename || `Uploaded ${key}`,
+        size: doc.size || 0,
+        type: doc.mimetype || 'application/octet-stream',
+        lastModified: doc.uploadedAt ? new Date(doc.uploadedAt).getTime() : Date.now(),
+        uploadedAt: doc.uploadedAt,
+        _fromBackend: true,
+        url: doc.url,
+        verified: doc.verified || false,
+      };
+    }
+  });
+  
+  return fileMetadata;
+};
 
   const fetchDocumentStatus = async (appId: string) => {
     if (!appId) return null;
@@ -444,66 +711,79 @@ export const ApplicationForm: React.FC = () => {
   }, [formData, currentStep, user?._id, applicationId]);
 
   const startApplication = async (): Promise<string | null> => {
-    if (!user?._id) {
-      toast.error("Please log in to start application");
-      return null;
-    }
+  if (!user?._id) {
+    toast.error("Please log in to start application");
+    return null;
+  }
 
-    // Check if we already have a restored application
-    if (hasRestoredFromLocalStorage && applicationId) {
-      return applicationId;
-    }
+  console.log('🔍 startApplication called - Debug Info:');
+  console.log('User ID:', user?._id);
+  console.log('Current path:', window.location.pathname);
+  console.log('Is edit mode:', localStorage.getItem("isEditMode"));
+  console.log('Application ID:', applicationId);
+  console.log('Has restored from localStorage:', hasRestoredFromLocalStorage);
 
-    try {
-      const response = await TechnicianApplicationService.startApplication({
-        email: user.email!,
-        userId: user._id,
-      });
+  const isEditMode = localStorage.getItem("isEditMode") === "true";
+  const savedAppId = localStorage.getItem("applicationId");
+  
+    // If we're in edit mode and have an application ID, use it directly
+  if (isEditMode && savedAppId) {
+    console.log('Edit mode: Using existing application ID', savedAppId);
+    setApplicationId(savedAppId);
+    
+    // Clear the edit mode flag after using it
+    localStorage.removeItem("isEditMode");
+    return savedAppId;
+  }
+  // Check if we already have a restored application
+  if (hasRestoredFromLocalStorage && applicationId) {
+    return applicationId;
+  }
 
-      if (response.success) {
-        const applicationData = response.data || response;
-        const newApplicationId =
-          applicationData.applicationId || applicationData.data?.applicationId;
-        const redirectTo =
-          applicationData.redirectTo || applicationData.data?.redirectTo;
+  // Only call startApplication for brand new applications
+  try {
+    const response = await TechnicianApplicationService.startApplication({
+      email: user.email!,
+      userId: user._id,
+    });
 
-        if (redirectTo) {
-          const currentPath = window.location.pathname;
-          if (!currentPath.includes(redirectTo)) {
-            window.location.href = redirectTo;
-          }
-          return null;
-        }
-
-        if (newApplicationId) {
-          setApplicationId(newApplicationId);
-          localStorage.setItem("applicationId", newApplicationId);
-          localStorage.setItem("currentTechnicianApplication", user._id);
-          localStorage.setItem(
-            `techApp-applicationId-${user._id}`,
-            newApplicationId
-          );
-
-          return newApplicationId;
-        } else {
-          console.error("No application ID in response:", response);
-          toast.error("Failed to get application ID from server");
-          return null;
-        }
-      } else {
-        console.error("API returned failure:", response);
+    if (response.success) {
+      const currentPath = window.location.pathname;
+      const isEditPath = currentPath.includes('/technicians/apply');
+      if (response.data?.redirectTo && !isEditPath) {
+        console.log('Redirecting to:', response.data.redirectTo);
+        window.location.href = response.data.redirectTo;
         return null;
       }
-    } catch (err: unknown) {
-      console.error("Start application error:", err);
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        toast.error("Session expired. Please log in again.");
-        localStorage.removeItem("auth");
-        window.location.href = "/login";
+      
+      
+      const newApplicationId = response.data?.applicationId;
+      if (newApplicationId) {
+        setApplicationId(newApplicationId);
+        localStorage.setItem("applicationId", newApplicationId);
+        localStorage.setItem("currentTechnicianApplication", user._id);
+        localStorage.setItem(
+          `techApp-applicationId-${user._id}`,
+          newApplicationId
+        );
+        return newApplicationId;
       }
+    } else {
+      console.error("API returned failure:", response);
       return null;
     }
-  };
+  } catch (err: unknown) {
+    console.error("Start application error:", err);
+    if (axios.isAxiosError(err) && err.response?.status === 401) {
+      toast.error("Session expired. Please log in again.");
+      localStorage.removeItem("auth");
+      window.location.href = "/login";
+    }
+    return null;
+  }
+  
+  return null;
+};
 
   // Load existing application ID from localStorage
   useEffect(() => {
@@ -525,103 +805,126 @@ export const ApplicationForm: React.FC = () => {
   }, [applicationId, user?._id]);
 
   // Check existing application status
-  useEffect(() => {
-    const checkExistingApplication = async () => {
-      const currentPath = window.location.pathname;
-      if (currentPath.includes("/pending-technician")) {
-        return;
-      }
-      if (hasRestoredFromLocalStorage) {
+  // Check existing application status
+useEffect(() => {
+  const checkExistingApplication = async () => {
+    console.log("🔍 checkExistingApplication running");
+
+    if (window.location.pathname === '/technicians/apply') {
+      console.log("🚨 ON APPLY PAGE - BLOCKING ALL REDIRECT LOGIC");
+      return;
+    }
+    
+    const currentPath = window.location.pathname;
+    const isEditMode = localStorage.getItem("isEditMode") === "true";
+    
+    // CRITICAL FIX: If we're in edit mode, skip ALL redirects
+    if (isEditMode) {
+      console.log("🔍 Edit mode detected - SKIPPING ALL REDIRECTS");
+      localStorage.removeItem("isEditMode"); // Clear the flag
+      return;
+    }
+
+    if (currentPath.includes("/pending-technician")) {
+      return;
+    }
+    if (hasRestoredFromLocalStorage) {
+      return;
+    }
+
+    // Don't redirect based on user application status when trying to edit
+    if (
+      user?.applicationStatus === "submitted" ||
+      user?.applicationStatus === "under_review"
+    ) {
+      console.log("🔍 User has submitted/under_review application - redirecting to pending dashboard");
+      clearLocalApplicationData();
+      window.location.replace("/pending-technician/dashboard");
+      return;
+    }
+
+    if (user?.applicationStatus === "approved") {
+      console.log("🔍 User has approved application - redirecting to technician dashboard");
+      clearLocalApplicationData();
+      window.location.replace("/technician/dashboard");
+      return;
+    }
+
+    const savedAppId = localStorage.getItem("applicationId");
+
+    if (savedAppId) {
+      const applicationUser = localStorage.getItem(
+        "currentTechnicianApplication"
+      );
+
+      if (applicationUser !== user?._id) {
+        localStorage.removeItem("applicationId");
+        localStorage.removeItem("currentTechnicianApplication");
+        if (user?._id) {
+          localStorage.removeItem(`techApp-${user._id}`);
+          localStorage.removeItem(`techApp-step-${user._id}`);
+          localStorage.removeItem(`techApp-applicationId-${user._id}`);
+          localStorage.removeItem(`techApp-timestamp-${user._id}`);
+        }
+        setApplicationId(null);
         return;
       }
 
-      if (
-        user?.applicationStatus === "submitted" ||
-        user?.applicationStatus === "under_review"
-      ) {
-        clearLocalApplicationData();
-        window.location.replace("/pending-technician/dashboard");
-        return;
-      }
+      setApplicationId(savedAppId);
 
-      if (user?.applicationStatus === "approved") {
-        clearLocalApplicationData();
-        window.location.replace("/technician/dashboard");
-        return;
-      }
-
-      const savedAppId = localStorage.getItem("applicationId");
-
-      if (savedAppId) {
-        const applicationUser = localStorage.getItem(
-          "currentTechnicianApplication"
+      try {
+        const response = await TechnicianApplicationService.getApplication(
+          savedAppId
         );
 
-        if (applicationUser !== user?._id) {
-          localStorage.removeItem("applicationId");
-          localStorage.removeItem("currentTechnicianApplication");
-          if (user?._id) {
-            localStorage.removeItem(`techApp-${user._id}`);
-            localStorage.removeItem(`techApp-step-${user._id}`);
-            localStorage.removeItem(`techApp-applicationId-${user._id}`);
-            localStorage.removeItem(`techApp-timestamp-${user._id}`);
-          }
-          setApplicationId(null);
-          return;
-        }
+        if (response.success) {
+          const applicationData =
+            response.data?.application || response.application;
 
-        setApplicationId(savedAppId);
+          if (applicationData) {
+            const appStatus = applicationData.status;
+            setApplicationStatus(appStatus);
 
-        try {
-          const response = await TechnicianApplicationService.getApplication(
-            savedAppId
-          );
+            const currentPath = window.location.pathname;
 
-          if (response.success) {
-            const applicationData =
-              response.data?.application || response.application;
+            // Don't redirect if we're explicitly on the apply page
+            if (
+              (appStatus === "submitted" || appStatus === "under_review") &&
+              !currentPath.includes("/pending-technician") &&
+              !currentPath.includes("/technicians/apply")
+            ) {
+              console.log("🔍 Application is submitted/under_review - redirecting to pending dashboard");
+              clearLocalApplicationData();
+              window.location.replace("/pending-technician/dashboard");
+              return;
+            }
 
-            if (applicationData) {
-              const appStatus = applicationData.status;
-              setApplicationStatus(appStatus);
-
-              const currentPath = window.location.pathname;
-
-              if (
-                (appStatus === "submitted" || appStatus === "under_review") &&
-                !currentPath.includes("/pending-technician")
-              ) {
-                clearLocalApplicationData();
-                window.location.replace("/pending-technician/dashboard");
-                return;
-              }
-
-              if (
-                appStatus === "approved" &&
-                !currentPath.includes("/technician/dashboard")
-              ) {
-                clearLocalApplicationData();
-                window.location.replace("/technician/dashboard");
-                return;
-              }
+            if (
+              appStatus === "approved" &&
+              !currentPath.includes("/technician/dashboard")
+            ) {
+              console.log("🔍 Application is approved - redirecting to technician dashboard");
+              clearLocalApplicationData();
+              window.location.replace("/technician/dashboard");
+              return;
             }
           }
-        } catch (error) {
-          console.error("Error checking application status:", error);
         }
+      } catch (error) {
+        console.error("Error checking application status:", error);
       }
-    };
-
-    if (user?._id && accessToken) {
-      checkExistingApplication();
     }
-  }, [
-    user?._id,
-    accessToken,
-    hasRestoredFromLocalStorage,
-    user?.applicationStatus,
-  ]);
+  };
 
+  if (user?._id && accessToken) {
+    checkExistingApplication();
+  }
+}, [
+  user?._id,
+  accessToken,
+  hasRestoredFromLocalStorage,
+  user?.applicationStatus,
+]);
   // Fetch saved application from backend
   useEffect(() => {
     const fetchSavedApplication = async () => {
@@ -1203,8 +1506,157 @@ export const ApplicationForm: React.FC = () => {
     }
   };
 
+ const submitApplicationForReview = async () => {
+    // Use existingApplicationData instead of applicationData
+    if (!existingApplicationData || !applicationId) {
+      toast.error("Application not found");
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+
+       await updateSubmittedApplication();
+      
+      const response = await TechnicianApplicationService.resubmitApplication(applicationId);
+
+      if (response.success) {
+        toast.success('Application resubmitted successfully!');
+        // Redirect to pending dashboard
+        setTimeout(() => {
+          window.location.href = '/pending-technician/dashboard';
+        }, 1500);
+      } else {
+        toast.error(response.message || 'Failed to resubmit application');
+      }
+    } catch (error) {
+      console.error('Error resubmitting application:', error);
+      toast.error('Failed to resubmit application');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateSubmittedApplication = async () => {
+  if (!applicationId) {
+    toast.error("Application not found");
+    return;
+  }
+  
+  try {
+    setIsLoading(true);
+    
+    // First, save all the current form data as steps
+    for (let step = 1; step <= STEPS.length; step++) {
+      const stepName = STEPS[step - 1];
+      const stepForm = new FormData();
+      
+      stepForm.append("step", stepName);
+      stepForm.append("applicationId", applicationId);
+      
+      const currentStepFields = stepFields[stepName] || [];
+      
+      // Add all the form data for this step
+      currentStepFields.forEach((field) => {
+        let value = formData[field as keyof FormDataState];
+        if (value !== null && value !== undefined) {
+          if (value instanceof File) return; // Skip files for now
+          if (field === "agreement") {
+            stepForm.append(field, value ? "true" : "false");
+          } else if (
+            (field === "address" || field === "location") &&
+            typeof value === "object"
+          ) {
+            const addressString = JSON.stringify(value);
+            stepForm.append(field, addressString);
+          } else if (field === "availability" && typeof value === "object") {
+            value = JSON.stringify(value);
+            stepForm.append(field, value);
+          } else if (Array.isArray(value)) {
+            value = JSON.stringify(value);
+            stepForm.append(field, value);
+          } else {
+            stepForm.append(field, String(value));
+          }
+        }
+      });
+      
+      // Save the step
+      await TechnicianApplicationService.saveStep(stepForm);
+    }
+    
+    toast.success('Application updated successfully!');
+    
+    // Redirect back to pending dashboard
+    setTimeout(() => {
+      window.location.href = '/pending-technician/dashboard';
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error updating application:', error);
+    toast.error('Failed to update application');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   const handleSubmit = async () => {
     if (isLoading) return;
+
+    if (isEditMode) {
+    if (existingApplicationData?.status === 'rejected') {
+      // SweetAlert for resubmission of rejected applications
+      const result = await Swal.fire({
+        title: 'Resubmit Application?',
+        text: 'Are you ready to resubmit your application for review? Your changes will be saved and sent for verification.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, resubmit!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        customClass: {
+          confirmButton: 'swal2-confirm',
+          cancelButton: 'swal2-cancel'
+        }
+      });
+
+      if (result.isConfirmed) {
+        await submitApplicationForReview();
+      }
+      return;
+    } else if (existingApplicationData?.status === 'submitted' || existingApplicationData?.status === 'under_review') {
+      // SweetAlert for updating submitted applications
+      const result = await Swal.fire({
+        title: 'Update Application?',
+        html: `
+          <div class="text-left">
+            <p>Your application is <strong>${existingApplicationData.status.replace('_', ' ')}</strong>.</p>
+            <p>Do you want to update your information? The changes will be saved but your application status will remain the same.</p>
+          </div>
+        `,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, update!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        customClass: {
+          confirmButton: 'swal2-confirm',
+          cancelButton: 'swal2-cancel',
+          popup: 'custom-swal-popup'
+        }
+      });
+
+      if (result.isConfirmed) {
+        await updateSubmittedApplication();
+      }
+      return;
+    }
+  }
+  
 
     const currentToken = accessToken;
     if (!currentToken) {
@@ -2750,6 +3202,25 @@ export const ApplicationForm: React.FC = () => {
   };
   return (
     <div className="bg-white rounded-lg shadow-md p-8">
+      {isEditMode && (
+  <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+    <div className="flex items-center">
+      <EditOffOutlined className="w-5 h-5 text-yellow-600 mr-2" />
+      <p className="text-yellow-800 font-medium">Edit Mode</p>
+    </div>
+    <p className="text-sm text-yellow-700 mt-1">
+      You are editing your existing application. Changes will be saved automatically.
+      {existingApplicationData?.status === 'rejected' && (
+        <span className="font-semibold"> After making corrections, you can resubmit for review.</span>
+      )}
+    </p>
+    {existingApplicationData?.status && (
+      <p className="text-xs text-yellow-600 mt-1">
+        Current Status: <span className="font-medium">{existingApplicationData.status}</span>
+      </p>
+    )}
+  </div>
+)}
       {/* NEW: Add resume notification banner */}
       {hasRestoredFromLocalStorage && (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">

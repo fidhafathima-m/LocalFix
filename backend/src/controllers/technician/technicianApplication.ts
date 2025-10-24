@@ -200,4 +200,26 @@ export class TechnicianApplicationController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
+  getApplicationForEdit = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const { applicationId } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
+        return;
+      }
+
+      const result: ApplicationResponseDto = await this.applicationService.getApplicationForEdit(
+        applicationId,
+        userId
+      );
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Get application for edit controller error:", error);
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  };
 }

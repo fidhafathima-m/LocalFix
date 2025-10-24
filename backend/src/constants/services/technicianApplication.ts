@@ -15,6 +15,7 @@ export const TECH_APPLICATION_MESSAGES = {
   USER_APPLICATIONS_RETRIEVED: "User applications retrieved successfully",
   STEP_SAVED: "Step saved successfully",
   NEW_APPLICATION_STARTED: "New application started successfully",
+  EXISTING_APPLICATION_FOUND: "Existing application found",
 
   // Info messages
   APPLICATION_ALREADY_SUBMITTED: "Application already submitted",

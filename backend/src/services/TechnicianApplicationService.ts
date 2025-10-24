@@ -89,6 +89,8 @@ export class TechnicianApplicationService
   data: StartApplicationRequestDto
 ): Promise<ApplicationResponseDto> {
   try {
+    console.log('🔍 Service: startApplication called');
+  console.log('🔍 Service: is edit path?', window?.location?.pathname?.includes('/technicians/apply'));
     const { email, userId } = data;
 
     const user = await this.userRepository.findById(userId);
@@ -99,7 +101,30 @@ export class TechnicianApplicationService
     // Ensure the provided email matches the user's actual email
     if (user.email !== email) {
       return ResponseHelper.badRequest("Email must match your account email");
+
     }
+    
+      const currentPath = window?.location?.pathname || '';
+    const isEditPath = currentPath.includes('/technicians/apply');
+     if (isEditPath) {
+      const existingApplication = await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
+        APPLICATION_STATUS.DRAFT,
+        APPLICATION_STATUS.SUBMITTED,
+        APPLICATION_STATUS.UNDER_REVIEW,
+        APPLICATION_STATUS.REJECTED,
+      ]);
+
+      if (existingApplication) {
+        return ResponseHelper.success(
+          "Application loaded for editing",
+          {
+            applicationId: existingApplication._id.toString(),
+            redirectTo: null, // No redirect in edit mode
+          }
+        );
+      }
+    }
+
 
     const existingUserApplication = await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
       APPLICATION_STATUS.DRAFT,
@@ -110,20 +135,6 @@ export class TechnicianApplicationService
 
     if (existingUserApplication) {
       const appStatus = existingUserApplication.status;
-
-      // If application is submitted or under review, redirect to pending dashboard
-      if (
-        appStatus === APPLICATION_STATUS.SUBMITTED ||
-        appStatus === APPLICATION_STATUS.UNDER_REVIEW
-      ) {
-        return ResponseHelper.success(
-          TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_SUBMITTED,
-          {
-            applicationId: existingUserApplication._id.toString(),
-            redirectTo: REDIRECT_PATHS.PENDING_DASHBOARD,
-          }
-        );
-      }
 
       // If application is approved, redirect to technician dashboard
       if (appStatus === APPLICATION_STATUS.APPROVED) {
@@ -136,16 +147,13 @@ export class TechnicianApplicationService
         );
       }
 
-      // Allow DRAFT applications to be edited
-      if (appStatus === APPLICATION_STATUS.DRAFT) {
-        return ResponseHelper.success(
-          TECH_APPLICATION_MESSAGES.DRAFT_APPLICATION_FOUND,
-          {
-            applicationId: existingUserApplication._id.toString(),
-            redirectTo: null,
-          }
-        );
-      }
+      return ResponseHelper.success(
+        TECH_APPLICATION_MESSAGES.EXISTING_APPLICATION_FOUND,
+        {
+          applicationId: existingUserApplication._id.toString(),
+          redirectTo: null,
+        }
+      );
     }
 
     const existingEmailApplication = await this.applicationRepository.findByEmailAndStatus(email, [
@@ -198,7 +206,6 @@ export class TechnicianApplicationService
     );
   }
 }
-
   async saveStep(
   data: SaveStepRequestDto,
   files?: FilesCollectionDto
@@ -936,4 +943,51 @@ export class TechnicianApplicationService
       );
     }
   }
+
+async getApplicationForEdit(
+  applicationId: string,
+  userId?: string
+): Promise<ApplicationResponseDto> {
+  try {
+    const application = await this.applicationRepository.findById(applicationId);
+    if (!application) {
+      return ResponseHelper.notFound(
+        TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+      );
+    }
+
+    // Ownership validation
+    if (
+      !application.technicianId ||
+      application.technicianId.toString() !== userId
+    ) {
+      return ResponseHelper.forbidden(
+        TECH_APPLICATION_MESSAGES.ACCESS_DENIED
+      );
+    }
+
+    // Allow editing for these statuses
+    const allowedStatuses = [
+      APPLICATION_STATUS.DRAFT,
+      APPLICATION_STATUS.SUBMITTED,
+      APPLICATION_STATUS.UNDER_REVIEW,
+      APPLICATION_STATUS.REJECTED,
+    ];
+
+    const applicationDto = TechnicianApplicationMapper.toApplicationDataDto(application);
+
+    return ResponseHelper.success(
+      "Application loaded for editing",
+      {
+        application: applicationDto,
+      }
+    );
+  } catch (error: unknown) {
+    console.error("Get application for edit error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    return ResponseHelper.error(
+      "Failed to load application for editing"
+    );
+  }
+}
 }

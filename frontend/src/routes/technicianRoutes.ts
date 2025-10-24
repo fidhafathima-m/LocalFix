@@ -28,5 +28,7 @@ export const TECHNICIAN_ROUTES = {
       `/technician-application/${applicationId}/resubmit`,
     START_NEW_AFTER_REJECTION:
       "/technician-application/start-new-after-rejection",
+      EDIT: (applicationId: string) => 
+        `/technician-application/${applicationId}/edit`
   },
 } as const;
