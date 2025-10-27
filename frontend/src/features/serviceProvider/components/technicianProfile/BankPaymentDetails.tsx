@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
 import { type TechnicianProfile } from "../../../../services/common/technicianApi";
-import api from "../../../../utils/axiosConfig";
 import { TechnicianService } from "../../../../services/technician/technicianService";
+import toast from "react-hot-toast";
 
 interface BankAccount {
   holderName?: string;
@@ -21,6 +21,7 @@ const BankPaymentDetails = () => {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<PaymentDetailsData>({
     bankAccount: {
       holderName: "",
@@ -38,25 +39,25 @@ const BankPaymentDetails = () => {
 
   const fetchProfile = async () => {
     try {
-      console.log("🔍 VITE_BASE_URL from env:", import.meta.env.VITE_BASE_URL);
-      console.log("🔍 API instance defaults:", {
-        baseURL: api.defaults.baseURL,
-        fullURL: api.getUri({ url: "/technician/profile" }),
-      });
       setLoading(true);
+      setError(null);
 
       const response = await TechnicianService.getProfile();
 
       if (response.success) {
-        const profileData = response.data?.data?.profile;
+        const profileData =
+          response.data?.data?.profile || // Most common
+          response.data?.profile || // Alternative
+          response.data?.data || // Another alternative
+          response.data || // Fallback
+          response; // Last resort
 
-        // Populate payment details data
-        const paymentDetails =
-          profileData.paymentDetails || profileData.paymentDetails || {};
+        // ✅ FIX: Look in the correct locations based on your mapper
+        const paymentDetails = // Primary location
+          profileData.paymentDetails || // Backward compatibility
+          {};
+
         const bankAccount = paymentDetails.bankAccount || {};
-
-        console.log("Final payment details to set:", paymentDetails);
-        console.log("Final bank account to set:", bankAccount);
 
         setFormData({
           bankAccount: {
@@ -68,9 +69,15 @@ const BankPaymentDetails = () => {
           upiId: paymentDetails.upiId || "",
           withdrawalPreference: paymentDetails.withdrawalPreference || "auto",
         });
+
+        setProfile(profileData);
+      } else {
+        console.error("API response not successful:", response);
+        setError("Failed to load profile data");
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+      setError("Error loading payment details. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -103,20 +110,31 @@ const BankPaymentDetails = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
+      setError(null);
 
       // Validate required fields
       if (!formData.bankAccount.holderName?.trim()) {
-        alert("Please enter bank account holder name");
+        setError("Please enter bank account holder name");
         return;
       }
 
       if (!formData.bankAccount.accountNumber?.trim()) {
-        alert("Please enter account number");
+        setError("Please enter account number");
         return;
       }
 
       if (!formData.bankAccount.ifscCode?.trim()) {
-        alert("Please enter IFSC code");
+        setError("Please enter IFSC code");
+        return;
+      }
+
+      if (!validateIfscCode(formData.bankAccount.ifscCode)) {
+        setError("Please enter a valid IFSC code");
+        return;
+      }
+
+      if (formData.upiId && !validateUpiId(formData.upiId)) {
+        setError("Please enter a valid UPI ID");
         return;
       }
 
@@ -126,28 +144,47 @@ const BankPaymentDetails = () => {
             holderName: formData.bankAccount.holderName.trim(),
             accountNumber: formData.bankAccount.accountNumber.trim(),
             ifscCode: formData.bankAccount.ifscCode.trim().toUpperCase(),
-            bankName: formData.bankAccount.bankName?.trim(),
+            bankName: formData.bankAccount.bankName?.trim() || "",
           },
-          upiId: formData.upiId?.trim() || undefined,
+          upiId: formData.upiId?.trim() || "",
           withdrawalPreference: formData.withdrawalPreference,
         },
       };
 
       const response = await TechnicianService.updateBankPayment(updateData);
 
-      if (response.data.success) {
-        // Update local profile state
+      // ✅ FIX: Check the correct response structure
+      if (response.success) {
+        // Update local state
+        setFormData(updateData.paymentDetails);
+
         if (profile) {
           setProfile({
             ...profile,
             paymentDetails: updateData.paymentDetails,
           });
         }
-        alert("Bank and payment details updated successfully!");
+
+        setError(null);
+        toast.success("Bank and payment details updated successfully!");
+
+        // Refresh the data
+        await fetchProfile();
+      } else {
+        console.error("Save failed:", response);
+        toast.error(
+          response.message ||
+            "Failed to update payment details. Please try again."
+        );
+        setError(
+          response.message ||
+            "Failed to update payment details. Please try again."
+        );
       }
     } catch (error) {
       console.error("Error updating bank payment details:", error);
-      alert("Failed to update bank and payment details");
+      toast.error("Failed to update payment details. Please try again.");
+      setError("Failed to update payment details. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -155,7 +192,6 @@ const BankPaymentDetails = () => {
 
   const maskAccountNumber = (accountNumber: string) => {
     if (!accountNumber) return "";
-    // Show first 2 and last 4 characters, mask the rest
     const firstTwo = accountNumber.slice(0, 2);
     const lastFour = accountNumber.slice(-4);
     const maskedLength = accountNumber.length - 6;
@@ -180,6 +216,7 @@ const BankPaymentDetails = () => {
       <AccordionSection title="Bank & Payment Details" number={5}>
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <span className="ml-2 text-gray-600">Loading payment details...</span>
         </div>
       </AccordionSection>
     );
@@ -195,11 +232,18 @@ const BankPaymentDetails = () => {
   return (
     <AccordionSection title="Bank & Payment Details" number={5}>
       <div>
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Bank Account Holder Name */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Bank Account Holder Name
+              Bank Account Holder Name *
             </label>
             <input
               type="text"
@@ -210,17 +254,12 @@ const BankPaymentDetails = () => {
               placeholder="Enter account holder name as per bank records"
               className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            {!formData.bankAccount.holderName?.trim() && (
-              <p className="text-xs text-red-500 mt-1">
-                This field is required
-              </p>
-            )}
           </div>
 
           {/* Account Number */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Account Number
+              Account Number *
             </label>
             <div className="relative">
               <input
@@ -244,20 +283,16 @@ const BankPaymentDetails = () => {
                 </div>
               )}
             </div>
-            {!formData.bankAccount.accountNumber?.trim() ? (
-              <p className="text-xs text-red-500 mt-1">
-                This field is required
-              </p>
-            ) : (
-              <p className="text-xs text-gray-500 mt-1">
-                Numbers only, no spaces or special characters
-              </p>
-            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Numbers only, no spaces or special characters
+            </p>
           </div>
 
           {/* IFSC Code */}
           <div>
-            <label className="block text-sm font-medium mb-1">IFSC Code</label>
+            <label className="block text-sm font-medium mb-1">
+              IFSC Code *
+            </label>
             <input
               type="text"
               value={formData.bankAccount.ifscCode}
@@ -276,19 +311,26 @@ const BankPaymentDetails = () => {
               }`}
               maxLength={11}
             />
-            {!formData.bankAccount.ifscCode?.trim() ? (
-              <p className="text-xs text-red-500 mt-1">
-                This field is required
-              </p>
-            ) : !validateIfscCode(formData.bankAccount.ifscCode) ? (
-              <p className="text-xs text-red-500 mt-1">
-                Please enter a valid IFSC code
-              </p>
-            ) : (
-              <p className="text-xs text-green-500 mt-1">
-                ✓ Valid IFSC code format
-              </p>
-            )}
+            {formData.bankAccount.ifscCode &&
+              !validateIfscCode(formData.bankAccount.ifscCode) && (
+                <p className="text-xs text-red-500 mt-1">
+                  Please enter a valid IFSC code (e.g., SBIN0000123)
+                </p>
+              )}
+          </div>
+
+          {/* Bank Name */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Bank Name</label>
+            <input
+              type="text"
+              value={formData.bankAccount.bankName}
+              onChange={(e) =>
+                handleBankAccountChange("bankName", e.target.value)
+              }
+              placeholder="Enter bank name"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
 
           {/* UPI ID */}
@@ -309,7 +351,7 @@ const BankPaymentDetails = () => {
             />
             {formData.upiId && !validateUpiId(formData.upiId) && (
               <p className="text-xs text-red-500 mt-1">
-                Please enter a valid UPI ID
+                Please enter a valid UPI ID (e.g., username@paytm)
               </p>
             )}
             <p className="text-xs text-gray-500 mt-1">
@@ -357,25 +399,6 @@ const BankPaymentDetails = () => {
               </label>
             </div>
           </div>
-        </div>
-
-        {/* Security Note */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="text-sm font-medium text-blue-800 mb-2">
-            Security Information
-          </h4>
-          <ul className="text-xs text-blue-700 space-y-1">
-            <li>• Your bank details are encrypted and stored securely</li>
-            <li>
-              • We never store your full account number in readable format
-            </li>
-            <li>
-              • Only authorized personnel can view your payment information
-            </li>
-            <li>
-              • You will receive email confirmation for any payment updates
-            </li>
-          </ul>
         </div>
 
         {/* Save Button */}

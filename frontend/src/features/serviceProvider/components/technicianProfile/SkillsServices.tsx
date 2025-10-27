@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
 import { type TechnicianProfile } from "../../../../services/common/technicianApi";
 import { TechnicianService } from "../../../../services/technician/technicianService";
+import toast from "react-hot-toast";
 
 interface Service {
   id: string;
@@ -48,8 +49,12 @@ const SkillsServices = () => {
     try {
       setLoading(true);
       const response = await TechnicianService.getProfile();
+
       if (response.success) {
-        const profileData = response.data?.data?.profile;
+        const profileData =
+          response.data?.data?.profile ||
+          response.data?.profile ||
+          response.data?.data;
         setProfile(profileData);
 
         // Populate skills and services data
@@ -65,6 +70,7 @@ const SkillsServices = () => {
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+      toast.error("Failed to load profile data");
     } finally {
       setLoading(false);
     }
@@ -100,14 +106,17 @@ const SkillsServices = () => {
 
       const updateData = {
         services: formData.services,
-        experienceYears: formData.experienceYears || 0, // Ensure it's always a number
+        experienceYears: formData.experienceYears || 0,
         skills: formData.skills,
         certifications: formData.certifications,
       };
 
       const response = await TechnicianService.updateSkillsServices(updateData);
 
-      if (response.data.success) {
+      // ✅ FIXED: Proper response success checking
+      const isSuccess = response.success || response.data?.success;
+
+      if (isSuccess) {
         // Update local profile state with proper type safety
         if (profile) {
           setProfile({
@@ -118,11 +127,28 @@ const SkillsServices = () => {
             certifications: updateData.certifications || [],
           });
         }
-        alert("Skills and services updated successfully!");
+
+        // ✅ FIXED: Proper success toast
+        toast.success("Skills and services updated successfully!");
+      } else {
+        // ✅ FIXED: Proper error message extraction
+        const errorMessage =
+          response.message ||
+          response.data?.message ||
+          "Failed to update skills and services";
+        console.error("SkillsServices - Update failed:", errorMessage);
+        toast.error(errorMessage);
       }
-    } catch (error) {
-      console.error("Error updating skills and services:", error);
-      alert("Failed to update skills and services");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("SkillsServices - Error updating:", error);
+
+      // ✅ FIXED: Proper error handling with toast
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update skills and services";
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }

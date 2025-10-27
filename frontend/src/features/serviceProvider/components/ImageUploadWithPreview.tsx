@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useState, useEffect } from "react";
 import { FileUpload } from "./FileUpload";
 import toast from "react-hot-toast";
@@ -25,6 +24,21 @@ interface Props {
   maxSize?: number;
 }
 
+// Type guard to check if value is FileMetadata
+function isFileMetadata(file: unknown): file is FileMetadata {
+  return (
+    typeof file === "object" &&
+    file !== null &&
+    "_isFile" in file &&
+    (file as FileMetadata)._isFile === true
+  );
+}
+
+// Type guard to check if value is a File object
+function isFileObject(file: unknown): file is File {
+  return file instanceof File;
+}
+
 export const ImageUploadWithPreview: React.FC<Props> = ({
   label,
   field,
@@ -42,15 +56,14 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
     setCurrentFile(file);
   }, [file]);
 
-  // Check if file is a File object or metadata
-  const isFileObject = file instanceof File;
-  const isFileMetadata =
-    file && typeof file === "object" && (file as any)._isFile;
+  // Use type guards to determine file type
+  const fileIsFileObject = isFileObject(file);
+  const fileIsFileMetadata = isFileMetadata(file);
 
   // Generate preview URL when file changes
   useEffect(() => {
-    if (isFileObject && file) {
-      const url = URL.createObjectURL(file as File);
+    if (fileIsFileObject && file) {
+      const url = URL.createObjectURL(file);
       setPreviewUrl(url);
 
       return () => {
@@ -59,7 +72,7 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
     } else {
       setPreviewUrl(null);
     }
-  }, [file, isFileObject]);
+  }, [file, fileIsFileObject]);
 
   // Add file validation function
   const validateFile = useCallback(
@@ -122,10 +135,10 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
       </label>
 
       {/* Show different UI based on file type */}
-      {isFileObject && previewUrl ? (
+      {fileIsFileObject && previewUrl ? (
         // Actual File object with preview
         <div className="flex flex-col items-start gap-2">
-          {(file as File).type === "application/pdf" ? (
+          {file.type === "application/pdf" ? (
             <div className="border rounded p-2 bg-gray-50">
               <embed
                 src={previewUrl}
@@ -135,7 +148,7 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
                 className="border rounded"
               />
               <p className="text-xs text-gray-500 mt-1 text-center">
-                {(file as File).name}
+                {file.name}
               </p>
             </div>
           ) : (
@@ -146,7 +159,7 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
                 className="w-32 h-32 object-cover rounded-md"
               />
               <p className="text-xs text-gray-500 mt-1 text-center">
-                {(file as File).name}
+                {file.name}
               </p>
             </div>
           )}
@@ -158,21 +171,17 @@ export const ImageUploadWithPreview: React.FC<Props> = ({
             Choose Again
           </button>
         </div>
-      ) : isFileMetadata ? (
+      ) : fileIsFileMetadata ? (
         // File metadata (restored from localStorage)
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
             <div className="flex items-center space-x-3">
               <CheckCircleIcon className="w-5 h-5 text-green-500" />
               <div>
-                <p className="font-medium text-green-800">
-                  {(file as FileMetadata).name}
-                </p>
+                <p className="font-medium text-green-800">{file.name}</p>
                 <p className="text-sm text-green-600">
-                  {formatFileSize((file as FileMetadata).size)} •{" "}
-                  {(file as FileMetadata).uploadedAt
-                    ? "Uploaded"
-                    : "Previously uploaded"}
+                  {formatFileSize(file.size)} •{" "}
+                  {file.uploadedAt ? "Uploaded" : "Previously uploaded"}
                 </p>
               </div>
             </div>

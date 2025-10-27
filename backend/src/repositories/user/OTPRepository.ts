@@ -1,4 +1,4 @@
-import { Model } from "mongoose";
+import { FilterQuery, Model } from "mongoose";
 import { BaseRepository } from "../BaseRepository";
 import { IOTPRepository } from "../../interfaces/repository/user/IOTPRepository";
 import OTPVerificationSchema from "../../models/OTPVerificationSchema";
@@ -15,9 +15,9 @@ export class OTPRepository
   async findLatest(
     phone?: string,
     email?: string,
-    purpose?: string
+    purpose?: "signup" | "login" | "reset" | "application"
   ): Promise<IOtpVerification | null> {
-    const query: any = {};
+    const query: FilterQuery<IOtpVerification> = {};
     if (phone) query.phone = phone;
     if (email) query.email = email;
     if (purpose) query.purpose = purpose;
@@ -28,9 +28,9 @@ export class OTPRepository
   async deleteMany(
     phone?: string,
     email?: string,
-    purpose?: string
+    purpose?: "signup" | "login" | "reset" | "application"
   ): Promise<void> {
-    const query: any = {};
+    const query: FilterQuery<IOtpVerification> = {};
     if (phone) query.phone = phone;
     if (email) query.email = email;
     if (purpose) query.purpose = purpose;

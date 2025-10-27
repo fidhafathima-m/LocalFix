@@ -74,6 +74,34 @@ export class TechnicianService {
       throw this.handleError(error, "Failed to update profile");
     }
   }
+  static async updatePersonalInfo(data: any) {
+    try {
+      const response = await technicianAPI.updatePersonalInfo(data);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to update profile");
+    }
+  }
+  static async uploadPhoto(formData: FormData) {
+    try {
+      const response = await technicianAPI.uploadPhoto(formData);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to update profile photo");
+    }
+  }
+  static async updatePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) {
+    try {
+      const response = await technicianAPI.updatePassword(data);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to update password");
+    }
+  }
   static async updateSkillsServices(data: {
     services: string[];
     experienceYears?: number;

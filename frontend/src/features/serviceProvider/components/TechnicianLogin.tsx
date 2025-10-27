@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
 import {
@@ -12,13 +11,14 @@ import { useNavigate } from "react-router-dom";
 import BaseLogin from "../../../components/reusable/BaseLogin";
 import { validateSchema, loginSchema } from "../../../validation";
 import { TechnicianAuthService } from "../../../services/technician/technicianAuthService";
+import type { LoginCredentials } from "../../../services/common/authApi";
 
 const TechnicianLogin: React.FC = () => {
   const dispatch = useAppDispatch();
   const { loading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
 
-  const handleLogin = async (credentials: any) => {
+  const handleLogin = async (credentials: LoginCredentials) => {
     dispatch(loginStart());
 
     try {
@@ -80,9 +80,8 @@ const TechnicianLogin: React.FC = () => {
         dispatch(loginFailure(res.message));
         return { success: false, message: res.message };
       }
-    } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.message || error.message || "Login failed";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Login failed";
       dispatch(loginFailure(errorMessage));
       return { success: false, message: errorMessage };
     }

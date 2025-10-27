@@ -94,6 +94,7 @@ api.interceptors.request.use(
 );
 
 // Response interceptor with token refresh
+// Response interceptor with improved token refresh detection
 api.interceptors.response.use(
   (response) => {
     return response;
@@ -101,76 +102,107 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
+    console.log("=== AXIOS INTERCEPTOR DEBUG ===");
+    console.log("Error status:", error.response?.status);
+    console.log("Error data:", error.response?.data);
+    console.log("Error code:", error.response?.data?.code);
+    console.log("Error message:", error.response?.data?.message);
+    console.log("URL:", originalRequest?.url);
+    console.log("Is retry:", originalRequest?._retry);
+
+    // Handle token expiration (401 errors) - IMPROVED DETECTION
+    if (error.response?.status === 401 && !originalRequest?._retry) {
+      const errorData = error.response?.data;
+      const isTokenExpired = 
+        errorData?.code === 'TOKEN_EXPIRED' ||
+        errorData?.message?.includes('expired') ||
+        errorData?.message?.includes('Token expired') ||
+        error?.message?.includes('expired');
+      
+      console.log("Token expired check:", isTokenExpired);
+      
+      if (isTokenExpired) {
+        console.log("Token expired, attempting refresh...");
+        
+        if (isRefreshing) {
+          console.log("Refresh already in progress, queuing request...");
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
           })
-          .catch((err) => Promise.reject(err));
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      const { refreshToken } = getTokens();
-
-      if (!refreshToken) {
-        clearTokens();
-        window.location.href = "/login";
-        return Promise.reject(error);
-      }
-
-      try {
-        const refreshResponse = await authAPI.refreshToken(refreshToken);
-
-        if (
-          refreshResponse.success &&
-          refreshResponse.accessToken &&
-          refreshResponse.refreshToken
-        ) {
-          setTokens(refreshResponse.accessToken, refreshResponse.refreshToken);
-
-          // Update the Authorization header
-          api.defaults.headers.common[
-            "Authorization"
-          ] = `Bearer ${refreshResponse.accessToken}`;
-          originalRequest.headers.Authorization = `Bearer ${refreshResponse.accessToken}`;
-
-          processQueue(null, refreshResponse.accessToken);
-          return api(originalRequest);
-        } else {
-          throw new Error("Token refresh failed");
+            .then((token) => {
+              console.log("Queue resolved with token");
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return api(originalRequest);
+            })
+            .catch((err) => {
+              console.log("Queue rejected:", err);
+              return Promise.reject(err);
+            });
         }
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        clearTokens();
-        window.location.href = "/login";
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        const { refreshToken } = getTokens();
+        console.log("Refresh token exists:", !!refreshToken);
+
+        if (!refreshToken) {
+          console.log("No refresh token found, redirecting to login");
+          clearTokens();
+          window.location.href = "/login";
+          return Promise.reject(error);
+        }
+
+        try {
+          console.log("Calling refresh token API...");
+          const refreshResponse = await authAPI.refreshToken(refreshToken);
+          console.log("Refresh response:", refreshResponse);
+
+          const newAccessToken = refreshResponse.accessToken || refreshResponse.data?.accessToken;
+          const newRefreshToken = refreshResponse.refreshToken || refreshResponse.data?.refreshToken;
+
+          // FIX: Check the response structure properly
+          if (refreshResponse.success && refreshResponse.data?.accessToken && newAccessToken && newRefreshToken) {
+            console.log("Token refresh successful, updating tokens...");
+            
+            setTokens(newAccessToken, newRefreshToken);
+
+            // Update the Authorization header
+            api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+            processQueue(null, newAccessToken);
+            
+            console.log("Retrying original request...");
+            return api(originalRequest);
+          } else {
+            console.log("Token refresh failed - invalid response structure");
+            console.log("Expected accessToken in response.data");
+            throw new Error("Token refresh failed");
+          }
+        } catch (refreshError) {
+          console.log("Token refresh error:", refreshError);
+          processQueue(refreshError, null);
+          clearTokens();
+          window.location.href = "/login?message=session_expired";
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
       }
     }
 
+    // Handle other 401 errors (invalid token, etc.)
+    if (error.response?.status === 401) {
+      console.log("Unauthorized access, clearing tokens...");
+      clearTokens();
+      window.location.href = "/login?message=unauthorized";
+      return Promise.reject(error);
+    }
+
     // Handle other error cases
-    const url = error.config?.url;
-    const status = error.response?.status;
-    const message = error.response?.data?.message;
-
-    console.error("Axios Interceptor - Response error:", {
-      url,
-      status,
-      message,
-    });
-
-    const userFriendlyError = new Error(
-      message || `Request failed${status ? ` with status ${status}` : ""}`
-    );
-
-    return Promise.reject(userFriendlyError);
+    console.error("Axios Interceptor - Response error:", error.response?.data);
+    return Promise.reject(error);
   }
 );
 

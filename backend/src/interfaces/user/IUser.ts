@@ -41,6 +41,8 @@ export interface IUser extends Document {
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
+  lastLogin?: Date;
+  loginDevice?: string
 }
 
 export interface IUserCreate {

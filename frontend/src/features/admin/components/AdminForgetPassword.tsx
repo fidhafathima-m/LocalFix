@@ -1,9 +1,20 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BaseForgetPassword from "../../../components/reusable/BaseForgetPassword";
+import BaseForgetPassword, { 
+  type ForgetPasswordFormData as BaseForgetPasswordFormData,
+  type ForgetPasswordErrors 
+} from "../../../components/reusable/BaseForgetPassword";
 import { validateSchema, forgotPasswordSchema } from "../../../validation";
 import { AdminAuthService } from "../../../services/admin/AdminAuthService";
+
+interface ApiResponse {
+  success: boolean;
+  message: string;
+}
+
+interface ValidationData extends BaseForgetPasswordFormData {
+  userType?: "user" | "serviceProvider" | "admin";
+}
 
 const AdminForgetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -13,7 +24,7 @@ const AdminForgetPassword: React.FC = () => {
     phone?: string;
     email?: string;
     userType: "user" | "serviceProvider" | "admin";
-  }) => {
+  }): Promise<ApiResponse> => {
     setLoading(true);
     try {
       const response = await AdminAuthService.forgetPassword(data);
@@ -42,20 +53,25 @@ const AdminForgetPassword: React.FC = () => {
       } else {
         return { success: false, message: response.message };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Admin forgot password error:", error);
-      const errorMessage = error.message || "Failed to send OTP";
-      return { success: false, message: errorMessage, error };
+      const errorMessage = error instanceof Error ? error.message : "Failed to send OTP";
+      return { success: false, message: errorMessage };
     } finally {
       setLoading(false);
     }
   };
 
-  const customValidation = (data: any) => {
-    const validation = validateSchema(forgotPasswordSchema, {
+  const customValidation = (data: BaseForgetPasswordFormData): {
+    isValid: boolean;
+    errors: ForgetPasswordErrors;
+  } => {
+    const validationData: ValidationData = {
       ...data,
       userType: "admin",
-    });
+    };
+
+    const validation = validateSchema(forgotPasswordSchema, validationData);
 
     return {
       isValid: validation.success,

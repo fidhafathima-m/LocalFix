@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AdminSidebar } from "../components/AdminSidebar";
@@ -16,7 +15,7 @@ interface DocumentInfo {
   uploadedAt?: string;
 }
 
-interface PendingApplication {
+export interface PendingApplication {
   _id: string;
   technicianId: string;
   email: string;
@@ -47,6 +46,16 @@ interface PendingApplication {
   documents?: Record<string, DocumentInfo>;
   submittedAt?: string;
   createdAt: string;
+}
+
+interface DocumentDisplay {
+  key: string;
+  displayName: string;
+  url: string;
+  verified: boolean;
+  type: string;
+  isPdf: boolean;
+  uploadedAt?: string;
 }
 
 const PendingApplicationProfile: React.FC = () => {
@@ -96,13 +105,13 @@ const PendingApplicationProfile: React.FC = () => {
         (app) => app._id === applicationId
       );
       if (existingApplication) {
-        setApplication(existingApplication as any);
+        setApplication(existingApplication as PendingApplication);
         setLoading(false);
       }
     }
   }, [applicationId, applications]);
 
-  const getProfilePictureUrl = () => {
+  const getProfilePictureUrl = (): string | null => {
     if (application?.profilePictureUrl) {
       return application.profilePictureUrl;
     }
@@ -119,7 +128,7 @@ const PendingApplicationProfile: React.FC = () => {
   };
 
   // Function to get all available documents dynamically
-  const getAvailableDocuments = () => {
+  const getAvailableDocuments = (): DocumentDisplay[] => {
     if (!application?.documents) return [];
 
     const documentTypes: Record<string, string> = {

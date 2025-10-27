@@ -1,8 +1,10 @@
 import { ApiResponse } from "../../utils/responseHelper";
 
+export type AuthUser = ['user' | 'serviceProvider' | 'admin']
+
 export interface AuthResponse extends ApiResponse {
   token?: string;
-  user?: any;
+  user?: AuthUser;
 }
 
 export interface OTPResponse extends ApiResponse {}

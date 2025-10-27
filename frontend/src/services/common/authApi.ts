@@ -5,7 +5,7 @@ import api from "../../utils/axiosConfig";
 export interface LoginCredentials {
   identifier: string;
   password: string;
-  role: "user" | "serviceProvider" | "admin";
+  roles: string[];
 }
 
 export interface SignupData {
@@ -105,7 +105,23 @@ export const authAPI = {
       const response = await api.post<AuthResponse>(AUTH_ROUTES.REFRESH_TOKEN, {
         refreshToken,
       });
-      return normalizeAuthResponse(response.data);
+      console.log("🔄 Refresh Token Response:", response.data);
+      
+      // Your backend returns { success, message, data: { accessToken, refreshToken } }
+      const normalized = {
+        ...response.data,
+        success: response.data.success,
+        message: response.data.message,
+        data: {
+          accessToken: response.data.data?.accessToken,
+          refreshToken: response.data.data?.refreshToken,
+        },
+        accessToken: response.data.data?.accessToken,
+        refreshToken: response.data.data?.refreshToken,
+      };
+      
+      console.log("🔄 Normalized Response:", normalized);
+      return normalized;
     } catch (error: any) {
       if (error.response?.data) {
         return normalizeAuthResponse(error.response.data);

@@ -1,44 +1,29 @@
 import {
-  AvailabilityPreferencesUpdate,
-  BankPaymentUpdate,
-  IdentityVerificationUpdate,
-  PersonalInfoUpdate,
-  SecuritySettingsUpdate,
-  SkillsServicesUpdate,
-} from "../../../interfaces/technician/ITechnicianProfile";
+  TechnicianProfileResponseDto,
+  StaticDataResponseDto,
+  PersonalInfoUpdateDto,
+  IdentityVerificationUpdateDto,
+  SkillsServicesUpdateDto,
+  AvailabilityPreferencesUpdateDto,
+  BankPaymentUpdateDto,
+  SecuritySettingsUpdateDto,
+  DocumentUploadDto,
+} from "../../dtos/technicianProfileDtos";
 
 export interface ITechnicianProfileService {
-  getTechnicianProfile(technicianId: string): Promise<any>;
-  updatePersonalInformation(
-    technicianId: string,
-    updateData: PersonalInfoUpdate
-  ): Promise<any>;
-  updateIdentityVerification(
-    technicianId: string,
-    updateData: IdentityVerificationUpdate
-  ): Promise<any>;
-  updateSkillsServices(
-    technicianId: string,
-    updateData: SkillsServicesUpdate
-  ): Promise<any>;
-  updateAvailabilityPreferences(
-    technicianId: string,
-    updateData: AvailabilityPreferencesUpdate
-  ): Promise<any>;
-  updateBankPaymentDetails(
-    technicianId: string,
-    updateData: BankPaymentUpdate
-  ): Promise<any>;
-  updatePassword(
-    technicianId: string,
-    updateData: SecuritySettingsUpdate
-  ): Promise<any>;
-  uploadDocument(
-    technicianId: string,
-    documentData: {
-      type: string;
-      fileUrl: string;
-      fileName: string;
-    }
-  ): Promise<any>;
+  getTechnicianProfile(technicianId: string): Promise<TechnicianProfileResponseDto>;
+  updatePersonalInformation(technicianId: string, updateData: PersonalInfoUpdateDto): Promise<TechnicianProfileResponseDto>;
+  updateIdentityVerification(technicianId: string, updateData: IdentityVerificationUpdateDto): Promise<TechnicianProfileResponseDto>;
+  updateSkillsServices(technicianId: string, updateData: SkillsServicesUpdateDto): Promise<TechnicianProfileResponseDto>;
+  updateAvailabilityPreferences(technicianId: string, updateData: AvailabilityPreferencesUpdateDto): Promise<TechnicianProfileResponseDto>;
+  updateBankPaymentDetails(technicianId: string, updateData: BankPaymentUpdateDto): Promise<TechnicianProfileResponseDto>;
+  updatePassword(technicianId: string, updateData: SecuritySettingsUpdateDto): Promise<TechnicianProfileResponseDto>;
+  // In your ITechnicianProfileService interface
+uploadDocument(
+  technicianId: string, 
+  documentData: DocumentUploadDto | Express.Multer.File, 
+  documentType?: string
+): Promise<TechnicianProfileResponseDto>;
+  getStaticData(): Promise<StaticDataResponseDto>;
+  uploadPhoto(technicianId: string, file: Express.Multer.File): Promise<TechnicianProfileResponseDto>;
 }

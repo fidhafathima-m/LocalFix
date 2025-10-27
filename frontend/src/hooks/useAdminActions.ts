@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -8,6 +7,15 @@ import { AdminActionsService } from "../services/admin/AdminActionsService";
 interface UseAdminActionsProps {
   onStatusUpdate?: () => void;
   redirectOnSuccess?: boolean;
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
 }
 
 export const useAdminActions = ({
@@ -35,8 +43,14 @@ export const useAdminActions = ({
   };
 
   // Common error handler
-  const handleError = (error: any, defaultMessage: string) => {
-    return error.response?.data?.message || defaultMessage;
+   const handleError = (error: unknown, defaultMessage: string): string => {
+    if (typeof error === 'object' && error !== null && 'response' in error) {
+      const apiError = error as ApiError;
+      return apiError.response?.data?.message || defaultMessage;
+    } else if (error instanceof Error) {
+      return error.message || defaultMessage;
+    }
+    return defaultMessage;
   };
 
   // Handle technician status change

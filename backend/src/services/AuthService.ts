@@ -2,15 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import axios from "axios";
-import {
-  AuthResponse,
-  OTPResponse,
-  LoginCredentials,
-  SignupData,
-  OTPVerificationData,
-  ResetPasswordData,
-  SocialAuthData,
-} from "../interfaces/user/IAuthService";
+
 import { generateOTP } from "../utils/generateOTP";
 import { sendPhoneOTP } from "../utils/sendPhoneOTP";
 import { sendEmailOTP } from "../utils/sendEmailOTP";
@@ -27,6 +19,23 @@ import {
   USER_STATUS,
   USER_ROLES,
 } from "../constants";
+import { IUser } from "@/interfaces/user/IUser";
+
+// Import DTOs
+import {
+  SignupDataDto,
+  LoginCredentialsDto,
+  OTPVerificationDataDto,
+  ResetPasswordDataDto,
+  SocialAuthDataDto,
+  AuthResponseDto,
+  OtpCreationDataDto,
+  JwtPayloadDto,
+  FacebookGraphResponseDto,
+  GoogleTokenPayloadDto,
+  UserResponseDto,
+  AuthTokensDto,
+} from "../interfaces/dtos/authDtos";
 
 export class AuthService implements IAuthService {
   private userRepository: IUserRepository;
@@ -45,7 +54,7 @@ export class AuthService implements IAuthService {
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   }
 
-  async signup(signupData: SignupData): Promise<AuthResponse> {
+  async signup(signupData: SignupDataDto): Promise<AuthResponseDto> {
     try {
       const { email, phone, userType } = signupData;
 
@@ -74,7 +83,7 @@ export class AuthService implements IAuthService {
       const otp = generateOTP();
       const otpHash = await bcrypt.hash(otp, 10);
 
-      const otpData: any = {
+      const otpData: OtpCreationDataDto = {
         otpHash,
         purpose: OTP_PURPOSES.SIGNUP,
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
@@ -98,12 +107,14 @@ export class AuthService implements IAuthService {
       return ResponseHelper.success(
         `OTP sent to ${sentChannels.join(", ")}. Verify to complete signup.`
       );
-    } catch (error: any) {
-      return ResponseHelper.error(error.message);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
-  async verifyOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
+  async verifyOtp(otpData: OTPVerificationDataDto): Promise<AuthResponseDto> {
     try {
       const { phone, email, otp, fullName, password, userType } = otpData;
 
@@ -123,7 +134,9 @@ export class AuthService implements IAuthService {
       }
 
       if (record.expiresAt < new Date()) {
-        await this.otpRepository.deleteById(record._id!.toString());
+        if (record._id) {
+          await this.otpRepository.deleteById(record._id.toString());
+        }
         return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_EXPIRED);
       }
 
@@ -133,7 +146,7 @@ export class AuthService implements IAuthService {
       }
 
       // FIND EXISTING USER
-      let user = null;
+      let user: IUser | null = null;
       if (email) {
         user = await this.userRepository.findByEmail(email);
       }
@@ -223,7 +236,7 @@ export class AuthService implements IAuthService {
           ? await bcrypt.hash(password, 10)
           : undefined;
 
-        const userData: any = {
+        const userData: Partial<IUser> = {
           fullName: fullName!,
           phone: phone || undefined,
           email: email || undefined,
@@ -255,29 +268,23 @@ export class AuthService implements IAuthService {
       // Delete used OTP
       await this.otpRepository.deleteMany(phone, email, "signup");
 
-      // Create clean user response
-      const userResponse = {
-        _id: user._id,
-        fullName: user.fullName,
-        phone: user.phone,
-        email: user.email,
-        roles: user.roles,
-        applicationStatus: user.applicationStatus || "not-applied",
-      };
+      // Create user response DTO
+      const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
       return ResponseHelper.success(AUTH_MESSAGES.SIGNUP_SUCCESS, {
         user: userResponse,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Verify OTP error:", error);
-      return ResponseHelper.error(error.message);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
-  // Refresh token endpoint
-  async refreshToken(refreshToken: string): Promise<AuthResponse> {
+  async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
     try {
       if (!refreshToken) {
         return ResponseHelper.unauthorized("Refresh token required");
@@ -287,7 +294,7 @@ export class AuthService implements IAuthService {
       const decoded = jwt.verify(
         refreshToken,
         process.env.REFRESH_TOKEN_SECRET as string
-      ) as any;
+      ) as JwtPayloadDto;
 
       if (decoded.type !== "refresh") {
         return ResponseHelper.unauthorized("Invalid token type");
@@ -317,18 +324,20 @@ export class AuthService implements IAuthService {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
-    } catch (error: any) {
-      if (error.name === "TokenExpiredError") {
+    } catch (error: unknown) {
+      if (error instanceof jwt.TokenExpiredError) {
         return ResponseHelper.unauthorized("Refresh token expired");
       }
-      if (error.name === "JsonWebTokenError") {
+      if (error instanceof jwt.JsonWebTokenError) {
         return ResponseHelper.unauthorized("Invalid refresh token");
       }
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  async login(credentials: LoginCredentialsDto): Promise<AuthResponseDto> {
     try {
       const { identifier, password, role } = credentials;
 
@@ -338,7 +347,7 @@ export class AuthService implements IAuthService {
         normalizedIdentifier = identifier.toLowerCase();
       }
 
-      let user;
+      let user: IUser | null;
 
       if (role) {
         user = await this.userRepository.findByIdentifier(
@@ -390,24 +399,17 @@ export class AuthService implements IAuthService {
         tokens.refreshToken
       );
 
-      const userResponse = {
-        _id: user._id,
-        fullName: user.fullName,
-        phone: user.phone,
-        email: user.email,
-        roles: user.roles,
-        applicationStatus: user.applicationStatus || "not-applied",
-        isVerified: user.isVerified,
-        status: user.status,
-      };
+      const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
       return ResponseHelper.success(AUTH_MESSAGES.LOGIN_SUCCESS, {
         user: userResponse,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
-    } catch (error: any) {
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
@@ -415,18 +417,18 @@ export class AuthService implements IAuthService {
     phone?: string,
     email?: string,
     userType?: string
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     try {
       if (!phone && !email) {
         return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
       }
 
       // Find user by phone or email
-      let user;
+      let user: IUser | null;
       if (phone) {
         user = await this.userRepository.findByPhone(phone);
-      } else if (email) {
-        user = await this.userRepository.findByEmail(email);
+      } else {
+        user = await this.userRepository.findByEmail(email!);
       }
 
       // Check if user exists
@@ -476,7 +478,7 @@ export class AuthService implements IAuthService {
       const otp = generateOTP();
       const otpHash = await bcrypt.hash(otp, 10);
 
-      const otpData: any = {
+      const otpData: OtpCreationDataDto = {
         otpHash,
         purpose: OTP_PURPOSES.RESET,
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
@@ -492,17 +494,19 @@ export class AuthService implements IAuthService {
         sentChannels.push(`phone: ${phone}`);
       }
       if (email) {
-        await sendEmailOTP(email, otp);
+        await sendEmailOTP(email!, otp);
         sentChannels.push(`email: ${email}`);
       }
 
       return ResponseHelper.success(`OTP sent to ${sentChannels.join(", ")}.`);
-    } catch (error: any) {
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
-  async resetPassword(resetData: ResetPasswordData): Promise<AuthResponse> {
+  async resetPassword(resetData: ResetPasswordDataDto): Promise<AuthResponseDto> {
     try {
       const { phone, email, otp, token, password, userType } = resetData;
 
@@ -535,7 +539,7 @@ export class AuthService implements IAuthService {
           const decoded = jwt.verify(
             token,
             process.env.JWT_SECRET as string
-          ) as any;
+          ) as JwtPayloadDto;
 
           // Verify token purpose and expiration
           if (decoded.purpose !== "password_reset") {
@@ -577,13 +581,15 @@ export class AuthService implements IAuthService {
       }
 
       return ResponseHelper.success(AUTH_MESSAGES.PASSWORD_RESET);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Reset password error:", error);
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
-  async verifyResetOtp(otpData: OTPVerificationData): Promise<AuthResponse> {
+  async verifyResetOtp(otpData: OTPVerificationDataDto): Promise<AuthResponseDto> {
     try {
       const { phone, email, otp, userType } = otpData;
 
@@ -595,7 +601,9 @@ export class AuthService implements IAuthService {
       }
 
       if (record.expiresAt < new Date()) {
-        await this.otpRepository.deleteById(record._id!.toString());
+        if (record._id) {
+          await this.otpRepository.deleteById(record._id.toString());
+        }
         return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_EXPIRED);
       }
 
@@ -606,9 +614,11 @@ export class AuthService implements IAuthService {
 
       // For technicians, verify the user exists with correct role
       if (userType === USER_ROLES.SERVICE_PROVIDER) {
-        const userQuery: any = phone ? { phone } : { email };
-        userQuery.roles = USER_ROLES.SERVICE_PROVIDER;
-        const user = await this.userRepository.findByIdentifier(userQuery);
+        const identifier = phone || email!;
+        const user = await this.userRepository.findByIdentifier(
+          identifier,
+          USER_ROLES.SERVICE_PROVIDER
+        );
         if (!user) {
           return ResponseHelper.notFound(`${userType} not found`);
         }
@@ -631,25 +641,33 @@ export class AuthService implements IAuthService {
         userType: userType,
         identifier: phone || email,
       });
-    } catch (error: any) {
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
+
   async resendOTP(
     phone?: string,
     email?: string,
     purpose?: string,
     userType?: string
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     try {
       if (!email && !phone) {
         return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
       }
 
+      // Validate purpose parameter
+      if (!purpose || !Object.values(OTP_PURPOSES).includes(purpose as any)) {
+        return ResponseHelper.badRequest("Valid OTP purpose is required");
+      }
+
       // For forgot password, check if user exists
       if (purpose === OTP_PURPOSES.RESET) {
-        const userQuery: any = phone ? { phone } : { email };
-        const user = await this.userRepository.findByIdentifier(userQuery);
+        const identifier = phone || email!;
+        const user = await this.userRepository.findByIdentifier(identifier);
         if (!user) {
           return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
         }
@@ -662,9 +680,9 @@ export class AuthService implements IAuthService {
       // Delete any existing OTP records for this phone/email and purpose
       await this.otpRepository.deleteMany(phone, email, purpose);
 
-      const otpData: any = {
+      const otpData: OtpCreationDataDto = {
         otpHash,
-        purpose,
+        purpose: purpose as "signup" | "reset" | "login" | "application",
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
       };
       if (phone) otpData.phone = phone;
@@ -684,19 +702,21 @@ export class AuthService implements IAuthService {
       }
 
       return ResponseHelper.success(`OTP resent to ${sentChannels.join(", ")}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Resend OTP error:", error);
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
   async facebookLogin(
     accessToken: string,
     userID: string
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponseDto> {
     try {
       // Verify token with Facebook Graph API
-      const fbRes = await axios.get(
+      const fbRes = await axios.get<FacebookGraphResponseDto>(
         `https://graph.facebook.com/${userID}?fields=id,name,email,picture&access_token=${accessToken}`
       );
 
@@ -705,7 +725,7 @@ export class AuthService implements IAuthService {
       // Check if social account already exists
       let account = await this.socialAccountRepository.findByProviderId(id);
 
-      let user;
+      let user: IUser | null;
       if (!account) {
         // Create a new user if doesn't exist
         user = await this.userRepository.findByEmail(email!);
@@ -721,7 +741,7 @@ export class AuthService implements IAuthService {
         }
 
         account = await this.socialAccountRepository.create({
-          userId: user._id,
+          userId: user._id!,
           provider: "facebook",
           providerId: id,
           email: email!,
@@ -743,27 +763,22 @@ export class AuthService implements IAuthService {
         tokens.refreshToken
       );
 
-      const userResponse = {
-        _id: user._id!.toString(),
-        fullName: user.fullName,
-        email: user.email,
-        roles: user.roles,
-        applicationStatus: user.applicationStatus || "not-applied",
-        isVerified: user.isVerified,
-      };
+      const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
       return ResponseHelper.success(AUTH_MESSAGES.FACEBOOK_LOGIN_SUCCESS, {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         user: userResponse,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Facebook login error:", error);
-      return ResponseHelper.error(AUTH_MESSAGES.SOCIAL_AUTH_FAILED);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
-  async googleAuth(socialData: SocialAuthData): Promise<AuthResponse> {
+  async googleAuth(socialData: SocialAuthDataDto): Promise<AuthResponseDto> {
     try {
       const { token, userType } = socialData;
 
@@ -776,7 +791,7 @@ export class AuthService implements IAuthService {
         audience: process.env.GOOGLE_CLIENT_ID,
       });
 
-      const payload = ticket.getPayload();
+      const payload = ticket.getPayload() as GoogleTokenPayloadDto | undefined;
       if (!payload) {
         return ResponseHelper.badRequest(
           AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN
@@ -793,7 +808,7 @@ export class AuthService implements IAuthService {
       let socialAccount = await this.socialAccountRepository.findByProviderId(
         googleId
       );
-      let user;
+      let user: IUser | null;
 
       if (socialAccount) {
         user = await this.userRepository.findById(
@@ -858,28 +873,22 @@ export class AuthService implements IAuthService {
         tokens.refreshToken
       );
 
-      const userResponse = {
-        _id: user._id!.toString(),
-        fullName: user.fullName,
-        email: user.email,
-        roles: user.roles,
-        applicationStatus: user.applicationStatus || "not-applied",
-        isVerified: user.isVerified,
-      };
+      const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
       return ResponseHelper.success(AUTH_MESSAGES.GOOGLE_AUTH_SUCCESS, {
         user: userResponse,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Google auth error:", error);
-      return ResponseHelper.error(AUTH_MESSAGES.SOCIAL_AUTH_FAILED);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
-  // Logout - revoke refresh token
-  async logout(userId: string, refreshToken?: string): Promise<AuthResponse> {
+  async logout(userId: string, refreshToken?: string): Promise<AuthResponseDto> {
     try {
       if (refreshToken) {
         // Remove specific refresh token
@@ -890,43 +899,64 @@ export class AuthService implements IAuthService {
       }
 
       return ResponseHelper.success("Logged out successfully");
-    } catch (error: any) {
-      return ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(errorMessage);
     }
   }
 
-  private generateAccessToken(user: any): string {
-    return jwt.sign(
-      {
-        _id: user._id,
-        roles: user.roles,
-        type: "access",
-      },
-      process.env.JWT_SECRET as string,
-      {
-        expiresIn: (process.env.ACCESS_TOKEN_EXPIRY || "15m") as any,
-      }
-    );
+  // Helper method to map IUser to UserResponseDto
+  private mapToUserResponseDto(user: IUser): UserResponseDto {
+    return {
+      _id: user._id!.toString(),
+      fullName: user.fullName,
+      phone: user.phone,
+      email: user.email,
+      roles: user.roles,
+      applicationStatus: user.applicationStatus || "not-applied",
+      isVerified: user.isVerified,
+      status: user.status,
+    };
   }
 
-  private generateRefreshToken(user: any): string {
-    return jwt.sign(
-      {
-        _id: user._id,
-        type: "refresh",
-      },
-      process.env.REFRESH_TOKEN_SECRET as string,
-      {
-        expiresIn: (process.env.REFRESH_TOKEN_EXPIRY || "7d") as any,
-      }
-    );
+  private generateAccessToken(user: IUser): string {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET environment variable is not defined");
+    }
+
+    const payload: JwtPayloadDto = {
+      _id: user._id?.toString() || "",
+      roles: user.roles,
+      type: "access",
+    };
+
+    return jwt.sign(payload, jwtSecret, {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "24h",
+    } as jwt.SignOptions);
+  }
+
+  private generateRefreshToken(user: IUser): string {
+    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+    if (!refreshTokenSecret) {
+      throw new Error(
+        "REFRESH_TOKEN_SECRET environment variable is not defined"
+      );
+    }
+
+    const payload: JwtPayloadDto = {
+      _id: user._id?.toString() || "",
+      type: "refresh",
+    };
+
+    return jwt.sign(payload, refreshTokenSecret, {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d",
+    } as jwt.SignOptions);
   }
 
   // Generate both tokens
-  private generateTokens(user: any): {
-    accessToken: string;
-    refreshToken: string;
-  } {
+  private generateTokens(user: IUser): AuthTokensDto {
     return {
       accessToken: this.generateAccessToken(user),
       refreshToken: this.generateRefreshToken(user),

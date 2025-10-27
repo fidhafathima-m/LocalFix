@@ -2,33 +2,62 @@ import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
 import {
   AccessTimeOutlined,
-  FileUploadOutlined,
   CheckCircleOutline,
   Cancel,
+  LocationOn,
 } from "@mui/icons-material";
 import { type TechnicianProfile } from "../../../../services/common/technicianApi";
 import { TechnicianService } from "../../../../services/technician/technicianService";
+import { OSMLocationPicker } from "../../../../components/common/LocationPicker";
+import toast from "react-hot-toast";
 
 interface IdentityVerificationData {
   governmentIdType?: string;
   governmentIdNumber?: string;
-  idDocument?: string;
   verificationStatus?: "pending" | "approved" | "rejected";
   verified?: boolean;
   verifiedAt?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    landmark: string;
+  };
+  location?: {
+    coordinates: number[];
+    formattedAddress: string;
+  };
+}
+
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark: string;
 }
 
 const IdentityVerification = () => {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState<IdentityVerificationData>({
     governmentIdType: "",
     governmentIdNumber: "",
-    idDocument: "",
     verificationStatus: "pending",
     verified: false,
+    address: {
+      street: "",
+      city: "",
+      state: "",
+      pincode: "",
+      landmark: "",
+    },
+    location: {
+      coordinates: [0, 0],
+      formattedAddress: "",
+    },
   });
 
   useEffect(() => {
@@ -40,30 +69,53 @@ const IdentityVerification = () => {
       setLoading(true);
       const response = await TechnicianService.getProfile();
       if (response.success) {
-        const profileData = response.data?.data?.profile;
+        const profileData =
+          response.data?.data?.profile ||
+          response.data?.profile ||
+          response.data?.data;
         setProfile(profileData);
 
-        // Populate identity verification data with null checks
+        // ✅ FIX: Use correct field names when populating form
         if (profileData.identityVerification) {
           setFormData({
-            governmentIdType:
-              profileData.identityVerification.governmentIdType || "",
-            governmentIdNumber:
-              profileData.identityVerification.governmentIdNumber || "",
-            idDocument: profileData.identityVerification.idDocument || "",
+            governmentIdType: profileData.identityVerification.idType || "", // ✅ Map from idType
+            governmentIdNumber: profileData.identityVerification.idNumber || "", // ✅ Map from idNumber
             verificationStatus:
               profileData.identityVerification.verificationStatus || "pending",
             verified: profileData.identityVerification.verified || false,
             verifiedAt: profileData.identityVerification.verifiedAt,
+            address: profileData.personalInfo?.address || {
+              // ✅ Always get address from personalInfo
+              street: "",
+              city: "",
+              state: "",
+              pincode: "",
+              landmark: "",
+            },
+            location: {
+              // Your schema doesn't have this in identityVerification
+              coordinates: [0, 0],
+              formattedAddress: "",
+            },
           });
         } else {
-          // Initialize with empty values if identityVerification doesn't exist
+          // Initialize with empty values if no data exists
           setFormData({
             governmentIdType: "",
             governmentIdNumber: "",
-            idDocument: "",
             verificationStatus: "pending",
             verified: false,
+            address: profileData.personalInfo?.address || {
+              street: "",
+              city: "",
+              state: "",
+              pincode: "",
+              landmark: "",
+            },
+            location: {
+              coordinates: [0, 0],
+              formattedAddress: "",
+            },
           });
         }
       }
@@ -78,13 +130,72 @@ const IdentityVerification = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+
+    if (name.startsWith("address.")) {
+      const addressField = name.replace("address.", "") as keyof Address;
+      setFormData((prev) => ({
+        ...prev,
+        address: {
+          ...prev.address!,
+          [addressField]: value,
+        },
+        // Reset verification status when address changes
+        verificationStatus: "pending",
+        verified: false,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        // Reset verification status when ID details change
+        verificationStatus: "pending",
+        verified: false,
+      }));
+    }
+  };
+
+  const handleLocationSelect = (location: {
+    lat: number;
+    lng: number;
+    address: string;
+    addressComponents: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      landmark?: string;
+    };
+  }) => {
+    const locationData = {
+      coordinates: [location.lng, location.lat],
+      formattedAddress: location.address,
+    };
+
+    // Update location coordinates
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
-      // Reset verification status when ID details change
+      location: locationData,
+      // Reset verification status when location changes
       verificationStatus: "pending",
       verified: false,
     }));
+
+    // Auto-fill address fields with fallbacks for undefined
+    if (location.addressComponents) {
+      const { street, city, state, pincode, landmark } =
+        location.addressComponents;
+
+      setFormData((prev) => ({
+        ...prev,
+        address: {
+          street: street || prev.address?.street || "",
+          city: city || prev.address?.city || "",
+          state: state || prev.address?.state || "",
+          pincode: pincode || prev.address?.pincode || "",
+          landmark: landmark || prev.address?.landmark || "",
+        },
+      }));
+    }
   };
 
   const handleSave = async () => {
@@ -93,11 +204,14 @@ const IdentityVerification = () => {
 
       const updateData = {
         identityVerification: {
-          governmentIdType: formData.governmentIdType,
-          governmentIdNumber: formData.governmentIdNumber,
-          idDocument: formData.idDocument,
-          verificationStatus: "pending" as const, // Reset to pending when updated
+          idType: formData.governmentIdType,
+          idNumber: formData.governmentIdNumber,
+          verificationStatus: "pending" as const,
           verified: false,
+        },
+        personalInfo: {
+          ...profile?.personalInfo,
+          address: formData.address,
         },
       };
 
@@ -105,85 +219,41 @@ const IdentityVerification = () => {
         updateData
       );
 
-      if (response.data.success) {
-        // Update local profile state with proper null checks
+      if (response.success) {
+        // Update local profile state
         if (profile) {
           setProfile({
             ...profile,
             identityVerification: {
               ...profile.identityVerification,
-              ...updateData.identityVerification,
+              idType: formData.governmentIdType,
+              idNumber: formData.governmentIdNumber,
+              verificationStatus: "pending",
+              verified: false,
+            },
+            personalInfo: {
+              ...profile.personalInfo,
+              address: formData.address,
             },
           });
         }
-        alert(
+        toast.success(
           "Identity verification details updated successfully! They will be reviewed by our team."
         );
+
+        // Refresh the data to confirm it's saved
+        await fetchProfile();
+      } else {
+        console.error("Frontend - API returned error:", response);
+        toast.error(`Failed to update: ${response.message}`);
       }
     } catch (error) {
-      console.error("Error updating identity verification:", error);
-      alert("Failed to update identity verification details");
+      console.error("Frontend - Error updating identity verification:", error);
+      toast.error("Failed to update identity verification details");
     } finally {
       setSaving(false);
     }
   };
-
-  const handleFileUpload = async (file: File) => {
-    try {
-      setUploading(true);
-
-      // Create FormData for file upload
-      const uploadFormData = new FormData();
-      uploadFormData.append("document", file);
-      uploadFormData.append("type", "id_proof");
-      uploadFormData.append(
-        "documentType",
-        formData.governmentIdType || "id_proof"
-      );
-
-      // Upload document
-      const response = await TechnicianService.uploadDocument(uploadFormData);
-
-      if (response.data.success) {
-        // Update form data with the uploaded document URL
-        setFormData((prev) => ({
-          ...prev,
-          idDocument: response.data.data.document.url,
-        }));
-
-        alert("ID document uploaded successfully!");
-      }
-    } catch (error) {
-      console.error("Error uploading document:", error);
-      alert("Failed to upload document");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type and size
-      const validTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/jpg",
-        "application/pdf",
-      ];
-      if (!validTypes.includes(file.type)) {
-        alert("Please select a valid file type (JPEG, PNG, JPG, PDF)");
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
-        alert("File size should be less than 5MB");
-        return;
-      }
-      handleFileUpload(file);
-    }
-  };
-
   const getStatusDisplay = () => {
     if (!formData.verificationStatus) return null;
 
@@ -234,9 +304,9 @@ const IdentityVerification = () => {
 
   return (
     <AccordionSection title="Identity & Verification" number={2}>
-      <div>
+      <div className="space-y-6">
         {/* Verification Status */}
-        <div className="flex items-center mb-6">
+        <div className="flex items-center">
           <span className="text-sm mr-2">Verification Status:</span>
           {getStatusDisplay()}
           {formData.verifiedAt && (
@@ -247,7 +317,7 @@ const IdentityVerification = () => {
         </div>
 
         {/* Government ID Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm mb-1">Government ID Type</label>
             <select
@@ -283,89 +353,141 @@ const IdentityVerification = () => {
           </div>
         </div>
 
-        {/* Document Upload */}
-        <div className="mb-6">
-          <label className="block text-sm mb-1">
-            Upload / Replace ID Proof
-          </label>
+        {/* Location Picker */}
+        <div className="border-t pt-6">
+          <div className="flex items-center mb-4">
+            <LocationOn className="h-5 w-5 text-blue-500 mr-2" />
+            <h3 className="text-lg font-medium text-gray-800">
+              Location & Address
+            </h3>
+          </div>
 
-          {/* Current Document Display */}
-          {formData.idDocument && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <CheckCircleOutline className="h-5 w-5 text-green-500 mr-2" />
-                  <span className="text-sm text-green-700">
-                    Document uploaded successfully
-                  </span>
-                </div>
-                <a
-                  href={formData.idDocument}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 text-sm hover:underline"
-                >
-                  View Document
-                </a>
-              </div>
-            </div>
-          )}
-
-          {/* Upload Area */}
-          <label htmlFor="id-document-upload" className="cursor-pointer">
-            <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center hover:border-blue-300 transition-colors">
-              {uploading ? (
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2"></div>
-                  <div className="text-blue-500">Uploading...</div>
-                </div>
-              ) : (
-                <>
-                  <FileUploadOutlined className="h-8 w-8 text-gray-400 mb-2" />
-                  <div className="text-blue-500 font-medium mb-1">
-                    {formData.idDocument ? "Replace Document" : "Upload a file"}
-                  </div>
-                  <div className="text-sm text-gray-500">or drag and drop</div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    PNG, JPG, PDF up to 5MB
-                  </div>
-                </>
-              )}
-            </div>
-          </label>
-
-          <input
-            id="id-document-upload"
-            type="file"
-            accept=".jpg,.jpeg,.png,.pdf"
-            className="hidden"
-            onChange={handleFileChange}
-            disabled={uploading}
+          <OSMLocationPicker
+            onLocationSelect={handleLocationSelect}
+            initialLocation={
+              formData.location?.coordinates?.[1] &&
+              formData.location?.coordinates?.[0]
+                ? {
+                    lat: formData.location.coordinates[1],
+                    lng: formData.location.coordinates[0],
+                  }
+                : undefined
+            }
+            className="mt-4"
           />
 
-          {/* Upload Instructions */}
-          <div className="mt-3 p-3 bg-blue-50 rounded">
-            <h4 className="text-sm font-medium text-blue-800 mb-2">
-              Upload Requirements:
-            </h4>
-            <ul className="text-xs text-blue-700 list-disc list-inside space-y-1">
-              <li>Clear, readable image of your government ID</li>
-              <li>File must be in JPG, PNG, or PDF format</li>
-              <li>Maximum file size: 5MB</li>
-              <li>Ensure all details are visible and not blurry</li>
-            </ul>
+          {/* Address Fields */}
+          <div className="mt-6">
+            <h3 className="text-lg font-medium text-gray-800 mb-4">
+              Address Details
+              <span className="text-green-600 text-sm ml-2">
+                (Auto-filled from map selection)
+              </span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm mb-1">Street Address</label>
+                <input
+                  type="text"
+                  name="address.street"
+                  value={formData.address?.street || ""}
+                  onChange={handleInputChange}
+                  placeholder="House no, street, area"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">City</label>
+                <input
+                  type="text"
+                  name="address.city"
+                  value={formData.address?.city || ""}
+                  onChange={handleInputChange}
+                  placeholder="City"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">State</label>
+                <input
+                  type="text"
+                  name="address.state"
+                  value={formData.address?.state || ""}
+                  onChange={handleInputChange}
+                  placeholder="State"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">PIN Code</label>
+                <input
+                  type="text"
+                  name="address.pincode"
+                  value={formData.address?.pincode || ""}
+                  onChange={handleInputChange}
+                  placeholder="PIN Code"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">
+                  Landmark (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="address.landmark"
+                  value={formData.address?.landmark || ""}
+                  onChange={handleInputChange}
+                  placeholder="Nearby landmark"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-blue-50 rounded">
+              <p className="text-sm text-blue-700">
+                💡 <strong>Tip:</strong> Click on the map above to automatically
+                fill these address fields using OpenStreetMap. You can also
+                manually edit them if the auto-filled data needs correction.
+              </p>
+            </div>
           </div>
         </div>
 
+        {/* Current Location Display */}
+        {formData.location?.formattedAddress && (
+          <div className="p-4 bg-green-50 rounded border border-green-200">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-800 flex items-center">
+                  <LocationOn className="h-4 w-4 mr-2" />
+                  Current Location
+                </p>
+                <p className="text-sm text-green-700 mt-1">
+                  {formData.location.formattedAddress}
+                </p>
+                {formData.location.coordinates && (
+                  <p className="text-xs text-green-600 mt-1">
+                    Coordinates: {formData.location.coordinates[1].toFixed(6)},{" "}
+                    {formData.location.coordinates[0].toFixed(6)}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Save Button */}
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4">
           <button
             onClick={handleSave}
-            disabled={saving || uploading}
-            className={`bg-blue-500 text-white px-4 py-2 rounded flex items-center ${
-              saving || uploading
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-blue-600"
+            disabled={saving}
+            className={`bg-blue-500 text-white px-6 py-2 rounded flex items-center ${
+              saving ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600"
             }`}
           >
             {saving ? (

@@ -1,36 +1,38 @@
 import { UserManagementRepository } from "../repositories/admin/UserManagementRepository";
-import {
-  IUser,
-  IUserWithAddress,
-  UpdateUserStatusRequest,
-  EditUserRequest,
-  UserManagementResponse,
-  UsersListResponse,
-} from "../interfaces/admin/IUserManagements";
 import { IUserManagementService } from "../interfaces/services/admin/IUserManagementService";
 import { IUserManagementRepository } from "../interfaces/repository/admin/IUserManagementRepository";
 import { ResponseHelper } from "../utils/responseHelper";
 import {
   USER_MANAGEMENT_MESSAGES,
-  USER_STATUS,
   VALID_STATUSES,
-  STATS_CATEGORIES,
-  USER_ROLES,
-  APPLICATION_STATUS,
   VALIDATION,
-  PAGINATION_DEFAULTS,
-  USER_FILTERS,
 } from "../constants";
+import {
+  UsersListResponseDto,
+  UserManagementResponseDto,
+  UserStatsResponseDto,
+  UpdateUserStatusRequestDto,
+  EditUserRequestDto,
+} from "../interfaces/dtos/userDtos";
+import { UserMapper } from "../mappers/userMapper";
+
+// Type guard function for status validation
+function isValidStatus(status: string): status is "Active" | "Inactive" | "Blocked" {
+  return VALID_STATUSES.includes(status as any);
+}
 
 export class UserManagementService implements IUserManagementService {
   constructor(private userManagementRepository: IUserManagementRepository) {}
 
-  async getUsers(): Promise<UsersListResponse> {
+  async getUsers(): Promise<UsersListResponseDto> {
     try {
       const users = await this.userManagementRepository.findAllUsers();
 
+      // ✅ Map to DTOs
+      const userDtos = users.map(user => UserMapper.toListDto(user));
+
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USERS_RETRIEVED, {
-        users,
+        users: userDtos, // ✅ Now this is UserListDto[]
       });
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -40,12 +42,12 @@ export class UserManagementService implements IUserManagementService {
 
   async updateUserStatus(
     userId: string,
-    statusData: UpdateUserStatusRequest
-  ): Promise<UserManagementResponse> {
+    statusData: UpdateUserStatusRequestDto
+  ): Promise<UserManagementResponseDto> {
     try {
       const { status } = statusData;
 
-      if (!VALID_STATUSES.includes(status as any)) {
+      if (!isValidStatus(status)) {
         return ResponseHelper.badRequest(
           USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE
         );
@@ -73,10 +75,13 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
+      // ✅ Map to DTO
+      const userDto = UserMapper.toDetailDto(updatedUser);
+
       return ResponseHelper.success(
         USER_MANAGEMENT_MESSAGES.USER_STATUS_UPDATED,
         {
-          data: { user: updatedUser },
+          user: userDto // ✅ Now this is UserDetailDto
         }
       );
     } catch (error) {
@@ -89,13 +94,13 @@ export class UserManagementService implements IUserManagementService {
 
   async editUser(
     userId: string,
-    userData: EditUserRequest
-  ): Promise<UserManagementResponse> {
+    userData: EditUserRequestDto
+  ): Promise<UserManagementResponseDto> {
     try {
       const { fullName, email, phone, status } = userData;
 
       if (status) {
-        if (!VALID_STATUSES.includes(status as any)) {
+        if (!isValidStatus(status)) {
           return ResponseHelper.badRequest(
             USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE
           );
@@ -142,7 +147,7 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      const updateData: Partial<IUser> = {};
+      const updateData: any = {};
       if (fullName) updateData.fullName = fullName;
       if (email) updateData.email = email;
       if (phone) updateData.phone = phone;
@@ -159,8 +164,11 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
+      // ✅ Map to DTO
+      const userDto = UserMapper.toDetailDto(updatedUser);
+
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_UPDATED, {
-        data: { user: updatedUser },
+        user: userDto, // ✅ Now this is UserDetailDto
       });
     } catch (error) {
       console.error("Error updating user:", error);
@@ -168,7 +176,7 @@ export class UserManagementService implements IUserManagementService {
     }
   }
 
-  async deleteUser(userId: string): Promise<UserManagementResponse> {
+  async deleteUser(userId: string): Promise<UserManagementResponseDto> {
     try {
       const user = await this.userManagementRepository.findById(userId);
       if (!user) {
@@ -191,8 +199,11 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
+      // ✅ Map to DTO
+      const userDto = UserMapper.toDetailDto(deletedUser);
+
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_DELETED, {
-        data: { user: deletedUser },
+        user: userDto, // ✅ Now this is UserDetailDto
       });
     } catch (error) {
       console.error("Error deleting user:", error);
@@ -200,23 +211,26 @@ export class UserManagementService implements IUserManagementService {
     }
   }
 
-  async getUserStats(): Promise<UserManagementResponse> {
-    try {
-      const stats = await this.userManagementRepository.getUserStats();
+  async getUserStats(): Promise<UserStatsResponseDto> {
+  try {
+    const stats = await this.userManagementRepository.getUserStats();
 
-      return ResponseHelper.success(
-        USER_MANAGEMENT_MESSAGES.USER_STATS_RETRIEVED,
-        {
-          data: { stats },
-        }
-      );
-    } catch (error) {
-      console.error("Error fetching user stats:", error);
-      return ResponseHelper.error(USER_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS);
-    }
+    // ✅ Map to DTO
+    const statsDto = UserMapper.toStatsDto(stats);
+
+    return ResponseHelper.success(
+      USER_MANAGEMENT_MESSAGES.USER_STATS_RETRIEVED,
+      {
+        stats: statsDto, // ✅ This matches UserStatsResponseDto structure
+      }
+    );
+  } catch (error) {
+    console.error("Error fetching user stats:", error);
+    return ResponseHelper.error(USER_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS);
   }
+}
 
-  async getUserById(userId: string): Promise<UserManagementResponse> {
+  async getUserById(userId: string): Promise<UserManagementResponseDto> {
     try {
       const user = await this.userManagementRepository.findById(userId);
 
@@ -230,8 +244,11 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
+      // ✅ Map to DTO
+      const userDto = UserMapper.toDetailDto(user);
+
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_RETRIEVED, {
-        data: { user },
+        user: userDto, // ✅ Now this is UserDetailDto
       });
     } catch (error) {
       console.error("Error fetching user:", error);

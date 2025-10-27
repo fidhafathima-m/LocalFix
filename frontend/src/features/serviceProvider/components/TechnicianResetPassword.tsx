@@ -12,6 +12,16 @@ interface TechnicianResetPasswordProps {
   token?: string;
 }
 
+interface FormData {
+  password: string;
+  confirmPassword: string;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: Record<string, string>;
+}
+
 const TechnicianResetPassword: React.FC<TechnicianResetPasswordProps> = ({
   phone,
   email,
@@ -54,9 +64,8 @@ const TechnicianResetPassword: React.FC<TechnicianResetPasswordProps> = ({
       navigate("/technicians/login", { replace: true });
     }, 1000);
   };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const customValidation = (data: any) => {
+  
+  const customValidation = (data: FormData): ValidationResult => {
     const validation = validateSchema(newPasswordSchema, {
       ...data,
       userType: "serviceProvider",

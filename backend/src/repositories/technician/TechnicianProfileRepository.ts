@@ -1,136 +1,52 @@
-import { ITechnician } from "../../interfaces/technician/ITechnician";
+import { AvailabilityInfo, BankInfo, DocumentsInfo, ITechnician, PersonalInfo } from "../../interfaces/technician/ITechnician";
 import { Technician } from "../../models/technician/TechnicianSchema";
 import { Types } from "mongoose";
-import { ITechnicianProfileRepository } from "../../interfaces/repository/technician/ITechnicianProfileRepository";
+import { DocumentUpdateData, ITechnicianProfileRepository, ProfileData, VerificationData } from "../../interfaces/repository/technician/ITechnicianProfileRepository";
 import { IUser, IUserUpdate } from "../../interfaces/user/IUser";
 import UserSchema from "../../models/UserSchema";
 import bcrypt from "bcrypt";
+import { FilterQuery } from "@/interfaces/repository/admin/ITechnicianManagementRepository";
 
-interface TechnicianUpdateData {
-  displayName?: string;
-  services?: string[];
-  experienceYears?: number;
-  workAreas?: string[];
-  serviceRadiusKm?: number;
-  profilePictureUrl?: string;
-  phone?: string;
-  personalInfo?: PersonalInfo;
-  availability?: AvailabilityData;
-  paymentDetails?: PaymentData;
-  identityVerification?: VerificationData;
-  [key: string]: unknown;
-}
 
-interface PersonalInfo {
-  fullName?: string;
-  gender?: string;
-  phoneNumber?: string;
-  dateOfBirth?: Date;
-  address?: string;
-  languages?: string[];
-  [key: string]: unknown;
-}
-
-interface DocumentData {
-  type: string;
-  url: string;
-  name: string;
-  verified?: boolean;
-  status?: string;
-  verifiedAt?: Date;
-  uploadedAt?: Date;
-  [key: string]: unknown;
-}
-
-interface DocumentUpdateData {
-  verified?: boolean;
-  status?: string;
-  verifiedAt?: Date;
-  [key: string]: unknown;
-}
-
-interface AvailabilityData {
-  isAvailable?: boolean;
-  workingDays?: string[];
-  startTime?: string;
-  endTime?: string;
-  serviceAreas?: string[];
-  workRadius?: number;
-  [key: string]: unknown;
-}
-
-interface PaymentData {
-  bankAccount?: {
-    accountNumber?: string;
-    ifscCode?: string;
-    accountHolderName?: string;
-  };
-  upiId?: string;
-  [key: string]: unknown;
-}
-
-interface VerificationData {
-  status?: string;
-  verifiedAt?: Date;
-  verifiedBy?: string;
-  documents?: string[];
-  [key: string]: unknown;
-}
-
-interface TechnicianFilter {
-  status?: string;
-  services?: string | { $in: string[] };
-  workAreas?: { $regex: string; $options: string };
-  "availability.isAvailable"?: boolean;
-  [key: string]: unknown;
-}
-
-interface UserFilter {
-  role?: string;
-  [key: string]: unknown;
-}
-
-interface ProfileData {
-  fullName?: string;
-  phone?: string;
-  profilePicture?: string;
-  [key: string]: unknown;
-}
 
 export class TechnicianProfileRepository
   implements ITechnicianProfileRepository
 {
   async updateTechnician(
-    technicianId: string,
-    updateData: TechnicianUpdateData
-  ): Promise<ITechnician | null> {
-    try {
-      const processedUpdateData = {
-        ...updateData,
-        personalInfo: updateData.personalInfo
-          ? {
-              ...updateData.personalInfo,
-              languages: Array.isArray(updateData.personalInfo?.languages)
-                ? updateData.personalInfo.languages
-                : [],
-            }
-          : undefined,
-      };
+  technicianId: string,
+  updateData: Partial<ITechnician>
+): Promise<ITechnician | null> {
+  try {
 
-      return await Technician.findByIdAndUpdate(
-        technicianId,
-        { $set: processedUpdateData },
-        { new: true, runValidators: true }
-      );
-    } catch (error) {
-      console.error("Error updating technician:", error);
-      throw error;
-    }
+    const processedUpdateData = {
+      ...updateData,
+      personalInfo: updateData.personalInfo
+        ? {
+            ...updateData.personalInfo,
+            languages: Array.isArray(updateData.personalInfo?.languages)
+              ? updateData.personalInfo.languages
+              : [],
+          }
+        : undefined,
+    };
+
+
+    const result = await Technician.findByIdAndUpdate(
+      technicianId,
+      { $set: processedUpdateData },
+      { new: true, runValidators: true }
+    );
+
+    return result;
+  } catch (error) {
+    console.error("REPOSITORY - Error updating technician:", error);
+    throw error;
   }
+}
 
   async addDocument(
     technicianId: string,
-    documentData: DocumentData
+    documentData: DocumentsInfo
   ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
@@ -149,7 +65,7 @@ export class TechnicianProfileRepository
   async updateDocument(
     technicianId: string,
     documentId: string,
-    updateData: DocumentUpdateData
+    updateData: Partial<DocumentUpdateData>
   ): Promise<ITechnician | null> {
     return await Technician.findOneAndUpdate(
       {
@@ -184,7 +100,7 @@ export class TechnicianProfileRepository
 
   async updateTechnicianPersonalInfo(
     technicianId: string,
-    personalInfo: any
+    personalInfo: PersonalInfo
   ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
@@ -204,7 +120,7 @@ export class TechnicianProfileRepository
 
   async updateAvailability(
     technicianId: string,
-    availabilityData: any
+    availabilityData: AvailabilityInfo
   ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
@@ -217,24 +133,41 @@ export class TechnicianProfileRepository
     );
   }
 
-  async updatePaymentDetails(
-    technicianId: string,
-    paymentData: PaymentData
-  ): Promise<ITechnician | null> {
-    return await Technician.findByIdAndUpdate(
+  async updateTechnicianPaymentDetails(
+  technicianId: string,
+  paymentDetails: {
+    bankAccount: {
+      holderName: string;
+      accountNumber: string;
+      ifscCode: string;
+      bankName: string;
+    };
+    upiId: string;
+    withdrawalPreference: string;
+  }
+): Promise<boolean> {
+  try {
+    const result = await Technician.findByIdAndUpdate(
       technicianId,
       {
         $set: {
-          paymentDetails: paymentData,
+          'paymentDetails.bankAccount': paymentDetails.bankAccount,
+          'paymentDetails.upiId': paymentDetails.upiId,
+          'paymentDetails.withdrawalPreference': paymentDetails.withdrawalPreference,
         },
       },
       { new: true }
     );
-  }
 
+    return !!result;
+  } catch (error) {
+    console.error('Error updating payment details:', error);
+    return false;
+  }
+}
   async updateIdentityVerification(
     technicianId: string,
-    verificationData: any
+    verificationData: VerificationData
   ): Promise<ITechnician | null> {
     return await Technician.findByIdAndUpdate(
       technicianId,
@@ -268,12 +201,12 @@ export class TechnicianProfileRepository
     });
   }
 
-  async countTechnicians(filter: any = {}): Promise<number> {
+  async countTechnicians(filter: FilterQuery = {}): Promise<number> {
     return await Technician.countDocuments(filter);
   }
 
   async findAll(
-    filter: any = {},
+    filter: FilterQuery = {},
     skip: number = 0,
     limit: number = 10
   ): Promise<ITechnician[]> {
@@ -294,28 +227,16 @@ export class TechnicianProfileRepository
     );
   }
 
-  async verifyPassword(userId: string, password: string): Promise<boolean> {
+  async updateUserPassword(userId: string, newPassword: string): Promise<IUser | null> {
     try {
-      const user = await UserSchema.findById(userId);
-      if (!user || !user.passwordHash) {
-        return false;
-      }
-      return await bcrypt.compare(password, user.passwordHash);
-    } catch (error) {
-      console.error("Error verifying password:", error);
-      return false;
-    }
-  }
 
-  async updateUserPassword(
-    userId: string,
-    newPassword: string
-  ): Promise<IUser | null> {
-    try {
-      const saltRounds = 10;
+      // Hash the new password
+      const saltRounds = 12;
       const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    
 
-      return await UserSchema.findByIdAndUpdate(
+      // Update the user's password
+      const result = await UserSchema.findByIdAndUpdate(
         userId,
         {
           $set: {
@@ -325,9 +246,30 @@ export class TechnicianProfileRepository
         },
         { new: true }
       );
+
+      return result;
     } catch (error) {
-      console.error("Error updating password:", error);
+      console.error('TECH PROFILE REPO - Error updating password:', error);
       throw error;
+    }
+  }
+
+  async verifyPassword(userId: string, password: string): Promise<boolean> {
+    try {
+      
+      // Make sure to select the passwordHash field explicitly
+      const user = await UserSchema.findById(userId).select('+passwordHash');
+      
+      if (!user || !user.passwordHash) {
+        return false;
+      }
+      
+      const isValid = await bcrypt.compare(password, user.passwordHash);
+      
+      return isValid;
+    } catch (error) {
+      console.error('TECH PROFILE REPO - Error verifying password:', error);
+      return false;
     }
   }
 
@@ -364,12 +306,12 @@ export class TechnicianProfileRepository
     return await UserSchema.find({ role }).sort({ createdAt: -1 });
   }
 
-  async countUsers(filter: any = {}): Promise<number> {
+  async countUsers(filter: FilterQuery = {}): Promise<number> {
     return await UserSchema.countDocuments(filter);
   }
 
   async findAllUsers(
-    filter: any = {},
+    filter: FilterQuery = {},
     skip: number = 0,
     limit: number = 10
   ): Promise<IUser[]> {
@@ -384,7 +326,7 @@ export class TechnicianProfileRepository
     return result !== null;
   }
 
-  async updateProfile(userId: string, profileData: any): Promise<IUser | null> {
+  async updateProfile(userId: string, profileData: ProfileData): Promise<IUser | null> {
     return await UserSchema.findByIdAndUpdate(
       userId,
       {

@@ -1,13 +1,16 @@
 import { ApiResponse } from "../../utils/responseHelper";
 import { IUserBase } from "../common/IUserBase";
+import { IAddress } from "../user/IAddress";
 
 export interface IUser extends IUserBase {
-  // any admin-specific properties here 
+  lastLogin?: Date;
+  loginCount?: number;
+  profilePictureUrl?: string;
 }
 
 export interface IUserWithAddress extends IUser {
-  addresses?: any[];
-  defaultAddress?: any;
+  addresses?: IAddress[];
+  defaultAddress?: IAddress;
 }
 
 export interface UpdateUserStatusRequest {

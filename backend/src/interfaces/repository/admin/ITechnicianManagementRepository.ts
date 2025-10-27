@@ -1,3 +1,4 @@
+import { PersonalInfo } from "@/interfaces/technician/ITechnician";
 import {
   ITechnician,
   ITechnicianApplication,
@@ -5,24 +6,36 @@ import {
   ApplicationFilters,
 } from "../../admin/ITechnicianManagement";
 import { Types } from "mongoose";
+import { IUser } from "@/interfaces/admin/IUserManagements";
+import { IUserAddress } from "@/models/UserAddressSchema";
+
+export type FilterQuery = Record<string, unknown>;
+
+export interface StatusUpdateData {
+  notes?: string;
+  reason?: string;
+  reviewedBy?: string;
+  rejectionReason?: string;
+  rejectedAt?: Date;
+}
 
 export interface ITechnicianManagementRepository {
   // Technician methods
   findAllTechnicians(
-    filter: any,
+    filter: FilterQuery,
     skip: number,
     limit: number
   ): Promise<ITechnician[]>;
-  countTechnicians(filter: any): Promise<number>;
+  countTechnicians(filter: FilterQuery): Promise<number>;
   findTechnicianById(id: string): Promise<ITechnician | null>;
   updateTechnicianStatus(
     id: string,
     status: string,
-    additionalData?: any
+    additionalData?: StatusUpdateData
   ): Promise<ITechnician | null>;
   updateTechnicianPersonalInfo(
     technicianId: string,
-    personalInfo: any
+    personalInfo: PersonalInfo
   ): Promise<ITechnician | null>;
   findTechnicianByUserId(userId: string): Promise<ITechnician | null>;
   findTechnicianByApplicationId(
@@ -31,26 +44,26 @@ export interface ITechnicianManagementRepository {
 
   // Application methods
   findAllApplications(
-    filter: any,
+    filter: FilterQuery,
     skip: number,
     limit: number
   ): Promise<ITechnicianApplication[]>;
-  countApplications(filter: any): Promise<number>;
+  countApplications(filter: FilterQuery): Promise<number>;
   findApplicationById(id: string): Promise<ITechnicianApplication | null>;
   updateApplicationStatus(
     applicationId: string,
     status: string,
-    additionalData?: any
+    additionalData?: StatusUpdateData
   ): Promise<ITechnicianApplication | null>;
-  findApplicationByTechnicianId(technicianId: string): Promise<any>;
+  findApplicationByTechnicianId(technicianId: string): Promise<ITechnicianApplication | null>;
 
   // User methods
-  findUserById(userId: Types.ObjectId): Promise<any>;
+  findUserById(userId: Types.ObjectId): Promise<IUser | null>;
   updateUserApplicationStatus(
     userId: Types.ObjectId,
     applicationStatus: string
-  ): Promise<any>;
-  findUserAddress(userId: Types.ObjectId): Promise<any>;
+  ): Promise<IUser | null>;
+  findUserAddress(userId: Types.ObjectId): Promise<IUserAddress | null>;
 
   // Stats methods
   getTechnicianStats(): Promise<{
@@ -69,9 +82,35 @@ export interface ITechnicianManagementRepository {
   }>;
 
   // Create technician
-  findOrCreateTechnician(application: any): Promise<ITechnician>;
+  findOrCreateTechnician(application: ITechnicianApplication): Promise<ITechnician>;
   updateTechnicianPaymentDetails(
-    technicianId: string,
-    paymentDetails: any
-  ): Promise<any>;
+  technicianId: string,
+  paymentDetails: {
+    bankAccount: {
+      holderName: string;
+      accountNumber: string;
+      ifscCode: string;
+      bankName: string;
+    };
+    upiId: string;
+    withdrawalPreference: string;
+  }
+): Promise<boolean>
+
+updateTechnicianIdentityVerification(
+  technicianId: string,
+  identityData: {
+    idType: string;
+    idNumber: string;
+    idDocument: string;
+    verificationStatus: string;
+    verified: boolean;
+    verifiedAt: Date;
+  }
+): Promise<boolean>
+save(application: ITechnicianApplication): Promise<ITechnicianApplication>;
+ updateTechnicianDocuments(
+  technicianId: string, 
+  documents: any[]
+): Promise<ITechnician | null>
 }

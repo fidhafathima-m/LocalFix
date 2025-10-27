@@ -3,6 +3,10 @@ import { AuthRequest } from "../../middleware/authMiddleware";
 import { ITechnicianDashboardService } from "../../interfaces/services/technician/ITechnicianDashboardService";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
+import {
+  DashboardOverviewResponseDto,
+  TechnicianProfileResponseDto,
+} from "../../interfaces/dtos/technicianDashboardDtos";
 
 export class TechnicianDashboardController {
   private dashboardService: ITechnicianDashboardService;
@@ -26,9 +30,8 @@ export class TechnicianDashboardController {
         return;
       }
 
-      const result = await this.dashboardService.getDashboardOverview(
-        technicianId
-      );
+      const result: DashboardOverviewResponseDto = await this.dashboardService.getDashboardOverview(technicianId);
+      
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get dashboard overview controller error:", error);
@@ -52,9 +55,8 @@ export class TechnicianDashboardController {
         return;
       }
 
-      const result = await this.dashboardService.getTechnicianProfile(
-        technicianId
-      );
+      const result: TechnicianProfileResponseDto = await this.dashboardService.getTechnicianProfile(technicianId);
+      
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technician profile controller error:", error);

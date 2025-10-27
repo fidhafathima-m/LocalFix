@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BaseForgetPassword from "../../../components/reusable/BaseForgetPassword";
+import BaseForgetPassword, { 
+  type ForgetPasswordFormData as BaseForgetPasswordFormData, 
+} from "../../../components/reusable/BaseForgetPassword";
 import { validateSchema, forgotPasswordSchema } from "../../../validation";
 import { TechnicianAuthService } from "../../../services/technician/technicianAuthService";
 
@@ -42,16 +43,16 @@ const TechnicianForgetPassword: React.FC = () => {
       } else {
         return { success: false, message: response.message };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Technician forgot password error:", error);
-      const errorMessage = error.message || "Failed to send OTP";
+      const errorMessage = error instanceof Error ? error.message : "Failed to send OTP";
       return { success: false, message: errorMessage, error };
     } finally {
       setLoading(false);
     }
   };
 
-  const customValidation = (data: any) => {
+  const customValidation = (data: BaseForgetPasswordFormData) => {
     const validation = validateSchema(forgotPasswordSchema, {
       ...data,
       userType: "serviceProvider",

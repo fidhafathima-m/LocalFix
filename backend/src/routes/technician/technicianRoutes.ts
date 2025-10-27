@@ -1,9 +1,11 @@
 import express from "express";
 import multer from "multer";
 import { technicianApplicationController } from "../../config/container";
-import { protect } from "../../middleware/authMiddleware";
+import { protect, serviceProvider } from "../../middleware/authMiddleware";
 
 const router = express.Router();
+
+router.use(serviceProvider)
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -75,6 +77,11 @@ router.post(
   "/start-new-after-rejection",
   protect,
   technicianApplicationController.startNewAfterRejection
+);
+router.get(
+  "/:applicationId/edit",
+  protect,
+  technicianApplicationController.getApplicationForEdit
 );
 
 export default router;

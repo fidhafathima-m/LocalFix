@@ -1,29 +1,37 @@
+import { Types } from "mongoose";
 import { ITechnicianProfileService } from "../interfaces/services/technician/ITechnicianProfileService";
 import { ITechnicianRepository } from "../interfaces/repository/technician/ITechnicianRepository";
 import { IUserRepository } from "../interfaces/repository/user/IUserRepository";
 import { IUserAddressRepository } from "../interfaces/repository/user/IUserAddressRepository";
-import {
-  AvailabilityPreferencesUpdate,
-  BankPaymentUpdate,
-  IdentityVerificationUpdate,
-  PersonalInfoUpdate,
-  SecuritySettingsUpdate,
-  SkillsServicesUpdate,
-} from "../interfaces/technician/ITechnicianProfile";
 import { ITechnicianProfileRepository } from "../interfaces/repository/technician/ITechnicianProfileRepository";
 import { ResponseHelper } from "../utils/responseHelper";
 import {
   TECHNICIAN_PROFILE_MESSAGES,
   VERIFICATION_STATUS,
   DOCUMENT_STATUS,
-  PROFILE_SECTIONS,
-  AVAILABILITY_DEFAULTS,
-  WEEKLY_AVAILABILITY_DAYS,
-  PAYMENT_DEFAULTS,
   PERSONAL_INFO_DEFAULTS,
   SKILLS_DEFAULTS,
-  SECURITY_SETTINGS_DEFAULTS,
+  AVAILABILITY_DEFAULTS,
+  PAYMENT_DEFAULTS,
 } from "../constants";
+import { ITechnician } from "@/interfaces/technician/ITechnician";
+
+// Import DTOs and Mapper
+import {
+  TechnicianProfileResponseDto,
+  StaticDataResponseDto,
+  PersonalInfoUpdateDto,
+  IdentityVerificationUpdateDto,
+  SkillsServicesUpdateDto,
+  AvailabilityPreferencesUpdateDto,
+  BankPaymentUpdateDto,
+  SecuritySettingsUpdateDto,
+  DocumentUploadDto,
+  TechnicianProfileDto,
+  DocumentDataDto,
+} from "../interfaces/dtos/technicianProfileDtos";
+import { TechnicianProfileMapper } from "../mappers/technicianProfileMappers";
+import { uploadToCloudinary } from "../utils/cloudinary";
 
 export class TechnicianProfileService implements ITechnicianProfileService {
   private technicianRepository: ITechnicianRepository;
@@ -43,7 +51,9 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     this.userAddressRepository = userAddressRepository;
   }
 
-  async getTechnicianProfile(technicianId: string): Promise<any> {
+  async getTechnicianProfile(
+    technicianId: string
+  ): Promise<TechnicianProfileResponseDto> {
     try {
       const technician = await this.technicianRepository.findByUserId(
         technicianId
@@ -56,52 +66,77 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      // Convert to plain object
-      const technicianObj = technician.toObject
+      let formattedLanguages: string[] = [];
+      if (technician.personalInfo?.languages) {
+        if (Array.isArray(technician.personalInfo.languages)) {
+          formattedLanguages = technician.personalInfo.languages;
+        } else if (typeof technician.personalInfo.languages === "string") {
+          try {
+            const parsed = JSON.parse(technician.personalInfo.languages);
+            formattedLanguages = Array.isArray(parsed)
+              ? parsed
+              : [technician.personalInfo.languages];
+          } catch {
+            formattedLanguages = [technician.personalInfo.languages];
+          }
+        }
+      }
+
+      // ✅ FIX: Properly extract documents from Mongoose document
+      let documents = [];
+      const technicianObject = technician.toObject
         ? technician.toObject()
-        : technician;
+        : { ...technician };
 
-      // Format profile data for frontend
+      // Try multiple ways to get documents from Mongoose document
+      if (technician.documents && Array.isArray(technician.documents)) {
+        documents = technician.documents;
+      } else if (
+        technician._doc?.documents &&
+        Array.isArray(technician._doc.documents)
+      ) {
+        documents = technician._doc.documents;
+      } else {
+        // Use toObject with proper options to include documents
+
+        documents = technicianObject.documents || [];
+      }
+
+      // ✅ Create profile data with properly extracted documents
       const profileData = {
-        // Include all basic technician fields
-        ...technicianObj,
-
-        [PROFILE_SECTIONS.PERSONAL_INFORMATION]: this.formatPersonalInfo(
-          technician,
-          user
-        ),
-        [PROFILE_SECTIONS.IDENTITY_VERIFICATION]:
-          this.formatIdentityVerification(technician),
-        [PROFILE_SECTIONS.SKILLS_SERVICES]:
-          this.formatSkillsServices(technician),
-        [PROFILE_SECTIONS.AVAILABILITY_PREFERENCES]:
-          this.formatAvailabilityPreferences(technician),
-        [PROFILE_SECTIONS.BANK_PAYMENT_DETAILS]:
-          this.formatBankPaymentDetails(technician),
-        [PROFILE_SECTIONS.DOCUMENTS]: this.formatDocuments(technician),
-        [PROFILE_SECTIONS.SECURITY_SETTINGS]: this.formatSecuritySettings(user),
+        ...technicianObject,
+        personalInfo: {
+          ...technicianObject.personalInfo,
+          languages: formattedLanguages,
+        },
+        documents: technician.documents || technicianObject.documents || [],
       };
+
+      // ✅ Map to DTO
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        profileData,
+        user
+      );
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.PROFILE_RETRIEVED,
         {
-          data: {
-            profile: profileData,
-          },
+          profile: profileDto,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get technician profile error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_FETCH_PROFILE
       );
     }
   }
-
   async updatePersonalInformation(
     technicianId: string,
-    updateData: PersonalInfoUpdate
-  ): Promise<any> {
+    updateData: PersonalInfoUpdateDto
+  ): Promise<TechnicianProfileResponseDto> {
     try {
       const technician = await this.technicianRepository.findByUserId(
         technicianId
@@ -114,59 +149,86 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
+      // Fix the update logic - don't use || with defaults that override empty strings
+      const updatePayload: any = {
+        personalInfo: {
+          ...technician.personalInfo, // Keep existing data
+        },
+      };
+
+      // Only update fields that are provided (not undefined)
+      if (updateData.personalInfo?.fullName !== undefined) {
+        updatePayload.personalInfo.fullName = updateData.personalInfo?.fullName;
+      }
+      if (updateData.personalInfo?.phoneNumber !== undefined) {
+        updatePayload.personalInfo.phoneNumber =
+          updateData.personalInfo?.phoneNumber;
+      }
+      if (updateData.personalInfo?.dateOfBirth !== undefined) {
+        updatePayload.personalInfo.dateOfBirth =
+          updateData.personalInfo?.dateOfBirth;
+      }
+      if (updateData.personalInfo?.gender !== undefined) {
+        updatePayload.personalInfo.gender = updateData.personalInfo?.gender;
+      }
+      if (updateData.personalInfo?.languages !== undefined) {
+        updatePayload.personalInfo.languages =
+          updateData.personalInfo?.languages;
+      }
+
+      if (updateData.bio !== undefined) {
+        updatePayload.bio = updateData.bio;
+      }
+
+      if (updateData.profilePicture) {
+        updatePayload.profilePictureUrl = updateData.profilePicture;
+      }
+
       // Update technician personal info
       const updatedTechnician =
         await this.technicianProfileRepository.updateTechnician(
-          technician._id.toString(),
-          {
-            personalInfo: {
-              ...technician.personalInfo,
-              fullName:
-                updateData.fullName ||
-                technician.personalInfo?.fullName ||
-                PERSONAL_INFO_DEFAULTS.FULL_NAME,
-              phoneNumber:
-                updateData.phoneNumber ||
-                technician.personalInfo?.phoneNumber ||
-                PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
-              dateOfBirth:
-                updateData.dateOfBirth ||
-                technician.personalInfo?.dateOfBirth ||
-                PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
-              gender:
-                updateData.gender ||
-                technician.personalInfo?.gender ||
-                PERSONAL_INFO_DEFAULTS.GENDER,
-              languages:
-                updateData.languages ||
-                technician.personalInfo?.languages ||
-                PERSONAL_INFO_DEFAULTS.LANGUAGES,
-              bio:
-                updateData.bio || technician.bio || PERSONAL_INFO_DEFAULTS.BIO,
-            },
-            ...(updateData.profilePicture && {
-              profilePictureUrl: updateData.profilePicture,
-            }),
-          }
+          technician._id!.toString(),
+          updatePayload
         );
+
+      if (!updatedTechnician) {
+        return ResponseHelper.error(
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PERSONAL_INFO
+        );
+      }
 
       // Update user email if provided
       if (updateData.email && updateData.email !== user.email) {
+        const existingUser = await this.userRepository.findByEmail(
+          updateData.email
+        );
+        if (existingUser && existingUser._id!.toString() !== technicianId) {
+          return ResponseHelper.error(
+            TECHNICIAN_PROFILE_MESSAGES.EMAIL_ALREADY_EXISTS
+          );
+        }
         await this.technicianProfileRepository.updateUser(technicianId, {
           email: updateData.email,
         });
       }
 
+      // ✅ Get updated user data and map to DTO
+      const updatedUser = await this.userRepository.findById(technicianId);
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        updatedTechnician,
+        updatedUser || user
+      );
+
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.PERSONAL_INFO_UPDATED,
         {
-          data: {
-            profile: updatedTechnician,
-          },
+          profile: profileDto,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Update personal information error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PERSONAL_INFO
       );
@@ -175,66 +237,89 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   async updateIdentityVerification(
     technicianId: string,
-    updateData: IdentityVerificationUpdate
-  ): Promise<any> {
+    updateData: IdentityVerificationUpdateDto
+  ): Promise<TechnicianProfileResponseDto> {
     try {
       const technician = await this.technicianRepository.findByUserId(
         technicianId
       );
+      const user = await this.userRepository.findById(technicianId);
 
-      if (!technician) {
+      if (!technician || !user) {
         return ResponseHelper.notFound(
           TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
         );
       }
 
+      // ✅ Build update payload
+      const updatePayload: any = {
+        identityVerification: {
+          ...technician.identityVerification,
+          idType: updateData.idType || technician.identityVerification?.idType,
+          idNumber:
+            updateData.idNumber || technician.identityVerification?.idNumber,
+          idDocument:
+            updateData.idDocument ||
+            technician.identityVerification?.idDocument,
+          verified: false,
+          verificationStatus: VERIFICATION_STATUS.PENDING,
+        },
+      };
+
+      // ✅ Handle address update in personalInfo
+      if (updateData.address) {
+        updatePayload.personalInfo = {
+          ...technician.personalInfo,
+          address: updateData.address,
+        };
+      }
+
+      // Call the repository
       const updatedTechnician =
         await this.technicianProfileRepository.updateTechnician(
-          technician._id.toString(),
-          {
-            identityVerification: {
-              ...technician.identityVerification,
-              governmentIdType:
-                updateData.governmentIdType ||
-                technician.identityVerification?.governmentIdType,
-              governmentIdNumber:
-                updateData.governmentIdNumber ||
-                technician.identityVerification?.governmentIdNumber,
-              idDocument:
-                updateData.idDocument ||
-                technician.identityVerification?.idDocument,
-              verified: false, // Reset verification status when updating
-              verificationStatus: VERIFICATION_STATUS.PENDING,
-            },
-          }
+          technician._id!.toString(),
+          updatePayload
         );
+
+      if (!updatedTechnician) {
+        console.error("Backend - Repository returned null/undefined");
+        return ResponseHelper.error(
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_IDENTITY_VERIFICATION
+        );
+      }
+
+      // Map to DTO
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        updatedTechnician,
+        user
+      );
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.IDENTITY_VERIFICATION_UPDATED,
         {
-          data: {
-            profile: updatedTechnician,
-          },
+          profile: profileDto,
         }
       );
-    } catch (error) {
-      console.error("Update identity verification error:", error);
+    } catch (error: unknown) {
+      console.error("Backend - Update identity verification error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_IDENTITY_VERIFICATION
       );
     }
   }
-
   async updateSkillsServices(
     technicianId: string,
-    updateData: SkillsServicesUpdate
-  ): Promise<any> {
+    updateData: SkillsServicesUpdateDto
+  ): Promise<TechnicianProfileResponseDto> {
     try {
       const technician = await this.technicianRepository.findByUserId(
         technicianId
       );
+      const user = await this.userRepository.findById(technicianId);
 
-      if (!technician) {
+      if (!technician || !user) {
         return ResponseHelper.notFound(
           TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
         );
@@ -242,15 +327,15 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       const updatedTechnician =
         await this.technicianProfileRepository.updateTechnician(
-          technician._id.toString(),
+          technician._id!.toString(),
           {
             services:
               updateData.services ||
               technician.services ||
               SKILLS_DEFAULTS.SERVICES,
             experienceYears:
-              updateData.experienceYears ||
-              technician.experienceYears ||
+              updateData.experienceYears ??
+              technician.experienceYears ??
               SKILLS_DEFAULTS.EXPERIENCE_YEARS,
             basePrices:
               updateData.basePrices ||
@@ -259,16 +344,28 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           }
         );
 
+      if (!updatedTechnician) {
+        return ResponseHelper.error(
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_SKILLS_SERVICES
+        );
+      }
+
+      // ✅ Map to DTO
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        updatedTechnician,
+        user
+      );
+
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.SKILLS_SERVICES_UPDATED,
         {
-          data: {
-            profile: updatedTechnician,
-          },
+          profile: profileDto,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Update skills services error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_SKILLS_SERVICES
       );
@@ -277,54 +374,65 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   async updateAvailabilityPreferences(
     technicianId: string,
-    updateData: AvailabilityPreferencesUpdate
-  ): Promise<any> {
+    updateData: AvailabilityPreferencesUpdateDto
+  ): Promise<TechnicianProfileResponseDto> {
     try {
       const technician = await this.technicianRepository.findByUserId(
         technicianId
       );
+      const user = await this.userRepository.findById(technicianId);
 
-      if (!technician) {
+      if (!technician || !user) {
         return ResponseHelper.notFound(
           TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
         );
       }
 
+      const updateDataForRepo: Partial<ITechnician> = {
+        availability: {
+          isAvailable:
+            updateData.isAvailable ??
+            technician.availability?.isAvailable ??
+            AVAILABILITY_DEFAULTS.IS_AVAILABLE,
+          weeklyAvailability:
+            updateData.weeklyAvailability ||
+            technician.availability?.weeklyAvailability,
+        },
+        workAreas: updateData.serviceAreas || technician.workAreas || [],
+        serviceRadiusKm:
+          updateData.workRadius ??
+          technician.serviceRadiusKm ??
+          AVAILABILITY_DEFAULTS.WORK_RADIUS,
+      };
+
       const updatedTechnician =
         await this.technicianProfileRepository.updateTechnician(
-          technician._id.toString(),
-          {
-            availability: {
-              isAvailable:
-                updateData.isAvailable ??
-                technician.availability?.isAvailable ??
-                AVAILABILITY_DEFAULTS.IS_AVAILABLE,
-              serviceAreas:
-                updateData.serviceAreas || technician.workAreas || [],
-              workRadius:
-                updateData.workRadius ||
-                technician.serviceRadiusKm ||
-                AVAILABILITY_DEFAULTS.WORK_RADIUS,
-              // weeklyAvailability: updateData.weeklyAvailability || technician.availability?.weeklyAvailability || this.getDefaultWeeklyAvailability(),
-            },
-            workAreas: updateData.serviceAreas || technician.workAreas || [],
-            serviceRadiusKm:
-              updateData.workRadius ||
-              technician.serviceRadiusKm ||
-              AVAILABILITY_DEFAULTS.WORK_RADIUS,
-          }
+          technician._id!.toString(),
+          updateDataForRepo
         );
+
+      if (!updatedTechnician) {
+        return ResponseHelper.error(
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
+        );
+      }
+
+      // ✅ Map to DTO
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        updatedTechnician,
+        user
+      );
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.AVAILABILITY_UPDATED,
         {
-          data: {
-            profile: updatedTechnician,
-          },
+          profile: profileDto,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Update availability preferences error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
       );
@@ -333,61 +441,116 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   async updateBankPaymentDetails(
     technicianId: string,
-    updateData: BankPaymentUpdate
-  ): Promise<any> {
+    updateData: BankPaymentUpdateDto
+  ): Promise<TechnicianProfileResponseDto> {
     try {
       const technician = await this.technicianRepository.findByUserId(
         technicianId
       );
+      const user = await this.userRepository.findById(technicianId);
 
-      if (!technician) {
+      if (!technician || !user) {
         return ResponseHelper.notFound(
           TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
         );
       }
 
+      // ✅ Handle both data structures - frontend might send paymentDetails object or flat structure
+      let paymentData: any = {};
+
+      if (updateData.paymentDetails) {
+        paymentData = {
+          accountHolderName: updateData.paymentDetails.bankAccount?.holderName,
+          accountNumber: updateData.paymentDetails.bankAccount?.accountNumber,
+          ifscCode: updateData.paymentDetails.bankAccount?.ifscCode,
+          upiId: updateData.paymentDetails.upiId,
+          withdrawalPreference: updateData.paymentDetails.withdrawalPreference,
+        };
+      } else {
+        paymentData = updateData;
+      }
+
+      // Validate required fields
+      if (!paymentData.accountHolderName?.trim()) {
+        return ResponseHelper.badRequest(
+          "Bank account holder name is required"
+        );
+      }
+
+      if (!paymentData.accountNumber?.trim()) {
+        return ResponseHelper.badRequest("Account number is required");
+      }
+
+      if (!paymentData.ifscCode?.trim()) {
+        return ResponseHelper.badRequest("IFSC code is required");
+      }
+
+      const allowedWithdrawalPrefs = ["auto", "manual"] as const;
+      const inputPref = paymentData.withdrawalPreference;
+      const resolvedWithdrawalPreference = allowedWithdrawalPrefs.includes(
+        inputPref as any
+      )
+        ? (inputPref as (typeof allowedWithdrawalPrefs)[number])
+        : technician.paymentDetails?.withdrawalPreference ??
+          PAYMENT_DEFAULTS.WITHDRAWAL_PREFERENCE;
+
+      const updatePayload = {
+        paymentDetails: {
+          ...technician.paymentDetails,
+          bankAccount: {
+            holderName:
+              paymentData.accountHolderName ||
+              technician.paymentDetails?.bankAccount?.holderName ||
+              PAYMENT_DEFAULTS.BANK_ACCOUNT.HOLDER_NAME,
+            accountNumber:
+              paymentData.accountNumber ||
+              technician.paymentDetails?.bankAccount?.accountNumber ||
+              PAYMENT_DEFAULTS.BANK_ACCOUNT.ACCOUNT_NUMBER,
+            ifscCode:
+              paymentData.ifscCode ||
+              technician.paymentDetails?.bankAccount?.ifscCode ||
+              PAYMENT_DEFAULTS.BANK_ACCOUNT.IFSC_CODE,
+            bankName:
+              paymentData.bankName ||
+              technician.paymentDetails?.bankAccount?.bankName ||
+              PAYMENT_DEFAULTS.BANK_ACCOUNT.BANK_NAME,
+          },
+          upiId:
+            paymentData.upiId ||
+            technician.paymentDetails?.upiId ||
+            PAYMENT_DEFAULTS.UPI_ID,
+          withdrawalPreference: resolvedWithdrawalPreference,
+        },
+      };
+
       const updatedTechnician =
         await this.technicianProfileRepository.updateTechnician(
-          technician._id.toString(),
-          {
-            paymentDetails: {
-              ...technician.paymentDetails,
-              bankAccount: {
-                holderName:
-                  updateData.accountHolderName ||
-                  technician.paymentDetails?.bankAccount?.holderName ||
-                  PAYMENT_DEFAULTS.BANK_ACCOUNT.HOLDER_NAME,
-                accountNumber:
-                  updateData.accountNumber ||
-                  technician.paymentDetails?.bankAccount?.accountNumber ||
-                  PAYMENT_DEFAULTS.BANK_ACCOUNT.ACCOUNT_NUMBER,
-                ifscCode:
-                  updateData.ifscCode ||
-                  technician.paymentDetails?.bankAccount?.ifscCode ||
-                  PAYMENT_DEFAULTS.BANK_ACCOUNT.IFSC_CODE,
-              },
-              upiId:
-                updateData.upiId ||
-                technician.paymentDetails?.upiId ||
-                PAYMENT_DEFAULTS.UPI_ID,
-              withdrawalPreference:
-                updateData.withdrawalPreference ||
-                technician.paymentDetails?.withdrawalPreference ||
-                PAYMENT_DEFAULTS.WITHDRAWAL_PREFERENCE,
-            },
-          }
+          technician._id!.toString(),
+          updatePayload
         );
+
+      if (!updatedTechnician) {
+        return ResponseHelper.error(
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_BANK_PAYMENT
+        );
+      }
+
+      // ✅ Map to DTO
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        updatedTechnician,
+        user
+      );
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.BANK_PAYMENT_UPDATED,
         {
-          data: {
-            profile: updatedTechnician,
-          },
+          profile: profileDto,
         }
       );
-    } catch (error) {
-      console.error("Update bank payment details error:", error);
+    } catch (error: unknown) {
+      console.error("UPDATE BANK PAYMENT - Error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_BANK_PAYMENT
       );
@@ -396,12 +559,15 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   async updatePassword(
     technicianId: string,
-    updateData: SecuritySettingsUpdate
-  ): Promise<any> {
+    updateData: SecuritySettingsUpdateDto
+  ): Promise<TechnicianProfileResponseDto> {
     try {
       const user = await this.userRepository.findById(technicianId);
+      const technician = await this.technicianRepository.findByUserId(
+        technicianId
+      );
 
-      if (!user) {
+      if (!user || !technician) {
         return ResponseHelper.notFound(
           TECHNICIAN_PROFILE_MESSAGES.USER_NOT_FOUND
         );
@@ -420,9 +586,11 @@ export class TechnicianProfileService implements ITechnicianProfileService {
             TECHNICIAN_PROFILE_MESSAGES.CURRENT_PASSWORD_INCORRECT
           );
         }
+      } else {
+        return ResponseHelper.badRequest("Current password is required");
       }
 
-      // Update password
+      // Update password - Use the correct repository method
       if (updateData.newPassword) {
         if (updateData.newPassword !== updateData.confirmPassword) {
           return ResponseHelper.badRequest(
@@ -430,17 +598,38 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           );
         }
 
-        await this.userRepository.updatePassword(
-          technicianId,
-          updateData.newPassword
-        );
+        // Use the correct method from technicianProfileRepository
+        const updateResult =
+          await this.technicianProfileRepository.updateUserPassword(
+            technicianId,
+            updateData.newPassword
+          );
+
+        if (!updateResult) {
+          return ResponseHelper.error(
+            TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PASSWORD
+          );
+        }
+      } else {
+        return ResponseHelper.badRequest("New password is required");
       }
 
-      return ResponseHelper.success(
-        TECHNICIAN_PROFILE_MESSAGES.PASSWORD_UPDATED
+      // ✅ Map to DTO
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        technician,
+        user
       );
-    } catch (error) {
-      console.error("Update password error:", error);
+
+      return ResponseHelper.success(
+        TECHNICIAN_PROFILE_MESSAGES.PASSWORD_UPDATED,
+        {
+          profile: profileDto,
+        }
+      );
+    } catch (error: unknown) {
+      console.error("UPDATE PASSWORD - Error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PASSWORD
       );
@@ -449,45 +638,66 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   async uploadDocument(
     technicianId: string,
-    documentData: {
-      type: string;
-      fileUrl: string;
-      fileName: string;
-    }
-  ): Promise<any> {
+    documentData: DocumentUploadDto | Express.Multer.File,
+    documentType?: string
+  ): Promise<TechnicianProfileResponseDto> {
     try {
       const technician = await this.technicianRepository.findByUserId(
         technicianId
       );
+      const user = await this.userRepository.findById(technicianId);
 
-      if (!technician) {
+      if (!technician || !user) {
         return ResponseHelper.notFound(
           TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
         );
       }
 
-      if (!documentData.type) {
+      let fileUrl: string;
+      let fileName: string;
+      let finalDocumentType: string;
+
+      // Handle both DocumentUploadDto and Multer file
+      if (documentData instanceof Object && "fileUrl" in documentData) {
+        // It's a DocumentUploadDto
+        fileUrl = documentData.fileUrl;
+        fileName = documentData.fileName;
+        finalDocumentType = documentData.type;
+      } else {
+        // It's a Multer file
+        const file = documentData as Express.Multer.File;
+
+        if (!documentType) {
+          return ResponseHelper.badRequest(
+            "Document type is required for file uploads"
+          );
+        }
+        // Upload to Cloudinary
+        const uploadResult = await uploadToCloudinary(file);
+
+        if (!uploadResult || !uploadResult.secure_url) {
+          console.error("Service - Cloudinary upload failed");
+          return ResponseHelper.error(
+            TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_DOCUMENT
+          );
+        }
+
+        fileUrl = uploadResult.secure_url;
+        fileName = file.originalname;
+        finalDocumentType = documentType;
+      }
+
+      if (!finalDocumentType || !fileUrl || !fileName) {
         return ResponseHelper.badRequest(
           TECHNICIAN_PROFILE_MESSAGES.DOCUMENT_TYPE_REQUIRED
         );
       }
 
-      if (!documentData.fileUrl) {
-        return ResponseHelper.badRequest(
-          TECHNICIAN_PROFILE_MESSAGES.FILE_URL_REQUIRED
-        );
-      }
-
-      if (!documentData.fileName) {
-        return ResponseHelper.badRequest(
-          TECHNICIAN_PROFILE_MESSAGES.FILE_NAME_REQUIRED
-        );
-      }
-
-      const newDocument = {
-        type: documentData.type,
-        url: documentData.fileUrl,
-        fileName: documentData.fileName,
+      const newDocument: DocumentDataDto = {
+        _id: new Types.ObjectId().toString(),
+        type: finalDocumentType,
+        url: fileUrl,
+        fileName: fileName,
         uploadedAt: new Date(),
         verified: false,
         status: DOCUMENT_STATUS.PENDING,
@@ -495,136 +705,117 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       const updatedTechnician =
         await this.technicianProfileRepository.addDocument(
-          technician._id.toString(),
-          newDocument
+          technician._id!.toString(),
+          newDocument as any
         );
+
+      if (!updatedTechnician) {
+        return ResponseHelper.error(
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_DOCUMENT
+        );
+      }
+
+      // ✅ Map to DTO
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        updatedTechnician,
+        user
+      );
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.DOCUMENT_UPLOADED,
         {
-          data: {
-            document: newDocument,
-          },
+          profile: profileDto,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Upload document error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_DOCUMENT
       );
     }
   }
 
-  // Helper methods to format data for frontend
-  private formatPersonalInfo(technician: any, user: any) {
-    return {
-      fullName:
-        technician.personalInfo?.fullName ||
-        technician.displayName ||
-        PERSONAL_INFO_DEFAULTS.FULL_NAME,
-      phoneNumber:
-        technician.personalInfo?.phoneNumber ||
-        technician.phone ||
-        PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
-      email: user.email,
-      dateOfBirth:
-        technician.personalInfo?.dateOfBirth ||
-        PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
-      gender: technician.personalInfo?.gender || PERSONAL_INFO_DEFAULTS.GENDER,
-      languages:
-        technician.personalInfo?.languages || PERSONAL_INFO_DEFAULTS.LANGUAGES,
-      bio: technician.bio || PERSONAL_INFO_DEFAULTS.BIO,
-      profilePictureUrl:
-        technician.profilePictureUrl ||
-        PERSONAL_INFO_DEFAULTS.PROFILE_PICTURE_URL,
-    };
-  }
+  async getStaticData(): Promise<StaticDataResponseDto> {
+    try {
+      // ✅ Map to DTO
+      const staticDataDto = TechnicianProfileMapper.toStaticDataDto();
 
-  private formatIdentityVerification(technician: any) {
-    return {
-      verificationStatus:
-        technician.identityVerification?.verificationStatus ||
-        VERIFICATION_STATUS.PENDING,
-      governmentIdType: technician.identityVerification?.governmentIdType,
-      governmentIdNumber: technician.identityVerification?.governmentIdNumber,
-      idDocument: technician.identityVerification?.idDocument,
-    };
-  }
-
-  private formatSkillsServices(technician: any) {
-    return {
-      services: technician.services || SKILLS_DEFAULTS.SERVICES,
-      experienceYears:
-        technician.experienceYears || SKILLS_DEFAULTS.EXPERIENCE_YEARS,
-      basePrices: technician.basePrices || SKILLS_DEFAULTS.BASE_PRICES,
-    };
-  }
-
-  private formatAvailabilityPreferences(technician: any) {
-    return {
-      isAvailable:
-        technician.availability?.isAvailable ??
-        AVAILABILITY_DEFAULTS.IS_AVAILABLE,
-      serviceAreas: technician.workAreas || [],
-      workRadius:
-        technician.serviceRadiusKm || AVAILABILITY_DEFAULTS.WORK_RADIUS,
-      // weeklyAvailability: technician.availability?.weeklyAvailability || this.getDefaultWeeklyAvailability(),
-    };
-  }
-
-  private formatBankPaymentDetails(technician: any) {
-    // Check if we have paymentDetails directly on technician
-    if (technician.paymentDetails) {
-      return technician.paymentDetails;
+      return ResponseHelper.success("Static data retrieved successfully", {
+        staticData: staticDataDto,
+      });
+    } catch (error: unknown) {
+      console.error("Get static data error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error("Failed to fetch static data");
     }
+  }
+  async uploadPhoto(
+    technicianId: string,
+    file: Express.Multer.File
+  ): Promise<TechnicianProfileResponseDto> {
+    try {
+      const technician = await this.technicianRepository.findByUserId(
+        technicianId
+      );
+      const user = await this.userRepository.findById(technicianId);
 
-    // Check if we have bankPaymentDetails
-    if (technician.bankPaymentDetails) {
-      return technician.bankPaymentDetails;
+      if (!technician || !user) {
+        return ResponseHelper.notFound(
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+        );
+      }
+
+      // Upload to Cloudinary (same as application form)
+      const uploadResult = await uploadToCloudinary(file);
+
+      if (!uploadResult || !uploadResult.secure_url) {
+        console.error("Service - Cloudinary upload failed");
+        return ResponseHelper.error(
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_PHOTO
+        );
+      }
+
+      const profilePictureUrl = uploadResult.secure_url;
+
+      // Update technician with the new profile picture URL
+      const updatedTechnician =
+        await this.technicianProfileRepository.updateTechnician(
+          technician._id!.toString(),
+          {
+            profilePictureUrl: profilePictureUrl,
+          }
+        );
+
+      if (!updatedTechnician) {
+        console.error("Service - Failed to update technician profile");
+        return ResponseHelper.error(
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_PHOTO
+        );
+      }
+
+      // ✅ Map to DTO
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        updatedTechnician,
+        user
+      );
+
+      return ResponseHelper.success(
+        TECHNICIAN_PROFILE_MESSAGES.PHOTO_UPLOADED,
+        {
+          profile: profileDto,
+          profilePictureUrl: profilePictureUrl,
+        }
+      );
+    } catch (error: unknown) {
+      console.error("Upload photo error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_PHOTO
+      );
     }
-
-    return {
-      bankAccount: {
-        holderName:
-          technician.accountHolderName ||
-          PAYMENT_DEFAULTS.BANK_ACCOUNT.HOLDER_NAME,
-        accountNumber:
-          technician.accountNumber ||
-          PAYMENT_DEFAULTS.BANK_ACCOUNT.ACCOUNT_NUMBER,
-        ifscCode:
-          technician.ifscCode || PAYMENT_DEFAULTS.BANK_ACCOUNT.IFSC_CODE,
-        bankName:
-          technician.bankName || PAYMENT_DEFAULTS.BANK_ACCOUNT.BANK_NAME,
-      },
-      upiId: technician.upiId || PAYMENT_DEFAULTS.UPI_ID,
-      withdrawalPreference:
-        technician.withdrawalPreference ||
-        PAYMENT_DEFAULTS.WITHDRAWAL_PREFERENCE,
-    };
   }
-
-  private formatDocuments(technician: any) {
-    return technician.documents || [];
-  }
-
-  private formatSecuritySettings(user: any) {
-    return {
-      lastLogin: user.lastLogin || SECURITY_SETTINGS_DEFAULTS.LAST_LOGIN,
-      loginDevice: user.loginDevice || SECURITY_SETTINGS_DEFAULTS.LOGIN_DEVICE,
-    };
-  }
-
-  // private getDefaultWeeklyAvailability() {
-  //   const availability: any = {};
-
-  //   WEEKLY_AVAILABILITY_DAYS.forEach((day) => {
-  //     availability[day] = {
-  //       enabled: !AVAILABILITY_DEFAULTS.DAYS_OFF.includes(day),
-  //       startTime: AVAILABILITY_DEFAULTS.START_TIME,
-  //       endTime: AVAILABILITY_DEFAULTS.END_TIME,
-  //     };
-  //   });
-
-  //   return availability;
-  // }
 }

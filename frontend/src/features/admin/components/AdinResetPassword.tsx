@@ -12,6 +12,16 @@ interface AdminResetPasswordProps {
   token?: string;
 }
 
+interface FormData {
+  password: string;
+  confirmPassword: string;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: Record<string, string>;
+}
+
 const AdminResetPassword: React.FC<AdminResetPasswordProps> = ({
   phone,
   email,
@@ -20,10 +30,7 @@ const AdminResetPassword: React.FC<AdminResetPasswordProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const handleSubmit = async (formData: {
-    password: string;
-    confirmPassword: string;
-  }) => {
+  const handleSubmit = async (formData: FormData) => {
     try {
       const payload: ResetPasswordData = {
         password: formData.password,
@@ -45,7 +52,8 @@ const AdminResetPassword: React.FC<AdminResetPasswordProps> = ({
       }
     } catch (error: unknown) {
       console.error("Admin reset password error:", error);
-      return { success: false, message: "Reset password failed" };
+      const errorMessage = error instanceof Error ? error.message : "Reset password failed";
+      return { success: false, message: errorMessage };
     }
   };
 
@@ -55,8 +63,7 @@ const AdminResetPassword: React.FC<AdminResetPasswordProps> = ({
     }, 1000);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const customValidation = (data: any) => {
+  const customValidation = (data: FormData): ValidationResult => {
     const validation = validateSchema(newPasswordSchema, {
       ...data,
       userType: "admin",

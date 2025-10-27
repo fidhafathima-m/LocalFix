@@ -14,6 +14,7 @@ connectDB();
 
 const app: Application = express();
 
+
 app.use(express.json());
 app.use(
   cors({
@@ -35,9 +36,11 @@ app.use("/api/admin/technicians", adminTechnicianRoutes);
 
 // technciian routes
 app.use("/api/technician-application", technicianRoutes);
+app.use("/api/technician/profile", technicianProfileRoutes);
 app.use("/api/technician", technicianDashboardRoutes);
 
-app.use("/api/technician/profile", technicianProfileRoutes);
+
+
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Localfix API running...");

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt, { JwtPayload, TokenExpiredError, JsonWebTokenError } from "jsonwebtoken";
 import User from "../models/UserSchema";
 import { Types } from "mongoose";
 import { ResponseHelper } from "../utils/responseHelper";
@@ -69,10 +69,115 @@ export const protect = async (
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    return ResponseHelper.unauthorized("Invalid token");
+    
+    // Handle specific JWT errors with proper error codes
+    if (error instanceof TokenExpiredError) {
+      return res.status(401).json({
+        success: false,
+        message: "Token expired",
+        code: "TOKEN_EXPIRED",
+        expiredAt: error.expiredAt
+      });
+    }
+    
+    if (error instanceof JsonWebTokenError) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token",
+        code: "INVALID_TOKEN"
+      });
+    }
+
+    // For other errors
+    return res.status(401).json({
+      success: false,
+      message: "Authentication failed",
+      code: "AUTH_FAILED"
+    });
   }
 };
 
+// Alternative version if you want to keep using ResponseHelper but with custom codes:
+export const protectWithRefresh = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token) {
+    return ResponseHelper.unauthorized("Authentication required");
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+
+    const userId = decoded._id || decoded.id;
+
+    if (!userId) {
+      return ResponseHelper.unauthorized("Invalid token structure");
+    }
+
+    const user = await User.findById(userId).select("-passwordHash");
+
+    if (!user) {
+      return ResponseHelper.notFound("User not found");
+    }
+
+    // Check if user is active and not blocked
+    if (user.isDeleted) {
+      return ResponseHelper.forbidden("Account has been deleted");
+    }
+
+    if (user.status === "Blocked") {
+      return ResponseHelper.forbidden("Account has been blocked");
+    }
+
+    if (user.status !== "Active") {
+      return ResponseHelper.forbidden("Account is not active");
+    }
+
+    req.user = {
+      id: user._id.toString(),
+      roles: user.roles,
+      email: user.email,
+      currentRole: decoded.currentRole || user.roles[0],
+    };
+
+    next();
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    
+    // Use ResponseHelper but add custom properties
+    if (error instanceof TokenExpiredError) {
+      const response = ResponseHelper.unauthorized("Token expired");
+      return res.status(response.statusCode).json({
+        ...response,
+        code: "TOKEN_EXPIRED",
+        expiredAt: error.expiredAt
+      });
+    }
+    
+    if (error instanceof JsonWebTokenError) {
+      const response = ResponseHelper.unauthorized("Invalid token");
+      return res.status(response.statusCode).json({
+        ...response,
+        code: "INVALID_TOKEN"
+      });
+    }
+
+    return ResponseHelper.unauthorized("Authentication failed");
+  }
+};
+
+// Your other middleware functions remain the same...
 export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.user && req.user.roles.includes("admin")) {
     next();
@@ -81,19 +186,20 @@ export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
   }
 };
 
-export const serviceProvider = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  if (req.user && req.user.roles.includes("serviceProvider")) {
-    next();
-  } else {
-    return ResponseHelper.forbidden(
-      "Access denied. Service Provider role required."
-    );
+// In your authMiddleware.ts - FIX the serviceProvider middleware
+export const serviceProvider = [
+  protect, // ← ADD THIS - verifies token and sets req.user
+  (req: AuthRequest, res: Response, next: NextFunction) => {
+    
+    if (req.user && req.user.roles.includes("serviceProvider")) {
+      next();
+    } else {
+      return ResponseHelper.forbidden(
+        "Access denied. Service Provider role required."
+      );
+    }
   }
-};
+];
 
 export const user = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.user && req.user.roles.includes("user")) {

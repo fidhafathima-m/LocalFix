@@ -1,26 +1,36 @@
-import { ApiResponse } from "../../../utils/responseHelper";
 import {
-  ApplicationResponse,
-  SaveStepRequest,
-  StartApplicationRequest,
-} from "../../../interfaces/technician/ITechnicianApplication";
+  StartApplicationRequestDto,
+  SaveStepRequestDto,
+  ApplicationResponseDto,
+  ApplicationListResponseDto,
+  FilesCollectionDto,
+} from "../../dtos/technicianApplicationDtos";
 
 export interface ITechnicianApplicationService {
-  startApplication(data: StartApplicationRequest): Promise<ApiResponse<ApplicationResponse>>;
-  saveStep(data: SaveStepRequest, files?: any): Promise<ApiResponse<ApplicationResponse>>;
-  getApplication(applicationId: string): Promise<ApiResponse<ApplicationResponse>>;
+  startApplication(
+    data: StartApplicationRequestDto
+  ): Promise<ApplicationResponseDto>;
+  saveStep(
+    data: SaveStepRequestDto,
+    files?: FilesCollectionDto
+  ): Promise<ApplicationResponseDto>;
+  getApplication(applicationId: string): Promise<ApplicationResponseDto>;
   submitApplication(
     applicationId: string,
     userId: string
-  ): Promise<ApiResponse<ApplicationResponse>>;
-  getApplicationStatus(applicationId: string): Promise<ApiResponse<ApplicationResponse>>;
-  getUserApplications(userId: string): Promise<ApiResponse<ApplicationResponse>>;
+  ): Promise<ApplicationResponseDto>;
+  getApplicationStatus(applicationId: string): Promise<ApplicationResponseDto>;
+  getUserApplications(userId: string): Promise<ApplicationListResponseDto>;
   resubmitApplication(
     applicationId: string,
     userId: string
-  ): Promise<ApiResponse<ApplicationResponse>>;
+  ): Promise<ApplicationResponseDto>;
   startNewApplicationAfterRejection(
     userId: string,
     email: string
-  ): Promise<ApiResponse<ApplicationResponse>>;
+  ): Promise<ApplicationResponseDto>;
+  getApplicationForEdit(
+    applicationId: string,
+    userId: string
+  ): Promise<ApplicationResponseDto>;
 }

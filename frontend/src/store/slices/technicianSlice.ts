@@ -33,6 +33,7 @@ export interface TechnicianProfile {
   updatedAt: string;
 }
 
+// Update your ApplicationData interface to match the actual data structure
 export interface ApplicationData {
   _id: string;
   phone: string;
@@ -48,10 +49,50 @@ export interface ApplicationData {
   identity: {
     idType?: string;
     idNumber?: string;
-    currentAddress?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      landmark?: string;
+    };
+    location?: {
+      coordinates: number[];
+      formattedAddress: string;
+      type?: string;
+    };
+  };
+  skills?: {
+    services?: string[];
+    yearsOfExperience?: number;
+    languages?: string[];
+    bio?: string;
+  };
+  availability?: {
+    serviceAreas?: string[];
+    workRadius?: string;
+    availability?: {
+      monday: { available: boolean; startTime: string; endTime: string };
+      tuesday: { available: boolean; startTime: string; endTime: string };
+      wednesday: { available: boolean; startTime: string; endTime: string };
+      thursday: { available: boolean; startTime: string; endTime: string };
+      friday: { available: boolean; startTime: string; endTime: string };
+      saturday: { available: boolean; startTime: string; endTime: string };
+      sunday: { available: boolean; startTime: string; endTime: string };
+    }
+  };
+  workAreas?: string[];
+  serviceRadiusKm?: number;
+  bank?: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    upiId?: string;
+    bankName?: string;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   documents?: Record<string, any>;
+  agreement?: boolean;
   submittedAt?: string;
   reviewNotes?: string;
   rejectionReason?: string;
@@ -59,7 +100,6 @@ export interface ApplicationData {
   createdAt: string;
   updatedAt: string;
 }
-
 interface TechnicianState {
   profile: TechnicianProfile | null;
   application: ApplicationData | null;

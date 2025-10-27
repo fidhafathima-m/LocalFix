@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
 import {
@@ -12,17 +11,37 @@ import { useNavigate } from "react-router-dom";
 import BaseLogin from "../../../components/reusable/BaseLogin";
 import { validateSchema, loginSchema } from "../../../validation";
 import { AdminAuthService } from "../../../services/admin/AdminAuthService";
+import type { LoginCredentials } from "../../../services/common/authApi";
+
+
+interface LoginResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    user?: User;
+    accessToken?: string;
+    refreshToken?: string;
+  };
+  user?: User;
+  accessToken?: string;
+  refreshToken?: string;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: Record<string, string>;
+}
 
 const AdminLogin: React.FC = () => {
   const dispatch = useAppDispatch();
   const { loading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
 
-  const handleLogin = async (credentials: any) => {
+  const handleLogin = async (credentials: LoginCredentials) => {
     dispatch(loginStart());
 
     try {
-      const res = await AdminAuthService.login(credentials);
+      const res: LoginResponse = await AdminAuthService.login(credentials);
 
       if (res.success) {
         const userDataFromResponse = res.data?.user || res.user;
@@ -30,7 +49,7 @@ const AdminLogin: React.FC = () => {
         const refreshToken = res.data?.refreshToken || res.refreshToken;
 
         if (!userDataFromResponse || !accessToken) {
-          console.error("dminLogin - Missing user data or token:", {
+          console.error("AdminLogin - Missing user data or token:", {
             userDataFromResponse,
             accessToken,
             refreshToken,
@@ -78,9 +97,9 @@ const AdminLogin: React.FC = () => {
           message: errorMessage,
         };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("AdminLogin - Error:", error);
-      const errorMessage = error.message || "Login failed";
+      const errorMessage = error instanceof Error ? error.message : "Login failed";
       dispatch(loginFailure(errorMessage));
       return {
         success: false,
@@ -89,7 +108,7 @@ const AdminLogin: React.FC = () => {
     }
   };
 
-  const customValidation = (data: { identifier: string; password: string }) => {
+  const customValidation = (data: { identifier: string; password: string }): ValidationResult => {
     const validation = validateSchema(loginSchema, {
       ...data,
       userType: "admin",

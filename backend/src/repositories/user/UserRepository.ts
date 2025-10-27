@@ -1,4 +1,4 @@
-import { Model, Types } from "mongoose";
+import { FilterQuery, Model, Types } from "mongoose";
 import { BaseRepository } from "../BaseRepository";
 import { IUserRepository } from "../../interfaces/repository/user/IUserRepository";
 import { IUser, IUserCreate, IUserUpdate } from "../../interfaces/user/IUser";
@@ -13,7 +13,7 @@ export class UserRepository
   }
 
   async findByEmail(email: string, role?: string): Promise<IUser | null> {
-    const query: any = {
+    const query: FilterQuery<IUser> = {
       email: email.toLowerCase(),
       isDeleted: false,
     };
@@ -26,7 +26,7 @@ export class UserRepository
   }
 
   async findByPhone(phone: string, role?: string): Promise<IUser | null> {
-    const query: any = {
+    const query: FilterQuery<IUser> = {
       phone,
       isDeleted: false,
     };
@@ -55,7 +55,7 @@ export class UserRepository
       }
     }
 
-    const query: any = /^\d{10}$/.test(actualIdentifier)
+    const query: FilterQuery<IUser> = /^\d{10}$/.test(actualIdentifier)
       ? { phone: actualIdentifier }
       : { email: { $regex: new RegExp(`^${actualIdentifier}$`, "i") } };
 
@@ -84,7 +84,7 @@ export class UserRepository
       }
     }
 
-    const query: any = /^\d{10}$/.test(actualIdentifier)
+    const query: FilterQuery<IUser> = /^\d{10}$/.test(actualIdentifier)
       ? { phone: actualIdentifier }
       : { email: actualIdentifier };
 
@@ -103,7 +103,7 @@ export class UserRepository
     userId: string,
     applicationStatus: string
   ): Promise<IUser | null> {
-    return this.update(userId, { $set: { applicationStatus } } as any);
+    return this.update(userId, { $set: { applicationStatus } as Partial<IUser> });
   }
 
   async storeRefreshToken(userId: string, refreshToken: string): Promise<void> {
@@ -114,7 +114,7 @@ export class UserRepository
           createdAt: new Date(),
         },
       },
-    } as any);
+    } as Partial<IUser>);
   }
 
   async findByRefreshToken(
@@ -154,12 +154,12 @@ export class UserRepository
       $pull: {
         refreshTokens: { token: refreshToken },
       },
-    } as any);
+    } as Partial<IUser>);
   }
 
   async removeAllRefreshTokens(userId: string): Promise<void> {
     await this.update(userId, {
       $set: { refreshTokens: [] },
-    } as any);
+    });
   }
 }

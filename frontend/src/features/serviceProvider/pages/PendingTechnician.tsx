@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useCallback } from "react";
 import {
   ErrorOutlineOutlined,
@@ -94,19 +93,15 @@ interface AvailableDocument {
   mimetype?: string;
 }
 
+
 const PendingTechnicianApplication: React.FC = () => {
-  const [applicationData, setApplicationData] =
-    useState<ApplicationData | null>(null);
-  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(
-    null
-  );
+  const [applicationData, setApplicationData] = useState<ApplicationData | null>(null);
+  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(null);
   const [applicationStatus, setApplicationStatus] = useState<string>("pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isResubmitting, setIsResubmitting] = useState(false);
-  const { user, accessToken, isLoggedIn } = useAppSelector(
-    (state) => state.auth
-  );
+  const { user, accessToken, isLoggedIn } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const fetchApplicationData = useCallback(async () => {
@@ -134,7 +129,7 @@ const PendingTechnicianApplication: React.FC = () => {
             }
           );
 
-          let applications = [];
+          let applications: ApplicationData[] = [];
 
           if (userApplicationsResponse.data.data?.applications) {
             applications = userApplicationsResponse.data.data.applications;
@@ -182,7 +177,7 @@ const PendingTechnicianApplication: React.FC = () => {
         }
       );
 
-      let appData = null;
+      let appData: ApplicationData | null = null;
 
       if (
         applicationResponse.data.data &&
@@ -197,8 +192,8 @@ const PendingTechnicianApplication: React.FC = () => {
         appData = applicationResponse.data;
       }
 
-      if (appData && appData.data && appData.data.application) {
-        appData = appData.data.application;
+      if (appData && (appData as unknown as { data: { application: ApplicationData } }).data?.application) {
+        appData = (appData as unknown as { data: { application: ApplicationData } }).data.application;
       }
 
       if (appData) {
@@ -224,7 +219,7 @@ const PendingTechnicianApplication: React.FC = () => {
             );
 
             // Handle different response structures for technician data
-            let technicianData = null;
+            let technicianData: TechnicianData | null = null;
             if (technicianResponse.data.data?.technician) {
               technicianData = technicianResponse.data.data.technician;
             } else if (technicianResponse.data.technician) {
@@ -246,12 +241,12 @@ const PendingTechnicianApplication: React.FC = () => {
           "Failed to load application data - invalid response structure"
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching application data:", error);
 
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         setError("Your session has expired. Please log in again.");
-      } else if (error.response?.status === 404) {
+      } else if (axios.isAxiosError(error) && error.response?.status === 404) {
         localStorage.removeItem("applicationId");
         localStorage.removeItem("currentTechnicianApplication");
         setError("Application not found. Please start a new application.");
@@ -262,6 +257,62 @@ const PendingTechnicianApplication: React.FC = () => {
       setLoading(false);
     }
   }, [accessToken, isLoggedIn, navigate]);
+
+ const handleEditApplication = () => {
+  console.log("🔍 handleEditApplication - STARTING");
+  
+  if (!applicationData?._id) {
+    toast.error("Application ID not found");
+    return;
+  }
+
+  // 🚨 ONLY clear application-related data, NOT authentication data
+  const authData = {
+    accessToken: localStorage.getItem("accessToken"),
+    refreshToken: localStorage.getItem("refreshToken"),
+    user: localStorage.getItem("user"),
+    isLoggedIn: localStorage.getItem("isLoggedIn"),
+  };
+
+  // Clear only application data
+  localStorage.removeItem("applicationId");
+  localStorage.removeItem("currentTechnicianApplication");
+  localStorage.removeItem("technicianApplicationData");
+  localStorage.removeItem("isEditMode");
+  
+  if (user?._id) {
+    localStorage.removeItem(`techApp-${user._id}`);
+    localStorage.removeItem(`techApp-step-${user._id}`);
+    localStorage.removeItem(`techApp-applicationId-${user._id}`);
+    localStorage.removeItem(`techApp-timestamp-${user._id}`);
+  }
+
+  // Restore authentication data
+  if (authData.accessToken) localStorage.setItem("accessToken", authData.accessToken);
+  if (authData.refreshToken) localStorage.setItem("refreshToken", authData.refreshToken);
+  if (authData.user) localStorage.setItem("user", authData.user);
+  if (authData.isLoggedIn) localStorage.setItem("isLoggedIn", authData.isLoggedIn);
+
+  // Set edit mode and application ID
+  localStorage.setItem("applicationId", applicationData._id);
+  localStorage.setItem("isEditMode", "true");
+  
+  console.log("🔍 Navigating to edit application");
+  
+  // Use a small timeout to ensure the state is properly set
+  setTimeout(() => {
+    window.location.href = "/technicians/apply";
+  }, 100);
+};
+
+// Add this debug useEffect to your PendingTechnicianApplication component
+useEffect(() => {
+  console.log("🔍 PendingTechnicianApplication mounted");
+  console.log("🔍 Current application status:", applicationData?.status);
+  console.log("🔍 Current path:", window.location.pathname);
+}, [applicationData?.status]);
+
+// Also check if you have any other useEffects that might redirect
 
   // Function to get all available documents dynamically
   const getAvailableDocuments = (): AvailableDocument[] => {
@@ -469,15 +520,15 @@ const PendingTechnicianApplication: React.FC = () => {
       } else {
         setError(response.data.message || "Failed to resubmit application");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error resubmitting application:", error);
 
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         toast.error("Your session has expired. Please log in again.");
         navigate("/technicians/login");
       } else {
         const errorMessage =
-          error.response?.data?.message ||
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
           "Failed to resubmit application. Please try again.";
         setError(errorMessage);
         toast.error(errorMessage, { duration: 4000, position: "top-center" });
@@ -540,15 +591,15 @@ const PendingTechnicianApplication: React.FC = () => {
       } else {
         setError(response.data.message || "Failed to start new application");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error starting new application:", error);
 
-      if (error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         toast.error("Your session has expired. Please log in again.");
         navigate("/technicians/login");
       } else {
         const errorMessage =
-          error.response?.data?.message ||
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
           "Failed to start new application. Please try again.";
         setError(errorMessage);
         toast.error(errorMessage, { duration: 4000, position: "top-center" });
@@ -557,6 +608,7 @@ const PendingTechnicianApplication: React.FC = () => {
       setIsResubmitting(false);
     }
   };
+
   useEffect(() => {
     const checkApplicationStatus = async () => {
       if (!isLoggedIn || !accessToken) {
@@ -601,10 +653,10 @@ const PendingTechnicianApplication: React.FC = () => {
           navigate("/technicians/apply");
           return;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error checking application status:", error);
 
-        if (error.response?.status === 401) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
           setError("Your session has expired. Please log in again.");
         } else {
           setError("Failed to load application data");
@@ -675,7 +727,7 @@ const PendingTechnicianApplication: React.FC = () => {
     return null;
   };
 
-  //helper function to get initials as fallback
+  // Helper function to get initials as fallback
   const getInitials = (name: string) => {
     return name
       ? name
@@ -729,11 +781,6 @@ const PendingTechnicianApplication: React.FC = () => {
         };
     }
   };
-
-  if (applicationStatus === "approved" && technicianData) {
-    window.location.href = "/technician/dashboard";
-    return null;
-  }
 
   if (loading) {
     return (
@@ -809,10 +856,9 @@ const PendingTechnicianApplication: React.FC = () => {
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
         <div className="max-w-3xl mx-auto space-y-4">
           {/* Header Card */}
-          {/* Header Card */}
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center">
-              {/* With this profile photo section */}
+              {/* Profile photo section */}
               {getProfilePhotoUrl() ? (
                 <div className="h-12 w-12 rounded-full overflow-hidden mr-4 border-2 border-gray-200">
                   <img
@@ -859,8 +905,8 @@ const PendingTechnicianApplication: React.FC = () => {
               </div>
               {applicationData.status !== "rejected" && (
                 <button
-                  onClick={() => (window.location.href = "/technician/profile")}
-                  className="text-blue-500 flex items-center text-sm font-medium"
+                  onClick={handleEditApplication}
+                  className="text-blue-500 flex items-center text-sm font-medium cursor-pointer hover:text-blue-700"
                 >
                   <EditOutlined className="w-4 h-4 mr-1" />
                   Edit Application
@@ -1153,21 +1199,6 @@ const PendingTechnicianApplication: React.FC = () => {
             </div>
           )}
 
-          {/* Update Documents */}
-          {applicationData.status !== "rejected" && (
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h2 className="font-medium mb-3">Update Documents</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Need to update or add missing documents? You can do that here.
-              </p>
-              <button
-                onClick={() => (window.location.href = "/technician/apply")}
-                className="w-full flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <span className="text-sm font-medium">Manage Documents</span>
-              </button>
-            </div>
-          )}
 
           {/* Need Help */}
           <div className="bg-white rounded-lg shadow-sm p-4">
