@@ -9,6 +9,8 @@ import adminTechnicianRoutes from "./routes/admin/technicianManagementRoutes";
 import technicianRoutes from "./routes/technician/technicianRoutes";
 import technicianDashboardRoutes from "./routes/technician/technicianDashboardRoutes";
 import technicianProfileRoutes from "./routes/technician/technicianProfileRoutes";
+import categoryManagementRoutes from "./routes/admin/categoryManagementRoutes";
+import serviceMangementRoutes from "./routes/admin/serviceManagementRoutes";
 
 connectDB();
 
@@ -33,6 +35,8 @@ app.use("/api/auth", userAuth);
 // admin routes
 app.use("/api/admin/users", userRoutes);
 app.use("/api/admin/technicians", adminTechnicianRoutes);
+app.use("/api/admin/categories", categoryManagementRoutes);
+app.use("/api/admin/services", serviceMangementRoutes);
 
 // technciian routes
 app.use("/api/technician-application", technicianRoutes);

@@ -21,6 +21,12 @@ import { AuthController } from "../controllers/user/authController";
 import { TechnicianProfileRepository } from "../repositories/technician/TechnicianProfileRepository";
 import { TechnicianProfileService } from "../services/TechnicianProfileService";
 import { TechnicianProfileController } from "../controllers/technician/technicianProfile";
+import { CategoryRepository } from "../repositories/admin/CategoryManagementRepository";
+import { CategoryService } from "../services/CategoryManagementService";
+import { CategoryController } from "../controllers/admin/categoryManagement";
+import { ServiceRepository } from "../repositories/admin/ServiceManagementRepository";
+import { ServiceService } from "../services/ServiceManagementService";
+import { ServiceController } from "../controllers/admin/serviceManagement";
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
@@ -88,6 +94,22 @@ const technicianProfileController = new TechnicianProfileController(
   technicianProfileService
 );
 
+// Category Management dependencies
+const categoryManagementRepository = new CategoryRepository();
+const categoryManagementService = new CategoryService(
+  categoryManagementRepository
+);
+const categoryManagementController = new CategoryController(
+  categoryManagementService
+);
+
+// Service Management dependecies
+const serviceMangementRepository = new ServiceRepository();
+const serviceManagementService = new ServiceService(serviceMangementRepository);
+const serviceManagementController = new ServiceController(
+  serviceManagementService
+);
+
 export {
   userManagementController,
   userManagementService,
@@ -105,4 +127,10 @@ export {
   technicianProfileController,
   technicianProfileService,
   technicianProfileRepository,
+  categoryManagementRepository,
+  categoryManagementService,
+  categoryManagementController,
+  serviceMangementRepository,
+  serviceManagementService,
+  serviceManagementController,
 };

@@ -94,6 +94,15 @@ const TechnicianProfile = lazy(
 const PendingApplicationProfile = lazy(
   () => import("../features/admin/pages/PendingTechnicianProfile")
 );
+const CategoryManagement = lazy(
+  () => import("../features/admin/pages/CategoryManagement")
+);
+const ServiceManagement = lazy(
+  () => import("../features/admin/pages/ServiceManagement")
+);
+const ItemManagement = lazy(
+  () => import("../features/admin/pages/ItemManagement")
+);
 
 const AppRoutes = () => {
   return (
@@ -214,6 +223,30 @@ const AppRoutes = () => {
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <PendingApplicationProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/category-management"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <CategoryManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/service-management"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <ServiceManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/item-management"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <ItemManagement />
                 </ProtectedRoute>
               }
             />

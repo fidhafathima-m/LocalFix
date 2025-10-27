@@ -4,3 +4,5 @@ export * from "./technicianDashboard";
 export * from "./technicianManagement";
 export * from "./technicianProfile";
 export * from "./userManagement";
+export * from "./categoryManagement";
+export * from "./serviceManagement";

@@ -20,4 +20,17 @@ export const ADMIN_ROUTES = {
     `/admin/technicians/applications/${applicationId}/approve`,
   APPLICATION_REJECT: (applicationId: string) =>
     `/admin/technicians/applications/${applicationId}/reject`,
+
+  // Categories
+  CATEGORIES: "/admin/categories",
+  CATEGORY_BY_ID: (id: string) => `/admin/categories/${id}`,
+  CATEGORY_BY_SLUG: (slug: string) => `/admin/categories/slug/${slug}`,
+  CATEGORIES_SEARCH: "/admin/categories/search",
+
+  // Services
+  SERVICES: "/admin/services",
+  SERVICES_BY_CATEGORY: (categoryId: string) => `/admin/services/category/${categoryId}`,
+  SERVICE_BY_ID: (id: string) => `/admin/services/${id}`,
+  SERVICE_BY_SLUG: (slug: string) => `/admin/services/slug/${slug}`,
+  SERVICES_SEARCH: "/admin/services/search",
 } as const;

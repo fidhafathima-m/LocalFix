@@ -91,6 +91,76 @@ interface ApplicationsResponse {
   applications: TechnicianApplication[];
 }
 
+export interface Category {
+  serviceCount: number;
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  iconUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCategoryData {
+  name: string;
+  description: string;
+  iconUrl?: string;
+}
+
+export interface UpdateCategoryData {
+  name?: string;
+  description?: string;
+  iconUrl?: string;
+}
+
+export interface CategoriesResponse {
+  categories: Category[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface Service {
+  id: string;
+  categoryId: string;
+  slug: string;
+  name: string;
+  description: string;
+  avgBasePrice: number;
+  iconUrl: string;
+  status: "active" | "inactive";
+  createdAt: string;
+  updatedAt: string;
+  itemCount?: number; // Optional field for frontend stats
+}
+
+export interface CreateServiceData {
+  categoryId?: string;
+  name: string;
+  description: string;
+  avgBasePrice: number;
+  iconUrl?: string;
+  status?: "active" | "inactive";
+}
+
+export interface UpdateServiceData {
+  name?: string;
+  description?: string;
+  avgBasePrice?: number;
+  iconUrl?: string;
+  status?: "active" | "inactive";
+}
+
+export interface ServicesResponse {
+  services: Service[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const adminAPI = {
   // Users
   getUsers: () => api.get<ApiResponse<UsersResponse>>(ADMIN_ROUTES.USERS),
@@ -147,5 +217,84 @@ export const adminAPI = {
   getTechnicianById: (technicianId: string) =>
     api.get<ApiResponse<TechnicianResponse>>(
       ADMIN_ROUTES.TECHNICIAN_BY_ID(technicianId)
+    ),
+
+    // Categories
+  getCategories: (page: number = 1, limit: number = 10, search?: string) =>
+    api.get<ApiResponse<CategoriesResponse>>(ADMIN_ROUTES.CATEGORIES, {
+      params: { page, limit, search },
+    }),
+
+  getCategoryById: (categoryId: string) =>
+    api.get<ApiResponse<{ category: Category }>>(
+      ADMIN_ROUTES.CATEGORY_BY_ID(categoryId)
+    ),
+
+  getCategoryBySlug: (slug: string) =>
+    api.get<ApiResponse<{ category: Category }>>(
+      ADMIN_ROUTES.CATEGORY_BY_SLUG(slug)
+    ),
+
+  createCategory: (categoryData: CreateCategoryData) =>
+    api.post<ApiResponse<{ category: Category }>>(
+      ADMIN_ROUTES.CATEGORIES,
+      categoryData
+    ),
+
+  updateCategory: (categoryId: string, updateData: UpdateCategoryData) =>
+    api.put<ApiResponse<{ category: Category }>>(
+      ADMIN_ROUTES.CATEGORY_BY_ID(categoryId),
+      updateData
+    ),
+
+  deleteCategory: (categoryId: string) =>
+    api.delete<ApiResponse<void>>(ADMIN_ROUTES.CATEGORY_BY_ID(categoryId)),
+
+  searchCategories: (query: string, limit: number = 10) =>
+    api.get<ApiResponse<{ categories: Category[] }>>(
+      ADMIN_ROUTES.CATEGORIES_SEARCH,
+      { params: { q: query, limit } }
+    ),
+
+     // Services
+  getServicesByCategory: (categoryId: string, page: number = 1, limit: number = 10, search?: string) =>
+    api.get<ApiResponse<ServicesResponse>>(ADMIN_ROUTES.SERVICES_BY_CATEGORY(categoryId), {
+      params: { page, limit, search },
+    }),
+
+  getAllServices: (page: number = 1, limit: number = 10, search?: string) =>
+    api.get<ApiResponse<ServicesResponse>>(ADMIN_ROUTES.SERVICES, {
+      params: { page, limit, search },
+    }),
+
+  getServiceById: (serviceId: string) =>
+    api.get<ApiResponse<{ service: Service }>>(
+      ADMIN_ROUTES.SERVICE_BY_ID(serviceId)
+    ),
+
+  getServiceBySlug: (slug: string) =>
+    api.get<ApiResponse<{ service: Service }>>(
+      ADMIN_ROUTES.SERVICE_BY_SLUG(slug)
+    ),
+
+  createService: (serviceData: CreateServiceData) =>
+    api.post<ApiResponse<{ service: Service }>>(
+      ADMIN_ROUTES.SERVICES,
+      serviceData
+    ),
+
+  updateService: (serviceId: string, updateData: UpdateServiceData) =>
+    api.put<ApiResponse<{ service: Service }>>(
+      ADMIN_ROUTES.SERVICE_BY_ID(serviceId),
+      updateData
+    ),
+
+  deleteService: (serviceId: string) =>
+    api.delete<ApiResponse<void>>(ADMIN_ROUTES.SERVICE_BY_ID(serviceId)),
+
+  searchServices: (query: string, limit: number = 10) =>
+    api.get<ApiResponse<{ services: Service[] }>>(
+      ADMIN_ROUTES.SERVICES_SEARCH,
+      { params: { q: query, limit } }
     ),
 };
