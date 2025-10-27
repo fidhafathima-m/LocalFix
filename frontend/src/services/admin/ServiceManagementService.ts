@@ -93,23 +93,23 @@ export class ServiceManagementService {
     }
   }
 
-  // services/admin/ServiceManagementService.ts
-private static handleResponse(response: any) {
+ private static handleResponse(response: any) {
   console.log("🔄 Handling response:", response);
   
-  // Check if response has success property (your API structure)
   if (response.success === false) {
     throw new Error(response.message || "Operation failed");
   }
   
-  // Your API response has data nested inside response.data.data
-  // response structure: { data: { success, message, statusCode, data: { services, total, etc } } }
   if (response.data && response.data.data) {
     console.log("✅ Extracting nested data:", response.data.data);
-    return response.data.data; // This is the actual services data
+    return response.data.data;
   }
   
-  // If no nested data structure, return what we have
+  if (response.data) {
+    console.log("✅ Extracting data from response.data:", response.data);
+    return response.data;
+  }
+  
   console.log("⚠️ No nested data structure found, returning response:", response);
   return response;
 }

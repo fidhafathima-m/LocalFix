@@ -14,6 +14,7 @@ export class ServiceMapper implements IServiceMapper {
       status: service.status,
       createdAt: service.createdAt.toISOString(),
       updatedAt: service.updatedAt.toISOString(),
+      itemCount: service.itemCount || 0,
     };
   }
 

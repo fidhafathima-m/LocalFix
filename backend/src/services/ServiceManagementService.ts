@@ -4,6 +4,7 @@ import { ServiceResponseDto, CreateServiceDto, UpdateServiceDto, ServiceListResp
 import { ServiceMapper } from "../mappers/serviceMapper";
 import { SERVICE_MESSAGES, ServiceStatus } from "../constants";
 import { Types } from "mongoose";
+import { Item } from "../models/category/itemSchema";
 
 export class ServiceService implements IServiceService {
   private serviceRepository: IServiceRepository;
@@ -46,7 +47,17 @@ export class ServiceService implements IServiceService {
       if (!service) {
         throw new Error(SERVICE_MESSAGES.SERVICE_NOT_FOUND);
       }
-      return this.serviceMapper.toServiceResponseDto(service);
+
+      const itemCount = await Item.countDocuments({ 
+      serviceId: service._id,
+      isActive: true 
+    });
+
+    const serviceWithCount = {
+      ...service.toObject(),
+      itemCount
+    };
+      return this.serviceMapper.toServiceResponseDto(serviceWithCount);
     } catch (error) {
       console.error("Get service by ID error:", error);
       throw error;
@@ -89,7 +100,20 @@ export class ServiceService implements IServiceService {
         total = await this.serviceRepository.count({ categoryId });
       }
 
-      return this.serviceMapper.toServiceListResponseDto(services, total, page, limit);
+      const servicesWithCounts = await Promise.all(
+      services.map(async (service) => {
+        const itemCount = await Item.countDocuments({ 
+          serviceId: service._id,
+          isActive: true 
+        });
+        return {
+          ...service.toObject(),
+          itemCount
+        };
+      })
+    );
+
+      return this.serviceMapper.toServiceListResponseDto(servicesWithCounts, total, page, limit);
     } catch (error) {
       console.error("Get services by category error:", error);
       throw error;

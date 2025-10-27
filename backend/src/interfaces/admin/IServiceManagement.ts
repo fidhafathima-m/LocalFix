@@ -12,6 +12,7 @@ export interface IService extends Document {
   status: ServiceStatus;
   createdAt: Date;
   updatedAt: Date;
+  itemCount: number
 }
 
 export interface IServiceCreate {

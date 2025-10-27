@@ -9,6 +9,7 @@ export interface ICategory extends Document {
   iconUrl: string;
   createdAt: Date;
   updatedAt: Date;
+  serviceCount: number;
 }
 
 export interface ICategoryCreate {

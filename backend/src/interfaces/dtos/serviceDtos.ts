@@ -12,6 +12,7 @@ export interface ServiceResponseDto {
   status: ServiceStatus;
   createdAt: string;
   updatedAt: string;
+  itemCount: number
 }
 
 export interface CreateServiceDto {

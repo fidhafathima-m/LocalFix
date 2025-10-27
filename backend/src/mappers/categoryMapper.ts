@@ -12,6 +12,7 @@ export class CategoryMapper implements ICategoryMapper {
       iconUrl: category.iconUrl,
       createdAt: category.createdAt.toISOString(),
       updatedAt: category.updatedAt.toISOString(),
+       serviceCount: category.serviceCount || 0,
     };
   }
 

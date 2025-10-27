@@ -9,6 +9,7 @@ export interface CategoryResponseDto {
   iconUrl: string;
   createdAt: string;
   updatedAt: string;
+  serviceCount: number
 }
 
 export interface CreateCategoryDto {

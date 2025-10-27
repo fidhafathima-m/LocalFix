@@ -5,6 +5,7 @@ import { CategoryResponseDto, CreateCategoryDto, UpdateCategoryDto, CategoryList
 import { CategoryMapper } from "../mappers/categoryMapper";
 // import { ResponseHelper } from "../../utils/responseHelper";
 import { CATEGORY_MESSAGES } from "../constants";
+import { Service } from "../models/category/serviceSchema";
 
 export class CategoryService implements ICategoryService {
   private categoryRepository: ICategoryRepository;
@@ -37,7 +38,16 @@ export class CategoryService implements ICategoryService {
       if (!category) {
         throw new Error(CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
       }
-      return this.categoryMapper.toCategoryResponseDto(category);
+      const serviceCount = await Service.countDocuments({ 
+      categoryId: category._id,
+      status: 'active' 
+    });
+
+    const categoryWithCount = {
+      ...category.toObject(),
+      serviceCount
+    };
+      return this.categoryMapper.toCategoryResponseDto(categoryWithCount);
     } catch (error) {
       console.error("Get category by ID error:", error);
       throw error;
@@ -75,7 +85,20 @@ export class CategoryService implements ICategoryService {
         total = await this.categoryRepository.count();
       }
 
-      return this.categoryMapper.toCategoryListResponseDto(categories, total, page, limit);
+       const categoriesWithCounts = await Promise.all(
+      categories.map(async (category) => {
+        const serviceCount = await Service.countDocuments({ 
+          categoryId: category._id,
+          status: 'active' 
+        });
+        return {
+          ...category.toObject(),
+          serviceCount
+        };
+      })
+    );
+
+      return this.categoryMapper.toCategoryListResponseDto(categoriesWithCounts, total, page, limit);
     } catch (error) {
       console.error("Get all categories error:", error);
       throw error;

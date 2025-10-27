@@ -68,11 +68,25 @@ export class CategoryManagementService {
   }
 
   private static handleResponse(response: any) {
-    if (response.success === false) {
-      throw new Error(response.message || "Operation failed");
-    }
+  console.log("🔄 Handling response:", response);
+  
+  if (response.success === false) {
+    throw new Error(response.message || "Operation failed");
+  }
+  
+  if (response.data && response.data.data) {
+    console.log("✅ Extracting nested data:", response.data.data);
+    return response.data.data;
+  }
+  
+  if (response.data) {
+    console.log("✅ Extracting data from response.data:", response.data);
     return response.data;
   }
+  
+  console.log("⚠️ No nested data structure found, returning response:", response);
+  return response;
+}
 
   private static handleError(error: any, defaultMessage: string) {
     if (error instanceof Error) {

@@ -43,8 +43,7 @@ const ServiceManagement: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const servicesPerPage = 10;
 
-  // Load services from backend
-  // In your ServiceManagement component - update loadServices function
+  // Your current loadServices function is correct
 const loadServices = async (page: number = 1, search?: string) => {
   try {
     console.log("🔄 Loading services...", { page, search, categoryId: category.id });
@@ -54,15 +53,14 @@ const loadServices = async (page: number = 1, search?: string) => {
     
     console.log("📡 Processed API Response:", response);
     
-    // Now response should be the data object directly
-    if (response && Array.isArray(response.services)) {
-      console.log("✅ Services loaded successfully:", response.services.length);
-      setServices(response.services);
-      setTotalCount(response.total);
-      setTotalPages(response.totalPages);
+    // Now response should be the direct data: { services: [], total: 0, ... }
+    if (response && typeof response === 'object') {
+      console.log("✅ Services data loaded:", response.services?.length || 0);
+      setServices(response.services || []);
+      setTotalCount(response.total || 0);
+      setTotalPages(response.totalPages || 0);
     } else {
-      console.error("❌ Invalid response structure:", response);
-      // Set empty state
+      console.error("❌ Invalid final data structure:", response);
       setServices([]);
       setTotalCount(0);
       setTotalPages(0);
@@ -70,7 +68,6 @@ const loadServices = async (page: number = 1, search?: string) => {
   } catch (error: any) {
     console.error("💥 Error loading services:", error);
     toast.error(error.message || "Failed to load services");
-    // Set empty state on error
     setServices([]);
     setTotalCount(0);
     setTotalPages(0);
