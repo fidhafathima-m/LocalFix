@@ -13,19 +13,11 @@ import {
   DeleteOutlineOutlined,
   ChevronLeftOutlined,
 } from "@mui/icons-material";
-import Search from "../components/Search";
+import Search from "../components/Search"
 import { AddItemModal } from "../components/categoryManagement/AddItemModal";
 import { EditItemModal } from "../components/categoryManagement/EditItemModal";
-
-interface Item {
-  id: string;
-  name: string;
-  description: string;
-  estimatedPrice?: number;
-  status: "Active" | "Inactive";
-  createdAt: string;
-  usageCount?: number;
-}
+import { ItemManagementService } from "../../../services/admin/ItemManagementService";
+import type { Item, CreateItemData, UpdateItemData } from "../../../services/common/adminApi";
 
 const ItemManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -54,95 +46,70 @@ const ItemManagement: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const itemsPerPage = 10;
 
-  // Load items (you'll need to implement this with your API)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // Load items from backend
   const loadItems = async (page: number = 1, search?: string) => {
     try {
+      console.log("🔄 Loading items...", { page, search, serviceId: service.id });
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await ItemManagementService.getItems(service.id, page, itemsPerPage, search);
       
-      // Mock data for demonstration
-      setTimeout(() => {
-        const mockItems: Item[] = [
-          {
-            id: '1',
-            name: 'Gas Refill',
-            description: 'AC gas refill service',
-            estimatedPrice: 1200,
-            status: 'Active',
-            createdAt: '2023-08-15',
-            usageCount: 45,
-          },
-          {
-            id: '2',
-            name: 'Compressor Repair',
-            description: 'AC compressor repair and replacement',
-            estimatedPrice: 2500,
-            status: 'Active',
-            createdAt: '2023-08-10',
-            usageCount: 23,
-          },
-          {
-            id: '3',
-            name: 'Filter Cleaning',
-            description: 'AC filter cleaning service',
-            estimatedPrice: 300,
-            status: 'Active',
-            createdAt: '2023-08-05',
-            usageCount: 67,
-          },
-        ];
-
-        const filteredItems = search 
-          ? mockItems.filter(item => 
-              item.name.toLowerCase().includes(search.toLowerCase()) ||
-              item.description.toLowerCase().includes(search.toLowerCase())
-            )
-          : mockItems;
-
-        setItems(filteredItems);
-        setTotalCount(filteredItems.length);
-        setTotalPages(Math.ceil(filteredItems.length / itemsPerPage));
-        setLoading(false);
-      }, 1000);
+      const response = await ItemManagementService.getItemsByService(service.id, page, itemsPerPage, search);
+      
+      console.log("📡 Processed API Response:", response);
+      
+      // Now response should be the direct data: { items: [], total: 0, ... }
+      if (response && typeof response === 'object') {
+        console.log("✅ Items data loaded:", response.items?.length || 0);
+        setItems(response.items || []);
+        setTotalCount(response.total || 0);
+        setTotalPages(response.totalPages || 0);
+      } else {
+        console.error("❌ Invalid final data structure:", response);
+        setItems([]);
+        setTotalCount(0);
+        setTotalPages(0);
+      }
     } catch (error: any) {
-      console.error("Error loading items:", error);
+      console.error("💥 Error loading items:", error);
       toast.error(error.message || "Failed to load items");
+      setItems([]);
+      setTotalCount(0);
+      setTotalPages(0);
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     loadItems(currentPage, searchQuery);
-  }, [currentPage, searchQuery]);
+  }, [currentPage, searchQuery, service.id]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter, searchQuery]);
 
-  const handleCreateItem = async (itemData: any) => {
+  const handleCreateItem = async (itemData: CreateItemData) => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await ItemManagementService.createItem(itemData);
-      
-      // Mock implementation
-      const newItem: Item = {
-        id: Date.now().toString(),
+      const response = await ItemManagementService.createItem({
         ...itemData,
-        createdAt: new Date().toISOString(),
-        status: 'Active' as const,
-        usageCount: 0,
-      };
+        serviceId: service.id,
+      });
       
-      setItems(prev => [newItem, ...prev]);
-      toast.success("Item created successfully");
-      setShowAddModal(false);
-      return { success: true };
+      if (response && response.item) {
+        toast.success("Item created successfully");
+        setShowAddModal(false);
+        await loadItems(currentPage, searchQuery); // Refresh the list
+        return { success: true };
+      } else {
+        toast.error("Failed to create item");
+        return { success: false, message: "Failed to create item" };
+      }
     } catch (error: any) {
       console.error("Error creating item:", error);
       toast.error(error.message || "Failed to create item");
-      return { success: false, message: error.message };
+      return { 
+        success: false, 
+        message: error.message || "Failed to create item" 
+      };
     }
   };
 
@@ -151,24 +118,27 @@ const ItemManagement: React.FC = () => {
     setShowEditModal(true);
   };
 
-  const handleUpdateItem = async (itemId: string, updateData: any) => {
+  const handleUpdateItem = async (itemId: string, updateData: UpdateItemData) => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await ItemManagementService.updateItem(itemId, updateData);
+      const response = await ItemManagementService.updateItem(itemId, updateData);
       
-      // Mock implementation
-      setItems(prev => prev.map(item => 
-        item.id === itemId ? { ...item, ...updateData } : item
-      ));
-      
-      toast.success("Item updated successfully");
-      setShowEditModal(false);
-      setSelectedItem(null);
-      return { success: true };
+      if (response && response.item) {
+        toast.success("Item updated successfully");
+        setShowEditModal(false);
+        setSelectedItem(null);
+        await loadItems(currentPage, searchQuery); // Refresh the list
+        return { success: true };
+      } else {
+        toast.error("Failed to update item");
+        return { success: false, message: "Failed to update item" };
+      }
     } catch (error: any) {
       console.error("Error updating item:", error);
       toast.error(error.message || "Failed to update item");
-      return { success: false, message: error.message };
+      return { 
+        success: false, 
+        message: error.message || "Failed to update item" 
+      };
     }
   };
 
@@ -186,12 +156,14 @@ const ItemManagement: React.FC = () => {
     if (!result.isConfirmed) return;
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await ItemManagementService.deleteItem(id);
+      const response = await ItemManagementService.deleteItem(id);
       
-      // Mock implementation
-      setItems(prev => prev.filter(item => item.id !== id));
-      toast.success("Item deleted successfully");
+      if (response) {
+        toast.success("Item deleted successfully");
+        await loadItems(currentPage, searchQuery); // Refresh the list
+      } else {
+        toast.error("Failed to delete item");
+      }
     } catch (error: any) {
       console.error("Error deleting item:", error);
       toast.error(error.message || "Failed to delete item");
@@ -202,10 +174,10 @@ const ItemManagement: React.FC = () => {
     setSearchQuery(query);
   };
 
-  // Stats calculations
+  // Stats calculations - now based on real data
   const totalItems = totalCount;
-  const activeItems = items.filter(item => item.status === "Active").length;
-  const totalUsage = items.reduce((sum, item) => sum + (item.usageCount || 0), 0);
+  const activeItems = items.filter(item => item.isActive).length;
+  const totalValue = items.reduce((sum, item) => sum + item.price, 0);
 
   if (loading && items.length === 0) {
     return (
@@ -270,8 +242,8 @@ const ItemManagement: React.FC = () => {
                   <InventoryOutlined className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Usage</p>
-                  <p className="text-xl font-bold">{totalUsage}</p>
+                  <p className="text-sm text-gray-600">Total Value</p>
+                  <p className="text-xl font-bold">₹{totalValue}</p>
                 </div>
               </div>
             </div>
@@ -324,7 +296,13 @@ const ItemManagement: React.FC = () => {
                         Description
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Estimated Price
+                        SKU
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Created On
@@ -348,9 +326,6 @@ const ItemManagement: React.FC = () => {
                                 <div className="text-sm font-medium text-gray-900">
                                   {item.name}
                                 </div>
-                                <div className="text-sm text-gray-500">
-                                  {item.id}
-                                </div>
                               </div>
                             </div>
                           </td>
@@ -362,11 +337,29 @@ const ItemManagement: React.FC = () => {
                             </div>
                           </td>
 
-                          {/* Estimated Price */}
+                          {/* SKU */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-mono text-gray-900">
+                              {item.sku}
+                            </div>
+                          </td>
+
+                          {/* Price */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
-                              {item.estimatedPrice ? `₹${item.estimatedPrice}` : '-'}
+                              ₹{item.price}
                             </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              item.isActive 
+                                ? "bg-green-100 text-green-800" 
+                                : "bg-red-100 text-red-800"
+                            }`}>
+                              {item.isActive ? 'Active' : 'Inactive'}
+                            </span>
                           </td>
 
                           {/* Created */}

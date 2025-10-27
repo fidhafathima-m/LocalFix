@@ -6,3 +6,4 @@ export * from "./technicianProfile";
 export * from "./userManagement";
 export * from "./categoryManagement";
 export * from "./serviceManagement";
+export * from "./itemManagement";

@@ -1,26 +1,14 @@
 import { useState } from 'react'
 import { CloseOutlined } from '@mui/icons-material'
 import { AdminSidebar } from '../AdminSidebar'
-
-interface Item {
-  id: string
-  name: string
-  description: string
-  estimatedPrice?: number
-  status: string
-}
+import type { Item, UpdateItemData } from '../../../../services/common/adminApi'
 
 interface EditItemModalProps {
   item: Item
   serviceName: string
   categoryName: string
   onClose: () => void
-  onSubmit: (itemData: {
-    name: string
-    description: string
-    estimatedPrice?: number
-    status: string
-  }) => Promise<{ success: boolean; message?: string }>
+  onSubmit: (itemId: string, updateData: UpdateItemData) => Promise<{ success: boolean; message?: string }>
 }
 
 export function EditItemModal({
@@ -32,27 +20,36 @@ export function EditItemModal({
 }: EditItemModalProps) {
   const [itemName, setItemName] = useState(item.name)
   const [description, setDescription] = useState(item.description)
-  const [estimatedPrice, setEstimatedPrice] = useState(
-    item.estimatedPrice?.toString() || '',
-  )
-  const [status, setStatus] = useState(item.status)
+  const [price, setPrice] = useState(item.price.toString())
+  const [sku, setSku] = useState(item.sku)
+  const [isActive, setIsActive] = useState(item.isActive)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!itemName.trim()) {
+    if (!itemName.trim() || !description.trim() || !price) {
       return
     }
 
     setLoading(true)
     try {
-      const result = await onSubmit({
-        name: itemName.trim(),
-        description: description.trim(),
-        estimatedPrice: estimatedPrice ? parseFloat(estimatedPrice) : undefined,
-        status,
-      })
+      const updateData: UpdateItemData = {}
+      
+      // Only include changed fields
+      if (itemName !== item.name) updateData.name = itemName.trim()
+      if (description !== item.description) updateData.description = description.trim()
+      if (parseFloat(price) !== item.price) updateData.price = parseFloat(price)
+      if (sku !== item.sku) updateData.sku = sku.trim()
+      if (isActive !== item.isActive) updateData.isActive = isActive
+
+      // Only submit if there are changes
+      if (Object.keys(updateData).length === 0) {
+        onClose()
+        return
+      }
+
+      const result = await onSubmit(item.id, updateData)
 
       if (result.success) {
         onClose()
@@ -107,9 +104,10 @@ export function EditItemModal({
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description (optional)
+                Description *
               </label>
               <textarea
+                required
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
@@ -119,19 +117,40 @@ export function EditItemModal({
               />
             </div>
 
-            {/* Estimated Price */}
+            {/* Price */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Estimated Price (optional)
+                Price *
               </label>
               <input
                 type="number"
-                value={estimatedPrice}
-                onChange={(e) => setEstimatedPrice(e.target.value)}
+                required
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
                 placeholder="0.00"
+                min="0"
+                step="0.01"
                 disabled={loading}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               />
+            </div>
+
+            {/* SKU */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                SKU
+              </label>
+              <input
+                type="text"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                placeholder="Stock Keeping Unit"
+                disabled={loading}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Stock Keeping Unit - unique identifier
+              </p>
             </div>
 
             {/* Status */}
@@ -140,13 +159,13 @@ export function EditItemModal({
                 Status
               </label>
               <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                value={isActive ? 'active' : 'inactive'}
+                onChange={(e) => setIsActive(e.target.value === 'active')}
                 disabled={loading}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               >
-                <option>Active</option>
-                <option>Inactive</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
               </select>
             </div>
           </form>
@@ -165,7 +184,7 @@ export function EditItemModal({
             </button>
             <button
               type="submit"
-              disabled={loading || !itemName.trim()}
+              disabled={loading || !itemName.trim() || !description.trim() || !price}
               onClick={handleSubmit}
               className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >

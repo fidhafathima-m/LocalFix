@@ -33,4 +33,13 @@ export const ADMIN_ROUTES = {
   SERVICE_BY_ID: (id: string) => `/admin/services/${id}`,
   SERVICE_BY_SLUG: (slug: string) => `/admin/services/slug/${slug}`,
   SERVICES_SEARCH: "/admin/services/search",
+
+  //  items
+  ITEMS: "/admin/items",
+  ITEMS_BY_SERVICE: (serviceId: string) => `/admin/items/service/${serviceId}`,
+  ITEM_BY_ID: (itemId: string) => `/admin/items/${itemId}`,
+  CREATE_ITEM: `/admin/items/`,
+  UPDATE_ITEM: (itemId: string) => `/admin/items/${itemId}`,
+  DELETE_ITEM: (itemId: string) => `/admin/items/${itemId}`,
+  SEARCH_ITEM: "/admin/items/search",
 } as const;

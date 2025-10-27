@@ -27,6 +27,9 @@ import { CategoryController } from "../controllers/admin/categoryManagement";
 import { ServiceRepository } from "../repositories/admin/ServiceManagementRepository";
 import { ServiceService } from "../services/ServiceManagementService";
 import { ServiceController } from "../controllers/admin/serviceManagement";
+import { ItemRepository } from "../repositories/admin/ItemManagementRepository";
+import { ItemService } from "../services/ItemManagementService";
+import { ItemController } from "../controllers/admin/itemManagementController";
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
@@ -110,6 +113,11 @@ const serviceManagementController = new ServiceController(
   serviceManagementService
 );
 
+// Item Management Dependencies
+const itemManagementRepository = new ItemRepository();
+const itemManagementService = new ItemService(itemManagementRepository);
+const itemManagementController = new ItemController(itemManagementService);
+
 export {
   userManagementController,
   userManagementService,
@@ -133,4 +141,7 @@ export {
   serviceMangementRepository,
   serviceManagementService,
   serviceManagementController,
+  itemManagementRepository,
+  itemManagementService,
+  itemManagementController,
 };

@@ -161,6 +161,43 @@ export interface ServicesResponse {
   totalPages: number;
 }
 
+export interface Item {
+  id: string;
+  serviceId: string;
+  name: string;
+  description: string;
+  sku: string;
+  price: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateItemData {
+  serviceId?: string;
+  name: string;
+  description: string;
+  price: number;
+  sku?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateItemData {
+  name?: string;
+  description?: string;
+  price?: number;
+  sku?: string;
+  isActive?: boolean;
+}
+
+export interface ItemsResponse {
+  items: Item[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const adminAPI = {
   // Users
   getUsers: () => api.get<ApiResponse<UsersResponse>>(ADMIN_ROUTES.USERS),
@@ -219,7 +256,7 @@ export const adminAPI = {
       ADMIN_ROUTES.TECHNICIAN_BY_ID(technicianId)
     ),
 
-    // Categories
+  // Categories
   getCategories: (page: number = 1, limit: number = 10, search?: string) =>
     api.get<ApiResponse<CategoriesResponse>>(ADMIN_ROUTES.CATEGORIES, {
       params: { page, limit, search },
@@ -256,11 +293,19 @@ export const adminAPI = {
       { params: { q: query, limit } }
     ),
 
-     // Services
-  getServicesByCategory: (categoryId: string, page: number = 1, limit: number = 10, search?: string) =>
-    api.get<ApiResponse<ServicesResponse>>(ADMIN_ROUTES.SERVICES_BY_CATEGORY(categoryId), {
-      params: { page, limit, search },
-    }),
+  // Services
+  getServicesByCategory: (
+    categoryId: string,
+    page: number = 1,
+    limit: number = 10,
+    search?: string
+  ) =>
+    api.get<ApiResponse<ServicesResponse>>(
+      ADMIN_ROUTES.SERVICES_BY_CATEGORY(categoryId),
+      {
+        params: { page, limit, search },
+      }
+    ),
 
   getAllServices: (page: number = 1, limit: number = 10, search?: string) =>
     api.get<ApiResponse<ServicesResponse>>(ADMIN_ROUTES.SERVICES, {
@@ -297,4 +342,41 @@ export const adminAPI = {
       ADMIN_ROUTES.SERVICES_SEARCH,
       { params: { q: query, limit } }
     ),
+
+  // Items
+  getItemsByService: (
+    serviceId: string,
+    page: number = 1,
+    limit: number = 10,
+    search?: string
+  ) =>
+    api.get<ApiResponse<ItemsResponse>>(
+      ADMIN_ROUTES.ITEMS_BY_SERVICE(serviceId),
+      { params: { page, limit, search } }
+    ),
+
+  getAllItems: (page: number = 1, limit: number = 10, search?: string) =>
+    api.get<ApiResponse<ItemsResponse>>(ADMIN_ROUTES.ITEMS, {
+      params: { page, limit, search },
+    }),
+
+  getItemById: (itemId: string) =>
+    api.get<ApiResponse<{ item: Item }>>(ADMIN_ROUTES.ITEM_BY_ID(itemId)),
+
+  createItem: (itemData: CreateItemData) =>
+    api.post<ApiResponse<{ item: Item }>>(ADMIN_ROUTES.CREATE_ITEM, itemData),
+
+  updateItem: (itemId: string, updateData: UpdateItemData) =>
+    api.put<ApiResponse<{ item: Item }>>(
+      ADMIN_ROUTES.UPDATE_ITEM(itemId),
+      updateData
+    ),
+
+  deleteItem: (itemId: string) =>
+    api.delete<ApiResponse<void>>(ADMIN_ROUTES.DELETE_ITEM(itemId)),
+
+  searchItems: (query: string, limit: number = 10) =>
+    api.get<ApiResponse<{ items: Item[] }>>(ADMIN_ROUTES.SEARCH_ITEM, {
+      params: { q: query, limit },
+    }),
 };
