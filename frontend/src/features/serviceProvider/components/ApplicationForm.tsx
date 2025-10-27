@@ -258,7 +258,6 @@ export const ApplicationForm: React.FC = () => {
   });
 
    useEffect(() => {
-    console.log("🚨 REDIRECT BLOCKER ACTIVATED");
 
     // Create a global flag to block redirects
     (window as any).__BLOCK_REDIRECTS__ = true;
@@ -275,7 +274,6 @@ export const ApplicationForm: React.FC = () => {
         url.includes('/pending-technician/dashboard') || 
         url.includes('/technician/dashboard')
       )) {
-        console.log("🚨 BLOCKED FETCH REDIRECT:", url);
         return Promise.reject(new Error("Redirect blocked"));
       }
       return originalFetch.apply(this, args);
@@ -290,7 +288,6 @@ export const ApplicationForm: React.FC = () => {
   
   // 🚨 COMPLETELY DISABLE THE REDIRECT USEFFECT
   useEffect(() => {
-    console.log("🚨 MAIN REDIRECT LOGIC DISABLED");
     // This useEffect intentionally does nothing to prevent redirects
   }, [user?._id, accessToken, hasRestoredFromLocalStorage, user?.applicationStatus]);
 
@@ -298,7 +295,6 @@ export const ApplicationForm: React.FC = () => {
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if ((window as any).__BLOCK_REDIRECTS__) {
-        console.log("🚨 Blocking page unload/navigation");
         event.preventDefault();
         event.returnValue = '';
         return '';

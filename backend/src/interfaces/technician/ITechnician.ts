@@ -21,10 +21,11 @@ export interface PersonalInfo {
     state?: string;
     pincode?: string;
   };
+   
 }
 export interface IdentityInfo {
-  governmentIdType?: string;
-    governmentIdNumber?: string;
+  idType?: string;
+  idNumber?: string;
     idDocument?: string;
     verified?: boolean;
     verificationStatus?: "pending" | "approved" | "rejected";
@@ -103,6 +104,7 @@ export interface DocumentsInfo {
 
 
 export interface ITechnician extends Document {
+  _doc: any;
   statusCode(statusCode: any): unknown;
   _id: Types.ObjectId;
   userId: Types.ObjectId;
@@ -116,7 +118,25 @@ export interface ITechnician extends Document {
   personalInfo?: PersonalInfo;
 
   // Identity Verification
-  identityVerification?: IdentityInfo;
+  identityVerification?: {
+    idType?: string;
+    idNumber?: string;
+    idDocument?: string;
+    verified?: boolean;
+    verificationStatus?: "pending" | "approved" | "rejected";
+    verifiedAt?: Date;
+    address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    landmark?: string;
+  };
+  location?: {
+    coordinates: number[];
+    formattedAddress: string;
+  };
+  };
 
   // Skills & Services
   services: string[];
@@ -158,10 +178,10 @@ export interface ITechnician extends Document {
     withdrawalPreference: "auto" | "manual";
   };
 
-  // Documents
+  // Documents - Updated to match schema
   documents?: Array<{
     _id: Types.ObjectId;
-    type: string;
+    type: "idProof" | "addressProof" | "policeVerification" | "passportPhoto" | "profilePhoto" | "tradeLicense";
     fileName: string;
     url: string;
     uploadedAt: Date;

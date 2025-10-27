@@ -53,10 +53,19 @@ export interface ITechnicianProfileRepository {
     availabilityData: AvailabilityInfo
   ): Promise<ITechnician | null>;
 
-  updatePaymentDetails(
-    technicianId: string,
-    paymentData: BankInfo
-  ): Promise<ITechnician | null>;
+  updateTechnicianPaymentDetails(
+  technicianId: string,
+  paymentDetails: {
+    bankAccount: {
+      holderName: string;
+      accountNumber: string;
+      ifscCode: string;
+      bankName: string;
+    };
+    upiId: string;
+    withdrawalPreference: string;
+  }
+): Promise<boolean>
   updateIdentityVerification(
     technicianId: string,
     verificationData: VerificationData

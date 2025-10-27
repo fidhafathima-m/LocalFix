@@ -13,7 +13,10 @@ export class TechnicianRepository
   }
 
   async findByUserId(userId: string): Promise<ITechnician | null> {
-    return this.findOne({ userId: new Types.ObjectId(userId) });
+    // ✅ FIX: Remove the .select() since no fields are excluded by default
+    const result = await this.model.findOne({ userId: new Types.ObjectId(userId) }).exec();
+    
+    return result;
   }
 
   async updateByUserId(
@@ -32,11 +35,14 @@ export class TechnicianRepository
         : undefined,
     };
 
-    return this.model.findOneAndUpdate(
+    const result = await this.model.findOneAndUpdate(
       { userId: new Types.ObjectId(userId) },
       { $set: processedUpdateData },
       { new: true, runValidators: true }
-    );
+    ).exec(); // ✅ Remove .select()
+
+
+    return result;
   }
 
   async updateTechnicianStatus(

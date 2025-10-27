@@ -30,8 +30,8 @@ export interface TechnicianProfile {
     languages?: string[];
   };
   identityVerification?: {
-    governmentIdType?: string;
-    governmentIdNumber?: string;
+    idType?: string;
+    idNumber?: string;
     idDocument?: string;
     verified?: boolean;
     verificationStatus?: "pending" | "approved" | "rejected";
@@ -157,27 +157,31 @@ const normalizeResponse = (response: any) => {
 
 export const technicianAPI = {
   getProfile: async () => {
-    try {
-      const response = await api.get<{
-        success: boolean;
-        message: string;
-        data: { profile: TechnicianProfile };
-        statusCode: number;
-      }>(TECHNICIAN_ROUTES.PROFILE.BASE);
-      return normalizeResponse(response);
-    } catch (error: any) {
-      if (error.response?.data) {
-        return normalizeResponse(error.response.data);
-      }
-      return {
-        success: false,
-        message: error.message || "Failed to get profile",
-        error: "Network error",
-        data: null,
-        statusCode: 500,
-      };
+  try {
+    // ✅ ADD CACHE BUSTING HERE
+    const timestamp = new Date().getTime();
+    const response = await api.get<{
+      success: boolean;
+      message: string;
+      data: { profile: TechnicianProfile };
+      statusCode: number;
+    }>(`${TECHNICIAN_ROUTES.PROFILE.BASE}?nocache=${timestamp}`); // Add timestamp to URL
+    
+    console.log('🔄 Fresh API call with cache busting, timestamp:', timestamp);
+    return normalizeResponse(response);
+  } catch (error: any) {
+    if (error.response?.data) {
+      return normalizeResponse(error.response.data);
     }
-  },
+    return {
+      success: false,
+      message: error.message || "Failed to get profile",
+      error: "Network error",
+      data: null,
+      statusCode: 500,
+    };
+  }
+},
 
   updateProfile: async (data: Partial<TechnicianProfile>) => {
     try {
@@ -529,30 +533,31 @@ getApplicationForEdit: async (applicationId: string) => {
     }
   },
 
-  uploadDocument: async (formData: FormData) => {
-    try {
-      const response = await api.post<{
-        success: boolean;
-        message: string;
-        data: { document: any };
-        statusCode: number;
-      }>(TECHNICIAN_ROUTES.PROFILE.DOCUMENTS, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return normalizeResponse(response);
-    } catch (error: any) {
-      if (error.response?.data) {
-        return normalizeResponse(error.response.data);
-      }
-      return {
-        success: false,
-        message: error.message || "Failed to upload document",
-        error: "Network error",
-        data: null,
-        statusCode: 500,
-      };
+  // Add to your technicianAPI
+uploadDocument: async (formData: FormData) => {
+  try {
+    const response = await api.post<{
+      success: boolean;
+      message: string;
+      data: { document: any };
+      statusCode: number;
+    }>(TECHNICIAN_ROUTES.PROFILE.UPLOAD_DOCUMENT, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return normalizeResponse(response);
+  } catch (error: any) {
+    if (error.response?.data) {
+      return normalizeResponse(error.response.data);
     }
-  },
+    return {
+      success: false,
+      message: error.message || "Failed to upload document",
+      error: "Network error",
+      data: null,
+      statusCode: 500,
+    };
+  }
+},
 
   updateSkillsServices: async (data: {
     services: string[];
@@ -645,6 +650,32 @@ getApplicationForEdit: async (applicationId: string) => {
       return {
         success: false,
         message: error.message || "Failed to update bank payment details",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
+    }
+  },
+  updatePassword: async (data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) => {
+    try {
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: any;
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.PROFILE.UPDATE_PASSWORD, data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update password",
         error: "Network error",
         data: null,
         statusCode: 500,

@@ -7,20 +7,31 @@ export interface BaseResponseDto {
 
 // Request DTOs
 export interface PersonalInfoUpdateDto {
-  fullName?: string;
-  phoneNumber?: string;
-  email?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  languages?: string[];
+  personalInfo?: {
+    fullName?: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    languages?: string[];
+  };
   bio?: string;
+  email?: string; // This should be at root level for user update
   profilePicture?: string;
 }
 
 export interface IdentityVerificationUpdateDto {
-  governmentIdType?: string;
-  governmentIdNumber?: string;
+  // ✅ These should match what frontend sends
+  idType?: string;
+  idNumber?: string;
   idDocument?: string;
+  
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    landmark?: string;
+  };
 }
 
 export interface SkillsServicesUpdateDto {
@@ -36,12 +47,27 @@ export interface AvailabilityPreferencesUpdateDto {
   weeklyAvailability?: Record<string, any>;
 }
 
+// In your dtos/technicianProfileDtos.ts
 export interface BankPaymentUpdateDto {
+  // Flat structure (for direct API calls)
   accountHolderName?: string;
   accountNumber?: string;
   ifscCode?: string;
+  bankName?: string;
   upiId?: string;
-  withdrawalPreference?: string;
+  withdrawalPreference?: "auto" | "manual";
+  
+  // Nested structure (for frontend)
+  paymentDetails?: {
+    bankAccount?: {
+      holderName?: string;
+      accountNumber?: string;
+      ifscCode?: string;
+      bankName?: string;
+    };
+    upiId?: string;
+    withdrawalPreference?: "auto" | "manual";
+  };
 }
 
 export interface SecuritySettingsUpdateDto {
@@ -79,6 +105,13 @@ export interface PersonalInfoDto {
   languages: string[];
   bio: string;
   profilePictureUrl: string;
+  address: {
+    street?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    landmark?: string;
+  }
 }
 
 export interface IdentityVerificationDto {
@@ -153,7 +186,19 @@ export interface TechnicianProfileDto {
   identityVerification: IdentityVerificationDto;
   skillsServices: SkillsServicesDto;
   availabilityPreferences: AvailabilityPreferencesDto;
-  bankPaymentDetails: BankPaymentDetailsDto;
+  
+  // ✅ ADD THIS: For backward compatibility with frontend
+  paymentDetails?: {
+    bankAccount: {
+      holderName: string;
+      accountNumber: string;
+      ifscCode: string;
+      bankName: string;
+    };
+    upiId: string;
+    withdrawalPreference: string;
+  };
+  
   documents: DocumentDataDto[];
   securitySettings: SecuritySettingsDto;
 }

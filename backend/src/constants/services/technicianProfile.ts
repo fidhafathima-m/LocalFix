@@ -16,6 +16,7 @@ export const TECHNICIAN_PROFILE_MESSAGES = {
   PASSWORD_UPDATED: "Password updated successfully",
   DOCUMENT_UPLOADED: "Document uploaded successfully",
   PROFILE_UPDATED: "Profile updated successfully",
+  PHOTO_UPLOADED: "Profile photo updated successfully",
 
   // Error messages
   TECHNICIAN_NOT_FOUND: "Technician not found",
@@ -29,6 +30,11 @@ export const TECHNICIAN_PROFILE_MESSAGES = {
   FAILED_UPDATE_BANK_PAYMENT: "Failed to update bank and payment details",
   FAILED_UPDATE_PASSWORD: "Failed to update password",
   FAILED_UPLOAD_DOCUMENT: "Failed to upload document",
+  EMAIL_ALREADY_EXISTS: "Email already exists",
+  FAILED_UPLOAD_PHOTO: "Failed to upload profile photo",
+   PHOTO_REQUIRED: "Profile photo is required",
+  INVALID_FILE_TYPE: "Invalid file type. Only images are allowed",
+  FILE_TOO_LARGE: "File size too large. Maximum size is 5MB",
 
   // Validation messages
   CURRENT_PASSWORD_INCORRECT: "Current password is incorrect",

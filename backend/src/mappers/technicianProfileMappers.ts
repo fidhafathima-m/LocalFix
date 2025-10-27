@@ -23,42 +23,54 @@ import {
 } from "../constants";
 
 export class TechnicianProfileMapper {
-  // Map to technician profile DTO
-  static toTechnicianProfileDto(
-    technician: ITechnician,
-    user: IUser
-  ): TechnicianProfileDto {
-    return {
-      _id: technician._id?.toString() || "",
-      userId: technician.userId?.toString() || "",
-      displayName: technician.displayName || "",
-      email: user.email || "",
-      phone: user.phone || technician.phone || "",
-      profilePictureUrl: technician.profilePictureUrl || PERSONAL_INFO_DEFAULTS.PROFILE_PICTURE_URL,
-      bio: technician.bio || PERSONAL_INFO_DEFAULTS.BIO,
-      services: technician.services || SKILLS_DEFAULTS.SERVICES,
-      workAreas: technician.workAreas || [],
-      serviceRadiusKm: technician.serviceRadiusKm || AVAILABILITY_DEFAULTS.WORK_RADIUS,
-      status: technician.status || "",
-      averageRating: technician.averageRating,
-      ratingCount: technician.ratingCount,
-      totalJobs: technician.totalJobs,
-      completedJobs: technician.completedJobs,
-      ongoingJobs: technician.ongoingJobs,
-      totalEarnings: technician.totalEarnings,
-      experienceYears: technician.experienceYears || SKILLS_DEFAULTS.EXPERIENCE_YEARS,
-      createdAt: technician.createdAt || new Date(),
-      updatedAt: technician.updatedAt || new Date(),
-      personalInfo: this.mapPersonalInfo(technician, user),
-      identityVerification: this.mapIdentityVerification(technician),
-      skillsServices: this.mapSkillsServices(technician),
-      availabilityPreferences: this.mapAvailabilityPreferences(technician),
-      bankPaymentDetails: this.mapBankPaymentDetails(technician),
-      documents: this.mapDocuments(technician),
-      securitySettings: this.mapSecuritySettings(user),
-    };
-  }
+  // In your TechnicianProfileMapper.ts, update the main method
+static toTechnicianProfileDto(
+  technician: ITechnician,
+  user: IUser
+): TechnicianProfileDto {
 
+  const bankPaymentDetails = this.mapBankPaymentDetails(technician);
+  
+  const mappedDocuments = this.mapDocuments(technician);
+
+  const result = {
+    _id: technician._id?.toString() || "",
+    userId: technician.userId?.toString() || "",
+    displayName: technician.displayName || "",
+    email: user.email || "",
+    phone: user.phone || technician.phone || "",
+    profilePictureUrl: technician.profilePictureUrl || PERSONAL_INFO_DEFAULTS.PROFILE_PICTURE_URL,
+    bio: technician.bio || PERSONAL_INFO_DEFAULTS.BIO,
+    services: technician.services || SKILLS_DEFAULTS.SERVICES,
+    workAreas: technician.workAreas || [],
+    serviceRadiusKm: technician.serviceRadiusKm || AVAILABILITY_DEFAULTS.WORK_RADIUS,
+    status: technician.status || "",
+    averageRating: technician.averageRating,
+    ratingCount: technician.ratingCount,
+    totalJobs: technician.totalJobs,
+    completedJobs: technician.completedJobs,
+    ongoingJobs: technician.ongoingJobs,
+    totalEarnings: technician.totalEarnings,
+    experienceYears: technician.experienceYears || SKILLS_DEFAULTS.EXPERIENCE_YEARS,
+    createdAt: technician.createdAt || new Date(),
+    updatedAt: technician.updatedAt || new Date(),
+    
+    paymentDetails: {
+      bankAccount: bankPaymentDetails.bankAccount,
+      upiId: bankPaymentDetails.upiId,
+      withdrawalPreference: bankPaymentDetails.withdrawalPreference,
+    },
+    
+    personalInfo: this.mapPersonalInfo(technician, user),
+    identityVerification: this.mapIdentityVerification(technician),
+    skillsServices: this.mapSkillsServices(technician),
+    availabilityPreferences: this.mapAvailabilityPreferences(technician),
+    documents: mappedDocuments, // Use the mapped documents
+    securitySettings: this.mapSecuritySettings(user),
+  };
+
+  return result;
+}
   // Map to static data DTO
   static toStaticDataDto(): StaticDataDto {
     return {
@@ -134,14 +146,21 @@ export class TechnicianProfileMapper {
         : PERSONAL_INFO_DEFAULTS.LANGUAGES,
       bio: technician.bio || PERSONAL_INFO_DEFAULTS.BIO,
       profilePictureUrl: technician.profilePictureUrl || PERSONAL_INFO_DEFAULTS.PROFILE_PICTURE_URL,
+      address: technician.personalInfo?.address || {
+      street: "Not specified",
+      city: "Not specified", 
+      state: "Not specified",
+      pincode: "Not specified",
+      landmark: "Not specified"
+    }
     };
   }
 
   private static mapIdentityVerification(technician: ITechnician): IdentityVerificationDto {
     return {
       verificationStatus: technician.identityVerification?.verificationStatus || VERIFICATION_STATUS.PENDING,
-      governmentIdType: technician.identityVerification?.governmentIdType,
-      governmentIdNumber: technician.identityVerification?.governmentIdNumber,
+      governmentIdType: technician.identityVerification?.idType,
+      governmentIdNumber: technician.identityVerification?.idNumber,
       idDocument: technician.identityVerification?.idDocument,
     };
   }
@@ -164,38 +183,42 @@ export class TechnicianProfileMapper {
   }
 
   private static mapBankPaymentDetails(technician: ITechnician): BankPaymentDetailsDto {
-    if (technician.paymentDetails) {
-      return {
-        bankAccount: {
-          holderName: technician.paymentDetails.bankAccount?.holderName || PAYMENT_DEFAULTS.BANK_ACCOUNT.HOLDER_NAME,
-          accountNumber: technician.paymentDetails.bankAccount?.accountNumber || PAYMENT_DEFAULTS.BANK_ACCOUNT.ACCOUNT_NUMBER,
-          ifscCode: technician.paymentDetails.bankAccount?.ifscCode || PAYMENT_DEFAULTS.BANK_ACCOUNT.IFSC_CODE,
-          bankName: PAYMENT_DEFAULTS.BANK_ACCOUNT.BANK_NAME,
-        },
-        upiId: technician.paymentDetails.upiId || PAYMENT_DEFAULTS.UPI_ID,
-        withdrawalPreference: technician.paymentDetails.withdrawalPreference || PAYMENT_DEFAULTS.WITHDRAWAL_PREFERENCE,
-      };
-    }
-
+  if (technician.paymentDetails) {
     return {
       bankAccount: {
-        holderName: PAYMENT_DEFAULTS.BANK_ACCOUNT.HOLDER_NAME,
-        accountNumber: PAYMENT_DEFAULTS.BANK_ACCOUNT.ACCOUNT_NUMBER,
-        ifscCode: PAYMENT_DEFAULTS.BANK_ACCOUNT.IFSC_CODE,
-        bankName: PAYMENT_DEFAULTS.BANK_ACCOUNT.BANK_NAME,
+        holderName: technician.paymentDetails.bankAccount?.holderName || PAYMENT_DEFAULTS.BANK_ACCOUNT.HOLDER_NAME,
+        accountNumber: technician.paymentDetails.bankAccount?.accountNumber || PAYMENT_DEFAULTS.BANK_ACCOUNT.ACCOUNT_NUMBER,
+        ifscCode: technician.paymentDetails.bankAccount?.ifscCode || PAYMENT_DEFAULTS.BANK_ACCOUNT.IFSC_CODE,
+        bankName: technician.paymentDetails.bankAccount?.bankName || PAYMENT_DEFAULTS.BANK_ACCOUNT.BANK_NAME, // ✅ Use actual bank name from DB
       },
-      upiId: PAYMENT_DEFAULTS.UPI_ID,
-      withdrawalPreference: PAYMENT_DEFAULTS.WITHDRAWAL_PREFERENCE,
+      upiId: technician.paymentDetails.upiId || PAYMENT_DEFAULTS.UPI_ID,
+      withdrawalPreference: technician.paymentDetails.withdrawalPreference || PAYMENT_DEFAULTS.WITHDRAWAL_PREFERENCE,
     };
   }
 
+  return {
+    bankAccount: {
+      holderName: PAYMENT_DEFAULTS.BANK_ACCOUNT.HOLDER_NAME,
+      accountNumber: PAYMENT_DEFAULTS.BANK_ACCOUNT.ACCOUNT_NUMBER,
+      ifscCode: PAYMENT_DEFAULTS.BANK_ACCOUNT.IFSC_CODE,
+      bankName: PAYMENT_DEFAULTS.BANK_ACCOUNT.BANK_NAME,
+    },
+    upiId: PAYMENT_DEFAULTS.UPI_ID,
+    withdrawalPreference: PAYMENT_DEFAULTS.WITHDRAWAL_PREFERENCE,
+  };
+}
   private static mapDocuments(technician: ITechnician): DocumentDataDto[] {
-    if (!technician.documents || !Array.isArray(technician.documents)) {
-      return [];
-    }
 
-    return technician.documents.map((doc: any) => ({
-      _id: doc._id?.toString(),
+  // Ensure documents is always an array
+  const documents = technician.documents || [];
+
+  if (!Array.isArray(documents)) {
+    return [];
+  }
+
+  const mappedDocuments = documents.map((doc: any) => {
+    const mappedDoc = {
+      _id: doc._id?.toString() || new Types.ObjectId().toString(),
       type: doc.type || "",
       fileName: doc.fileName || "",
       url: doc.url || "",
@@ -203,8 +226,13 @@ export class TechnicianProfileMapper {
       verified: doc.verified || false,
       status: doc.status || DOCUMENT_STATUS.PENDING,
       verifiedAt: doc.verifiedAt,
-    }));
-  }
+    };
+    
+    return mappedDoc;
+  });
+
+  return mappedDocuments;
+}
 
   private static mapSecuritySettings(user: IUser): SecuritySettingsDto {
     return {

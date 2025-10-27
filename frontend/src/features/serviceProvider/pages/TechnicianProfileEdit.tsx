@@ -5,7 +5,7 @@ import AvailabilityPreferences from "../components/technicianProfile/Availabilit
 import BankPaymentDetails from "../components/technicianProfile/BankPaymentDetails";
 import DocumentsVerification from "../components/technicianProfile/DocumentsVerification";
 import SecuritySettings from "../components/technicianProfile/SecuritySettings";
-import DangerZone from "../components/technicianProfile/DangerZone";
+// import DangerZone from "../components/technicianProfile/DangerZone";
 import ChevronLeftOutlinedIcon from "@mui/icons-material/ChevronLeftOutlined";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
@@ -38,7 +38,7 @@ const TechnicianProfileEdit = () => {
           <BankPaymentDetails />
           <DocumentsVerification />
           <SecuritySettings />
-          <DangerZone />
+          {/* <DangerZone /> */}
         </div>
       </div>
       <Footer />

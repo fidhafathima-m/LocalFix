@@ -11,6 +11,7 @@ import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
 import { type TechnicianProfile } from "../../../services/common/technicianApi";
 import { TechnicianService } from "../../../services/technician/technicianService";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardData {
   overview: {
@@ -53,20 +54,28 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     reason?: string;
     suspendedAt?: string;
   }>({});
+  const navigate = useNavigate()
 
   useEffect(() => {
     const loadTechnicianData = async () => {
       try {
         setLoading(true);
         setError(null);
+        console.log('🔍 Fetching technician profile...');
 
         const response = await TechnicianService.getProfile();
+
+        console.log('🔍 Raw API Response:', response);
+    console.log('🔍 Response data:', response.data);
+    console.log('🔍 Response data.data:', response.data?.data);
 
         if (!response.success) {
           throw new Error("Failed to fetch profile: API returned unsuccessful");
         }
 
-        const profile = response.data?.data?.profile;
+        const profile = response.data?.data?.profile || 
+                   response.data?.profile || 
+                   response.data?.data;
 
         if (!profile) {
           throw new Error("Profile data not found in response");
@@ -106,7 +115,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           profile: {
             ...profile,
             personalInfo: {
-              fullName: profile.personalInfo?.fullName || profile.displayName,
+              fullName: profile.personalInfo?.fullName,
               gender: profile.personalInfo?.gender || "Not specified",
               phoneNumber:
                 profile.personalInfo?.phoneNumber ||
@@ -457,7 +466,9 @@ const ApprovedTechnicianDashboard: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium">Profile Information</h3>
         {!isSuspended && (
-          <button className="text-blue-600 text-sm font-medium hover:text-blue-700">
+          <button 
+          className="text-blue-600 text-sm font-medium hover:text-blue-700 cursor-pointer"
+          onClick={() => navigate("/technician/profile")}>
             Edit Profile
           </button>
         )}
@@ -497,7 +508,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
               <dt className="text-sm text-gray-500">Full Name</dt>
               <dd className="text-sm font-medium">
                 {dashboardData.profile.personalInfo?.fullName ||
-                  dashboardData.profile.displayName ||
                   "Not specified"}
               </dd>
             </div>
@@ -808,56 +818,49 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         {isSuspended && <SuspensionBanner />}
 
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-3xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
-                  {profile.profilePictureUrl ? (
-                    <img
-                      src={profile.profilePictureUrl}
-                      alt={profile.displayName}
-                      className="h-12 w-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-yellow-700 text-lg font-medium">
-                      {profile.displayName.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center">
-                    <h1 className="text-lg font-semibold mr-2">
-                      {profile.displayName}
-                    </h1>
-                    {getStatusBadge(profile)}
-                  </div>
-                  <div className="flex items-center mt-1">
-                    <div className="flex items-center">
-                      {renderStars(profile.averageRating, true)}
-                      <span className="ml-1 text-sm text-gray-600">
-                        {profile.averageRating.toFixed(1)} (
-                        {profile.ratingCount})
-                      </span>
-                    </div>
-                    <span className="mx-2 text-gray-300">|</span>
-                    <span className="text-sm text-gray-600 flex items-center">
-                      <FmdGoodOutlined className="h-3 w-3 mr-1" />
-                      {getLocation(profile)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                {!isSuspended && (
-                  <button className="text-blue-600 text-sm font-medium hover:text-blue-700">
-                    Edit Profile
-                  </button>
-                )}
-              </div>
+<div className="bg-white border-b border-gray-200">
+  <div className="max-w-3xl mx-auto px-4 py-4">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center">
+        <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+          {profile.profilePictureUrl ? (
+            <img
+              src={profile.profilePictureUrl}
+              alt={profile.personalInfo?.fullName || "Technician"}
+              className="h-12 w-12 rounded-full object-cover"
+            />
+          ) : (
+            <span className="text-yellow-700 text-lg font-medium">
+              {(profile.personalInfo?.fullName?.charAt(0) || 'T').toUpperCase()}
+            </span>
+          )}
+        </div>
+        <div>
+          <div className="flex items-center">
+            <h1 className="text-lg font-semibold mr-2">
+              {profile.personalInfo?.fullName || "Technician"}
+            </h1>
+            {getStatusBadge(profile)}
+          </div>
+          <div className="flex items-center mt-1">
+            <div className="flex items-center">
+              {renderStars(profile.averageRating, true)}
+              <span className="ml-1 text-sm text-gray-600">
+                {profile.averageRating.toFixed(1)} (
+                {profile.ratingCount})
+              </span>
             </div>
+            <span className="mx-2 text-gray-300">|</span>
+            <span className="text-sm text-gray-600 flex items-center">
+              <FmdGoodOutlined className="h-3 w-3 mr-1" />
+              {getLocation(profile)}
+            </span>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Navigation */}
         <div className="border-b border-gray-200 bg-white">

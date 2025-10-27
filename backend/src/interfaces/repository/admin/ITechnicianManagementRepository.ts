@@ -84,7 +84,33 @@ export interface ITechnicianManagementRepository {
   // Create technician
   findOrCreateTechnician(application: ITechnicianApplication): Promise<ITechnician>;
   updateTechnicianPaymentDetails(
-    technicianId: string,
-    paymentDetails: Record<string, unknown>
-  ): Promise<ITechnician>;
+  technicianId: string,
+  paymentDetails: {
+    bankAccount: {
+      holderName: string;
+      accountNumber: string;
+      ifscCode: string;
+      bankName: string;
+    };
+    upiId: string;
+    withdrawalPreference: string;
+  }
+): Promise<boolean>
+
+updateTechnicianIdentityVerification(
+  technicianId: string,
+  identityData: {
+    idType: string;
+    idNumber: string;
+    idDocument: string;
+    verificationStatus: string;
+    verified: boolean;
+    verifiedAt: Date;
+  }
+): Promise<boolean>
+save(application: ITechnicianApplication): Promise<ITechnicianApplication>;
+ updateTechnicianDocuments(
+  technicianId: string, 
+  documents: any[]
+): Promise<ITechnician | null>
 }

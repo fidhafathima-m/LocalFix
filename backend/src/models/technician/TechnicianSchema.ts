@@ -1,6 +1,7 @@
 import { ITechnician } from "@/interfaces/technician/ITechnician";
 import mongoose, { Schema, Document } from "mongoose";
 
+// Update your TechnicianSchema to include documents
 const TechnicianSchema = new Schema<ITechnician>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -25,6 +26,42 @@ const TechnicianSchema = new Schema<ITechnician>(
       },
       languages: { type: [String] },
     },
+    identityVerification: {
+      idType: { 
+        type: String, 
+        enum: ["passport", "driver_license", "national_id", "aadhaar"],
+        required: false 
+      },
+      idNumber: { type: String, required: false },
+      idDocument: { type: String, required: false }, // URL to the ID document
+      verified: { type: Boolean, default: false },
+      verificationStatus: { 
+        type: String, 
+        enum: ["pending", "approved", "rejected"], 
+        default: "pending" 
+      },
+      verifiedAt: { type: Date }
+    },
+    
+    // Add documents field
+    documents: [{
+      _id: { type: Schema.Types.ObjectId, auto: true },
+      type: { 
+        type: String, 
+        enum: ["idProof", "addressProof", "policeVerification", "passportPhoto", "profilePhoto", "tradeLicense"],
+        required: true 
+      },
+      fileName: { type: String, required: true },
+      url: { type: String, required: true },
+      uploadedAt: { type: Date, default: Date.now },
+      verified: { type: Boolean, default: false },
+      status: { 
+        type: String, 
+        enum: ["pending", "approved", "rejected"], 
+        default: "pending" 
+      },
+      verifiedAt: { type: Date }
+    }],
 
     paymentDetails: {
       bankAccount: {

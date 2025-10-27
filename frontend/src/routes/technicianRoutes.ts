@@ -6,10 +6,11 @@ export const TECHNICIAN_ROUTES = {
     UPLOAD_PHOTO: "/technician/profile/upload-photo",
     PERSONAL_INFO: "/technician/profile/personal-info",
     IDENTITY_VERIFICATION: "/technician/profile/identity-verification",
-    DOCUMENTS: "/technician/profile/documents",
+    UPLOAD_DOCUMENT: "/technician/profile/upload-document",
     SKILLS_SERVICES: "/technician/profile/skills-services",
     AVAILABILITY: "/technician/profile/availability",
     BANK_PAYMENT: "/technician/profile/bank-payment",
+    UPDATE_PASSWORD: '/technician/profile/password'
   },
   
   // Address routes

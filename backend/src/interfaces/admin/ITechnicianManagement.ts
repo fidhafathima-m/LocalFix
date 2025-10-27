@@ -41,6 +41,7 @@ export interface IAdminTechnician {
       pincode: string;
     };
   };
+  identityVerification?: IdentityInfo;
   documents?: {
     aadhaarCard?: { url: string; verified: boolean };
     panCard?: { url: string; verified: boolean };
@@ -74,6 +75,7 @@ export interface ITechnician {
   completedJobs?: number;
   ongoingJobs?: number;
   totalEarnings?: number;
+  identityVerification?: IdentityInfo;
   bio: string;
   experienceYears: number;
   services: string[];
@@ -115,7 +117,6 @@ export interface ITechnicianApplication {
     email?: string;
     gender?: string;
     dateOfBirth?: string;
-    languages?: string[];
     address?: {
       street: string;
       city: string;
@@ -130,6 +131,7 @@ export interface ITechnicianApplication {
     bio?: string;
     serviceAreas?: string[];
     workRadius?: string;
+    languages?: string[];
   };
   availability: AvailabilityInfo;
   bank: BankInfo;

@@ -38,7 +38,17 @@ import {
 import { IUser } from "@/interfaces/user/IUser";
 import { IAddress } from "@/interfaces/user/IAddress";
 import { IUserAddress } from "@/models/UserAddressSchema";
-import { ApplicationFiltersDto, ApplicationListDto, ApplicationListResponseDto, RejectApplicationRequestDto, SingleTechnicianResponseDto, TechnicianFiltersDto, TechnicianListDto, TechnicianListResponseDto, UpdateStatusRequestDto } from "@/interfaces/dtos/technicianDtos";
+import {
+  ApplicationFiltersDto,
+  ApplicationListDto,
+  ApplicationListResponseDto,
+  RejectApplicationRequestDto,
+  SingleTechnicianResponseDto,
+  TechnicianFiltersDto,
+  TechnicianListDto,
+  TechnicianListResponseDto,
+  UpdateStatusRequestDto,
+} from "@/interfaces/dtos/technicianDtos";
 import { TechnicianMapper } from "../mappers/technicianMappers";
 import { ApplicationMapper } from "../mappers/applicationMapper";
 
@@ -89,7 +99,7 @@ export class TechnicianManagementService
 
   // Helper function to format documents from TechnicianApplication.documents
   private formatApplicationDocuments(documents: unknown): FormattedDocuments {
-    if (!documents || typeof documents !== 'object') return {};
+    if (!documents || typeof documents !== "object") return {};
 
     const formatted: FormattedDocuments = {};
 
@@ -109,148 +119,153 @@ export class TechnicianManagementService
   }
 
   async getAllTechnicians(
-  filters: TechnicianFiltersDto
-): Promise<TechnicianListResponseDto> {
-  try {
-    const {
-      status = FILTER_DEFAULTS.STATUS,
-      service = FILTER_DEFAULTS.SERVICE,
-      rating = FILTER_DEFAULTS.RATING,
-      location = FILTER_DEFAULTS.LOCATION,
-      search,
-      page = FILTER_DEFAULTS.PAGE,
-      limit = FILTER_DEFAULTS.LIMIT,
-    } = filters;
+    filters: TechnicianFiltersDto
+  ): Promise<TechnicianListResponseDto> {
+    try {
+      const {
+        status = FILTER_DEFAULTS.STATUS,
+        service = FILTER_DEFAULTS.SERVICE,
+        rating = FILTER_DEFAULTS.RATING,
+        location = FILTER_DEFAULTS.LOCATION,
+        search,
+        page = FILTER_DEFAULTS.PAGE,
+        limit = FILTER_DEFAULTS.LIMIT,
+      } = filters;
 
-    // Build filter object
-    const filter: FilterQuery = {};
+      // Build filter object
+      const filter: FilterQuery = {};
 
-    // Status filter
-    if (status && status !== "all") {
-      const dbStatus = STATUS_FILTER_MAPPING[status] || status;
-      filter.status = dbStatus;
-    } else {
-      filter.status = {
-        $in: [
-          TECHNICIAN_STATUS.APPROVED,
-          TECHNICIAN_STATUS.SUSPENDED,
-          TECHNICIAN_STATUS.REJECTED,
-        ],
-      };
-    }
-
-    // Service filter
-    if (service && service !== FILTER_DEFAULTS.SERVICE) {
-      filter.services = service;
-    }
-
-    // Rating filter
-    if (rating && rating !== FILTER_DEFAULTS.RATING) {
-      const ratingFilter = RATING_FILTER_MAPPING[rating as keyof typeof RATING_FILTER_MAPPING];
-      if (ratingFilter) {
-        filter.averageRating = ratingFilter;
+      // Status filter
+      if (status && status !== "all") {
+        const dbStatus = STATUS_FILTER_MAPPING[status] || status;
+        filter.status = dbStatus;
+      } else {
+        filter.status = {
+          $in: [
+            TECHNICIAN_STATUS.APPROVED,
+            TECHNICIAN_STATUS.SUSPENDED,
+            TECHNICIAN_STATUS.REJECTED,
+          ],
+        };
       }
-    }
 
-    // Search filter
-    if (search) {
-      const searchRegex = new RegExp(search as string, "i");
-      filter.$or = SEARCH_FIELDS.TECHNICIAN.map((field) => ({
-        [field]: searchRegex,
-      }));
-    }
-
-    // Location filter
-    if (location && location !== FILTER_DEFAULTS.LOCATION) {
-      filter.workAreas = { $in: [new RegExp(location as string, "i")] };
-    }
-
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
-    const skip = (pageNum - 1) * limitNum;
-
-    // Get technicians with user data populated
-    const technicians = await this.technicianRepository.findAllTechnicians(
-      filter,
-      skip,
-      limitNum
-    );
-    const total = await this.technicianRepository.countTechnicians(filter);
-
-    // ✅ FIX: Map to DTOs instead of domain objects
-    const technicianDtos: TechnicianListDto[] = await Promise.all(
-      technicians.map(async (tech: ITechnician) => {
-        const adminTechnician = await this.convertToAdminTechnician(tech);
-        return this.mapAdminTechnicianToListDto(adminTechnician);
-      })
-    );
-
-    return ResponseHelper.success(
-      TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED,
-      { 
-        technicians: technicianDtos, // ✅ Now this is TechnicianListDto[]
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          pages: Math.ceil(total / limitNum),
-        },
+      // Service filter
+      if (service && service !== FILTER_DEFAULTS.SERVICE) {
+        filter.services = service;
       }
-    );
-  } catch (error: unknown) {
-    console.error("Get technicians error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS
-    );
-  }
-}
 
-private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): TechnicianListDto {
-  return {
-    _id: adminTechnician._id.toString(),
-    userId: adminTechnician.userId?.toString() || '',
-    displayName: adminTechnician.displayName || '',
-    email: adminTechnician.email || '',
-    phone: adminTechnician.phone || '',
-    services: adminTechnician.services || [],
-    status: adminTechnician.status || '',
-    averageRating: adminTechnician.averageRating || 0,
-    totalJobs: adminTechnician.totalJobs || 0,
-    completedJobs: adminTechnician.completedJobs || 0,
-    createdAt: adminTechnician.createdAt || new Date(),
-    profilePictureUrl: adminTechnician.profilePictureUrl,
-  };
-}
-  async getTechnicianById(id: string): Promise<SingleTechnicianResponseDto> {
-  try {
-    const technician = await this.technicianRepository.findTechnicianById(id);
+      // Rating filter
+      if (rating && rating !== FILTER_DEFAULTS.RATING) {
+        const ratingFilter =
+          RATING_FILTER_MAPPING[rating as keyof typeof RATING_FILTER_MAPPING];
+        if (ratingFilter) {
+          filter.averageRating = ratingFilter;
+        }
+      }
 
-    if (!technician) {
-      return ResponseHelper.notFound(
-        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
+      // Search filter
+      if (search) {
+        const searchRegex = new RegExp(search as string, "i");
+        filter.$or = SEARCH_FIELDS.TECHNICIAN.map((field) => ({
+          [field]: searchRegex,
+        }));
+      }
+
+      // Location filter
+      if (location && location !== FILTER_DEFAULTS.LOCATION) {
+        filter.workAreas = { $in: [new RegExp(location as string, "i")] };
+      }
+
+      const pageNum = Number(page);
+      const limitNum = Number(limit);
+      const skip = (pageNum - 1) * limitNum;
+
+      // Get technicians with user data populated
+      const technicians = await this.technicianRepository.findAllTechnicians(
+        filter,
+        skip,
+        limitNum
+      );
+      const total = await this.technicianRepository.countTechnicians(filter);
+
+      // ✅ FIX: Map to DTOs instead of domain objects
+      const technicianDtos: TechnicianListDto[] = await Promise.all(
+        technicians.map(async (tech: ITechnician) => {
+          const adminTechnician = await this.convertToAdminTechnician(tech);
+          return this.mapAdminTechnicianToListDto(adminTechnician);
+        })
+      );
+
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED,
+        {
+          technicians: technicianDtos, // ✅ Now this is TechnicianListDto[]
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum),
+          },
+        }
+      );
+    } catch (error: unknown) {
+      console.error("Get technicians error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS
       );
     }
-
-    const adminTechnician = await this.convertToAdminTechnician(technician);
-
-    // ✅ FIX: Use TechnicianMapper to convert to DTO
-    const technicianDto = TechnicianMapper.toDetailDto(adminTechnician);
-
-    return ResponseHelper.success(
-      TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_RETRIEVED,
-      {
-        technician: technicianDto, // ✅ Now this is TechnicianDetailDto
-      }
-    );
-  } catch (error: unknown) {
-    console.error("Get technician error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN
-    );
   }
-}
+
+  private mapAdminTechnicianToListDto(
+    adminTechnician: IAdminTechnician
+  ): TechnicianListDto {
+    return {
+      _id: adminTechnician._id.toString(),
+      userId: adminTechnician.userId?.toString() || "",
+      displayName: adminTechnician.displayName || "",
+      email: adminTechnician.email || "",
+      phone: adminTechnician.phone || "",
+      services: adminTechnician.services || [],
+      status: adminTechnician.status || "",
+      averageRating: adminTechnician.averageRating || 0,
+      totalJobs: adminTechnician.totalJobs || 0,
+      completedJobs: adminTechnician.completedJobs || 0,
+      createdAt: adminTechnician.createdAt || new Date(),
+      profilePictureUrl: adminTechnician.profilePictureUrl,
+    };
+  }
+  async getTechnicianById(id: string): Promise<SingleTechnicianResponseDto> {
+    try {
+      const technician = await this.technicianRepository.findTechnicianById(id);
+
+      if (!technician) {
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
+        );
+      }
+
+      const adminTechnician = await this.convertToAdminTechnician(technician);
+
+      // ✅ FIX: Use TechnicianMapper to convert to DTO
+      const technicianDto = TechnicianMapper.toDetailDto(adminTechnician);
+
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_RETRIEVED,
+        {
+          technician: technicianDto, // ✅ Now this is TechnicianDetailDto
+        }
+      );
+    } catch (error: unknown) {
+      console.error("Get technician error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN
+      );
+    }
+  }
 
   private async convertToAdminTechnician(
     technician: ITechnician
@@ -313,22 +328,35 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
       if (hasRealTechnicianData) {
         personalInfo = {
           fullName: technician.personalInfo?.fullName || technician.displayName,
-          gender: technician.personalInfo?.gender || PERSONAL_INFO_DEFAULTS.GENDER,
-          phoneNumber: technician.personalInfo?.phoneNumber || technician.phone || PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
-          dateOfBirth: technician.personalInfo?.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
-          languages: Array.isArray(technician.personalInfo?.languages) 
-            ? technician.personalInfo.languages 
+          gender:
+            technician.personalInfo?.gender || PERSONAL_INFO_DEFAULTS.GENDER,
+          phoneNumber:
+            technician.personalInfo?.phoneNumber ||
+            technician.phone ||
+            PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
+          dateOfBirth:
+            technician.personalInfo?.dateOfBirth ||
+            PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
+          languages: Array.isArray(technician.personalInfo?.languages)
+            ? technician.personalInfo.languages
             : PERSONAL_INFO_DEFAULTS.LANGUAGES,
           address: undefined,
         };
       } else if (application?.personal) {
         const appPersonal = application.personal;
+        const appSkills = application.skills;
         personalInfo = {
           fullName: appPersonal.fullName || technician.displayName,
           gender: appPersonal.gender || PERSONAL_INFO_DEFAULTS.GENDER,
-          phoneNumber: appPersonal.phoneNumber || technician.phone || PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
-          dateOfBirth: appPersonal.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
-          languages: Array.isArray(appPersonal.languages) ? appPersonal.languages : PERSONAL_INFO_DEFAULTS.LANGUAGES,
+          phoneNumber:
+            appPersonal.phoneNumber ||
+            technician.phone ||
+            PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
+          dateOfBirth:
+            appPersonal.dateOfBirth || PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
+          languages: Array.isArray(appSkills.languages)
+            ? appSkills.languages
+            : PERSONAL_INFO_DEFAULTS.LANGUAGES,
           address: undefined,
         };
       } else {
@@ -347,7 +375,8 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
           street: userAddress.street || PERSONAL_INFO_DEFAULTS.ADDRESS.STREET,
           city: userAddress.city || PERSONAL_INFO_DEFAULTS.ADDRESS.CITY,
           state: userAddress.state || PERSONAL_INFO_DEFAULTS.ADDRESS.STATE,
-          pincode: userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
+          pincode:
+            userAddress.pincode || PERSONAL_INFO_DEFAULTS.ADDRESS.PINCODE,
         };
       } else if (technician.personalInfo?.address) {
         const address = technician.personalInfo.address;
@@ -370,9 +399,16 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
       return personalInfo;
     };
 
-    const personalInfo = getPersonalInfo(technician, application || undefined, userAddress);
+    const personalInfo = getPersonalInfo(
+      technician,
+      application || undefined,
+      userAddress
+    );
 
-    const getDocuments = (technician: ITechnician, application?: ITechnicianApplication): FormattedDocuments => {
+    const getDocuments = (
+      technician: ITechnician,
+      application?: ITechnicianApplication
+    ): FormattedDocuments => {
       if (application?.documents) {
         const formattedDocs = this.formatApplicationDocuments(
           application.documents
@@ -427,6 +463,7 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
           }
         : undefined,
       personalInfo: personalInfo,
+      identityVerification: technician.identityVerification,
       documents: documents,
       availability: undefined,
       suspensionReason: technician.suspensionReason,
@@ -447,11 +484,16 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
         reason,
       } = statusData;
 
-     if (!status || !VALID_STATUS_VALUES.includes(status as "approved" | "rejected" | "suspended")) {
-  return ResponseHelper.badRequest(
-    TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED
-  );
-}
+      if (
+        !status ||
+        !VALID_STATUS_VALUES.includes(
+          status as "approved" | "rejected" | "suspended"
+        )
+      ) {
+        return ResponseHelper.badRequest(
+          TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED
+        );
+      }
       // Prepare update data
       const updateData: Record<string, unknown> = {};
 
@@ -534,7 +576,8 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
       );
     } catch (error: unknown) {
       console.error("Update technician status error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS
       );
@@ -551,7 +594,8 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
       );
     } catch (error: unknown) {
       console.error("Get technician stats error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS
       );
@@ -559,326 +603,436 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
   }
 
   async getPendingApplications(
-  filters: ApplicationFiltersDto
-): Promise<ApplicationListResponseDto> {
-  try {
-    const {
-      status = FILTER_DEFAULTS.APPLICATION_STATUS,
-      search,
-      service = FILTER_DEFAULTS.SERVICE,
-      page = FILTER_DEFAULTS.PAGE,
-      limit = FILTER_DEFAULTS.LIMIT,
-    } = filters;
+    filters: ApplicationFiltersDto
+  ): Promise<ApplicationListResponseDto> {
+    try {
+      const {
+        status = FILTER_DEFAULTS.APPLICATION_STATUS,
+        search,
+        service = FILTER_DEFAULTS.SERVICE,
+        page = FILTER_DEFAULTS.PAGE,
+        limit = FILTER_DEFAULTS.LIMIT,
+      } = filters;
 
-    // Build filter object
-    const filter: FilterQuery = {
-      status: { $in: (status as string).split(",") },
-    };
+      // Build filter object
+      const filter: FilterQuery = {
+        status: { $in: (status as string).split(",") },
+      };
 
-    // Search filter
-    if (search) {
-      const searchRegex = new RegExp(search as string, "i");
-      filter.$or = SEARCH_FIELDS.APPLICATION.map((field) => ({
-        [field]: searchRegex,
-      }));
-    }
-
-    // Service filter
-    if (service && service !== FILTER_DEFAULTS.SERVICE) {
-      filter["skills.services"] = service;
-    }
-
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
-    const skip = (pageNum - 1) * limitNum;
-
-    const applications = await this.technicianRepository.findAllApplications(
-      filter,
-      skip,
-      limitNum
-    );
-    const total = await this.technicianRepository.countApplications(filter);
-
-    // ✅ FIX: Map domain objects to DTOs
-    const applicationDtos: ApplicationListDto[] = applications.map(app => 
-      ApplicationMapper.toListDto(app)
-    );
-
-    return ResponseHelper.success(
-      TECHNICIAN_MANAGEMENT_MESSAGES.PENDING_APPLICATIONS_RETRIEVED,
-      {
-        applications: applicationDtos, // ✅ Now this is ApplicationListDto[]
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          pages: Math.ceil(total / limitNum),
-        },
+      // Search filter
+      if (search) {
+        const searchRegex = new RegExp(search as string, "i");
+        filter.$or = SEARCH_FIELDS.APPLICATION.map((field) => ({
+          [field]: searchRegex,
+        }));
       }
-    );
-  } catch (error: unknown) {
-    console.error("Get pending applications error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS
-    );
-  }
-}
 
-  async approveApplication(id: string): Promise<ApplicationListResponseDto> {
-  try {
-    const application = await this.technicianRepository.findApplicationById(
-      id
-    );
-    if (!application) {
-      return ResponseHelper.notFound(
-        TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+      // Service filter
+      if (service && service !== FILTER_DEFAULTS.SERVICE) {
+        filter["skills.services"] = service;
+      }
+
+      const pageNum = Number(page);
+      const limitNum = Number(limit);
+      const skip = (pageNum - 1) * limitNum;
+
+      const applications = await this.technicianRepository.findAllApplications(
+        filter,
+        skip,
+        limitNum
+      );
+      const total = await this.technicianRepository.countApplications(filter);
+
+      // ✅ FIX: Map domain objects to DTOs
+      const applicationDtos: ApplicationListDto[] = applications.map((app) =>
+        ApplicationMapper.toListDto(app)
+      );
+
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.PENDING_APPLICATIONS_RETRIEVED,
+        {
+          applications: applicationDtos, // ✅ Now this is ApplicationListDto[]
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            pages: Math.ceil(total / limitNum),
+          },
+        }
+      );
+    } catch (error: unknown) {
+      console.error("Get pending applications error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS
       );
     }
+  }
 
-    // Update application status
-    const updatedApplication =
-      await this.technicianRepository.updateApplicationStatus(
-        id,
+  async approveApplication(id: string): Promise<ApplicationListResponseDto> {
+    try {
+      const application = await this.technicianRepository.findApplicationById(
+        id
+      );
+      if (!application) {
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+        );
+      }
+
+      // Update application status
+      const updatedApplication =
+        await this.technicianRepository.updateApplicationStatus(
+          id,
+          APPLICATION_STATUS.APPROVED
+        );
+
+      if (!updatedApplication) {
+        return ResponseHelper.badRequest(
+          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
+        );
+      }
+
+      // Update user's application status
+      await this.technicianRepository.updateUserApplicationStatus(
+        application.technicianId as Types.ObjectId,
         APPLICATION_STATUS.APPROVED
       );
 
-    if (!updatedApplication) {
-      return ResponseHelper.badRequest(
-        TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
+      // Update or create technician record
+      const technician = await this.technicianRepository.findOrCreateTechnician(
+        application
       );
-    }
 
-    // Update user's application status
-    await this.technicianRepository.updateUserApplicationStatus(
-      application.technicianId as Types.ObjectId,
-      APPLICATION_STATUS.APPROVED
-    );
+      if (application.documents && technician) {
+        const technicianDocuments: any[] = [];
 
-    // Update or create technician record
-    const technician = await this.technicianRepository.findOrCreateTechnician(
-      application
-    );
+        // Convert application documents to technician documents format
+        Object.entries(application.documents).forEach(
+          ([type, doc]: [string, any]) => {
+            if (doc && doc.url) {
+              technicianDocuments.push({
+                type: type,
+                fileName: doc.filename || `${type}_document`,
+                url: doc.url,
+                uploadedAt: doc.uploadedAt || new Date(),
+                verified: true, // Auto-verify upon approval
+                status: "approved" as const,
+                verifiedAt: new Date(),
+              });
+            }
+          }
+        );
 
-    if (application.personal?.languages && technician) {
-      const languages = application.personal.languages;
-      const languagesArray = Array.isArray(languages)
-        ? languages
-        : typeof languages === "string"
-        ? [languages]
-        : [];
+        // Update technician with documents
+        await this.technicianRepository.updateTechnicianDocuments(
+          technician._id.toString(),
+          technicianDocuments
+        );
+      }
 
-      await this.technicianRepository.updateTechnicianPersonalInfo(
-        technician._id.toString(),
-        {
-          ...technician.personalInfo,
-          languages: languagesArray,
+      // 🚨 FIXED: Get languages from skills.languages
+      let languagesArray: string[] = [];
+
+      if (application.skills?.languages) {
+        const rawLanguages: any = application.skills.languages;
+
+        if (Array.isArray(rawLanguages)) {
+          languagesArray = rawLanguages;
+        } else if (typeof rawLanguages === "string") {
+          try {
+            const parsed = JSON.parse(rawLanguages);
+            languagesArray = Array.isArray(parsed) ? parsed : [rawLanguages];
+          } catch {
+            if ((rawLanguages as string).includes(",")) {
+              languagesArray = (rawLanguages as string)
+                .split(",")
+                .map((lang: string) => lang.trim());
+            } else {
+              languagesArray = [rawLanguages as string];
+            }
+          }
         }
-      );
-    }
+      }
 
-    // Send approval email
-    let emailSent = false;
-    let emailMessage = "";
+      // 🚨 NEW: Get address data
+      let addressData: Record<string, unknown> = {};
+      if (application.identity?.address) {
+        if (typeof application.identity.address === "string") {
+          try {
+            addressData = JSON.parse(application.identity.address);
+          } catch (e) {
+            console.error("Error parsing address JSON:", e);
+            addressData = {};
+          }
+        } else {
+          addressData = application.identity.address as Record<string, unknown>;
+        }
+      }
 
-    if (application.email) {
-      emailSent = await emailService.sendApplicationApprovalEmail(
-        application.email,
-        application.personal?.fullName || "Technician"
-      );
-      emailMessage = emailSent
-        ? TECHNICIAN_MANAGEMENT_MESSAGES.APPROVAL_EMAIL_SENT
-        : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
-    }
+      // 🚨 NEW: Get identity verification data
+      const identityVerificationData = {
+        idType: application.identity?.idType || "",
+        idNumber: application.identity?.idNumber || "",
+        idDocument: application.documents?.idProof?.url || "",
+        verificationStatus: "approved" as const,
+        verified: true,
+        verifiedAt: new Date(),
+      };
 
-    // Update technician payment details
-    if (application.bank && technician) {
-      const bankData = application.bank;
-      await this.technicianRepository.updateTechnicianPaymentDetails(
-        technician._id.toString(),
-        {
+      // Update technician with all data including identity verification
+      if (technician) {
+        await this.technicianRepository.updateTechnicianPersonalInfo(
+          technician._id.toString(),
+          {
+            ...technician.personalInfo,
+            languages: languagesArray,
+            address: addressData,
+          }
+        );
+
+        // 🚨 NEW: Update identity verification details
+        await this.technicianRepository.updateTechnicianIdentityVerification(
+          technician._id.toString(),
+          identityVerificationData
+        );
+
+        // 🚨 NEW: Auto-approve documents in technician profile as well
+        if (application.documents) {
+          const technicianDocuments = Object.entries(application.documents).map(
+            ([type, doc]: [string, any]) => ({
+              _id: new Types.ObjectId().toString(),
+              type: type,
+              fileName: doc.filename || `${type}_document`,
+              url: doc.url,
+              uploadedAt: doc.uploadedAt || new Date(),
+              verified: true,
+              status: "approved" as const,
+              verifiedAt: new Date(),
+            })
+          );
+
+          await this.technicianRepository.updateTechnicianDocuments(
+            technician._id.toString(),
+            technicianDocuments
+          );
+        }
+      }
+
+      // 🚨 FIXED: Update technician payment details with proper structure
+      if (application.bank && technician) {
+        const bankData = application.bank;
+
+        // Create proper payment details structure
+        const paymentDetails = {
           bankAccount: {
-            holderName: bankData.accountHolderName || "",
+            holderName: bankData.accountHolderName?.trim() || "",
             accountNumber: bankData.accountNumber || "",
             ifscCode: bankData.ifscCode || "",
             bankName: bankData.bankName || "",
           },
           upiId: bankData.upiId || "",
-          withdrawalPreference:
-            bankData.withdrawalPreference ||
-            BANK_DETAILS_DEFAULTS.WITHDRAWAL_PREFERENCE,
+          withdrawalPreference: "auto" as const, // Default to auto withdrawal
+        };
+
+        // Update payment details
+        const updateResult =
+          await this.technicianRepository.updateTechnicianPaymentDetails(
+            technician._id.toString(),
+            paymentDetails
+          );
+      } else {
+        console.log(
+          "No bank data found in application or technician not found"
+        );
+      }
+
+      // Send approval email
+      let emailSent = false;
+      let emailMessage = "";
+
+      if (application.email) {
+        emailSent = await emailService.sendApplicationApprovalEmail(
+          application.email,
+          application.personal?.fullName || "Technician"
+        );
+        emailMessage = emailSent
+          ? TECHNICIAN_MANAGEMENT_MESSAGES.APPROVAL_EMAIL_SENT
+          : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
+      }
+
+      const applicationDto = ApplicationMapper.toListDto(updatedApplication);
+
+      return ResponseHelper.success(
+        `${TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_APPROVED}${emailMessage}`,
+        {
+          applications: [applicationDto],
+          pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
         }
       );
+    } catch (error: unknown) {
+      console.error("Approve application error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION
+      );
     }
-
-    // ✅ FIX: Map domain object to DTO
-    const applicationDto = ApplicationMapper.toListDto(updatedApplication);
-
-    return ResponseHelper.success(
-      `${TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_APPROVED}${emailMessage}`,
-      {
-        applications: [applicationDto], // ✅ Now this is ApplicationListDto[]
-        pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-      }
-    );
-  } catch (error: unknown) {
-    console.error("Approve application error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION
-    );
   }
-}
-
   async rejectApplication(
-  id: string,
-  rejectData: RejectApplicationRequestDto
-): Promise<ApplicationListResponseDto> {
-  try {
-    const {
-      rejectionReason,
-      emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION,
-    } = rejectData;
+    id: string,
+    rejectData: RejectApplicationRequestDto
+  ): Promise<ApplicationListResponseDto> {
+    try {
+      const {
+        rejectionReason,
+        emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION,
+      } = rejectData;
 
-    const application = await this.technicianRepository.findApplicationById(id);
-    if (!application) {
-      return ResponseHelper.notFound(
-        TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+      const application = await this.technicianRepository.findApplicationById(
+        id
       );
-    }
-
-    if (application.technicianId) {
-      const technician = await this.technicianRepository.findTechnicianById(
-        application.technicianId.toString()
-      );
-
-      if (technician) {
-        await this.technicianRepository.updateTechnicianStatus(
-          application.technicianId.toString(),
-          TECHNICIAN_STATUS.REJECTED
+      if (!application) {
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
         );
-      } else {
-        console.log("Technician not found by technicianId, trying by userId...");
+      }
 
-        const technicianByUser = await this.technicianRepository.findTechnicianByUserId(
+      if (application.technicianId) {
+        const technician = await this.technicianRepository.findTechnicianById(
           application.technicianId.toString()
         );
-        if (technicianByUser) {
+
+        if (technician) {
           await this.technicianRepository.updateTechnicianStatus(
-            technicianByUser._id.toString(),
+            application.technicianId.toString(),
             TECHNICIAN_STATUS.REJECTED
           );
         } else {
-          console.log("Technician not found by userId either");
+          const technicianByUser =
+            await this.technicianRepository.findTechnicianByUserId(
+              application.technicianId.toString()
+            );
+          if (technicianByUser) {
+            await this.technicianRepository.updateTechnicianStatus(
+              technicianByUser._id.toString(),
+              TECHNICIAN_STATUS.REJECTED
+            );
+          } else {
+            console.log("Technician not found by userId either");
+          }
         }
+      } else {
+        console.log("No technicianId found in application");
       }
-    } else {
-      console.log("No technicianId found in application");
-    }
 
-    const updatedApplication = await this.technicianRepository.updateApplicationStatus(
-      id,
-      APPLICATION_STATUS.REJECTED,
-      {
-        rejectionReason,
-        rejectedAt: new Date(),
+      const updatedApplication =
+        await this.technicianRepository.updateApplicationStatus(
+          id,
+          APPLICATION_STATUS.REJECTED,
+          {
+            rejectionReason,
+            rejectedAt: new Date(),
+          }
+        );
+
+      // ✅ FIX: Check if updatedApplication is null
+      if (!updatedApplication) {
+        return ResponseHelper.badRequest(
+          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
+        );
       }
-    );
 
-    // ✅ FIX: Check if updatedApplication is null
-    if (!updatedApplication) {
-      return ResponseHelper.badRequest(
-        TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
+      await this.technicianRepository.updateUserApplicationStatus(
+        application.technicianId as Types.ObjectId,
+        APPLICATION_STATUS.REJECTED
+      );
+
+      // Send rejection email
+      let emailSent = false;
+      let emailMessage = "";
+
+      if (emailNotification && application.email) {
+        emailSent = await emailService.sendApplicationRejectionEmail(
+          application.email,
+          application.personal?.fullName || "Applicant",
+          rejectionReason
+        );
+        emailMessage = emailSent
+          ? TECHNICIAN_MANAGEMENT_MESSAGES.REJECTION_EMAIL_SENT
+          : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
+      }
+
+      // ✅ FIX: Now updatedApplication is guaranteed to be non-null
+      const applicationDto = ApplicationMapper.toListDto(updatedApplication);
+
+      return ResponseHelper.success(
+        `${TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_REJECTED}${emailMessage}`,
+        {
+          applications: [applicationDto],
+          pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
+        }
+      );
+    } catch (error: unknown) {
+      console.error("Reject application error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION
       );
     }
-
-    await this.technicianRepository.updateUserApplicationStatus(
-      application.technicianId as Types.ObjectId,
-      APPLICATION_STATUS.REJECTED
-    );
-
-    // Send rejection email
-    let emailSent = false;
-    let emailMessage = "";
-
-    if (emailNotification && application.email) {
-      emailSent = await emailService.sendApplicationRejectionEmail(
-        application.email,
-        application.personal?.fullName || "Applicant",
-        rejectionReason
-      );
-      emailMessage = emailSent
-        ? TECHNICIAN_MANAGEMENT_MESSAGES.REJECTION_EMAIL_SENT
-        : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
-    }
-
-    // ✅ FIX: Now updatedApplication is guaranteed to be non-null
-    const applicationDto = ApplicationMapper.toListDto(updatedApplication);
-
-    return ResponseHelper.success(
-      `${TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_REJECTED}${emailMessage}`,
-      {
-        applications: [applicationDto],
-        pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-      }
-    );
-  } catch (error: unknown) {
-    console.error("Reject application error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION
-    );
   }
-}
   async getApplicationById(id: string): Promise<ApplicationListResponseDto> {
-  try {
-    const application = await this.technicianRepository.findApplicationById(
-      id
-    );
-    if (!application) {
-      return ResponseHelper.notFound(
-        TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+    try {
+      const application = await this.technicianRepository.findApplicationById(
+        id
+      );
+      if (!application) {
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+        );
+      }
+
+      // Get user data
+      const user = await this.technicianRepository.updateUserApplicationStatus(
+        application.technicianId as Types.ObjectId,
+        application.status
+      );
+
+      // Format documents from TechnicianApplication.documents for frontend
+      const formattedDocuments = this.formatApplicationDocuments(
+        application.documents || {}
+      );
+
+      // ✅ FIX: Create application data with formatted documents
+      const applicationData: ITechnicianApplication = {
+        ...application.toObject(),
+        _id: application._id as Types.ObjectId,
+        technicianId: application.technicianId as Types.ObjectId,
+        user,
+        documents: formattedDocuments,
+      } as ITechnicianApplication;
+
+      // ✅ FIX: Map to DTO
+      const applicationDto = ApplicationMapper.toDetailDto(applicationData);
+
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_RETRIEVED,
+        {
+          applications: [applicationDto], // ✅ Now this is ApplicationDetailDto[]
+          pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
+        }
+      );
+    } catch (error: unknown) {
+      console.error("Get application error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION
       );
     }
-
-    // Get user data
-    const user = await this.technicianRepository.updateUserApplicationStatus(
-      application.technicianId as Types.ObjectId,
-      application.status
-    );
-
-    // Format documents from TechnicianApplication.documents for frontend
-    const formattedDocuments = this.formatApplicationDocuments(
-      application.documents || {}
-    );
-
-    // ✅ FIX: Create application data with formatted documents
-    const applicationData: ITechnicianApplication = {
-      ...application.toObject(),
-      _id: application._id as Types.ObjectId,
-      technicianId: application.technicianId as Types.ObjectId,
-      user,
-      documents: formattedDocuments,
-    } as ITechnicianApplication;
-
-    // ✅ FIX: Map to DTO
-    const applicationDto = ApplicationMapper.toDetailDto(applicationData);
-
-    return ResponseHelper.success(
-      TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_RETRIEVED,
-      {
-        applications: [applicationDto], // ✅ Now this is ApplicationDetailDto[]
-        pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-      }
-    );
-  } catch (error: unknown) {
-    console.error("Get application error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION
-    );
   }
-}
 
   async getApplicationStats(): Promise<ApplicationStatsResponse> {
     try {
@@ -890,7 +1044,8 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
       );
     } catch (error: unknown) {
       console.error("Get application stats error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION_STATS
       );
@@ -898,38 +1053,39 @@ private mapAdminTechnicianToListDto(adminTechnician: IAdminTechnician): Technici
   }
 
   async getTechnicianByApplicationId(
-  applicationId: string
-): Promise<TechnicianListResponseDto> {
-  try {
-    const technician =
-      await this.technicianRepository.findTechnicianByApplicationId(
-        applicationId
-      );
+    applicationId: string
+  ): Promise<TechnicianListResponseDto> {
+    try {
+      const technician =
+        await this.technicianRepository.findTechnicianByApplicationId(
+          applicationId
+        );
 
-    if (!technician) {
-      return ResponseHelper.notFound(
-        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND_FOR_APPLICATION
+      if (!technician) {
+        return ResponseHelper.notFound(
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND_FOR_APPLICATION
+        );
+      }
+
+      const adminTechnician = await this.convertToAdminTechnician(technician);
+
+      // ✅ FIX: Map to DTO
+      const technicianDto = TechnicianMapper.toDetailDto(adminTechnician);
+
+      return ResponseHelper.success(
+        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_BY_APPLICATION_RETRIEVED,
+        {
+          technicians: [technicianDto], // ✅ Now this is TechnicianDetailDto[]
+          pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
+        }
+      );
+    } catch (error: unknown) {
+      console.error("Get technician by application error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP
       );
     }
-
-    const adminTechnician = await this.convertToAdminTechnician(technician);
-
-    // ✅ FIX: Map to DTO
-    const technicianDto = TechnicianMapper.toDetailDto(adminTechnician);
-
-    return ResponseHelper.success(
-      TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_BY_APPLICATION_RETRIEVED,
-      {
-        technicians: [technicianDto], // ✅ Now this is TechnicianDetailDto[]
-        pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-      }
-    );
-  } catch (error: unknown) {
-    console.error("Get technician by application error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP
-    );
   }
-}
 }

@@ -19,8 +19,22 @@ import {
   USER_ROLES,
 } from "../constants";
 import { ITechnicianApplication } from "@/models/technician/TechnicianApplicationSchema";
-import { DocumentsInfo, IdentityInfo, PersonalInfo, SkillsInfo, AvailabilityInfo, BankInfo } from "@/interfaces/technician/ITechnician";
-import { ApplicationListResponseDto, ApplicationResponseDto, FilesCollectionDto, SaveStepRequestDto, StartApplicationRequestDto, UploadedFileDto } from "@/interfaces/dtos/technicianApplicationDtos";
+import {
+  DocumentsInfo,
+  IdentityInfo,
+  PersonalInfo,
+  SkillsInfo,
+  AvailabilityInfo,
+  BankInfo,
+} from "@/interfaces/technician/ITechnician";
+import {
+  ApplicationListResponseDto,
+  ApplicationResponseDto,
+  FilesCollectionDto,
+  SaveStepRequestDto,
+  StartApplicationRequestDto,
+  UploadedFileDto,
+} from "@/interfaces/dtos/technicianApplicationDtos";
 import { TechnicianApplicationMapper } from "../mappers/technicianApplicationMappers";
 
 // Interface definitions
@@ -34,7 +48,7 @@ interface AddressData {
 
 interface StepData {
   address?: string | AddressData;
-  location?: IdentityInfo['location'];
+  location?: IdentityInfo["location"];
   agreement?: string | boolean;
   governmentIdType?: string;
   governmentIdNumber?: string;
@@ -86,205 +100,212 @@ export class TechnicianApplicationService
   }
 
   async startApplication(
-  data: StartApplicationRequestDto
-): Promise<ApplicationResponseDto> {
-  try {
-    console.log('🔍 Service: startApplication called');
-  console.log('🔍 Service: is edit path?', window?.location?.pathname?.includes('/technicians/apply'));
-    const { email, userId } = data;
+    data: StartApplicationRequestDto
+  ): Promise<ApplicationResponseDto> {
+    try {
+      const { email, userId } = data;
 
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      return ResponseHelper.notFound("User not found");
-    }
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        return ResponseHelper.notFound("User not found");
+      }
 
-    // Ensure the provided email matches the user's actual email
-    if (user.email !== email) {
-      return ResponseHelper.badRequest("Email must match your account email");
+      // Ensure the provided email matches the user's actual email
+      if (user.email !== email) {
+        return ResponseHelper.badRequest("Email must match your account email");
+      }
 
-    }
-    
-      const currentPath = window?.location?.pathname || '';
-    const isEditPath = currentPath.includes('/technicians/apply');
-     if (isEditPath) {
-      const existingApplication = await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
-        APPLICATION_STATUS.DRAFT,
-        APPLICATION_STATUS.SUBMITTED,
-        APPLICATION_STATUS.UNDER_REVIEW,
-        APPLICATION_STATUS.REJECTED,
-      ]);
+      const currentPath =
+        typeof window !== "undefined" ? window.location.pathname : "";
+      const isEditPath = currentPath.includes("/technicians/apply");
+      if (isEditPath) {
+        const existingApplication =
+          await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
+            APPLICATION_STATUS.DRAFT,
+            APPLICATION_STATUS.SUBMITTED,
+            APPLICATION_STATUS.UNDER_REVIEW,
+            APPLICATION_STATUS.REJECTED,
+          ]);
 
-      if (existingApplication) {
-        return ResponseHelper.success(
-          "Application loaded for editing",
-          {
+        if (existingApplication) {
+          return ResponseHelper.success("Application loaded for editing", {
             applicationId: existingApplication._id.toString(),
             redirectTo: null, // No redirect in edit mode
-          }
-        );
+          });
+        }
       }
-    }
 
+      const existingUserApplication =
+        await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
+          APPLICATION_STATUS.DRAFT,
+          APPLICATION_STATUS.SUBMITTED,
+          APPLICATION_STATUS.UNDER_REVIEW,
+          APPLICATION_STATUS.APPROVED,
+        ]);
 
-    const existingUserApplication = await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
-      APPLICATION_STATUS.DRAFT,
-      APPLICATION_STATUS.SUBMITTED,
-      APPLICATION_STATUS.UNDER_REVIEW,
-      APPLICATION_STATUS.APPROVED,
-    ]);
+      if (existingUserApplication) {
+        const appStatus = existingUserApplication.status;
 
-    if (existingUserApplication) {
-      const appStatus = existingUserApplication.status;
+        // If application is approved, redirect to technician dashboard
+        if (appStatus === APPLICATION_STATUS.APPROVED) {
+          return ResponseHelper.success(
+            TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_APPROVED,
+            {
+              applicationId: existingUserApplication._id.toString(),
+              redirectTo: REDIRECT_PATHS.TECHNICIAN_DASHBOARD,
+            }
+          );
+        }
 
-      // If application is approved, redirect to technician dashboard
-      if (appStatus === APPLICATION_STATUS.APPROVED) {
         return ResponseHelper.success(
-          TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_APPROVED,
+          TECH_APPLICATION_MESSAGES.EXISTING_APPLICATION_FOUND,
           {
             applicationId: existingUserApplication._id.toString(),
-            redirectTo: REDIRECT_PATHS.TECHNICIAN_DASHBOARD,
+            redirectTo: null,
           }
         );
       }
 
+      const existingEmailApplication =
+        await this.applicationRepository.findByEmailAndStatus(email, [
+          APPLICATION_STATUS.DRAFT,
+          APPLICATION_STATUS.SUBMITTED,
+          APPLICATION_STATUS.UNDER_REVIEW,
+          APPLICATION_STATUS.APPROVED,
+        ]);
+
+      if (existingEmailApplication) {
+        const existingAppTechnicianId =
+          existingEmailApplication.technicianId?.toString();
+
+        // Email already used by someone else in an active application
+        if (existingAppTechnicianId && existingAppTechnicianId !== userId) {
+          return ResponseHelper.conflict(
+            TECH_APPLICATION_MESSAGES.EMAIL_ALREADY_IN_USE
+          );
+        }
+      }
+
+      // Create new application with proper typing
+      const applicationData: Partial<ITechnicianApplication> = {
+        email: email.toLowerCase().trim(),
+        technicianId: new Types.ObjectId(userId),
+        status: APPLICATION_STATUS.DRAFT,
+        stepsCompleted: [],
+        personal: {} as PersonalInfo,
+        identity: {} as IdentityInfo,
+        skills: {} as SkillsInfo,
+        availability: {} as AvailabilityInfo,
+        bank: {} as BankInfo,
+        documents: {} as DocumentsInfo,
+        agreement: false,
+      };
+
+      const application = await this.applicationRepository.create(
+        applicationData
+      );
+
       return ResponseHelper.success(
-        TECH_APPLICATION_MESSAGES.EXISTING_APPLICATION_FOUND,
+        TECH_APPLICATION_MESSAGES.APPLICATION_STARTED,
         {
-          applicationId: existingUserApplication._id.toString(),
+          applicationId: application._id.toString(),
           redirectTo: null,
         }
       );
+    } catch (error: unknown) {
+      console.error("Start application error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECH_APPLICATION_MESSAGES.FAILED_TO_START_APPLICATION
+      );
     }
+  }
+  async saveStep(
+    data: SaveStepRequestDto,
+    files?: FilesCollectionDto
+  ): Promise<ApplicationResponseDto> {
+    try {
+      const { applicationId, step, ...stepData } = data;
 
-    const existingEmailApplication = await this.applicationRepository.findByEmailAndStatus(email, [
-      APPLICATION_STATUS.DRAFT,
-      APPLICATION_STATUS.SUBMITTED,
-      APPLICATION_STATUS.UNDER_REVIEW,
-      APPLICATION_STATUS.APPROVED,
-    ]);
-
-    if (existingEmailApplication) {
-      const existingAppTechnicianId = existingEmailApplication.technicianId?.toString();
-
-      // Email already used by someone else in an active application
-      if (existingAppTechnicianId && existingAppTechnicianId !== userId) {
-        return ResponseHelper.conflict(
-          TECH_APPLICATION_MESSAGES.EMAIL_ALREADY_IN_USE
+      if (!applicationId || !step) {
+        return ResponseHelper.badRequest(
+          TECH_APPLICATION_MESSAGES.APPLICATION_ID_AND_STEP_REQUIRED
         );
       }
-    }
 
-    // Create new application with proper typing
-    const applicationData: Partial<ITechnicianApplication> = {
-      email: email.toLowerCase().trim(),
-      technicianId: new Types.ObjectId(userId),
-      status: APPLICATION_STATUS.DRAFT,
-      stepsCompleted: [],
-      personal: {} as PersonalInfo,
-      identity: {} as IdentityInfo,
-      skills: {} as SkillsInfo,
-      availability: {} as AvailabilityInfo,
-      bank: {} as BankInfo,
-      documents: {} as DocumentsInfo,
-      agreement: false,
-    };
-
-    const application = await this.applicationRepository.create(applicationData);
-
-    return ResponseHelper.success(
-      TECH_APPLICATION_MESSAGES.APPLICATION_STARTED,
-      {
-        applicationId: application._id.toString(),
-        redirectTo: null,
+      const application = await this.applicationRepository.findById(
+        applicationId
+      );
+      if (!application) {
+        return ResponseHelper.notFound(
+          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+        );
       }
-    );
-  } catch (error: unknown) {
-    console.error("Start application error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECH_APPLICATION_MESSAGES.FAILED_TO_START_APPLICATION
-    );
-  }
-}
-  async saveStep(
-  data: SaveStepRequestDto,
-  files?: FilesCollectionDto
-): Promise<ApplicationResponseDto> {
-  try {
-    const { applicationId, step, ...stepData } = data;
 
-    if (!applicationId || !step) {
-      return ResponseHelper.badRequest(
-        TECH_APPLICATION_MESSAGES.APPLICATION_ID_AND_STEP_REQUIRED
-      );
-    }
+      const processedStepData: StepData = { ...stepData };
 
-    const application = await this.applicationRepository.findById(applicationId);
-    if (!application) {
-      return ResponseHelper.notFound(
-        TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
-      );
-    }
-
-    const processedStepData: StepData = { ...stepData };
-
-    // Parse JSON fields
-    const jsonFields = [
-      "availability",
-      "services",
-      "languages",
-      "serviceAreas",
-    ];
-    jsonFields.forEach((field) => {
-      if (
-        processedStepData[field] &&
-        typeof processedStepData[field] === "string"
-      ) {
-        try {
-          processedStepData[field] = JSON.parse(processedStepData[field] as string);
-        } catch (e) {
-          // Keep original value if parsing fails
-          console.warn(`Failed to parse ${field} as JSON`);
+      // Parse JSON fields
+      const jsonFields = [
+        "availability",
+        "services",
+        "languages",
+        "serviceAreas",
+      ];
+      jsonFields.forEach((field) => {
+        if (
+          processedStepData[field] &&
+          typeof processedStepData[field] === "string"
+        ) {
+          try {
+            processedStepData[field] = JSON.parse(
+              processedStepData[field] as string
+            );
+          } catch (e) {
+            // Keep original value if parsing fails
+            console.warn(`Failed to parse ${field} as JSON`);
+          }
         }
+      });
+
+      if (step === APPLICATION_STEPS.IDENTITY_VERIFICATION) {
+        await this.handleIdentityVerificationStep(
+          application,
+          processedStepData
+        );
+      } else if (step === APPLICATION_STEPS.DOCUMENTS) {
+        await this.handleDocumentsStep(application, files);
+      } else if (step === APPLICATION_STEPS.AGREEMENT_CONSENT) {
+        await this.handleAgreementStep(application, processedStepData);
+      } else if (step === APPLICATION_STEPS.REVIEW_SUBMIT) {
+        await this.handleReviewStep(application);
+      } else {
+        await this.handleGenericStep(application, step, processedStepData);
       }
-    });
 
-    if (step === APPLICATION_STEPS.IDENTITY_VERIFICATION) {
-      await this.handleIdentityVerificationStep(
-        application,
-        processedStepData
+      // Mark step as completed if not already
+      if (!application.stepsCompleted.includes(step)) {
+        application.stepsCompleted.push(step);
+      }
+
+      await this.applicationRepository.save(application);
+
+      // ✅ Return the full application data using the mapper
+      const applicationDto =
+        TechnicianApplicationMapper.toApplicationDataDto(application);
+
+      return ResponseHelper.success(TECH_APPLICATION_MESSAGES.STEP_SAVED, {
+        application: applicationDto,
+      });
+    } catch (error: unknown) {
+      console.error("Save step error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECH_APPLICATION_MESSAGES.FAILED_TO_SAVE_STEP
       );
-    } else if (step === APPLICATION_STEPS.DOCUMENTS) {
-      await this.handleDocumentsStep(application, files);
-    } else if (step === APPLICATION_STEPS.AGREEMENT_CONSENT) {
-      await this.handleAgreementStep(application, processedStepData);
-    } else if (step === APPLICATION_STEPS.REVIEW_SUBMIT) {
-      await this.handleReviewStep(application);
-    } else {
-      await this.handleGenericStep(application, step, processedStepData);
     }
-
-    // Mark step as completed if not already
-    if (!application.stepsCompleted.includes(step)) {
-      application.stepsCompleted.push(step);
-    }
-
-    await this.applicationRepository.save(application);
-
-    // ✅ Return the full application data using the mapper
-    const applicationDto = TechnicianApplicationMapper.toApplicationDataDto(application);
-
-    return ResponseHelper.success(TECH_APPLICATION_MESSAGES.STEP_SAVED, {
-      application: applicationDto,
-    });
-  } catch (error: unknown) {
-    console.error("Save step error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECH_APPLICATION_MESSAGES.FAILED_TO_SAVE_STEP
-    );
   }
-}
   private async handleIdentityVerificationStep(
     application: ITechnicianApplication,
     stepData: StepData
@@ -348,7 +369,7 @@ export class TechnicianApplicationService
     files?: FilesCollectionDto
   ): Promise<void> {
     const app = application as any;
-    
+
     if (!app.documents) {
       app.documents = {};
     }
@@ -383,10 +404,10 @@ export class TechnicianApplicationService
             mimetype: fileToUpload.mimetype,
             size: fileToUpload.size,
             stream: fileToUpload.stream as any,
-            destination: fileToUpload.destination || '',
+            destination: fileToUpload.destination || "",
             filename: fileToUpload.filename || fileToUpload.originalname,
-            path: fileToUpload.path || '',
-            buffer: fileToUpload.buffer || Buffer.from(''),
+            path: fileToUpload.path || "",
+            buffer: fileToUpload.buffer || Buffer.from(""),
           };
 
           const uploadResult = await uploadToCloudinary(fileForUpload);
@@ -441,7 +462,9 @@ export class TechnicianApplicationService
             errorMessage = JSON.stringify(uploadError);
           }
 
-          const fileToUpload: UploadedFileDto = Array.isArray(file) ? file[0] : file;
+          const fileToUpload: UploadedFileDto = Array.isArray(file)
+            ? file[0]
+            : file;
           documents[field] = {
             url: "",
             filename: fileToUpload.originalname,
@@ -482,7 +505,9 @@ export class TechnicianApplicationService
     }
   }
 
-  private async handleReviewStep(application: ITechnicianApplication): Promise<void> {
+  private async handleReviewStep(
+    application: ITechnicianApplication
+  ): Promise<void> {
     // No specific data processing for review step, just mark as completed
   }
 
@@ -519,7 +544,9 @@ export class TechnicianApplicationService
         return ResponseHelper.badRequest("Invalid application ID format");
       }
 
-      const application = await this.applicationRepository.findById(applicationId);
+      const application = await this.applicationRepository.findById(
+        applicationId
+      );
       if (!application) {
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
@@ -546,7 +573,8 @@ export class TechnicianApplicationService
         updatedAt: application.updatedAt,
       };
 
-       const applicationDto = TechnicianApplicationMapper.toApplicationDataDto(application);
+      const applicationDto =
+        TechnicianApplicationMapper.toApplicationDataDto(application);
 
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.APPLICATION_RETRIEVED,
@@ -556,7 +584,8 @@ export class TechnicianApplicationService
       );
     } catch (error: unknown) {
       console.error("Get application error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION
       );
@@ -568,7 +597,9 @@ export class TechnicianApplicationService
     userId: string
   ): Promise<ApplicationResponseDto> {
     try {
-      const application = await this.applicationRepository.findById(applicationId);
+      const application = await this.applicationRepository.findById(
+        applicationId
+      );
       if (!application) {
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
@@ -581,12 +612,12 @@ export class TechnicianApplicationService
 
       if (Array.isArray(skillsLanguages)) {
         languagesArray = (skillsLanguages as string[]).filter(
-        (lang) => lang && String(lang).trim() !== ""
-      );
+          (lang) => lang && String(lang).trim() !== ""
+        );
       } else if (
         skillsLanguages &&
-      typeof skillsLanguages === "string" &&
-      skillsLanguages.trim() !== ""
+        typeof skillsLanguages === "string" &&
+        skillsLanguages.trim() !== ""
       ) {
         try {
           const parsed = JSON.parse(skillsLanguages);
@@ -668,6 +699,7 @@ export class TechnicianApplicationService
       }
 
       // Create or update technician record
+      // Create or update technician record
       let technician = await this.technicianRepository.findByUserId(userId);
 
       let addressData: Record<string, unknown> = {};
@@ -685,15 +717,19 @@ export class TechnicianApplicationService
       }
 
       if (!technician) {
+        // Create new technician - FIXED VERSION
         technician = await this.technicianRepository.create({
           userId: new Types.ObjectId(userId),
-          displayName: (application.personal?.fullName as string) || USER_ROLES.TECHNICIAN,
+          displayName:
+            (application.personal?.fullName as string) || USER_ROLES.TECHNICIAN,
           bio: (application.skills?.bio as string) || "",
-          experienceYears: parseInt(application.skills?.yearsOfExperience as string) || 0,
-          services: application.skills?.services as string[] || [],
+          experienceYears:
+            parseInt(application.skills?.yearsOfExperience as string) || 0,
+          services: (application.skills?.services as string[]) || [],
           serviceRates: {},
-          workAreas: application.skills?.serviceAreas as string[] || [],
-          serviceRadiusKm: parseInt(application.skills?.workRadius as string) || 10,
+          workAreas: (application.availability?.serviceAreas as string[]) || [], // Fixed: should be from availability, not skills
+          serviceRadiusKm:
+            parseInt(application.availability?.workRadius as string) || 10, // Fixed: should be from availability, not skills
           currentLocation: {
             type: "Point",
             coordinates: [0, 0],
@@ -701,27 +737,34 @@ export class TechnicianApplicationService
           averageRating: 0,
           ratingCount: 0,
           status: APPLICATION_STATUS.SUBMITTED,
-          profilePictureUrl: (application.documents?.passportPhoto?.url as string) || "",
+          profilePictureUrl:
+            (application.documents?.passportPhoto?.url as string) || "",
           personalInfo: {
             fullName: (application.personal?.fullName as string) || "",
             gender: (application.personal?.gender as string) || "",
             phoneNumber: (application.personal?.phoneNumber as string) || "",
             dateOfBirth: (application.personal?.dateOfBirth as string) || "",
-            languages: languagesArray,
+            languages: languagesArray, // This should contain the languages
             address: addressData,
           },
         });
       } else {
+        // Update existing technician - FIXED VERSION
         await this.technicianRepository.updateByUserId(userId, {
-          displayName: (application.personal?.fullName as string) || technician.displayName,
+          displayName:
+            (application.personal?.fullName as string) ||
+            technician.displayName,
           bio: (application.skills?.bio as string) || technician.bio,
           experienceYears:
             parseInt(application.skills?.yearsOfExperience as string) ||
             technician.experienceYears,
-          services: (application.skills?.services as string[]) || technician.services,
-          workAreas: (application.skills?.serviceAreas as string[]) || technician.workAreas,
+          services:
+            (application.skills?.services as string[]) || technician.services,
+          workAreas:
+            (application.availability?.serviceAreas as string[]) ||
+            technician.workAreas, // Fixed
           serviceRadiusKm:
-            parseInt(application.skills?.workRadius as string) ||
+            parseInt(application.availability?.workRadius as string) || // Fixed
             technician.serviceRadiusKm,
           profilePictureUrl:
             (application.documents?.passportPhoto?.url as string) ||
@@ -745,10 +788,15 @@ export class TechnicianApplicationService
               (application.personal?.dateOfBirth as string) ||
               technician.personalInfo?.dateOfBirth ||
               "",
-            languages: languagesArray,
+            languages: languagesArray, // Make sure this is set
             address: addressData,
           },
         });
+      }
+
+      if (!technician) {
+        // After creation, fetch the technician to verify
+        technician = await this.technicianRepository.findByUserId(userId);
       }
 
       // Update application status
@@ -765,7 +813,8 @@ export class TechnicianApplicationService
       );
     } catch (error: unknown) {
       console.error("Submit application error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.badRequest(
         TECH_APPLICATION_MESSAGES.FAILED_TO_SUBMIT_APPLICATION
       );
@@ -776,7 +825,9 @@ export class TechnicianApplicationService
     applicationId: string
   ): Promise<ApplicationResponseDto> {
     try {
-      const application = await this.applicationRepository.findById(applicationId);
+      const application = await this.applicationRepository.findById(
+        applicationId
+      );
       if (!application) {
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
@@ -796,41 +847,50 @@ export class TechnicianApplicationService
       );
     } catch (error: unknown) {
       console.error("Get application status error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_GET_STATUS
       );
     }
   }
 
-  async getUserApplications(userId: string): Promise<ApplicationListResponseDto> {
-  try {
-    const applications = await this.applicationRepository.findByTechnicianId(userId);
+  async getUserApplications(
+    userId: string
+  ): Promise<ApplicationListResponseDto> {
+    try {
+      const applications = await this.applicationRepository.findByTechnicianId(
+        userId
+      );
 
-    // ✅ Map domain objects to DTOs
-    const applicationDtos = TechnicianApplicationMapper.toApplicationListDto(applications);
+      // ✅ Map domain objects to DTOs
+      const applicationDtos =
+        TechnicianApplicationMapper.toApplicationListDto(applications);
 
-    return ResponseHelper.success(
-      TECH_APPLICATION_MESSAGES.USER_APPLICATIONS_RETRIEVED,
-      {
-        applications: applicationDtos, // ✅ Now this is ApplicationDataDto[]
-      }
-    );
-  } catch (error: unknown) {
-    console.error("Get user applications error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION
-    );
+      return ResponseHelper.success(
+        TECH_APPLICATION_MESSAGES.USER_APPLICATIONS_RETRIEVED,
+        {
+          applications: applicationDtos, // ✅ Now this is ApplicationDataDto[]
+        }
+      );
+    } catch (error: unknown) {
+      console.error("Get user applications error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error(
+        TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION
+      );
+    }
   }
-}
 
   async resubmitApplication(
     applicationId: string,
     userId: string
   ): Promise<ApplicationResponseDto> {
     try {
-      const application = await this.applicationRepository.findById(applicationId);
+      const application = await this.applicationRepository.findById(
+        applicationId
+      );
       if (!application) {
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
@@ -882,7 +942,8 @@ export class TechnicianApplicationService
       );
     } catch (error: unknown) {
       console.error("Resubmit application error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_RESUBMIT_APPLICATION
       );
@@ -920,7 +981,7 @@ export class TechnicianApplicationService
         availability: {} as AvailabilityInfo,
         bank: {} as BankInfo,
 
-        documents: rejectedApplication.documents || {} as DocumentsInfo,
+        documents: rejectedApplication.documents || ({} as DocumentsInfo),
 
         agreement: false,
         previousApplicationId: rejectedApplication._id,
@@ -937,57 +998,57 @@ export class TechnicianApplicationService
       );
     } catch (error: unknown) {
       console.error("Start new application after rejection error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_START_NEW_APPLICATION
       );
     }
   }
 
-async getApplicationForEdit(
-  applicationId: string,
-  userId?: string
-): Promise<ApplicationResponseDto> {
-  try {
-    const application = await this.applicationRepository.findById(applicationId);
-    if (!application) {
-      return ResponseHelper.notFound(
-        TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+  async getApplicationForEdit(
+    applicationId: string,
+    userId?: string
+  ): Promise<ApplicationResponseDto> {
+    try {
+      const application = await this.applicationRepository.findById(
+        applicationId
       );
-    }
-
-    // Ownership validation
-    if (
-      !application.technicianId ||
-      application.technicianId.toString() !== userId
-    ) {
-      return ResponseHelper.forbidden(
-        TECH_APPLICATION_MESSAGES.ACCESS_DENIED
-      );
-    }
-
-    // Allow editing for these statuses
-    const allowedStatuses = [
-      APPLICATION_STATUS.DRAFT,
-      APPLICATION_STATUS.SUBMITTED,
-      APPLICATION_STATUS.UNDER_REVIEW,
-      APPLICATION_STATUS.REJECTED,
-    ];
-
-    const applicationDto = TechnicianApplicationMapper.toApplicationDataDto(application);
-
-    return ResponseHelper.success(
-      "Application loaded for editing",
-      {
-        application: applicationDto,
+      if (!application) {
+        return ResponseHelper.notFound(
+          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+        );
       }
-    );
-  } catch (error: unknown) {
-    console.error("Get application for edit error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      "Failed to load application for editing"
-    );
+
+      // Ownership validation
+      if (
+        !application.technicianId ||
+        application.technicianId.toString() !== userId
+      ) {
+        return ResponseHelper.forbidden(
+          TECH_APPLICATION_MESSAGES.ACCESS_DENIED
+        );
+      }
+
+      // Allow editing for these statuses
+      const allowedStatuses = [
+        APPLICATION_STATUS.DRAFT,
+        APPLICATION_STATUS.SUBMITTED,
+        APPLICATION_STATUS.UNDER_REVIEW,
+        APPLICATION_STATUS.REJECTED,
+      ];
+
+      const applicationDto =
+        TechnicianApplicationMapper.toApplicationDataDto(application);
+
+      return ResponseHelper.success("Application loaded for editing", {
+        application: applicationDto,
+      });
+    } catch (error: unknown) {
+      console.error("Get application for edit error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      return ResponseHelper.error("Failed to load application for editing");
+    }
   }
-}
 }

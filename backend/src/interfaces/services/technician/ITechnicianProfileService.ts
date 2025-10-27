@@ -18,6 +18,12 @@ export interface ITechnicianProfileService {
   updateAvailabilityPreferences(technicianId: string, updateData: AvailabilityPreferencesUpdateDto): Promise<TechnicianProfileResponseDto>;
   updateBankPaymentDetails(technicianId: string, updateData: BankPaymentUpdateDto): Promise<TechnicianProfileResponseDto>;
   updatePassword(technicianId: string, updateData: SecuritySettingsUpdateDto): Promise<TechnicianProfileResponseDto>;
-  uploadDocument(technicianId: string, documentData: DocumentUploadDto): Promise<TechnicianProfileResponseDto>;
+  // In your ITechnicianProfileService interface
+uploadDocument(
+  technicianId: string, 
+  documentData: DocumentUploadDto | Express.Multer.File, 
+  documentType?: string
+): Promise<TechnicianProfileResponseDto>;
   getStaticData(): Promise<StaticDataResponseDto>;
+  uploadPhoto(technicianId: string, file: Express.Multer.File): Promise<TechnicianProfileResponseDto>;
 }

@@ -69,6 +69,9 @@ interface PaymentDetails {
 
 // Helper function to convert model application to admin interface
 const convertToAdminApplication = (app: ModelITechnicianApplication): AdminITechnicianApplication => {
+  // Safely extract skills properties with proper fallbacks
+  const skillsData = app.skills || {};
+  
   const baseApplication = {
     _id: app._id as Types.ObjectId,
     technicianId: app.technicianId as Types.ObjectId,
@@ -81,7 +84,6 @@ const convertToAdminApplication = (app: ModelITechnicianApplication): AdminITech
       email: app.personal.email || '',
       gender: app.personal.gender || '',
       dateOfBirth: app.personal.dateOfBirth || '',
-      languages: Array.isArray(app.personal.languages) ? app.personal.languages : [],
       address: app.personal.address ? {
         street: app.personal.address.street || '',
         city: app.personal.address.city || '',
@@ -94,7 +96,6 @@ const convertToAdminApplication = (app: ModelITechnicianApplication): AdminITech
       email: '',
       gender: '',
       dateOfBirth: '',
-      languages: []
     },
     identity: app.identity || {
       governmentIdType: '',
@@ -103,13 +104,14 @@ const convertToAdminApplication = (app: ModelITechnicianApplication): AdminITech
       verified: false,
       verificationStatus: 'pending' as const
     },
-    skills: app.skills || {
-      services: [],
-      yearsOfExperience: '',
-      languages: [],
-      bio: '',
-      serviceAreas: [],
-      workRadius: ''
+    skills: {
+      services: (skillsData as any).services || [],
+      yearsOfExperience: (skillsData as any).yearsOfExperience || '',
+      // 🚨 FIXED: Safe languages handling
+      languages: getLanguagesFromSkills(skillsData),
+      bio: (skillsData as any).bio || '',
+      serviceAreas: (skillsData as any).serviceAreas || [],
+      workRadius: (skillsData as any).workRadius || ''
     },
     availability: app.availability || {
       serviceAreas: [],
@@ -146,10 +148,41 @@ const convertToAdminApplication = (app: ModelITechnicianApplication): AdminITech
   };
 
   // Add toObject method for compatibility
-  return {
+  const result = {
     ...baseApplication,
     toObject: () => baseApplication
-  } as AdminITechnicianApplication;
+  };
+
+  return result as unknown as AdminITechnicianApplication;
+};
+
+// Helper function to safely extract languages from skills
+const getLanguagesFromSkills = (skillsData: any): string[] => {
+  if (!skillsData) return [];
+  
+  const languages = (skillsData as any).languages;
+  
+  if (!languages) return [];
+  
+  if (Array.isArray(languages)) {
+    return languages;
+  }
+  
+  if (typeof languages === 'string') {
+    try {
+      // Try to parse as JSON array
+      const parsed = JSON.parse(languages);
+      return Array.isArray(parsed) ? parsed : [languages];
+    } catch {
+      // If not JSON, try comma-separated or return as single item array
+      if (languages.includes(',')) {
+        return languages.split(',').map((lang: string) => lang.trim()).filter(Boolean);
+      }
+      return [languages];
+    }
+  }
+  
+  return [];
 };
 
 // Helper function to convert AdminITechnicianApplication to ModelITechnicianApplication for repository operations
@@ -421,7 +454,7 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
         userId: application.technicianId,
       });
 
-      const languages = application.personal?.languages || [];
+      const languages = application.skills?.languages || [];
       const languagesArray = Array.isArray(languages)
         ? languages
         : typeof languages === "string"
@@ -559,36 +592,117 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
     }
   }
 
-  async updateTechnicianPaymentDetails(
-    technicianId: string,
-    paymentDetails: Record<string, unknown>
-  ): Promise<ITechnician> {
-    const formattedPaymentDetails = {
-      bankAccount: {
-        holderName: (paymentDetails.bankAccount as any)?.accountHolderName || '',
-        accountNumber: (paymentDetails.bankAccount as any)?.accountNumber || '',
-        ifscCode: (paymentDetails.bankAccount as any)?.ifscCode || '',
-        bankName: (paymentDetails.bankAccount as any)?.bankName || ''
-      },
-      upiId: (paymentDetails.upiId as string) || '',
-      withdrawalPreference: (paymentDetails.withdrawalPreference as "auto" | "manual") || "auto" as const
+  // In your TechnicianManagementRepository
+async updateTechnicianPaymentDetails(
+  technicianId: string,
+  paymentDetails: {
+    bankAccount: {
+      holderName: string;
+      accountNumber: string;
+      ifscCode: string;
+      bankName: string;
     };
-
-    const technician = await Technician.findByIdAndUpdate(
+    upiId: string;
+    withdrawalPreference: string;
+  }
+): Promise<boolean> {
+  try {
+    const result = await Technician.findByIdAndUpdate(
       technicianId,
       {
         $set: {
-          paymentDetails: formattedPaymentDetails,
-          updatedAt: new Date(),
+          'paymentDetails.bankAccount.holderName': paymentDetails.bankAccount.holderName,
+          'paymentDetails.bankAccount.accountNumber': paymentDetails.bankAccount.accountNumber,
+          'paymentDetails.bankAccount.ifscCode': paymentDetails.bankAccount.ifscCode,
+          'paymentDetails.bankAccount.bankName': paymentDetails.bankAccount.bankName,
+          'paymentDetails.upiId': paymentDetails.upiId,
+          'paymentDetails.withdrawalPreference': paymentDetails.withdrawalPreference,
         },
+      },
+      { new: true, runValidators: true }
+    );
+
+
+    return !!result;
+  } catch (error) {
+    console.error('Repository - Error updating payment details:', error);
+    return false;
+  }
+}
+
+async updateTechnicianIdentityVerification(
+  technicianId: string,
+  identityData: {
+    idType: string;
+    idNumber: string;
+    idDocument: string;
+    verificationStatus: string;
+    verified: boolean;
+    verifiedAt: Date;
+  }
+): Promise<boolean> {
+  try {
+    const result = await Technician.findByIdAndUpdate(
+      technicianId,
+      {
+        $set: {
+          'identityVerification.idType': identityData.idType,
+          'identityVerification.idNumber': identityData.idNumber,
+          'identityVerification.idDocument': identityData.idDocument,
+          'identityVerification.verificationStatus': identityData.verificationStatus,
+          'identityVerification.verified': identityData.verified,
+          'identityVerification.verifiedAt': identityData.verifiedAt,
+        },
+      }, 
+      { new: true, runValidators: true }
+    );
+
+    return !!result;
+  } catch (error) {
+    console.error('Repository - Error updating identity verification:', error);
+    return false;
+  }
+}
+async save(application: AdminITechnicianApplication): Promise<AdminITechnicianApplication> {
+    try {
+      // Convert admin application to model format
+      const modelData = convertToModelApplication(application);
+      
+      // Update the application in database
+      const updatedApplication = await TechnicianApplication.findByIdAndUpdate(
+        application._id,
+        { $set: modelData },
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedApplication) {
+        throw new Error('Application not found');
+      }
+
+      return convertToAdminApplication(updatedApplication);
+    } catch (error) {
+      console.error('Error saving application:', error);
+      throw error;
+    }
+  }
+
+  // In your TechnicianManagementRepository, add this method
+async updateTechnicianDocuments(
+  technicianId: string, 
+  documents: any[]
+): Promise<ITechnician | null> {
+  try {
+    return await Technician.findByIdAndUpdate(
+      technicianId,
+      { 
+        $set: { documents: documents },
+        $currentDate: { updatedAt: true }
       },
       { new: true }
     );
-
-    if (!technician) {
-      throw new Error("Technician not found");
-    }
-
-    return technician as ITechnician;
+  } catch (error) {
+    console.error("Error updating technician documents:", error);
+    throw error;
   }
+}
 }
