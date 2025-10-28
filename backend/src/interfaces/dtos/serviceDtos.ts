@@ -1,3 +1,4 @@
+// interfaces/dtos/serviceDtos.ts
 import { Types } from "mongoose";
 import { ServiceStatus } from "../../constants";
 
@@ -9,10 +10,15 @@ export interface ServiceResponseDto {
   description: string;
   avgBasePrice: number;
   iconUrl: string;
+  // NEW FIELDS
+  rating: number;
+  estimatedDuration: string;
+  features: string[];
+  popular: boolean;
   status: ServiceStatus;
   createdAt: string;
   updatedAt: string;
-  itemCount: number
+  itemCount: number;
 }
 
 export interface CreateServiceDto {
@@ -21,6 +27,11 @@ export interface CreateServiceDto {
   description: string;
   avgBasePrice: number;
   iconUrl?: string;
+  // NEW FIELDS
+  rating?: number;
+  estimatedDuration?: string;
+  features?: string[];
+  popular?: boolean;
   status?: ServiceStatus;
 }
 
@@ -29,6 +40,11 @@ export interface UpdateServiceDto {
   description?: string;
   avgBasePrice?: number;
   iconUrl?: string;
+  // NEW FIELDS
+  rating?: number;
+  estimatedDuration?: string;
+  features?: string[];
+  popular?: boolean;
   status?: ServiceStatus;
 }
 

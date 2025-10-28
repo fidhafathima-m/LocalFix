@@ -44,6 +44,8 @@ export class TechnicianMapper {
       phone: adminTechnician.phone || '',
       services: adminTechnician.services || [],
       status: adminTechnician.status || '',
+      bio:adminTechnician.bio || '',
+      profilePictureUrl: adminTechnician.profilePictureUrl || "",
       
       // Ratings and jobs
       averageRating: adminTechnician.averageRating || 0,

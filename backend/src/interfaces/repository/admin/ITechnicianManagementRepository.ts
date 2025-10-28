@@ -18,6 +18,18 @@ export interface StatusUpdateData {
   rejectionReason?: string;
   rejectedAt?: Date;
 }
+interface TechnicianFilter {
+  status?: string | { $in: string[] };
+  services?: string | { $in: string[] };
+  averageRating?: { $gte?: number; $lte?: number };
+  workAreas?: { $in: RegExp[] };
+  $or?: Array<{ [key: string]: RegExp }>;
+  createdAt?: {
+    $gte?: Date;
+    $lte?: Date;
+  };
+  [key: string]: unknown;
+}
 
 export interface ITechnicianManagementRepository {
   // Technician methods
@@ -55,7 +67,9 @@ export interface ITechnicianManagementRepository {
     status: string,
     additionalData?: StatusUpdateData
   ): Promise<ITechnicianApplication | null>;
-  findApplicationByTechnicianId(technicianId: string): Promise<ITechnicianApplication | null>;
+  findApplicationByTechnicianId(
+    technicianId: string
+  ): Promise<ITechnicianApplication | null>;
 
   // User methods
   findUserById(userId: Types.ObjectId): Promise<IUser | null>;
@@ -82,35 +96,40 @@ export interface ITechnicianManagementRepository {
   }>;
 
   // Create technician
-  findOrCreateTechnician(application: ITechnicianApplication): Promise<ITechnician>;
+  findOrCreateTechnician(
+    application: ITechnicianApplication
+  ): Promise<ITechnician>;
   updateTechnicianPaymentDetails(
-  technicianId: string,
-  paymentDetails: {
-    bankAccount: {
-      holderName: string;
-      accountNumber: string;
-      ifscCode: string;
-      bankName: string;
-    };
-    upiId: string;
-    withdrawalPreference: string;
-  }
-): Promise<boolean>
+    technicianId: string,
+    paymentDetails: {
+      bankAccount: {
+        holderName: string;
+        accountNumber: string;
+        ifscCode: string;
+        bankName: string;
+      };
+      upiId: string;
+      withdrawalPreference: string;
+    }
+  ): Promise<boolean>;
 
-updateTechnicianIdentityVerification(
-  technicianId: string,
-  identityData: {
-    idType: string;
-    idNumber: string;
-    idDocument: string;
-    verificationStatus: string;
-    verified: boolean;
-    verifiedAt: Date;
-  }
-): Promise<boolean>
-save(application: ITechnicianApplication): Promise<ITechnicianApplication>;
- updateTechnicianDocuments(
-  technicianId: string, 
-  documents: any[]
-): Promise<ITechnician | null>
+  updateTechnicianIdentityVerification(
+    technicianId: string,
+    identityData: {
+      idType: string;
+      idNumber: string;
+      idDocument: string;
+      verificationStatus: string;
+      verified: boolean;
+      verifiedAt: Date;
+    }
+  ): Promise<boolean>;
+  save(application: ITechnicianApplication): Promise<ITechnicianApplication>;
+  updateTechnicianDocuments(
+    technicianId: string,
+    documents: any[]
+  ): Promise<ITechnician | null>;
+  findTechnicians(filters: TechnicianFilter): Promise<ITechnician[]>;
+  findPublicTechnicians(filters: TechnicianFilter): Promise<ITechnician[]>;
+  findById(id: string): Promise<ITechnician | null>;
 }

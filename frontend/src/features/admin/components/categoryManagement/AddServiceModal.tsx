@@ -1,5 +1,6 @@
+// components/categoryManagement/AddServiceModal.tsx
 import { useState } from 'react'
-import { CloseOutlined, FileUploadOutlined } from '@mui/icons-material'
+import { CloseOutlined, FileUploadOutlined, AddOutlined, RemoveOutlined } from '@mui/icons-material'
 import { AdminSidebar } from '../AdminSidebar'
 import type { CreateServiceData } from '../../../../services/common/adminApi'
 
@@ -17,9 +18,27 @@ export function AddServiceModal({
   const [serviceName, setServiceName] = useState('')
   const [description, setDescription] = useState('')
   const [avgBasePrice, setAvgBasePrice] = useState('')
+  const [rating, setRating] = useState('4.5')
+  const [estimatedDuration, setEstimatedDuration] = useState('2-4 hours')
+  const [features, setFeatures] = useState<string[]>([''])
+  const [popular, setPopular] = useState(false)
   const [status, setStatus] = useState<'active' | 'inactive'>('active')
   const [iconUrl, setIconUrl] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const addFeature = () => {
+    setFeatures([...features, ''])
+  }
+
+  const removeFeature = (index: number) => {
+    setFeatures(features.filter((_, i) => i !== index))
+  }
+
+  const updateFeature = (index: number, value: string) => {
+    const newFeatures = [...features]
+    newFeatures[index] = value
+    setFeatures(newFeatures)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,6 +53,10 @@ export function AddServiceModal({
         name: serviceName.trim(),
         description: description.trim(),
         avgBasePrice: avgBasePrice ? parseFloat(avgBasePrice) : 0,
+        rating: parseFloat(rating),
+        estimatedDuration: estimatedDuration.trim(),
+        features: features.filter(f => f.trim() !== ''),
+        popular,
         status,
         iconUrl: iconUrl.trim() || undefined,
       })
@@ -51,7 +74,7 @@ export function AddServiceModal({
   return (
     <div className="fixed inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <AdminSidebar activePage='Category'/>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header - Fixed */}
         <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -101,38 +124,130 @@ export function AddServiceModal({
               />
             </div>
 
-            {/* Average Base Price */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Average Base Price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Average Base Price *
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={avgBasePrice}
+                  onChange={(e) => setAvgBasePrice(e.target.value)}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  disabled={loading}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                />
+              </div>
+
+              {/* Rating */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rating
+                </label>
+                <input
+                  type="number"
+                  value={rating}
+                  onChange={(e) => setRating(e.target.value)}
+                  placeholder="4.5"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  disabled={loading}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                />
+              </div>
+            </div>
+
+            {/* Estimated Duration */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Average Base Price *
+                Estimated Duration
               </label>
               <input
-                type="number"
-                required
-                value={avgBasePrice}
-                onChange={(e) => setAvgBasePrice(e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
+                type="text"
+                value={estimatedDuration}
+                onChange={(e) => setEstimatedDuration(e.target.value)}
+                placeholder="e.g., 2-4 hours"
                 disabled={loading}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               />
             </div>
 
-            {/* Status */}
+            {/* Features */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
+                Features
               </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
-                disabled={loading}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+              <div className="space-y-2">
+                {features.map((feature, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={feature}
+                      onChange={(e) => updateFeature(index, e.target.value)}
+                      placeholder={`Feature ${index + 1}`}
+                      disabled={loading}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                    {features.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeFeature(index)}
+                        disabled={loading}
+                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <RemoveOutlined className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addFeature}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <AddOutlined className="w-4 h-4" />
+                  Add Feature
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Popular */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="popular"
+                  checked={popular}
+                  onChange={(e) => setPopular(e.target.checked)}
+                  disabled={loading}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="popular" className="ml-2 block text-sm text-gray-700">
+                  Mark as Popular Service
+                </label>
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
+                  disabled={loading}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
             </div>
 
             {/* Icon Upload */}

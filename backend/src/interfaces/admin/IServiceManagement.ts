@@ -2,17 +2,22 @@ import { Document, Types } from "mongoose";
 import { ServiceStatus } from "../../constants";
 
 export interface IService extends Document {
-  _id: Types.ObjectId;
   categoryId: Types.ObjectId;
-  slug: string;
   name: string;
+  slug: string;
   description: string;
   avgBasePrice: number;
   iconUrl: string;
+  // NEW FIELDS
+  rating: number;
+  estimatedDuration: string;
+  features: string[];
+  popular: boolean;
   status: ServiceStatus;
   createdAt: Date;
   updatedAt: Date;
-  itemCount: number
+  // Virtual field for item count
+  itemCount?: number;
 }
 
 export interface IServiceCreate {
@@ -22,6 +27,10 @@ export interface IServiceCreate {
   avgBasePrice: number;
   iconUrl?: string;
   status?: ServiceStatus;
+  rating: number;
+  estimatedDuration: string;
+  features: string[];
+  popular: boolean;
 }
 
 export interface IServiceUpdate {
@@ -31,4 +40,8 @@ export interface IServiceUpdate {
   avgBasePrice?: number;
   iconUrl?: string;
   status?: ServiceStatus;
+  rating: number;
+  estimatedDuration: string;
+  features: string[];
+  popular: boolean;
 }

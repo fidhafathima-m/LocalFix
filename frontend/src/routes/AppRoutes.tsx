@@ -29,6 +29,18 @@ const UserResetPasswordPage = lazy(
 const ForgertPasswordOTPPage = lazy(
   () => import("../features/user/pages/ForgertPasswordOTPPage")
 );
+const Services = lazy(
+  () => import("../features/user/pages/Services")
+);
+const ServiceDetails = lazy(
+  () => import("../features/user/pages/ServiceDetails")
+);
+const UserTechnicianProfile = lazy(
+  () => import("../features/user/pages/TechnicianProfile")
+);
+const BookingPage = lazy(
+  () => import("../features/user/pages/Booking")
+);
 
 // Service Provider Routes imports
 const TechHome = lazy(
@@ -121,6 +133,10 @@ const AppRoutes = () => {
             />
             <Route path="/verify-otp" element={<ForgertPasswordOTPPage />} />
             <Route path="/reset-password" element={<UserResetPasswordPage />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/service/:slug" element={<ServiceDetails />} />
+            <Route path="/technicians/:id" element={<UserTechnicianProfile />} />
+            <Route path="/booking" element={<BookingPage />} />
 
             {/* technicians routes */}
             <Route path="/technicians" element={<TechHome />} />

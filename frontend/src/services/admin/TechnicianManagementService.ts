@@ -34,6 +34,24 @@ export class TechnicianMangementService {
       throw this.handleError(error, "Failed to get technician by id");
     }
   }
+  static async getPublicTechnicians(serviceName?: string) {
+    try {
+      const params = serviceName ? { service: serviceName } : {};
+      const response = await adminAPI.getPublicTechnicians(params);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to get public technicians");
+    }
+  }
+
+  static async getPublicTechnicianById(technicianId: string) {
+    try {
+      const response = await adminAPI.getPublicTechnicianById(technicianId);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to get public technician");
+    }
+  }
   private static handleResponse(response: any) {
     if (response.success === false) {
       throw new Error(response.message || "Operation failed");

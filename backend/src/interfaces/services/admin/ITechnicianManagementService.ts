@@ -27,4 +27,8 @@ export interface ITechnicianManagementService {
   ): Promise<ApplicationListResponseDto>;
   getApplicationById(id: string): Promise<ApplicationListResponseDto>;
   getApplicationStats(): Promise<ApplicationStatsResponseDto>;
+
+  // Public technciian 
+  getPublicTechnicians(filters: TechnicianFiltersDto): Promise<TechnicianListResponseDto>;
+  getPublicTechnicianById(id: string): Promise<SingleTechnicianResponseDto>;
 }

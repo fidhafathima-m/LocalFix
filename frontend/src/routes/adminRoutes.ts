@@ -12,6 +12,10 @@ export const ADMIN_ROUTES = {
   TECHNICIAN_STATUS: (technicianId: string) =>
     `/admin/technicians/${technicianId}/status`,
 
+  //  Public technciian 
+  GET_PUBLIC_TECHNICIAN: "/admin/technicians/public",
+  GET_PUBLIC_TECHNICIAN_BY_ID: (technicianId: string) => `/admin/technicians/public/${technicianId}`,
+
   // Application routes
   APPLICATIONS_PENDING: "/admin/technicians/applications/pending",
   APPLICATION_BY_ID: (applicationId: string) =>

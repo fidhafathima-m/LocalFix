@@ -22,6 +22,59 @@ export class TechnicianManagementController {
     this.technicianService = technicianService;
   }
 
+  // ========== PUBLIC ROUTES (No authentication required) ==========
+
+  getPublicTechnicians = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { service } = req.query;
+      
+      // Only allow approved technicians for public access
+      const filters: TechnicianFiltersDto = { 
+        status: 'approved',
+        ...(service && { service: service as string })
+      };
+      
+      const result: TechnicianListResponseDto = await this.technicianService.getPublicTechnicians(filters);
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Get public technicians controller error:", error);
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  };
+
+  getTechniciansByService = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { service } = req.params;
+      
+      const filters: TechnicianFiltersDto = { 
+        status: 'approved',
+        service: service
+      };
+      
+      const result: TechnicianListResponseDto = await this.technicianService.getPublicTechnicians(filters);
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Get technicians by service controller error:", error);
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  };
+
+  getPublicTechnicianById = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const result: SingleTechnicianResponseDto = await this.technicianService.getPublicTechnicianById(id);
+      res.status(result.statusCode).json(result);
+    } catch (error) {
+      console.error("Get public technician controller error:", error);
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  };
+
+  // ========== ADMIN ROUTES (Keep existing) ==========
+
   getAllTechnicians = async (req: Request, res: Response): Promise<void> => {
     try {
       const filters: TechnicianFiltersDto = req.query;
@@ -46,6 +99,7 @@ export class TechnicianManagementController {
     }
   };
 
+  // ... rest of your existing admin methods remain the same
   updateTechnicianStatus = async (
     req: AuthRequest,
     res: Response

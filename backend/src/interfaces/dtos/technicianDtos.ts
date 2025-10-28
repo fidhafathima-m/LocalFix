@@ -26,6 +26,8 @@ export interface TechnicianListDto {
   completedJobs: number;
   createdAt: Date;
   profilePictureUrl?: string;
+  experienceYears?: number;
+  ratingCount?: number;
 }
 
 export interface TechnicianDetailDto {
@@ -36,6 +38,8 @@ export interface TechnicianDetailDto {
   phone: string;
   services: string[];
   status: string;
+  bio: string;
+  profilePictureUrl: string;
   averageRating: number;
   ratingCount: number;
   totalJobs: number;
@@ -172,7 +176,7 @@ export interface RejectApplicationRequestDto {
 export interface TechnicianFiltersDto {
   status?: string;
   service?: string;
-  rating?: string;
+  rating?: string | number;
   location?: string;
   search?: string;
   page?: number | string;

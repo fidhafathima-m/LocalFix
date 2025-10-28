@@ -134,6 +134,10 @@ export interface Service {
   createdAt: string;
   updatedAt: string;
   itemCount?: number; // Optional field for frontend stats
+  rating?: number;
+  estimatedDuration?: string;
+  features?: string[];
+  popular?: boolean;
 }
 
 export interface CreateServiceData {
@@ -143,6 +147,10 @@ export interface CreateServiceData {
   avgBasePrice: number;
   iconUrl?: string;
   status?: "active" | "inactive";
+  rating?: number;
+  estimatedDuration?: string;
+  features?: string[];
+  popular?: boolean
 }
 
 export interface UpdateServiceData {
@@ -151,6 +159,10 @@ export interface UpdateServiceData {
   avgBasePrice?: number;
   iconUrl?: string;
   status?: "active" | "inactive";
+  rating?: number;
+  estimatedDuration?: string;
+  features?: string[];
+  popular?: boolean
 }
 
 export interface ServicesResponse {
@@ -255,6 +267,11 @@ export const adminAPI = {
     api.get<ApiResponse<TechnicianResponse>>(
       ADMIN_ROUTES.TECHNICIAN_BY_ID(technicianId)
     ),
+    getPublicTechnicians: (params?: { service?: string }) =>
+    api.get<ApiResponse<TechniciansResponse>>(ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN, { params }),
+
+  getPublicTechnicianById: (technicianId: string) =>
+    api.get<ApiResponse<TechnicianResponse>>(ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN_BY_ID(technicianId)),
 
   // Categories
   getCategories: (page: number = 1, limit: number = 10, search?: string) =>
@@ -379,4 +396,5 @@ export const adminAPI = {
     api.get<ApiResponse<{ items: Item[] }>>(ADMIN_ROUTES.SEARCH_ITEM, {
       params: { q: query, limit },
     }),
+
 };

@@ -1,3 +1,4 @@
+// models/category/serviceSchema.ts
 import { Schema, model } from "mongoose";
 import { IService } from "../../interfaces/admin/IServiceManagement";
 import { ServiceStatus } from "../../constants";
@@ -38,6 +39,26 @@ const serviceSchema = new Schema<IService>(
       default: "",
       trim: true,
     },
+    // NEW FIELDS
+    rating: {
+      type: Number,
+      default: 4.5,
+      min: [0, "Rating must be at least 0"],
+      max: [5, "Rating cannot exceed 5"],
+    },
+    estimatedDuration: {
+      type: String,
+      default: "2-4 hours",
+      trim: true,
+    },
+    features: [{
+      type: String,
+      trim: true,
+    }],
+    popular: {
+      type: Boolean,
+      default: false,
+    },
     status: {
       type: String,
       enum: Object.values(ServiceStatus),
@@ -60,5 +81,8 @@ serviceSchema.index({ categoryId: 1 });
 
 // Compound index for category and status
 serviceSchema.index({ categoryId: 1, status: 1 });
+
+// Index for popular services
+serviceSchema.index({ popular: 1 });
 
 export const Service = model<IService>("Service", serviceSchema);

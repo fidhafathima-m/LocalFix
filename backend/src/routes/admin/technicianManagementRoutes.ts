@@ -5,6 +5,19 @@ import { technicianManagementController } from "../../config/container";
 const router = Router();
 
 router.get(
+  "/public",
+  technicianManagementController.getPublicTechnicians
+);
+router.get(
+  "/public/service/:service",
+  technicianManagementController.getTechniciansByService
+);
+router.get(
+  "/public/:id",
+  technicianManagementController.getPublicTechnicianById
+);
+
+router.get(
   "/",
   protect,
   admin,

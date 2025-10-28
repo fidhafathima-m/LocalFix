@@ -1,55 +1,71 @@
-import ACIcon from "../../../assets/icons/AC.svg";
-import FanIcon from "../../../assets/icons/Fan.svg";
-import WashingMachineIcon from "../../../assets/icons/WashingMachine.svg";
-import RefrigeratorIcon from "../../../assets/icons/Refrigerator.svg";
-import TVIcon from "../../../assets/icons/TV.svg";
-import MicrowaveIcon from "../../../assets/icons/Microwave.svg";
+// data/services.ts
+import { ServiceManagementService } from "../../../services/admin/ServiceManagementService";
 
-const services: {
-  icon: string;
-  title: string;
+export interface Service {
+  id: string;
+  categoryId: string;
+  name: string;
   description: string;
-  button: string;
+  iconUrl: string;
+  slug: string;
+  status: string;
+  itemCount?: number;
   popular?: boolean;
-}[] = [
-  {
-    icon: ACIcon,
-    title: "AC Repair & Service",
-    description: "Professional repair and maintenance for all AC brands",
-    button: "Book Now ",
-    popular: true,
-  },
-  {
-    icon: WashingMachineIcon,
-    title: "Wahing Machine",
-    description: "Fix leaks, motor issues, and other washing machine problems",
-    button: "Book Now ",
-    popular: true,
-  },
-  {
-    icon: RefrigeratorIcon,
-    title: "Refrigerator",
-    description: "Cooling issues, gas refilling, and general maintenance",
-    button: "Book Now ",
-  },
-  {
-    icon: FanIcon,
-    title: "Fan Repair",
-    description: "Ceiling, table, and exhaust fan repairs and installation",
-    button: "Book Now ",
-  },
-  {
-    icon: TVIcon,
-    title: "TV Repair",
-    description: "LCD, LED, and Smart TV repairs and installations",
-    button: "Book Now ",
-  },
-  {
-    icon: MicrowaveIcon,
-    title: "Microwave",
-    description: "Heating problems, door issues, and other microwave repairs",
-    button: "Book Now ",
-  },
-];
+  rating?: number;
+  estimatedDuration?: string;
+  features?: string[];
+  avgBasePrice?: number;
+}
 
-export default services;
+// Service to fetch services from backend
+export const fetchServices = async (): Promise<Service[]> => {
+  try {
+    console.log("🔄 Fetching services from backend...");
+    
+    const response = await ServiceManagementService.getAllServices(1, 12);
+    
+    console.log("📡 Services API response:", response);
+    
+    // Transform the API response to match your frontend needs
+    if (response && response.services) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return response.services.map((service: any) => ({
+        id: service.id,
+        categoryId: service.categoryId,
+        name: service.name,
+        description: service.description,
+        iconUrl: service.iconUrl || getDefaultIcon(service.name),
+        slug: service.slug,
+        status: service.status,
+        itemCount: service.itemCount,
+        // ADD THE NEW FIELDS HERE
+        rating: service.rating,
+        estimatedDuration: service.estimatedDuration,
+        features: service.features,
+        popular: service.popular,
+        avgBasePrice: service.avgBasePrice,
+      }));
+    }
+    
+    return [];
+  } catch (error) {
+    console.error("💥 Error fetching services:", error);
+    return [];
+  }
+};
+
+// Helper function for default icons
+const getDefaultIcon = (serviceName: string): string => {
+  const iconMap: { [key: string]: string } = {
+    'AC Repair & Service': '/icons/ac.svg',
+    'Washing Machine': '/icons/washing-machine.svg',
+    'Refrigerator': '/icons/refrigerator.svg',
+    'Fan Repair': '/icons/fan.svg',
+    'TV Repair': '/icons/tv.svg',
+    'Microwave': '/icons/microwave.svg',
+  };
+  
+  return iconMap[serviceName] || '/icons/default-service.svg';
+};
+
+export default fetchServices;

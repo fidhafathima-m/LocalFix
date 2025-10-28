@@ -1,11 +1,34 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import services from "../data/services";
+import fetchServices, { type Service } from "../data/services";
 import workingSteps from "../data/working";
 import speciality from "../data/speciality";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const Home = () => {
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        setLoading(true);
+        const servicesData = await fetchServices();
+        setServices(servicesData);
+      } catch (err) {
+        setError("Failed to load services");
+        console.error("Error loading services:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadServices();
+  }, []);
   return (
     <div>
       <Header />
@@ -82,7 +105,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* services overview */}
+      {/* Services section */}
       <section>
         <div className="bg-gray-100">
           <div>
@@ -95,38 +118,59 @@ const Home = () => {
                 same-day service availability
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 lg:gap-6 p-4 lg:p-10">
-              {services.map((service, idx) => (
-                <div key={idx} className="p-6 lg:p-10 shadow rounded bg-white">
-                  {service.popular && (
-                    <div className="flex justify-end">
-                      <span className="bg-blue-100 p-2 text-blue-600 text-sm rounded-full">
-                        Popular
-                      </span>
-                    </div>
-                  )}
 
-                  <div className="mb-4">
-                    <img
-                      src={service.icon}
-                      alt="Service icon"
-                      className="w-8 h-8"
-                    />
+            {/* Loading state */}
+            {loading && (
+              <div className="flex justify-center items-center p-10">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            )}
+
+            {/* Error state */}
+            {error && (
+              <div className="text-center p-10">
+                <p className="text-red-500">{error}</p>
+              </div>
+            )}
+
+            {/* Services grid */}
+            {!loading && !error && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 lg:gap-6 p-4 lg:p-10">
+                {services.map((service) => (
+                  <div
+                    key={service.id}
+                    className="p-6 lg:p-10 shadow rounded bg-white"
+                  >
+                    <div className="mb-4">
+                      <img
+                        src={service.iconUrl}
+                        alt={service.name}
+                        className="w-8 h-8"
+                      />
+                    </div>
+                    <h2 className="text-lg font-bold">{service.name}</h2>
+                    <p className="text-sm lg:text-base">
+                      {service.description}
+                    </p>
+                    <button
+                      className="mt-4 text-blue-600 py-2 flex items-center cursor-pointer hover:text-blue-700"
+                      onClick={() => navigate(`/service/${service.slug}`)}
+                    >
+                      Book Now{" "}
+                      <ArrowForwardOutlinedIcon sx={{ fontSize: 18 }} />
+                    </button>
                   </div>
-                  <h2 className="text-lg font-bold">{service.title}</h2>
-                  <p className="text-sm lg:text-base">{service.description}</p>
-                  <button className="mt-4 text-blue-600 py-2 flex items-center">
-                    {service.button}{" "}
-                    <ArrowForwardOutlinedIcon sx={{ fontSize: 18 }} />
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="text-center p-5">
-            <p className="text-gray-500 font-semibold cursor-pointer hover:text-gray-700">
+            <Link
+              to="/services"
+              className="text-gray-500 font-semibold cursor-pointer hover:text-gray-700"
+            >
               View All Services
-            </p>
+            </Link>
           </div>
         </div>
       </section>

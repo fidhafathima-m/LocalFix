@@ -88,6 +88,20 @@ interface FilterQuery {
   [key: string]: unknown; // Add index signature to match repository FilterQuery
 }
 
+interface TechnicianFilter {
+  status?: string | { $in: string[] };
+  services?: string | { $in: string[] };
+  averageRating?: { $gte?: number; $lte?: number };
+  workAreas?: { $in: RegExp[] };
+  $or?: Array<{ [key: string]: RegExp }>;
+  createdAt?: {
+    $gte?: Date;
+    $lte?: Date;
+  };
+  search?: string;
+  [key: string]: unknown;
+}
+
 export class TechnicianManagementService
   implements ITechnicianManagementService
 {
@@ -229,6 +243,8 @@ export class TechnicianManagementService
       phone: adminTechnician.phone || "",
       services: adminTechnician.services || [],
       status: adminTechnician.status || "",
+      experienceYears: adminTechnician.experienceYears || 0,
+      ratingCount: adminTechnician.ratingCount || 0,
       averageRating: adminTechnician.averageRating || 0,
       totalJobs: adminTechnician.totalJobs || 0,
       completedJobs: adminTechnician.completedJobs || 0,
@@ -440,6 +456,7 @@ export class TechnicianManagementService
       displayName: technician.displayName,
       email: user?.email || "",
       phone: user?.phone || technician.phone || "",
+      bio: technician.bio || "",
       services: technician.services || [],
       experienceYears: technician.experienceYears || 0,
       workAreas: technician.workAreas || [],
@@ -1086,6 +1103,94 @@ export class TechnicianManagementService
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP
       );
+    }
+  }
+  // In your TechnicianManagementService - Add backend debugging
+async getPublicTechnicians(filters: TechnicianFiltersDto): Promise<TechnicianListResponseDto> {
+  try {
+    console.log("🔄 Backend Service: Getting public technicians with filters:", filters);
+    
+    // Convert DTO to repository filter
+    const repoFilters: TechnicianFilter = {
+      status: 'approved' // Always approved for public
+    };
+    
+    // Add service filter if provided
+    if (filters.service) {
+      console.log("🔄 Backend Service: Filtering by service:", filters.service);
+      repoFilters.services = { $in: [filters.service] };
+    }
+    
+    console.log("🔄 Backend Service: Final repository filters:", JSON.stringify(repoFilters, null, 2));
+    
+    const technicians = await this.technicianRepository.findPublicTechnicians(repoFilters);
+    
+    console.log(`✅ Backend Service: Repository returned ${technicians.length} technicians`);
+    
+    // Map to DTOs
+    const technicianDtos: TechnicianListDto[] = await Promise.all(
+      technicians.map(async (tech: ITechnician) => {
+        const adminTechnician = await this.convertToAdminTechnician(tech);
+        return this.mapAdminTechnicianToListDto(adminTechnician);
+      })
+    );
+
+    console.log(`✅ Backend Service: Returning ${technicianDtos.length} technician DTOs`);
+    
+    return ResponseHelper.success(
+      "Technicians retrieved successfully",
+      {
+        technicians: technicianDtos,
+        pagination: {
+          page: 1,
+          limit: technicians.length,
+          total: technicians.length,
+          pages: 1
+        }
+      }
+    );
+  } catch (error) {
+    console.error("❌ Backend Service: Error getting public technicians:", error);
+    return ResponseHelper.error("Failed to retrieve technicians");
+  }
+}
+
+  async getPublicTechnicianById(
+    id: string
+  ): Promise<SingleTechnicianResponseDto> {
+    try {
+      // Use findTechnicianById instead of findById
+      const technician = await this.technicianRepository.findTechnicianById(id);
+
+      if (!technician) {
+        return ResponseHelper.notFound("Technician not found");
+      }
+
+      // Only return approved technicians to public
+      if (technician.status !== "approved") {
+        return ResponseHelper.notFound("Technician not found");
+      }
+
+      const adminTechnician = await this.convertToAdminTechnician(technician);
+
+      // Remove sensitive data for public access
+      const publicTechnician = {
+        ...adminTechnician,
+        identityVerification: undefined,
+        paymentDetails: undefined,
+        suspensionReason: undefined,
+        rejectionReason: undefined,
+      };
+
+      // ✅ FIX: Use TechnicianMapper to convert to DTO
+      const technicianDto = TechnicianMapper.toDetailDto(publicTechnician);
+
+      return ResponseHelper.success("Technician retrieved successfully", {
+        technician: technicianDto,
+      });
+    } catch (error) {
+      console.error("Get public technician service error:", error);
+      return ResponseHelper.error("Failed to retrieve technician");
     }
   }
 }

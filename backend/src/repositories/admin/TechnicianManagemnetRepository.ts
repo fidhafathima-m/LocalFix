@@ -18,8 +18,8 @@ import {
   AvailabilityInfo,
   DocumentsInfo,
   BankInfo,
-  IdentityInfo
-} from "../../interfaces/technician/ITechnician"; 
+  IdentityInfo,
+} from "../../interfaces/technician/ITechnician";
 import { IUser } from "@/interfaces/admin/IUserManagements";
 import { IUserAddress } from "@/models/UserAddressSchema";
 
@@ -34,6 +34,7 @@ interface TechnicianFilter {
     $gte?: Date;
     $lte?: Date;
   };
+  search?: string;
   [key: string]: unknown;
 }
 
@@ -68,71 +69,77 @@ interface PaymentDetails {
 }
 
 // Helper function to convert model application to admin interface
-const convertToAdminApplication = (app: ModelITechnicianApplication): AdminITechnicianApplication => {
+const convertToAdminApplication = (
+  app: ModelITechnicianApplication
+): AdminITechnicianApplication => {
   // Safely extract skills properties with proper fallbacks
   const skillsData = app.skills || {};
-  
+
   const baseApplication = {
     _id: app._id as Types.ObjectId,
     technicianId: app.technicianId as Types.ObjectId,
-    email: app.email || '',
-    status: app.status || 'draft',
+    email: app.email || "",
+    status: app.status || "draft",
     stepsCompleted: app.stepsCompleted || [],
-    personal: app.personal ? {
-      fullName: app.personal.fullName || '',
-      phoneNumber: app.personal.phoneNumber || '',
-      email: app.personal.email || '',
-      gender: app.personal.gender || '',
-      dateOfBirth: app.personal.dateOfBirth || '',
-      address: app.personal.address ? {
-        street: app.personal.address.street || '',
-        city: app.personal.address.city || '',
-        state: app.personal.address.state || '',
-        pincode: app.personal.address.pincode || ''
-      } : undefined
-    } : {
-      fullName: '',
-      phoneNumber: '',
-      email: '',
-      gender: '',
-      dateOfBirth: '',
-    },
+    personal: app.personal
+      ? {
+          fullName: app.personal.fullName || "",
+          phoneNumber: app.personal.phoneNumber || "",
+          email: app.personal.email || "",
+          gender: app.personal.gender || "",
+          dateOfBirth: app.personal.dateOfBirth || "",
+          address: app.personal.address
+            ? {
+                street: app.personal.address.street || "",
+                city: app.personal.address.city || "",
+                state: app.personal.address.state || "",
+                pincode: app.personal.address.pincode || "",
+              }
+            : undefined,
+        }
+      : {
+          fullName: "",
+          phoneNumber: "",
+          email: "",
+          gender: "",
+          dateOfBirth: "",
+        },
     identity: app.identity || {
-      governmentIdType: '',
-      governmentIdNumber: '',
-      idDocument: '',
+      governmentIdType: "",
+      governmentIdNumber: "",
+      idDocument: "",
       verified: false,
-      verificationStatus: 'pending' as const
+      verificationStatus: "pending" as const,
     },
     skills: {
       services: (skillsData as any).services || [],
-      yearsOfExperience: (skillsData as any).yearsOfExperience || '',
+      yearsOfExperience: (skillsData as any).yearsOfExperience || "",
       // 🚨 FIXED: Safe languages handling
       languages: getLanguagesFromSkills(skillsData),
-      bio: (skillsData as any).bio || '',
+      bio: (skillsData as any).bio || "",
       serviceAreas: (skillsData as any).serviceAreas || [],
-      workRadius: (skillsData as any).workRadius || ''
+      workRadius: (skillsData as any).workRadius || "",
     },
     availability: app.availability || {
       serviceAreas: [],
-      workRadius: '',
+      workRadius: "",
       availability: {
-        monday: { available: false, startTime: '', endTime: '' },
-        tuesday: { available: false, startTime: '', endTime: '' },
-        wednesday: { available: false, startTime: '', endTime: '' },
-        thursday: { available: false, startTime: '', endTime: '' },
-        friday: { available: false, startTime: '', endTime: '' },
-        saturday: { available: false, startTime: '', endTime: '' },
-        sunday: { available: false, startTime: '', endTime: '' }
-      }
+        monday: { available: false, startTime: "", endTime: "" },
+        tuesday: { available: false, startTime: "", endTime: "" },
+        wednesday: { available: false, startTime: "", endTime: "" },
+        thursday: { available: false, startTime: "", endTime: "" },
+        friday: { available: false, startTime: "", endTime: "" },
+        saturday: { available: false, startTime: "", endTime: "" },
+        sunday: { available: false, startTime: "", endTime: "" },
+      },
     },
     bank: app.bank || {
-      accountHolderName: '',
-      accountNumber: '',
-      ifscCode: '',
-      upiId: '',
-      bankName: '',
-      withdrawalPreference: ''
+      accountHolderName: "",
+      accountNumber: "",
+      ifscCode: "",
+      upiId: "",
+      bankName: "",
+      withdrawalPreference: "",
     },
     documents: app.documents || {},
     agreement: app.agreement || false,
@@ -144,13 +151,13 @@ const convertToAdminApplication = (app: ModelITechnicianApplication): AdminITech
     lastSubmittedAt: app.lastSubmittedAt,
     createdAt: app.createdAt,
     updatedAt: app.updatedAt,
-    user: undefined
+    user: undefined,
   };
 
   // Add toObject method for compatibility
   const result = {
     ...baseApplication,
-    toObject: () => baseApplication
+    toObject: () => baseApplication,
   };
 
   return result as unknown as AdminITechnicianApplication;
@@ -159,29 +166,32 @@ const convertToAdminApplication = (app: ModelITechnicianApplication): AdminITech
 // Helper function to safely extract languages from skills
 const getLanguagesFromSkills = (skillsData: any): string[] => {
   if (!skillsData) return [];
-  
+
   const languages = (skillsData as any).languages;
-  
+
   if (!languages) return [];
-  
+
   if (Array.isArray(languages)) {
     return languages;
   }
-  
-  if (typeof languages === 'string') {
+
+  if (typeof languages === "string") {
     try {
       // Try to parse as JSON array
       const parsed = JSON.parse(languages);
       return Array.isArray(parsed) ? parsed : [languages];
     } catch {
       // If not JSON, try comma-separated or return as single item array
-      if (languages.includes(',')) {
-        return languages.split(',').map((lang: string) => lang.trim()).filter(Boolean);
+      if (languages.includes(",")) {
+        return languages
+          .split(",")
+          .map((lang: string) => lang.trim())
+          .filter(Boolean);
       }
       return [languages];
     }
   }
-  
+
   return [];
 };
 
@@ -207,11 +217,13 @@ const convertToModelApplication = (app: AdminITechnicianApplication): any => {
     resubmittedCount: app.resubmittedCount,
     lastSubmittedAt: app.lastSubmittedAt,
     createdAt: app.createdAt,
-    updatedAt: app.updatedAt
+    updatedAt: app.updatedAt,
   };
 };
 
-export class TechnicianManagementRepository implements ITechnicianManagementRepository {
+export class TechnicianManagementRepository
+  implements ITechnicianManagementRepository
+{
   async findAllTechnicians(
     filter: Record<string, unknown>,
     skip: number,
@@ -330,14 +342,16 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
       .skip(skip)
       .limit(limit);
 
-    return applications.map(app => convertToAdminApplication(app));
+    return applications.map((app) => convertToAdminApplication(app));
   }
 
   async countApplications(filter: Record<string, unknown>): Promise<number> {
     return await TechnicianApplication.countDocuments(filter);
   }
 
-  async findApplicationById(id: string): Promise<AdminITechnicianApplication | null> {
+  async findApplicationById(
+    id: string
+  ): Promise<AdminITechnicianApplication | null> {
     const application = await TechnicianApplication.findById(id);
     if (!application) return null;
     return convertToAdminApplication(application);
@@ -445,11 +459,13 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
     }
   }
 
-  async findOrCreateTechnician(application: AdminITechnicianApplication): Promise<ITechnician> {
+  async findOrCreateTechnician(
+    application: AdminITechnicianApplication
+  ): Promise<ITechnician> {
     try {
       // Convert AdminITechnicianApplication to a format compatible with the model
       const modelApplication = convertToModelApplication(application);
-      
+
       let technician = await Technician.findOne({
         userId: application.technicianId,
       });
@@ -463,14 +479,23 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
 
       // Prepare personal info
       const personalInfo: PersonalInfo = {
-        fullName: application.personal?.fullName || technician?.personalInfo?.fullName || 'Technician',
+        fullName:
+          application.personal?.fullName ||
+          technician?.personalInfo?.fullName ||
+          "Technician",
         email: application.personal?.email || technician?.personalInfo?.email,
-        phoneNumber: application.personal?.phoneNumber || technician?.personalInfo?.phoneNumber,
-        dateOfBirth: application.personal?.dateOfBirth || technician?.personalInfo?.dateOfBirth,
-        gender: application.personal?.gender || technician?.personalInfo?.gender,
+        phoneNumber:
+          application.personal?.phoneNumber ||
+          technician?.personalInfo?.phoneNumber,
+        dateOfBirth:
+          application.personal?.dateOfBirth ||
+          technician?.personalInfo?.dateOfBirth,
+        gender:
+          application.personal?.gender || technician?.personalInfo?.gender,
         languages: languagesArray,
         bio: application.skills?.bio || technician?.personalInfo?.bio,
-        address: application.personal?.address || technician?.personalInfo?.address
+        address:
+          application.personal?.address || technician?.personalInfo?.address,
       };
 
       if (technician) {
@@ -481,15 +506,17 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
             $set: {
               displayName: personalInfo.fullName,
               services: application.skills?.services || technician.services,
-              experienceYears: application.skills?.yearsOfExperience 
-                ? parseInt(String(application.skills.yearsOfExperience)) 
+              experienceYears: application.skills?.yearsOfExperience
+                ? parseInt(String(application.skills.yearsOfExperience))
                 : technician.experienceYears,
-              workAreas: application.availability?.serviceAreas || technician.workAreas,
+              workAreas:
+                application.availability?.serviceAreas || technician.workAreas,
               serviceRadiusKm: application.availability?.workRadius
                 ? parseInt(application.availability.workRadius as string)
                 : technician.serviceRadiusKm,
               status: "approved",
-              profilePictureUrl: application.documents?.passportPhoto?.url ||
+              profilePictureUrl:
+                application.documents?.passportPhoto?.url ||
                 application.documents?.profilePhoto?.url ||
                 technician.profilePictureUrl,
               phone: personalInfo.phoneNumber || technician.phone,
@@ -505,15 +532,16 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
           userId: application.technicianId,
           displayName: personalInfo.fullName,
           services: application.skills?.services || [],
-          experienceYears: application.skills?.yearsOfExperience 
-            ? parseInt(String(application.skills.yearsOfExperience)) 
+          experienceYears: application.skills?.yearsOfExperience
+            ? parseInt(String(application.skills.yearsOfExperience))
             : 0,
           workAreas: application.availability?.serviceAreas || [],
           serviceRadiusKm: application.availability?.workRadius
             ? parseInt(application.availability.workRadius as string)
             : 10,
           status: "approved",
-          profilePictureUrl: application.documents?.passportPhoto?.url ||
+          profilePictureUrl:
+            application.documents?.passportPhoto?.url ||
             application.documents?.profilePhoto?.url,
           phone: personalInfo.phoneNumber,
           personalInfo: personalInfo,
@@ -523,7 +551,7 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
           completedJobs: 0,
           ongoingJobs: 0,
           totalEarnings: 0,
-          resubmittedCount: 0
+          resubmittedCount: 0,
         });
       }
 
@@ -564,7 +592,9 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
     }
   }
 
-  async findApplicationByTechnicianId(technicianId: string): Promise<AdminITechnicianApplication | null> {
+  async findApplicationByTechnicianId(
+    technicianId: string
+  ): Promise<AdminITechnicianApplication | null> {
     try {
       const application = await TechnicianApplication.findOne({
         technicianId: new Types.ObjectId(technicianId),
@@ -581,11 +611,17 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
             .select("personal skills documents status")
             .lean();
 
-          return appByUserId ? convertToAdminApplication(appByUserId as ModelITechnicianApplication) : null;
+          return appByUserId
+            ? convertToAdminApplication(
+                appByUserId as ModelITechnicianApplication
+              )
+            : null;
         }
       }
 
-      return application ? convertToAdminApplication(application as ModelITechnicianApplication) : null;
+      return application
+        ? convertToAdminApplication(application as ModelITechnicianApplication)
+        : null;
     } catch (error) {
       console.error("Error finding application by technician ID:", error);
       return null;
@@ -593,81 +629,91 @@ export class TechnicianManagementRepository implements ITechnicianManagementRepo
   }
 
   // In your TechnicianManagementRepository
-async updateTechnicianPaymentDetails(
-  technicianId: string,
-  paymentDetails: {
-    bankAccount: {
-      holderName: string;
-      accountNumber: string;
-      ifscCode: string;
-      bankName: string;
-    };
-    upiId: string;
-    withdrawalPreference: string;
-  }
-): Promise<boolean> {
-  try {
-    const result = await Technician.findByIdAndUpdate(
-      technicianId,
-      {
-        $set: {
-          'paymentDetails.bankAccount.holderName': paymentDetails.bankAccount.holderName,
-          'paymentDetails.bankAccount.accountNumber': paymentDetails.bankAccount.accountNumber,
-          'paymentDetails.bankAccount.ifscCode': paymentDetails.bankAccount.ifscCode,
-          'paymentDetails.bankAccount.bankName': paymentDetails.bankAccount.bankName,
-          'paymentDetails.upiId': paymentDetails.upiId,
-          'paymentDetails.withdrawalPreference': paymentDetails.withdrawalPreference,
+  async updateTechnicianPaymentDetails(
+    technicianId: string,
+    paymentDetails: {
+      bankAccount: {
+        holderName: string;
+        accountNumber: string;
+        ifscCode: string;
+        bankName: string;
+      };
+      upiId: string;
+      withdrawalPreference: string;
+    }
+  ): Promise<boolean> {
+    try {
+      const result = await Technician.findByIdAndUpdate(
+        technicianId,
+        {
+          $set: {
+            "paymentDetails.bankAccount.holderName":
+              paymentDetails.bankAccount.holderName,
+            "paymentDetails.bankAccount.accountNumber":
+              paymentDetails.bankAccount.accountNumber,
+            "paymentDetails.bankAccount.ifscCode":
+              paymentDetails.bankAccount.ifscCode,
+            "paymentDetails.bankAccount.bankName":
+              paymentDetails.bankAccount.bankName,
+            "paymentDetails.upiId": paymentDetails.upiId,
+            "paymentDetails.withdrawalPreference":
+              paymentDetails.withdrawalPreference,
+          },
         },
-      },
-      { new: true, runValidators: true }
-    );
+        { new: true, runValidators: true }
+      );
 
-
-    return !!result;
-  } catch (error) {
-    console.error('Repository - Error updating payment details:', error);
-    return false;
+      return !!result;
+    } catch (error) {
+      console.error("Repository - Error updating payment details:", error);
+      return false;
+    }
   }
-}
 
-async updateTechnicianIdentityVerification(
-  technicianId: string,
-  identityData: {
-    idType: string;
-    idNumber: string;
-    idDocument: string;
-    verificationStatus: string;
-    verified: boolean;
-    verifiedAt: Date;
-  }
-): Promise<boolean> {
-  try {
-    const result = await Technician.findByIdAndUpdate(
-      technicianId,
-      {
-        $set: {
-          'identityVerification.idType': identityData.idType,
-          'identityVerification.idNumber': identityData.idNumber,
-          'identityVerification.idDocument': identityData.idDocument,
-          'identityVerification.verificationStatus': identityData.verificationStatus,
-          'identityVerification.verified': identityData.verified,
-          'identityVerification.verifiedAt': identityData.verifiedAt,
+  async updateTechnicianIdentityVerification(
+    technicianId: string,
+    identityData: {
+      idType: string;
+      idNumber: string;
+      idDocument: string;
+      verificationStatus: string;
+      verified: boolean;
+      verifiedAt: Date;
+    }
+  ): Promise<boolean> {
+    try {
+      const result = await Technician.findByIdAndUpdate(
+        technicianId,
+        {
+          $set: {
+            "identityVerification.idType": identityData.idType,
+            "identityVerification.idNumber": identityData.idNumber,
+            "identityVerification.idDocument": identityData.idDocument,
+            "identityVerification.verificationStatus":
+              identityData.verificationStatus,
+            "identityVerification.verified": identityData.verified,
+            "identityVerification.verifiedAt": identityData.verifiedAt,
+          },
         },
-      }, 
-      { new: true, runValidators: true }
-    );
+        { new: true, runValidators: true }
+      );
 
-    return !!result;
-  } catch (error) {
-    console.error('Repository - Error updating identity verification:', error);
-    return false;
+      return !!result;
+    } catch (error) {
+      console.error(
+        "Repository - Error updating identity verification:",
+        error
+      );
+      return false;
+    }
   }
-}
-async save(application: AdminITechnicianApplication): Promise<AdminITechnicianApplication> {
+  async save(
+    application: AdminITechnicianApplication
+  ): Promise<AdminITechnicianApplication> {
     try {
       // Convert admin application to model format
       const modelData = convertToModelApplication(application);
-      
+
       // Update the application in database
       const updatedApplication = await TechnicianApplication.findByIdAndUpdate(
         application._id,
@@ -676,33 +722,168 @@ async save(application: AdminITechnicianApplication): Promise<AdminITechnicianAp
       );
 
       if (!updatedApplication) {
-        throw new Error('Application not found');
+        throw new Error("Application not found");
       }
 
       return convertToAdminApplication(updatedApplication);
     } catch (error) {
-      console.error('Error saving application:', error);
+      console.error("Error saving application:", error);
       throw error;
     }
   }
 
   // In your TechnicianManagementRepository, add this method
-async updateTechnicianDocuments(
-  technicianId: string, 
-  documents: any[]
-): Promise<ITechnician | null> {
-  try {
-    return await Technician.findByIdAndUpdate(
-      technicianId,
-      { 
-        $set: { documents: documents },
-        $currentDate: { updatedAt: true }
-      },
-      { new: true }
-    );
-  } catch (error) {
-    console.error("Error updating technician documents:", error);
-    throw error;
+  async updateTechnicianDocuments(
+    technicianId: string,
+    documents: any[]
+  ): Promise<ITechnician | null> {
+    try {
+      return await Technician.findByIdAndUpdate(
+        technicianId,
+        {
+          $set: { documents: documents },
+          $currentDate: { updatedAt: true },
+        },
+        { new: true }
+      );
+    } catch (error) {
+      console.error("Error updating technician documents:", error);
+      throw error;
+    }
   }
-}
+  // Add this method to your TechnicianManagementRepository class
+  async findTechnicians(filters: TechnicianFilter): Promise<ITechnician[]> {
+    try {
+      console.log("🔍 Repository: Finding technicians with filters:", filters);
+
+      // Build the MongoDB query
+      const query: any = {};
+
+      // Status filter
+      if (filters.status) {
+        if (typeof filters.status === "string") {
+          query.status = filters.status;
+        } else if (filters.status.$in) {
+          query.status = { $in: filters.status.$in };
+        }
+      }
+
+      // Service filter
+      if (filters.services) {
+        if (typeof filters.services === "string") {
+          query.services = { $in: [filters.services] };
+        } else if (filters.services.$in) {
+          query.services = { $in: filters.services.$in };
+        }
+      }
+
+      // Rating filter
+      if (filters.averageRating) {
+        query.averageRating = filters.averageRating;
+      }
+
+      // Work areas filter
+      if (filters.workAreas) {
+        query.workAreas = filters.workAreas;
+      }
+
+      // Search filter (name, email, etc.)
+      if (filters.$or) {
+        query.$or = filters.$or;
+      }
+
+      // Date range filter
+      if (filters.createdAt) {
+        query.createdAt = filters.createdAt;
+      }
+
+      console.log(
+        "🔍 Repository: Final query:",
+        JSON.stringify(query, null, 2)
+      );
+
+      const technicians = await Technician.find(query)
+        .populate("userId", "email phone fullName")
+        .sort({ createdAt: -1 })
+        .lean();
+
+      console.log(`✅ Repository: Found ${technicians.length} technicians`);
+
+      return technicians as ITechnician[];
+    } catch (error) {
+      console.error("❌ Repository: Error finding technicians:", error);
+      throw error;
+    }
+  }
+
+  // Also add a public version that only returns approved technicians
+  async findPublicTechnicians(
+    filters: TechnicianFilter
+  ): Promise<ITechnician[]> {
+    try {
+      console.log(
+        "🔍 Repository: Finding PUBLIC technicians with filters:",
+        filters
+      );
+
+      // Force only approved technicians for public access
+      const publicFilters = {
+        ...filters,
+        status: "approved", // Always filter by approved status
+      };
+
+      // Remove any sensitive filter fields that shouldn't be exposed publicly
+      delete publicFilters.$or; // Remove search queries for public access
+
+      const technicians = await this.findTechnicians(publicFilters);
+
+      // Remove sensitive data before returning
+      const publicTechnicians = technicians.map((tech) => ({
+        ...tech,
+        // Remove sensitive fields for public access
+        identityVerification: undefined,
+        paymentDetails: undefined,
+        suspensionReason: undefined,
+        rejectionReason: undefined,
+        personalInfo: tech.personalInfo
+          ? {
+              ...tech.personalInfo,
+              // Keep only non-sensitive personal info
+              fullName: tech.personalInfo.fullName,
+              languages: tech.personalInfo.languages,
+              bio: tech.bio,
+              address: tech.personalInfo.address
+                ? {
+                    city: tech.personalInfo.address.city,
+                    state: tech.personalInfo.address.state,
+                    pincode: tech.personalInfo.address.pincode,
+                  }
+                : undefined,
+            }
+          : undefined,
+      }));
+
+      console.log(
+        `✅ Repository: Returning ${publicTechnicians.length} public technicians`
+      );
+
+      return publicTechnicians as ITechnician[];
+    } catch (error) {
+      console.error("❌ Repository: Error finding public technicians:", error);
+      throw error;
+    }
+  }
+  // In TechnicianManagementRepository class
+  async findById(id: string): Promise<ITechnician | null> {
+    try {
+      const technician = await Technician.findById(id)
+        .populate("userId", "email phone fullName")
+        .lean();
+
+      return technician as ITechnician | null;
+    } catch (error) {
+      console.error("Repository: Error finding technician by ID:", error);
+      throw error;
+    }
+  }
 }

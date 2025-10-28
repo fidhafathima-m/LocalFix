@@ -7,7 +7,7 @@ import {
   getSafeApplicationStatus,
   type User,
 } from "../../../store/slices/authSlice";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import BaseLogin from "../../../components/reusable/BaseLogin";
 import { validateSchema, loginSchema } from "../../../validation";
 import { UserAuthService } from "../../../services/user/userAuthService";
@@ -17,6 +17,10 @@ const UserLogin: React.FC = () => {
   const dispatch = useAppDispatch();
   const { loading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get the redirect path from location state or default to home
+  const from = location.state?.from || "/";
 
   const handleLogin = async (credentials: LoginCredentials) => {
     dispatch(loginStart());
@@ -49,7 +53,8 @@ const UserLogin: React.FC = () => {
           })
         );
 
-        setTimeout(() => navigate("/"), 1000);
+        // Redirect to the original URL instead of home
+        setTimeout(() => navigate(from, { replace: true }), 1000);
 
         return { success: true, message: res.message };
       } else {

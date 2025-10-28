@@ -13,6 +13,7 @@ export interface IAdminTechnician {
   workAreas: string[];
   serviceRadiusKm: number;
   status: "pending" | "approved" | "rejected" | "suspended";
+  bio: string;
   averageRating: number;
   ratingCount: number;
   totalJobs?: number;

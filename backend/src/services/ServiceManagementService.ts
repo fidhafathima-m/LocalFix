@@ -15,7 +15,7 @@ export class ServiceService implements IServiceService {
     this.serviceMapper = new ServiceMapper();
   }
 
-  async createService(createDto: CreateServiceDto): Promise<ServiceResponseDto> {
+   async createService(createDto: CreateServiceDto): Promise<ServiceResponseDto> {
     try {
       // Check if service with same name already exists
       const existingService = await this.serviceRepository.findByName(createDto.name);
@@ -32,6 +32,10 @@ export class ServiceService implements IServiceService {
         ...createDto,
         categoryId: new Types.ObjectId(createDto.categoryId),
         status: createDto.status || ServiceStatus.ACTIVE,
+        rating: createDto.rating || 4.5,
+        estimatedDuration: createDto.estimatedDuration || "2-4 hours",
+        features: createDto.features || [],
+        popular: createDto.popular || false,
       });
 
       return this.serviceMapper.toServiceResponseDto(service);
@@ -40,6 +44,7 @@ export class ServiceService implements IServiceService {
       throw error;
     }
   }
+
 
   async getServiceById(serviceId: string): Promise<ServiceResponseDto> {
     try {
@@ -156,12 +161,25 @@ export class ServiceService implements IServiceService {
       // If name is being updated, check for duplicates
       if (updateDto.name && updateDto.name !== existingService.name) {
         const duplicateService = await this.serviceRepository.findByName(updateDto.name);
-        if (duplicateService && duplicateService._id.toString() !== serviceId) {
+        if (duplicateService && (duplicateService as any)._id.toString() !== serviceId) {
           throw new Error(SERVICE_MESSAGES.SERVICE_ALREADY_EXISTS);
         }
       }
 
-      const updatedService = await this.serviceRepository.update(serviceId, updateDto);
+      // Build an update payload that omits undefined optional fields (so it matches the repository's expected shape)
+      const updatePayload: any = { ...updateDto };
+
+      // If rating is undefined in DTO, remove it so the repository isn't forced to accept undefined for a required number field
+      if (updatePayload.rating === undefined) {
+        delete updatePayload.rating;
+      }
+
+      // If categoryId is provided as string, convert to ObjectId to match repository expectations
+      if (updatePayload.categoryId && Types.ObjectId.isValid(updatePayload.categoryId)) {
+        updatePayload.categoryId = new Types.ObjectId(updatePayload.categoryId);
+      }
+
+      const updatedService = await this.serviceRepository.update(serviceId, updatePayload as any);
       if (!updatedService) {
         throw new Error(SERVICE_MESSAGES.FAILED_UPDATE_SERVICE);
       }
