@@ -255,4 +255,54 @@ export class UserManagementService implements IUserManagementService {
       return ResponseHelper.error(USER_MANAGEMENT_MESSAGES.FAILED_FETCH_USER);
     }
   }
+  // In UserManagementService.ts
+// In UserManagementService.ts - update getPublicUserById
+async getPublicUserById(userId: string): Promise<UserManagementResponseDto> {
+  try {
+    const user = await this.userManagementRepository.findById(userId);
+
+    if (!user) {
+      return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
+    }
+
+    if (user.isDeleted) {
+      return ResponseHelper.forbidden(
+        USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER
+      );
+    }
+
+    // Get user addresses
+    const userAddresses = await this.userManagementRepository.findUserAddresses(userId);
+    const defaultAddress = userAddresses.find(addr => addr.isDefault) || userAddresses[0];
+
+    // Create complete public user DTO
+    const publicUserDto = {
+      _id: user._id.toString(),
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phone || "Not provided", // Add fallback
+      profilePicture: user.profilePictureUrl,
+      isVerified: user.isVerified,
+      createdAt: user.createdAt,
+      defaultAddress: defaultAddress ? {
+        city: defaultAddress.city,
+        state: defaultAddress.state,
+        pincode: defaultAddress.pincode,
+        landmark: defaultAddress.landmark,
+        location: defaultAddress.location
+      } : undefined,
+      wallet: user.wallet || { balance: 0 }, // Add wallet with fallback
+      status: user.status || "Active",
+      role: user.roles?.[0] || "user"
+      // Note: dateOfBirth and gender might need to be added to your User model
+    };
+
+    return ResponseHelper.success("User retrieved successfully", {
+      user: publicUserDto,
+    });
+  } catch (error) {
+    console.error("Error fetching public user:", error);
+    return ResponseHelper.error("Failed to fetch user");
+  }
+}
 }

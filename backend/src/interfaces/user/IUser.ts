@@ -43,6 +43,9 @@ export interface IUser extends Document {
   updatedAt: Date;
   lastLogin?: Date;
   loginDevice?: string
+  profilePictureUrl?: string;
+  gender?: string;
+  dateOfBirth?: string;
 }
 
 export interface IUserCreate {

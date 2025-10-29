@@ -1,3 +1,4 @@
+// mappers/UserMapper.ts
 import { Types } from "mongoose";
 import {
   UserListDto,
@@ -24,7 +25,7 @@ export class UserMapper {
     };
   }
 
-  // Map to detail DTO
+  // Map to detail DTO - CORRECTED VERSION
   static toDetailDto(user: IUser): UserDetailDto {
     const baseDto: UserListDto = {
       _id: user._id.toString(),
@@ -36,6 +37,7 @@ export class UserMapper {
       isEmailVerified: user.isVerified || false,
       createdAt: user.createdAt || new Date(),
       updatedAt: user.updatedAt || new Date(),
+      defaultAddress: user.defaultAddress ? this.mapAddress(user.defaultAddress) : undefined,
     };
 
     return {
@@ -44,6 +46,13 @@ export class UserMapper {
       lastLogin: user.lastLogin,
       loginCount: user.loginCount,
       profilePictureUrl: user.profilePictureUrl,
+      // ✅ CORRECTED: Properly map the wallet object
+      dateOfBirth: user.dateOfBirth,
+      gender: user.gender,
+      wallet: user.wallet ? { 
+        balance: user.wallet.balance || 0, 
+        transactions: user.wallet.transactions || [] 
+      } : { balance: 0, transactions: [] },
     };
   }
 

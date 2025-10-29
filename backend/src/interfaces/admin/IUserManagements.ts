@@ -1,11 +1,20 @@
 import { ApiResponse } from "../../utils/responseHelper";
 import { IUserBase } from "../common/IUserBase";
 import { IAddress } from "../user/IAddress";
+interface IWallet {
+  balance: number;
+  transactions: any[];
+}
+
 
 export interface IUser extends IUserBase {
   lastLogin?: Date;
   loginCount?: number;
   profilePictureUrl?: string;
+  defaultAddress?: IAddress;
+  wallet?: IWallet;
+  dateOfBirth?: string;
+  gender?: string;
 }
 
 export interface IUserWithAddress extends IUser {

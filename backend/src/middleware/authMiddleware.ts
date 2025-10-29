@@ -28,7 +28,8 @@ export const protect = async (
   }
 
   if (!token) {
-    return ResponseHelper.unauthorized("Authentication required");
+    const response = ResponseHelper.unauthorized("Authentication required");
+    return res.status(response.statusCode || 401).json(response);
   }
 
   try {
@@ -37,26 +38,31 @@ export const protect = async (
     const userId = decoded._id || decoded.id;
 
     if (!userId) {
-      return ResponseHelper.unauthorized("Invalid token structure");
+      const response = ResponseHelper.unauthorized("Invalid token structure");
+      return res.status(response.statusCode || 401).json(response);
     }
 
     const user = await User.findById(userId).select("-passwordHash");
 
     if (!user) {
-      return ResponseHelper.notFound("User not found");
+      const response = ResponseHelper.notFound("User not found");
+      return res.status(response.statusCode || 404).json(response);
     }
 
     // Check if user is active and not blocked
     if (user.isDeleted) {
-      return ResponseHelper.forbidden("Account has been deleted");
+      const response = ResponseHelper.forbidden("Account has been deleted");
+      return res.status(response.statusCode || 403).json(response);
     }
 
     if (user.status === "Blocked") {
-      return ResponseHelper.forbidden("Account has been blocked");
+      const response = ResponseHelper.forbidden("Account has been blocked");
+      return res.status(response.statusCode || 403).json(response);
     }
 
     if (user.status !== "Active") {
-      return ResponseHelper.forbidden("Account is not active");
+      const response = ResponseHelper.forbidden("Account is not active");
+      return res.status(response.statusCode || 403).json(response);
     }
 
     req.user = {
@@ -70,30 +76,26 @@ export const protect = async (
   } catch (error) {
     console.error("Token verification failed:", error);
     
-    // Handle specific JWT errors with proper error codes
+    let response;
     if (error instanceof TokenExpiredError) {
-      return res.status(401).json({
-        success: false,
-        message: "Token expired",
+      response = ResponseHelper.unauthorized("Token expired");
+      return res.status(response.statusCode || 401).json({
+        ...response,
         code: "TOKEN_EXPIRED",
         expiredAt: error.expiredAt
       });
     }
     
     if (error instanceof JsonWebTokenError) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid token",
+      response = ResponseHelper.unauthorized("Invalid token");
+      return res.status(response.statusCode || 401).json({
+        ...response,
         code: "INVALID_TOKEN"
       });
     }
 
-    // For other errors
-    return res.status(401).json({
-      success: false,
-      message: "Authentication failed",
-      code: "AUTH_FAILED"
-    });
+    response = ResponseHelper.unauthorized("Authentication failed");
+    return res.status(response.statusCode || 401).json(response);
   }
 };
 

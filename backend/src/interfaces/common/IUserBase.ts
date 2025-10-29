@@ -17,4 +17,7 @@ export interface IUserBase extends Document {
   }>;
   createdAt: Date;
   updatedAt: Date;
+  profilePictureUrl?: string;
+  dateOfBirth?: string;
+  gender?: string;
 }

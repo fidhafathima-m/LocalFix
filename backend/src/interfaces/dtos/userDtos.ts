@@ -24,6 +24,12 @@ export interface UserDetailDto extends UserListDto {
   lastLogin?: Date;
   loginCount?: number;
   profilePictureUrl?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  wallet?: {
+    balance: number;
+    transactions: any[];
+  };
 }
 
 export interface AddressDto {

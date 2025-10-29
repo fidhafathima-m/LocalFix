@@ -1,4 +1,5 @@
-import { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useRef } from "react";
 import {
   FmdGoodOutlined,
   EditOutlined,
@@ -13,111 +14,94 @@ import {
   ExpandMoreOutlined,
   MessageOutlined,
   AddOutlined,
+  CameraAltOutlined
 } from "@mui/icons-material";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
+import { userService } from "../../../services/user/userService";
+
+interface UserData {
+  _id: string;
+  fullName: string;
+  email?: string;
+  phone: string;
+  status: "Active" | "Inactive" | "Blocked";
+  defaultAddress?: {
+    city: string;
+    state: string;
+    pincode: string;
+    location: { type: "Point"; coordinates: [number, number] };
+  };
+  isVerified: boolean;
+  role: string;
+  createdAt: string;
+  wallet: { balance: number };
+  profilePicture?: string;
+  dateOfBirth?: string;
+  gender?: string;
+}
+
+interface Address {
+  id: number;
+  type: string;
+  address: string;
+  landmark: string;
+  pincode: string;
+}
+
 const UserProfile: React.FC = () => {
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState<number | null>(null);
   const [showChatSupport, setShowChatSupport] = useState(false);
   const [activeTab, setActiveTab] = useState<"history" | "wallet">("history");
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Real user data state
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [personalInfo, setPersonalInfo] = useState({
-    fullName: "John Doe",
-    phoneNumber: "+91 9876543210",
-    email: "john.doe@example.com",
-    dateOfBirth: "15/03/1990",
+    fullName: "",
+    phoneNumber: "",
+    email: "",
+    dateOfBirth: "",
     gender: "Male",
   });
-  const [addresses, setAddresses] = useState([
-    {
-      id: 1,
-      type: "Home",
-      address: "123 Main Street, Apartment 4B",
-      landmark: "Near City Park",
-      pincode: "400001",
-    },
-    {
-      id: 2,
-      type: "Work",
-      address: "456 Business Avenue, Floor 3",
-      landmark: "Opposite Grand Hotel",
-      pincode: "400002",
-    },
-  ]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [tempPersonalInfo, setTempPersonalInfo] = useState(personalInfo);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [tempAddress, setTempAddress] = useState<any>(null);
+  const [tempAddress, setTempAddress] = useState<Address | null>(null);
+
   const transactions = [
     {
-      id: "#8090",
-      service: "Refrigerator Repair",
-      amount: "₹1200",
-      date: "15/12/2023",
-      status: "Paid",
+      id: '#8090',
+      service: 'Refrigerator Repair',
+      amount: '₹1200',
+      date: '15/12/2023',
+      status: 'Paid',
     },
     {
-      id: "#7899",
-      service: "TV Repair - Cancelled",
-      amount: "₹800",
-      date: "10/12/2023",
-      status: "Refund",
+      id: '#7899',
+      service: 'TV Repair - Cancelled',
+      amount: '₹800',
+      date: '10/12/2023',
+      status: 'Refund',
     },
     {
-      id: "#6789",
-      service: "AC Service",
-      amount: "₹1500",
-      date: "05/12/2023",
-      status: "Paid",
+      id: '#6789',
+      service: 'AC Service',
+      amount: '₹1500',
+      date: '05/12/2023',
+      status: 'Paid',
     },
-  ];
-  const reviews = [
-    {
-      service: "AC Repair",
-      technician: "Rajesh Kumar",
-      date: "8/15/2023",
-      rating: 5,
-      comment:
-        "Very professional service. The technician arrived on time and fixed my AC in less than an hour. Highly recommended!",
-    },
-    {
-      service: "Refrigerator Service",
-      technician: "Amit Sharma",
-      date: "6/22/2023",
-      rating: 4,
-      comment:
-        "Good service, but took a bit longer than expected. The technician was knowledgeable though.",
-    },
-  ];
-  const notifications = [
-    {
-      type: "booking",
-      icon: <CheckCircleOutlineOutlined className="w-5 h-5 text-green-600" />,
-      message:
-        "Technician Jai has confirmed your AC repair booking for tomorrow at 10:00 AM",
-      time: "2h ago",
-    },
-    {
-      type: "payment",
-      icon: <CreditCardOutlined className="w-5 h-5 text-green-600" />,
-      message: "₹1200 paid successfully for Refrigerator Repair service",
-      time: "1d ago",
-    },
-    {
-      type: "offer",
-      icon: <NotificationsNoneOutlined className="w-5 h-5 text-yellow-600" />,
-      message:
-        "Get 15% off on your next AC service booking. Use code ACC15APR3",
-      time: "2d ago",
-    },
-    {
-      type: "parts",
-      icon: <AccountBalanceWalletOutlined className="w-5 h-5 text-blue-600" />,
-      message:
-        "Your technician has requested spare parts for your AC repair booking",
-      time: "3d ago",
-    },
-  ];
+  ]
+
+
+  const reviews: any[] = []; // Empty for now - no reviews yet
+
+  const notifications: any[] = []; // Empty for now - under development
+
   const faqs = [
     {
       question: "How do I reschedule my booking?",
@@ -145,47 +129,259 @@ const UserProfile: React.FC = () => {
         "If you're facing any issues with your service, you can either raise a ticket from the Support section or contact our customer support team directly at +91-9876543210. We aim to resolve all service-related issues within 24 hours.",
     },
   ];
-  const handleSavePersonal = () => {
-    setPersonalInfo(tempPersonalInfo);
-    setIsEditingPersonal(false);
+
+// In your fetchUserData function
+useEffect(() => {
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await userService.getUserProfile();
+      
+      console.log("🔍 Full API Response:", response); // Debug log
+      
+      if (response.success && response.data) {
+        const user = response.data.user;
+        
+        console.log("🔍 User data from API:", user); // Debug log
+        
+        // Set userData with ALL fields
+        setUserData({
+          _id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          phone: user.phone || "Not provided",
+          status: user.status || "Active",
+          isVerified: user.isVerified,
+          role: user.role || "user",
+          createdAt: user.createdAt,
+          wallet: user.wallet || { balance: 0 },
+          profilePicture: user.profilePictureUrl, // Use the field from API
+          dateOfBirth: user.dateOfBirth, // Use the field from API
+          gender: user.gender, // Use the field from API
+          defaultAddress: user.defaultAddress,
+        });
+        
+        // Map API data to personal info
+        setPersonalInfo({
+          fullName: user.fullName || "",
+          phoneNumber: user.phone || "Not provided",
+          email: user.email || "",
+          dateOfBirth: user.dateOfBirth || "Not set",
+          gender: user.gender || "Not specified",
+        });
+
+        console.log("🔍 Personal info set to:", { // Debug log
+          fullName: user.fullName || "",
+          phoneNumber: user.phone || "Not provided",
+          email: user.email || "",
+          dateOfBirth: user.dateOfBirth || "Not set",
+          gender: user.gender || "Not specified",
+        });
+
+        // Map default address if available
+        if (user.defaultAddress) {
+          setAddresses([
+            {
+              id: 1,
+              type: "Home",
+              address: `${user.defaultAddress.city}, ${user.defaultAddress.state}`,
+              landmark: user.defaultAddress.landmark || "",
+              pincode: user.defaultAddress.pincode,
+            },
+          ]);
+        } else {
+          setAddresses([]);
+        }
+      } else {
+        // Fallback to mock data
+        console.log("No user data found, using mock data");
+        setUserData(userService.getMockUserData() as any);
+        setPersonalInfo(userService.getMockUserData().personalInfo);
+        setAddresses(userService.getMockUserData().addresses);
+      }
+    } catch (err) {
+      console.error("Error fetching user data:", err);
+      setError("Failed to load user data");
+      setUserData(userService.getMockUserData() as any);
+      setPersonalInfo(userService.getMockUserData().personalInfo);
+      setAddresses(userService.getMockUserData().addresses);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  fetchUserData();
+}, []);
+
+
+  const handleSavePersonal = async () => {
+    try {
+      setError(null);
+      
+      // Prepare update data
+      const updateData = {
+        fullName: tempPersonalInfo.fullName,
+        phone: tempPersonalInfo.phoneNumber,
+        email: tempPersonalInfo.email,
+        dateOfBirth: tempPersonalInfo.dateOfBirth,
+        gender: tempPersonalInfo.gender,
+      };
+
+      // Call API to update user
+      const response = await userService.updateUserProfile(updateData);
+      
+      if (response.success) {
+        setPersonalInfo(tempPersonalInfo);
+        setUserData(prev => prev ? { ...prev, ...updateData } : null);
+        setIsEditingPersonal(false);
+      } else {
+        setError(response.message || "Failed to update profile");
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      setError("Failed to update profile");
+    }
+  };
+
   const handleCancelPersonal = () => {
     setTempPersonalInfo(personalInfo);
     setIsEditingPersonal(false);
   };
-  const handleSaveAddress = (id: number) => {
-    setAddresses(
-      addresses.map((addr) => (addr.id === id ? tempAddress : addr))
-    );
-    setIsEditingAddress(null);
-    setTempAddress(null);
+
+  const handleProfilePictureClick = () => {
+    fileInputRef.current?.click();
   };
+
+  const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingPhoto(true);
+      setError(null);
+
+      const response = await userService.uploadProfilePicture(file);
+      
+      if (response.success && response.data?.profilePictureUrl) {
+        // Update the profile picture in state
+        setUserData(prev => prev ? { 
+          ...prev, 
+          profilePicture: response.data.profilePictureUrl 
+        } : null);
+      } else {
+        setError(response.message || "Failed to upload profile picture");
+      }
+    } catch (err) {
+      console.error("Error uploading profile picture:", err);
+      setError("Failed to upload profile picture");
+    } finally {
+      setUploadingPhoto(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleSaveAddress = (id: number) => {
+    if (tempAddress) {
+      setAddresses(addresses.map((addr) => (addr.id === id ? tempAddress : addr)));
+      setIsEditingAddress(null);
+      setTempAddress(null);
+    }
+  };
+
   const handleCancelAddress = () => {
     setIsEditingAddress(null);
     setTempAddress(null);
   };
+
   const handleDeleteAddress = (id: number) => {
     setAddresses(addresses.filter((addr) => addr.id !== id));
   };
+
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <div className="w-full min-h-screen bg-gray-50 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Loading profile...</span>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error && !userData) {
+    return (
+      <>
+        <Header />
+        <div className="w-full min-h-screen bg-gray-50 flex justify-center items-center">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <Header />
       <div className="w-full min-h-screen bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 py-8">
+          {error && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-yellow-800">{error}</p>
+            </div>
+          )}
+
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">My Profile</h1>
             <button className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">
               Book a Service
             </button>
           </div>
+
+          {/* Profile Header */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <img
-                  src="https://uploadthingy.s3.us-west-1.amazonaws.com/2KgHrawW7BA8Vug5xgz31c/User_Profile.png"
-                  alt="Profile"
-                  className="w-20 h-20 rounded-full object-cover"
-                />
+                <div className="relative">
+                  <img
+                    src={userData?.profilePicture || "https://imgs.search.brave.com/rwE-hC6ESt3hBJZhImPkb-KvU26bLDKVe-OKv1y50-M/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzE0LzQz/LzU1LzE0NDM1NWQ3/YjM2YzVmNjQ2NDM1/NDIzNzk4MjgxY2U5/LmpwZw"}
+                    alt="Profile"
+                    className="w-20 h-20 rounded-full object-cover"
+                  />
+                  <button
+                    onClick={handleProfilePictureClick}
+                    disabled={uploadingPhoto}
+                    className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors"
+                  >
+                    {uploadingPhoto ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <CameraAltOutlined className="w-4 h-4" />
+                    )}
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleProfilePictureChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
                 <div>
                   <h2 className="text-xl font-bold">{personalInfo.fullName}</h2>
                   <p className="text-sm text-gray-600">
@@ -193,13 +389,16 @@ const UserProfile: React.FC = () => {
                   </p>
                   <p className="text-sm text-green-600 flex items-center mt-1">
                     <CheckCircleOutlineOutlined className="w-4 h-4 mr-1" />
-                    Verified
+                    {userData?.isVerified ? "Verified" : "Not Verified"}
                   </p>
                   <p className="text-sm text-gray-600">{personalInfo.email}</p>
                 </div>
               </div>
               <button
-                onClick={() => setIsEditingPersonal(true)}
+                onClick={() => {
+                  setIsEditingPersonal(true);
+                  setTempPersonalInfo(personalInfo);
+                }}
                 className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
               >
                 <EditOutlined className="w-4 h-4" />
@@ -207,12 +406,17 @@ const UserProfile: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Personal Information */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Personal Information</h2>
               {!isEditingPersonal && (
                 <button
-                  onClick={() => setIsEditingPersonal(true)}
+                  onClick={() => {
+                    setIsEditingPersonal(true);
+                    setTempPersonalInfo(personalInfo);
+                  }}
                   className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
                 >
                   <EditOutlined className="w-4 h-4" />
@@ -220,7 +424,7 @@ const UserProfile: React.FC = () => {
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">
                   Full Name
@@ -287,7 +491,7 @@ const UserProfile: React.FC = () => {
                 </label>
                 {isEditingPersonal ? (
                   <input
-                    type="text"
+                    type="date"
                     value={tempPersonalInfo.dateOfBirth}
                     onChange={(e) =>
                       setTempPersonalInfo({
@@ -298,7 +502,12 @@ const UserProfile: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 ) : (
-                  <p className="font-medium">{personalInfo.dateOfBirth}</p>
+                  <p className="font-medium">
+                    {personalInfo.dateOfBirth === "Not set" 
+                      ? "Not set" 
+                      : new Date(personalInfo.dateOfBirth).toLocaleDateString()
+                    }
+                  </p>
                 )}
               </div>
               <div>
@@ -316,9 +525,10 @@ const UserProfile: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option>Male</option>
-                    <option>Female</option>
-                    <option>Other</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
                   </select>
                 ) : (
                   <p className="font-medium">{personalInfo.gender}</p>
@@ -342,6 +552,8 @@ const UserProfile: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Saved Addresses */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Saved Addresses</h2>
@@ -351,104 +563,131 @@ const UserProfile: React.FC = () => {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {addresses.map((address) => (
-                <div
-                  key={address.id}
-                  className="border border-gray-200 rounded-lg p-4"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center space-x-2">
-                      <FmdGoodOutlined className="w-5 h-5 text-blue-600" />
-                      <span className="font-semibold">{address.type}</span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          setIsEditingAddress(address.id);
-                          setTempAddress(address);
-                        }}
-                        className="text-gray-600 hover:text-blue-600"
-                      >
-                        <EditOutlined className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAddress(address.id)}
-                        className="text-gray-600 hover:text-red-600"
-                      >
-                        <DeleteOutlineOutlined className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  {isEditingAddress === address.id ? (
-                    <div className="space-y-3">
-                      <input
-                        type="text"
-                        value={tempAddress.address}
-                        onChange={(e) =>
-                          setTempAddress({
-                            ...tempAddress,
-                            address: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Address"
-                      />
-                      <input
-                        type="text"
-                        value={tempAddress.landmark}
-                        onChange={(e) =>
-                          setTempAddress({
-                            ...tempAddress,
-                            landmark: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Landmark"
-                      />
-                      <input
-                        type="text"
-                        value={tempAddress.pincode}
-                        onChange={(e) =>
-                          setTempAddress({
-                            ...tempAddress,
-                            pincode: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Pincode"
-                      />
+              {addresses.length > 0 ? (
+                addresses.map((address) => (
+                  <div
+                    key={address.id}
+                    className="border border-gray-200 rounded-lg p-4"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center space-x-2">
+                        <FmdGoodOutlined className="w-5 h-5 text-blue-600" />
+                        <span className="font-semibold">{address.type}</span>
+                      </div>
                       <div className="flex space-x-2">
                         <button
-                          onClick={handleCancelAddress}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50"
+                          onClick={() => {
+                            setIsEditingAddress(address.id);
+                            setTempAddress(address);
+                          }}
+                          className="text-gray-600 hover:text-blue-600"
                         >
-                          Cancel
+                          <EditOutlined className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleSaveAddress(address.id)}
-                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+                          onClick={() => handleDeleteAddress(address.id)}
+                          className="text-gray-600 hover:text-red-600"
                         >
-                          Save
+                          <DeleteOutlineOutlined className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <p className="text-sm text-gray-600 mb-1">
-                        {address.address}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Landmark: {address.landmark}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Pincode: {address.pincode}
-                      </p>
-                    </>
-                  )}
+                    {isEditingAddress === address.id ? (
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          value={tempAddress?.address || ""}
+                          onChange={(e) =>
+                            setTempAddress(tempAddress ? {
+                              ...tempAddress,
+                              address: e.target.value,
+                            } : null)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Address"
+                        />
+                        <input
+                          type="text"
+                          value={tempAddress?.landmark || ""}
+                          onChange={(e) =>
+                            setTempAddress(tempAddress ? {
+                              ...tempAddress,
+                              landmark: e.target.value,
+                            } : null)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Landmark"
+                        />
+                        <input
+                          type="text"
+                          value={tempAddress?.pincode || ""}
+                          onChange={(e) =>
+                            setTempAddress(tempAddress ? {
+                              ...tempAddress,
+                              pincode: e.target.value,
+                            } : null)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Pincode"
+                        />
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={handleCancelAddress}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveAddress(address.id)}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gray-600 mb-1">
+                          {address.address}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Landmark: {address.landmark || "Not specified"}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Pincode: {address.pincode}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-8">
+                  <FmdGoodOutlined className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">No addresses saved yet</p>
+                  <button className="mt-2 text-blue-600 hover:text-blue-700 text-sm">
+                    Add your first address
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           </div>
+
+          {/* Under Development Notice */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                <span className="text-yellow-600 text-sm font-bold">!</span>
+              </div>
+              <div>
+                <h3 className="font-semibold text-yellow-800">Feature Under Development</h3>
+                <p className="text-yellow-700 text-sm">
+                  Notifications, Payment History, and Reviews features are currently being developed and will be available soon.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Payments & Wallet */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-lg font-semibold mb-4">Payments & Wallet</h2>
             <div className="flex space-x-4 mb-6 border-b border-gray-200">
@@ -473,12 +712,15 @@ const UserProfile: React.FC = () => {
                 Wallet
               </button>
             </div>
+            
             {activeTab === "wallet" && (
               <div className="bg-blue-600 rounded-lg p-6 mb-6">
                 <div className="flex items-center justify-between text-white mb-4">
                   <div>
                     <p className="text-sm opacity-90 mb-1">Available Balance</p>
-                    <p className="text-3xl font-bold">₹750</p>
+                    <p className="text-3xl font-bold">
+                      ₹{userData?.wallet?.balance || 0}
+                    </p>
                   </div>
                   <AccountBalanceWalletOutlined className="w-12 h-12 opacity-80" />
                 </div>
@@ -494,79 +736,101 @@ const UserProfile: React.FC = () => {
                 </div>
               </div>
             )}
+            
             <div>
               <h3 className="font-semibold mb-3">Transaction History</h3>
-              <div className="space-y-3">
-                {transactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">
-                        {transaction.service}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {transaction.date}
-                      </p>
+              {transactions.length > 0 ? (
+                <div className="space-y-3">
+                  {transactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">
+                          {transaction.service}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {transaction.date}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{transaction.amount}</p>
+                        <span
+                          className={`text-xs px-2 py-1 rounded ${
+                            transaction.status === "Paid"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {transaction.status}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{transaction.amount}</p>
-                      <span
-                        className={`text-xs px-2 py-1 rounded ${
-                          transaction.status === "Paid"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {transaction.status}
-                      </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <CreditCardOutlined className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">No transactions yet</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reviews & Ratings */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">Reviews & Ratings</h2>
+            {reviews.length > 0 ? (
+              <div className="space-y-4">
+                {reviews.map((review, index) => (
+                  <div
+                    key={index}
+                    className="border-b border-gray-200 pb-4 last:border-b-0"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-semibold">{review.service}</p>
+                        <p className="text-sm text-gray-600">
+                          Technician: {review.technician}
+                        </p>
+                      </div>
+                      <span className="text-sm text-gray-500">{review.date}</span>
+                    </div>
+                    <div className="flex items-center space-x-1 mb-2">
+                      {[...Array(review.rating)].map((_, i) => (
+                        <StarBorderOutlined
+                          key={i}
+                          className="w-4 h-4 fill-yellow-400 text-yellow-400"
+                        />
+                      ))}
+                    </div>
+                    <p className="text-sm text-gray-600">{review.comment}</p>
+                    <div className="flex space-x-4 mt-2">
+                      <button className="text-sm text-blue-600 hover:underline flex items-center space-x-1">
+                        <EditOutlined className="w-3 h-3" />
+                        <span>Edit</span>
+                      </button>
+                      <button className="text-sm text-red-600 hover:underline flex items-center space-x-1">
+                        <DeleteOutlineOutlined className="w-3 h-3" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-8">
+                <StarBorderOutlined className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">No reviews yet</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Your reviews will appear here after you book services
+                </p>
+              </div>
+            )}
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">Reviews & Ratings</h2>
-            <div className="space-y-4">
-              {reviews.map((review, index) => (
-                <div
-                  key={index}
-                  className="border-b border-gray-200 pb-4 last:border-b-0"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-semibold">{review.service}</p>
-                      <p className="text-sm text-gray-600">
-                        Technician: {review.technician}
-                      </p>
-                    </div>
-                    <span className="text-sm text-gray-500">{review.date}</span>
-                  </div>
-                  <div className="flex items-center space-x-1 mb-2">
-                    {[...Array(review.rating)].map((_, i) => (
-                      <StarBorderOutlined
-                        key={i}
-                        className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-600">{review.comment}</p>
-                  <div className="flex space-x-4 mt-2">
-                    <button className="text-sm text-blue-600 hover:underline flex items-center space-x-1">
-                      <EditOutlined className="w-3 h-3" />
-                      <span>Edit</span>
-                    </button>
-                    <button className="text-sm text-red-600 hover:underline flex items-center space-x-1">
-                      <DeleteOutlineOutlined className="w-3 h-3" />
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+
+          {/* Notifications */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Notifications</h2>
@@ -574,28 +838,40 @@ const UserProfile: React.FC = () => {
                 Mark all as read
               </button>
             </div>
-            <div className="space-y-3">
-              {notifications.map((notification, index) => (
-                <div
-                  key={index}
-                  className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg"
-                >
-                  {notification.icon}
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-800">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {notification.time}
-                    </p>
+            {notifications.length > 0 ? (
+              <div className="space-y-3">
+                {notifications.map((notification, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg"
+                  >
+                    {notification.icon}
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {notification.time}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <NotificationsNoneOutlined className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">No notifications</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  You'll see notifications about your bookings here
+                </p>
+              </div>
+            )}
             <button className="w-full mt-4 py-2 text-sm text-blue-600 hover:underline">
               View All Notifications
             </button>
           </div>
+
+          {/* Support & Help */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-lg font-semibold mb-4">Support & Help</h2>
             <div className="flex space-x-4 mb-6">
@@ -689,6 +965,8 @@ const UserProfile: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Security & Settings */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold mb-4">Security & Settings</h2>
             <div className="space-y-4">

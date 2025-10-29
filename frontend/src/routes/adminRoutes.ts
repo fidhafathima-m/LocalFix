@@ -49,4 +49,8 @@ export const ADMIN_ROUTES = {
   UPDATE_ITEM: (itemId: string) => `/admin/items/${itemId}`,
   DELETE_ITEM: (itemId: string) => `/admin/items/${itemId}`,
   SEARCH_ITEM: "/admin/items/search",
+
+  // User profile
+  UPDATE_USER_PROFILE: "/user/profile",
+  UPDATE_PROFILE_PHOTO: "/user/profile/upload-photo",
 } as const;

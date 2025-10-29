@@ -1,3 +1,4 @@
+// repositories/admin/UserManagementRepository.ts
 import { Model } from "mongoose";
 import { BaseRepository } from "../BaseRepository";
 import { IUserManagementRepository } from "../../interfaces/repository/admin/IUserManagementRepository";
@@ -6,13 +7,27 @@ import {
   IUserWithAddress,
 } from "../../interfaces/admin/IUserManagements";
 import User from "../../models/UserSchema";
+import UserAddress from "../../models/UserAddressSchema"; // Add this import
 
 export class UserManagementRepository
   extends BaseRepository<IUser>
   implements IUserManagementRepository
 {
+  private userAddressModel: Model<any>;
+
   constructor() {
     super(User as unknown as Model<IUser>);
+    this.userAddressModel = UserAddress as Model<any>;
+  }
+
+  // Add this method to find user addresses
+  async findUserAddresses(userId: string): Promise<any[]> {
+    try {
+      return await this.userAddressModel.find({ userId }).lean();
+    } catch (error) {
+      console.error("Error finding user addresses:", error);
+      return [];
+    }
   }
 
   async findAllUsers(): Promise<IUserWithAddress[]> {
@@ -87,4 +102,13 @@ export class UserManagementRepository
 
     return { totalUsers, activeUsers, inactiveUsers, blockedUsers };
   }
+  // In UserManagementRepository.ts - add this method
+async findByEmail(email: string): Promise<IUser | null> {
+  try {
+    return await this.model.findOne({ email, isDeleted: { $ne: true } });
+  } catch (error) {
+    console.error("Error finding user by email:", error);
+    return null;
+  }
+}
 }

@@ -14,4 +14,6 @@ export interface IUserManagementRepository extends IBaseRepository<IUser> {
     inactiveUsers: number;
     blockedUsers: number;
   }>;
+  findUserAddresses(userId: string): Promise<any[]>;
+  findByEmail(email: string): Promise<IUser | null>
 }
