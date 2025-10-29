@@ -138,6 +138,16 @@ export interface ITechnician extends Document {
   };
   };
 
+  availabilityPreferences?: {
+    daysAvailable: string[];
+    startTime: string;
+    endTime: string;
+    workRadius: number;
+    serviceAreas: string[];
+    emergencyService: boolean;
+    afterHoursService: boolean;
+  };
+
   // Skills & Services
   services: string[];
   experienceYears?: number;

@@ -6,6 +6,8 @@ import {
   StarBorderOutlined,
   CheckCircleOutlined,
   ArrowForwardOutlined,
+  FilterListOutlined,
+  CloseOutlined,
 } from "@mui/icons-material";
 import fetchServices, { type Service } from "../data/services";
 import fetchCategories, { type Category } from "../data/categories";
@@ -17,11 +19,17 @@ const Services: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setLoading] = useState(true);
+  const [, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<string>("name");
 
-  // Helper function for default icons (same as in data/services.ts)
+  // Helper function for default icons
   const getDefaultIcon = (serviceName: string): string => {
     const iconMap: { [key: string]: string } = {
       "AC Repair & Service": "/icons/ac.svg",
@@ -31,11 +39,10 @@ const Services: React.FC = () => {
       "TV Repair": "/icons/tv.svg",
       Microwave: "/icons/microwave.svg",
     };
-
     return iconMap[serviceName] || "/icons/default-service.svg";
   };
 
-  // Fetch services and categories on component mount
+  // Fetch services and categories
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -45,19 +52,9 @@ const Services: React.FC = () => {
           fetchCategories(),
         ]);
 
-        console.log("📊 Loaded services:", servicesData);
-        console.log("📊 Loaded categories:", categoriesData);
-        console.log("🔗 Service category relationships:", 
-          servicesData.map(s => ({ 
-            name: s.name, 
-            categoryId: s.categoryId,
-            categoryName: categoriesData.find(c => c.id === s.categoryId)?.name 
-          }))
-        );
-
         setServices(servicesData);
 
-        // Add "All Services" category at the beginning
+        // Add "All Services" category
         const allServicesCategory: Category = {
           id: "all",
           name: "All Services",
@@ -80,105 +77,67 @@ const Services: React.FC = () => {
     loadData();
   }, []);
 
-  // Get icon URL for service - use backend iconUrl with fallback
+  // Get icon URLs
   const getServiceIconUrl = (service: Service): string => {
     return service.iconUrl || getDefaultIcon(service.name);
   };
 
-  // Get icon URL for category
   const getCategoryIconUrl = (category: Category): string => {
-    if (category.id === "all") return ""; // No icon for "All Services"
-    
-    // Return the category's iconUrl from backend
+    if (category.id === "all") return "";
     return category.iconUrl || "/icons/default-service.svg";
   };
 
-  // Filter services based on selected category ID and search query
-  const filteredServices = services.filter((service) => {
-    const matchesSearch =
-      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.description.toLowerCase().includes(searchQuery.toLowerCase());
+  // Get price range limits from actual services
+  const minPrice = services.length > 0 ? Math.min(...services.map(s => s.avgBasePrice || 299)) : 0;
+  const maxPrice = services.length > 0 ? Math.max(...services.map(s => s.avgBasePrice || 299)) : 5000;
 
-    // If "All Services" is selected, show all services that match search
-    if (selectedCategory === "all") {
-      return matchesSearch;
-    }
+  // Apply all filters
+  const filteredServices = services
+    .filter((service) => {
+      // Category filter
+      const categoryMatch = selectedCategory === "all" || service.categoryId === selectedCategory;
+      
+      // Search filter
+      const searchMatch = 
+        service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        service.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Price filter
+      const servicePrice = service.avgBasePrice || 299;
+      const priceMatch = servicePrice >= priceRange[0] && servicePrice <= priceRange[1];
+      
+      // Rating filter
+      const ratingMatch = ratingFilter === null || (service.rating || 4.5) >= ratingFilter;
 
-    // Filter by categoryId - this is the correct way since services have categoryId
-    const belongsToCategory = service.categoryId === selectedCategory;
-    
-    return belongsToCategory && matchesSearch;
-  });
+      return categoryMatch && searchMatch && priceMatch && ratingMatch;
+    })
+    .sort((a, b) => {
+      // Sorting
+      switch (sortBy) {
+        case "price-low":
+          return (a.avgBasePrice || 299) - (b.avgBasePrice || 299);
+        case "price-high":
+          return (b.avgBasePrice || 299) - (a.avgBasePrice || 299);
+        case "rating":
+          return (b.rating || 4.5) - (a.rating || 4.5);
+        case "name":
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
 
-  // Debug: Log filtered services when category changes
-  useEffect(() => {
-    console.log("🔍 Selected category ID:", selectedCategory);
-    console.log("🔍 Selected category name:", 
-      categories.find(cat => cat.id === selectedCategory)?.name
-    );
-    console.log("🔍 Filtered services count:", filteredServices.length);
-    console.log("🔍 Filtered services:", filteredServices);
-  }, [selectedCategory, filteredServices, categories]);
+  // Reset filters
+  const resetFilters = () => {
+    setPriceRange([minPrice, maxPrice]);
+    setRatingFilter(null);
+    setSortBy("name");
+  };
 
-  if (loading) {
-    return (
-      <div className="w-full">
-        <Header />
-        {/* Hero Section */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Our Services
-            </h1>
-            <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
-              Professional appliance repair services in Kannur with verified
-              technicians
-            </p>
-          </div>
-        </div>
-        {/* Loading State */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Loading services...</span>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full">
-        <Header />
-        {/* Hero Section */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Our Services
-            </h1>
-          </div>
-        </div>
-        {/* Error State */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-8">
-            <h3 className="text-lg font-semibold text-red-800 mb-2">
-              Error Loading Services
-            </h3>
-            <p className="text-red-600 mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  // Check if any filter is active
+  const isAnyFilterActive = 
+    priceRange[0] !== minPrice || 
+    priceRange[1] !== maxPrice || 
+    ratingFilter !== null;
 
   return (
     <>
@@ -191,8 +150,7 @@ const Services: React.FC = () => {
               Our Services
             </h1>
             <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
-              Professional appliance repair services in Kannur with verified
-              technicians and transparent pricing
+              Professional appliance repair services in Kannur with verified technicians
             </p>
             <div className="max-w-md mx-auto">
               <div className="relative">
@@ -202,82 +160,189 @@ const Services: React.FC = () => {
                   placeholder="Search for a service..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full pl-12 pr-4 py-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Categories */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {categories.map((category) => {
-              const categoryIconUrl = getCategoryIconUrl(category);
-              return (
+        {/* Categories & Filter Bar */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+            {/* Categories */}
+            <div className="flex gap-3 overflow-x-auto pb-2 flex-1">
+              {categories.map((category) => {
+                const categoryIconUrl = getCategoryIconUrl(category);
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                      selectedCategory === category.id
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                    }`}
+                  >
+                    {categoryIconUrl && (
+                      <img
+                        src={categoryIconUrl}
+                        alt={category.name}
+                        className="w-5 h-5 object-contain"
+                      />
+                    )}
+                    {category.name}
+                    {category.serviceCount && category.id !== "all" && (
+                      <span
+                        className={`text-xs px-1.5 py-0.5 rounded-full ${
+                          selectedCategory === category.id
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {category.serviceCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Filter & Sort Controls */}
+            <div className="flex gap-3 items-center">
+              {/* Sort Dropdown */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="name">Sort by Name</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="rating">Highest Rated</option>
+              </select>
+
+              {/* Filter Toggle Button */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                  showFilters || isAnyFilterActive
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                <FilterListOutlined className="w-5 h-5" />
+                Filters
+                {isAnyFilterActive && (
+                  <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+                )}
+              </button>
+
+              {/* Reset Filters Button */}
+              {isAnyFilterActive && (
                 <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                    selectedCategory === category.id
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                  }`}
+                  onClick={resetFilters}
+                  className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
                 >
-                  {categoryIconUrl && (
-                    <img
-                      src={categoryIconUrl}
-                      alt={category.name}
-                      className="w-5 h-5 object-contain"
-                    />
-                  )}
-                  {category.name}
-                  {category.serviceCount && category.id !== "all" && (
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full ${
-                        selectedCategory === category.id
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {category.serviceCount}
-                    </span>
-                  )}
+                  <CloseOutlined className="w-4 h-4" />
+                  Reset
                 </button>
-              );
-            })}
+              )}
+            </div>
           </div>
+
+          {/* Filter Panel */}
+          {showFilters && (
+            <div className="mt-4 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Price Range Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Price Range: ₹{priceRange[0]} - ₹{priceRange[1]}
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="range"
+                      min={minPrice}
+                      max={maxPrice}
+                      value={priceRange[0]}
+                      onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <input
+                      type="range"
+                      min={minPrice}
+                      max={maxPrice}
+                      value={priceRange[1]}
+                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>₹{minPrice}</span>
+                    <span>₹{maxPrice}</span>
+                  </div>
+                </div>
+
+                {/* Rating Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Minimum Rating
+                  </label>
+                  <div className="flex gap-2">
+                    {[4, 3, 2, 1].map((stars) => (
+                      <button
+                        key={stars}
+                        onClick={() => setRatingFilter(ratingFilter === stars ? null : stars)}
+                        className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${
+                          ratingFilter === stars
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        <StarBorderOutlined className="w-4 h-4" />
+                        {stars}+
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Services Grid */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+          {/* Results Count */}
+          <div className="mb-6 text-sm text-gray-600">
+            Showing {filteredServices.length} of {services.length} services
+          </div>
+
           {filteredServices.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">
-                {searchQuery
-                  ? `No services found matching "${searchQuery}" in ${categories.find(cat => cat.id === selectedCategory)?.name || "selected category"}`
+                {searchQuery || isAnyFilterActive
+                  ? "No services match your current filters."
                   : `No services available in ${categories.find(cat => cat.id === selectedCategory)?.name || "selected category"} at the moment.`}
               </p>
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="mt-4 text-blue-600 hover:text-blue-800"
-                >
-                  Clear search
-                </button>
+              {(searchQuery || isAnyFilterActive) && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      resetFilters();
+                    }}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Clear all filters
+                  </button>
+                </div>
               )}
-              <button
-                onClick={() => setSelectedCategory("all")}
-                className="mt-4 ml-4 text-blue-600 hover:text-blue-800"
-              >
-                View all services
-              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredServices.map((service) => {
                 const serviceIconUrl = getServiceIconUrl(service);
-                // Use real features from backend, fallback to empty array
                 const features = service.features || [];
                 const moreFeatures = Math.max(0, features.length - 3);
 
@@ -293,10 +358,7 @@ const Services: React.FC = () => {
                           alt={service.name}
                           className="w-8 h-8 object-contain"
                           onError={(e) => {
-                            // Fallback if image fails to load
-                            (e.target as HTMLImageElement).src = getDefaultIcon(
-                              service.name
-                            );
+                            (e.target as HTMLImageElement).src = getDefaultIcon(service.name);
                           }}
                         />
                       </div>
@@ -314,16 +376,14 @@ const Services: React.FC = () => {
                       <div className="flex items-center gap-1">
                         <StarBorderOutlined className="w-4 h-4 text-yellow-400" />
                         <span className="text-sm font-medium text-gray-900">
-                          {service.rating || 4.5}{" "}
-                          {/* Use real rating from backend */}
+                          {service.rating || 4.5}
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-gray-600">
                         <AccessTimeOutlined className="w-4 h-4" />
                         <span className="text-sm">
                           {service.estimatedDuration || "2-4 hours"}
-                        </span>{" "}
-                        {/* Use real duration from backend */}
+                        </span>
                       </div>
                     </div>
 
@@ -348,12 +408,9 @@ const Services: React.FC = () => {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-sm text-gray-600">
-                          Starting at{" "}
-                        </span>
+                        <span className="text-sm text-gray-600">Starting at </span>
                         <span className="text-xl font-bold text-blue-600">
-                          ₹{service.avgBasePrice || 299}{" "}
-                          {/* Use real price from backend */}
+                          ₹{service.avgBasePrice || 299}
                         </span>
                       </div>
                       <button
@@ -380,8 +437,7 @@ const Services: React.FC = () => {
                   Need help choosing the right service?
                 </h2>
                 <p className="text-gray-600">
-                  Our customer support team is available to help you find the
-                  right technician for your appliance repair needs.
+                  Our customer support team is available to help you find the right technician.
                 </p>
               </div>
               <div className="flex gap-3">

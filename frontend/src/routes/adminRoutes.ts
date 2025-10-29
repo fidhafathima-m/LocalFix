@@ -5,6 +5,9 @@ export const ADMIN_ROUTES = {
   USER_BY_ID: (userId: string) => `/admin/users/${userId}`,
   USER_STATUS: (userId: string) => `/admin/users/${userId}/status`,
 
+  PUBLIC_USER_PROFILE: "/public/user/profile",
+  PUBLIC_USER_BY_ID: (userId: string) => `/public/user/${userId}`,  
+
   // Technician routes
   TECHNICIANS: "/admin/technicians",
   TECHNICIAN_BY_ID: (technicianId: string) =>

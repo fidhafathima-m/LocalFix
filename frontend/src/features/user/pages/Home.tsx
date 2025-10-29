@@ -29,6 +29,10 @@ const Home = () => {
 
     loadServices();
   }, []);
+
+  // Only show first 4 services
+  const displayedServices = services.slice(0, 4);
+
   return (
     <div>
       <Header />
@@ -136,7 +140,7 @@ const Home = () => {
             {/* Services grid */}
             {!loading && !error && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 lg:gap-6 p-4 lg:p-10">
-                {services.map((service) => (
+                {displayedServices.map((service) => (
                   <div
                     key={service.id}
                     className="p-6 lg:p-10 shadow rounded bg-white"
@@ -149,7 +153,7 @@ const Home = () => {
                       />
                     </div>
                     <h2 className="text-lg font-bold">{service.name}</h2>
-                    <p className="text-sm lg:text-base">
+                    <p className="text-sm lg:text-base line-clamp-2">
                       {service.description}
                     </p>
                     <button

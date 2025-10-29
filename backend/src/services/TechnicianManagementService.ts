@@ -51,6 +51,7 @@ import {
 } from "@/interfaces/dtos/technicianDtos";
 import { TechnicianMapper } from "../mappers/technicianMappers";
 import { ApplicationMapper } from "../mappers/applicationMapper";
+import { TechnicianAvailabilityService } from "./AvailabilityService";
 
 interface DocumentInfo {
   url: string;
@@ -233,25 +234,30 @@ export class TechnicianManagementService
   }
 
   private mapAdminTechnicianToListDto(
-    adminTechnician: IAdminTechnician
-  ): TechnicianListDto {
-    return {
-      _id: adminTechnician._id.toString(),
-      userId: adminTechnician.userId?.toString() || "",
-      displayName: adminTechnician.displayName || "",
-      email: adminTechnician.email || "",
-      phone: adminTechnician.phone || "",
-      services: adminTechnician.services || [],
-      status: adminTechnician.status || "",
-      experienceYears: adminTechnician.experienceYears || 0,
-      ratingCount: adminTechnician.ratingCount || 0,
-      averageRating: adminTechnician.averageRating || 0,
-      totalJobs: adminTechnician.totalJobs || 0,
-      completedJobs: adminTechnician.completedJobs || 0,
-      createdAt: adminTechnician.createdAt || new Date(),
-      profilePictureUrl: adminTechnician.profilePictureUrl,
-    };
-  }
+  adminTechnician: IAdminTechnician
+): TechnicianListDto {
+  return {
+    _id: adminTechnician._id.toString(),
+    userId: adminTechnician.userId?.toString() || "",
+    displayName: adminTechnician.displayName || "",
+    email: adminTechnician.email || "",
+    phone: adminTechnician.phone || "",
+    services: adminTechnician.services || [],
+    status: adminTechnician.status || "",
+    experienceYears: adminTechnician.experienceYears || 0,
+    ratingCount: adminTechnician.ratingCount || 0,
+    averageRating: adminTechnician.averageRating || 0,
+    totalJobs: adminTechnician.totalJobs || 0,
+    completedJobs: adminTechnician.completedJobs || 0,
+    createdAt: adminTechnician.createdAt || new Date(),
+    profilePictureUrl: adminTechnician.profilePictureUrl,
+    
+    // Add address data
+    address: adminTechnician.personalInfo?.address,
+    workAreas: adminTechnician.workAreas,
+    serviceRadiusKm: adminTechnician.serviceRadiusKm,
+  };
+}
   async getTechnicianById(id: string): Promise<SingleTechnicianResponseDto> {
     try {
       const technician = await this.technicianRepository.findTechnicianById(id);
@@ -698,6 +704,11 @@ export class TechnicianManagementService
         );
       }
 
+      console.log('🔍 DEBUG - Full application data:', JSON.stringify(application, null, 2));
+    console.log('🔍 DEBUG - Application availability:', application.availability);
+
+      const availabilityService = new TechnicianAvailabilityService();
+
       // Update application status
       const updatedApplication =
         await this.technicianRepository.updateApplicationStatus(
@@ -721,6 +732,15 @@ export class TechnicianManagementService
       const technician = await this.technicianRepository.findOrCreateTechnician(
         application
       );
+
+       console.log('🔍 DEBUG - Calling availability service with:', application.availability);
+
+      if (technician && application.availability) {
+        await availabilityService.createTechnicianAvailabilityFromApplication(
+          technician._id.toString(),
+          application.availability
+        );
+      }
 
       if (application.documents && technician) {
         const technicianDocuments: any[] = [];
@@ -790,7 +810,7 @@ export class TechnicianManagementService
 
       // 🚨 NEW: Get identity verification data
       const identityVerificationData = {
-        idType: application.identity?.idType || "",
+        idType: this.mapIdType(application.identity?.idType || ""),
         idNumber: application.identity?.idNumber || "",
         idDocument: application.documents?.idProof?.url || "",
         verificationStatus: "approved" as const,
@@ -1106,51 +1126,78 @@ export class TechnicianManagementService
     }
   }
   // In your TechnicianManagementService - Add backend debugging
-async getPublicTechnicians(filters: TechnicianFiltersDto): Promise<TechnicianListResponseDto> {
+ async getPublicTechnicians(
+  filters: TechnicianFiltersDto
+): Promise<TechnicianListResponseDto> {
   try {
-    console.log("🔄 Backend Service: Getting public technicians with filters:", filters);
-    
+    console.log(
+      "🔄 Backend Service: Getting public technicians with filters:",
+      filters
+    );
+
     // Convert DTO to repository filter
     const repoFilters: TechnicianFilter = {
-      status: 'approved' // Always approved for public
+      status: "approved", // Always approved for public
     };
-    
+
     // Add service filter if provided
     if (filters.service) {
-      console.log("🔄 Backend Service: Filtering by service:", filters.service);
+      console.log(
+        "🔄 Backend Service: Filtering by service:",
+        filters.service
+      );
       repoFilters.services = { $in: [filters.service] };
     }
-    
-    console.log("🔄 Backend Service: Final repository filters:", JSON.stringify(repoFilters, null, 2));
-    
-    const technicians = await this.technicianRepository.findPublicTechnicians(repoFilters);
-    
-    console.log(`✅ Backend Service: Repository returned ${technicians.length} technicians`);
-    
-    // Map to DTOs
+
+    console.log(
+      "🔄 Backend Service: Final repository filters:",
+      JSON.stringify(repoFilters, null, 2)
+    );
+
+    const technicians = await this.technicianRepository.findPublicTechnicians(
+      repoFilters
+    );
+
+    console.log(
+      `✅ Backend Service: Repository returned ${technicians.length} technicians`
+    );
+
+    // Map to DTOs with proper address mapping
     const technicianDtos: TechnicianListDto[] = await Promise.all(
       technicians.map(async (tech: ITechnician) => {
         const adminTechnician = await this.convertToAdminTechnician(tech);
-        return this.mapAdminTechnicianToListDto(adminTechnician);
+        
+        // Create public technician with address data
+        const publicTechnician = {
+          ...this.mapAdminTechnicianToListDto(adminTechnician),
+          // Add address information for public access
+          address: adminTechnician.personalInfo?.address,
+          workAreas: adminTechnician.workAreas,
+          serviceRadiusKm: adminTechnician.serviceRadiusKm,
+        };
+
+        return publicTechnician;
       })
     );
 
-    console.log(`✅ Backend Service: Returning ${technicianDtos.length} technician DTOs`);
-    
-    return ResponseHelper.success(
-      "Technicians retrieved successfully",
-      {
-        technicians: technicianDtos,
-        pagination: {
-          page: 1,
-          limit: technicians.length,
-          total: technicians.length,
-          pages: 1
-        }
-      }
+    console.log(
+      `✅ Backend Service: Returning ${technicianDtos.length} technician DTOs with address data`
     );
+
+    return ResponseHelper.success("Technicians retrieved successfully", {
+      technicians: technicianDtos,
+      pagination: {
+        page: 1,
+        limit: technicians.length,
+        total: technicians.length,
+        pages: 1,
+      },
+    });
   } catch (error) {
-    console.error("❌ Backend Service: Error getting public technicians:", error);
+    console.error(
+      "❌ Backend Service: Error getting public technicians:",
+      error
+    );
     return ResponseHelper.error("Failed to retrieve technicians");
   }
 }
@@ -1192,5 +1239,80 @@ async getPublicTechnicians(filters: TechnicianFiltersDto): Promise<TechnicianLis
       console.error("Get public technician service error:", error);
       return ResponseHelper.error("Failed to retrieve technician");
     }
+  }
+
+  private processAvailabilityData(availability: any): any {
+    if (!availability) return {};
+
+    // Extract availability preferences from application
+    const daysAvailable: string[] = [];
+    const serviceAreas: string[] = [];
+    let workRadius = 10;
+    let startTime = "09:00";
+    let endTime = "18:00";
+
+    // Process days availability
+    if (availability.days) {
+      Object.entries(availability.days).forEach(
+        ([day, dayData]: [string, any]) => {
+          if (dayData.available === true) {
+            daysAvailable.push(day.toLowerCase());
+
+            // Use the first available day's timing as default
+            if (
+              daysAvailable.length === 1 &&
+              dayData.startTime &&
+              dayData.endTime
+            ) {
+              startTime = dayData.startTime;
+              endTime = dayData.endTime;
+            }
+          }
+        }
+      );
+    }
+
+    // Process work radius
+    if (availability.workRadius) {
+      workRadius = parseInt(availability.workRadius) || 10;
+    }
+
+    // Process service areas
+    if (availability.serviceAreas) {
+      if (Array.isArray(availability.serviceAreas)) {
+        serviceAreas.push(...availability.serviceAreas);
+      } else if (typeof availability.serviceAreas === "string") {
+        serviceAreas.push(availability.serviceAreas);
+      }
+    }
+
+    return {
+      daysAvailable,
+      startTime,
+      endTime,
+      workRadius,
+      serviceAreas,
+      emergencyService: availability.emergencyService || false,
+      afterHoursService: availability.afterHoursService || false,
+    };
+  }
+
+  private processAvailabilityPreferences(availability: any): any {
+    const processed = this.processAvailabilityData(availability);
+
+    return {
+      availabilityPreferences: processed,
+    };
+  }
+  private mapIdType(governmentIdType: string): string {
+    const idTypeMap: { [key: string]: string } = {
+      drivingLicense: "driving_license",
+      passport: "passport",
+      aadhaar: "aadhaar",
+      voterId: "national_id",
+      panCard: "national_id",
+    };
+
+    return idTypeMap[governmentIdType] || "national_id";
   }
 }

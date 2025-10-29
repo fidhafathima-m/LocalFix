@@ -28,6 +28,14 @@ export interface TechnicianListDto {
   profilePictureUrl?: string;
   experienceYears?: number;
   ratingCount?: number;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  };
+  workAreas?: string[];
+  serviceRadiusKm?: number;
 }
 
 export interface TechnicianDetailDto {

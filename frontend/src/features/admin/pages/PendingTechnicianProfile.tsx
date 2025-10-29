@@ -523,18 +523,12 @@ const PendingApplicationProfile: React.FC = () => {
                   <p className="text-gray-500">Application ID</p>
                   <p className="font-medium">{application._id}</p>
                 </div>
-                <div>
+                <div className="text-end">
                   <p className="text-gray-500">Submitted On</p>
                   <p className="font-medium">
                     {application.submittedAt
                       ? new Date(application.submittedAt).toLocaleDateString()
                       : "Not submitted"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Created On</p>
-                  <p className="font-medium">
-                    {new Date(application.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>

@@ -30,6 +30,7 @@ import { ServiceController } from "../controllers/admin/serviceManagement";
 import { ItemRepository } from "../repositories/admin/ItemManagementRepository";
 import { ItemService } from "../services/ItemManagementService";
 import { ItemController } from "../controllers/admin/itemManagementController";
+import { TechnicianAvailabilityRepository } from "../repositories/technician/TechnicianAvailabilityRepository";
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
@@ -54,11 +55,13 @@ const technicianApplicationRepository = new TechnicianApplicationRepository();
 const technicianRepository = new TechnicianRepository();
 const technicianDocumentRepository = new TechnicianDocumentRepository();
 const userRepository = new UserRepository();
+const availabilityRepository = new TechnicianAvailabilityRepository
 const technicianApplicationService = new TechnicianApplicationService(
   technicianApplicationRepository,
   technicianRepository,
   technicianDocumentRepository,
-  userRepository
+  userRepository,
+  availabilityRepository
 );
 const technicianApplicationController = new TechnicianApplicationController(
   technicianApplicationService

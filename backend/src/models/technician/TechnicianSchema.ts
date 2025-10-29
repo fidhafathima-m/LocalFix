@@ -29,7 +29,7 @@ const TechnicianSchema = new Schema<ITechnician>(
     identityVerification: {
       idType: { 
         type: String, 
-        enum: ["passport", "driver_license", "national_id", "aadhaar"],
+        enum: ["passport", "driving_license", "national_id", "aadhaar"],
         required: false 
       },
       idNumber: { type: String, required: false },

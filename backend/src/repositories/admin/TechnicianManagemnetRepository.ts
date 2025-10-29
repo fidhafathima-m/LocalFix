@@ -22,6 +22,8 @@ import {
 } from "../../interfaces/technician/ITechnician";
 import { IUser } from "@/interfaces/admin/IUserManagements";
 import { IUserAddress } from "@/models/UserAddressSchema";
+import SlotRuleSchema from "../../models/technician/SlotRuleSchema";
+import TechnicianAvailabilitySchema from "../../models/technician/TechnicianAvailabilitySchema";
 
 // Define interfaces for filter and data objects
 interface TechnicianFilter {
@@ -460,7 +462,8 @@ export class TechnicianManagementRepository
   }
 
   async findOrCreateTechnician(
-    application: AdminITechnicianApplication
+    application: AdminITechnicianApplication,
+    availabilityData?: any
   ): Promise<ITechnician> {
     try {
       // Convert AdminITechnicianApplication to a format compatible with the model
@@ -498,6 +501,18 @@ export class TechnicianManagementRepository
           application.personal?.address || technician?.personalInfo?.address,
       };
 
+      const availabilityPreferences = availabilityData || {
+        daysAvailable: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+        startTime: "09:00",
+        endTime: "18:00",
+        workRadius: application.availability?.workRadius
+          ? parseInt(application.availability.workRadius as string)
+          : 10,
+        serviceAreas: application.availability?.serviceAreas || [],
+        emergencyService: false,
+        afterHoursService: false,
+      };
+
       if (technician) {
         // Update existing technician
         technician = await Technician.findOneAndUpdate(
@@ -521,6 +536,7 @@ export class TechnicianManagementRepository
                 technician.profilePictureUrl,
               phone: personalInfo.phoneNumber || technician.phone,
               personalInfo: personalInfo,
+              availabilityPreferences: availabilityPreferences,
               updatedAt: new Date(),
             },
           },
@@ -545,6 +561,7 @@ export class TechnicianManagementRepository
             application.documents?.profilePhoto?.url,
           phone: personalInfo.phoneNumber,
           personalInfo: personalInfo,
+          availabilityPreferences: availabilityPreferences,
           averageRating: 0,
           ratingCount: 0,
           totalJobs: 0,

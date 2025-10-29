@@ -10,6 +10,9 @@ import {
   InfoOutlined,
   BuildOutlined,
   EmojiEventsOutlined,
+  SearchOutlined,
+  LocationOnOutlined,
+  MiscellaneousServicesOutlined,
 } from "@mui/icons-material";
 import serviceHero from "../../../assets/images/service_hero.png";
 import Footer from "../../../components/common/Footer";
@@ -41,6 +44,18 @@ interface Technician {
     phone: string;
     fullName: string;
   };
+  personalInfo?: {
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+    };
+  };
+  currentLocation?: {
+    type: string;
+    coordinates: number[];
+  };
 }
 
 const ServiceDetails: React.FC = () => {
@@ -49,10 +64,12 @@ const ServiceDetails: React.FC = () => {
   const [service, setService] = useState<Service | null>(null);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [allTechnicians, setAllTechnicians] = useState<Technician[]>([]);
+  const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>([]);
   const [showAllTechnicians, setShowAllTechnicians] = useState(false);
   const [loading, setLoading] = useState(true);
   const [techniciansLoading, setTechniciansLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locationSearch, setLocationSearch] = useState("");
 
   // Fetch service details and technicians
   useEffect(() => {
@@ -92,6 +109,33 @@ const ServiceDetails: React.FC = () => {
 
     fetchServiceDetails();
   }, [slug]);
+
+  // Filter technicians based on location search
+  useEffect(() => {
+    if (locationSearch.trim() === "") {
+      setFilteredTechnicians(showAllTechnicians ? allTechnicians : technicians);
+    } else {
+      const searchTerm = locationSearch.toLowerCase().trim();
+      const techniciansToFilter = showAllTechnicians ? allTechnicians : technicians;
+      
+      const filtered = techniciansToFilter.filter(tech => {
+        // Search in workAreas
+        const workAreaMatch = tech.workAreas?.some(area => 
+          area.toLowerCase().includes(searchTerm)
+        );
+        
+        // Search in personalInfo address
+        const addressMatch = 
+          tech.personalInfo?.address?.city?.toLowerCase().includes(searchTerm) ||
+          tech.personalInfo?.address?.state?.toLowerCase().includes(searchTerm) ||
+          tech.personalInfo?.address?.pincode?.includes(searchTerm);
+        
+        return workAreaMatch || addressMatch;
+      });
+      
+      setFilteredTechnicians(filtered);
+    }
+  }, [locationSearch, technicians, allTechnicians, showAllTechnicians]);
 
   // Update the fetchTechniciansForService function to debug experience data
   const fetchTechniciansForService = async (serviceName: string) => {
@@ -153,6 +197,7 @@ const ServiceDetails: React.FC = () => {
         // Show only first 6 technicians with "View All" option
         const displayedTechnicians = technicians.slice(0, 6);
         setTechnicians(displayedTechnicians);
+        setFilteredTechnicians(displayedTechnicians);
 
         // Store all technicians for "View All" functionality
         setAllTechnicians(technicians);
@@ -160,17 +205,30 @@ const ServiceDetails: React.FC = () => {
         console.warn("❌ No technicians data in response structure");
         setTechnicians([]);
         setAllTechnicians([]);
+        setFilteredTechnicians([]);
       }
     } catch (error: any) {
       console.error("❌ ERROR DETAILS:", error.message);
       setTechnicians([]);
       setAllTechnicians([]);
+      setFilteredTechnicians([]);
     } finally {
       setTechniciansLoading(false);
     }
   };
 
   const getTechnicianDisplayData = (tech: Technician) => {
+    // Get short address - prioritize city from personalInfo, then first workArea
+    const city = tech.personalInfo?.address?.city;
+    const state = tech.personalInfo?.address?.state;
+    const workArea = tech.workAreas?.[0];
+    
+    const shortAddress = city && state 
+      ? `${city}, ${state}`
+      : workArea 
+      ? workArea
+      : "Location not specified";
+
     return {
       id: tech._id,
       name: tech.displayName,
@@ -178,6 +236,7 @@ const ServiceDetails: React.FC = () => {
       rating: tech.averageRating,
       experience: `${tech.experienceYears || 0} years`, // Show actual experience
       specialization: tech.services.slice(0, 2).join(", "),
+      shortAddress,
       fullData: tech,
     };
   };
@@ -289,7 +348,7 @@ const ServiceDetails: React.FC = () => {
                 </div>
               </div>
               <p className="text-gray-600 mb-6">{service.description}</p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-[105px]">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Base Price</p>
@@ -363,10 +422,37 @@ const ServiceDetails: React.FC = () => {
               {allTechnicians.length > 6 && !showAllTechnicians && (
                 <button
                   onClick={() => setShowAllTechnicians(true)}
-                  className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium"
+                  className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium cursor-pointer"
                 >
                   View All ({allTechnicians.length})
                 </button>
+              )}
+            </div>
+
+            {/* Location Search Bar */}
+            <div className="mb-6 max-w-md">
+              <div className="relative">
+                <SearchOutlined className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search by location, city, or pincode..."
+                  value={locationSearch}
+                  onChange={(e) => setLocationSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {locationSearch && (
+                  <button
+                    onClick={() => setLocationSearch("")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {locationSearch && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Showing {filteredTechnicians.length} technicians matching "{locationSearch}"
+                </p>
               )}
             </div>
 
@@ -377,90 +463,102 @@ const ServiceDetails: React.FC = () => {
                   Loading technicians...
                 </span>
               </div>
-            ) : (showAllTechnicians ? allTechnicians : technicians).length >
-              0 ? (
+            ) : filteredTechnicians.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(showAllTechnicians ? allTechnicians : technicians).map(
-                  (tech) => {
-                    const displayData = getTechnicianDisplayData(tech);
-                    return (
-                      <div
-                        key={tech._id}
-                        className="bg-white rounded-lg border border-gray-200 p-6"
-                      >
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                {filteredTechnicians.map((tech) => {
+                  const displayData = getTechnicianDisplayData(tech);
+                  return (
+                    <div
+                      key={tech._id}
+                      className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                          {displayData.profilePhoto ? (
+                            <img
+                              src={displayData.profilePhoto}
+                              alt={displayData.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          ) : (
                             <span className="text-xl font-semibold text-gray-600">
-                              {displayData.profilePhoto ? (
-                                <img
-                                  src={displayData.profilePhoto}
-                                  alt={displayData.name}
-                                  className="w-10 h-10 rounded-full object-cover"
-                                />
-                              ) : (
-                                displayData.name.charAt(0)
-                              )}
+                              {displayData.name.charAt(0)}
                             </span>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900">
-                              {displayData.name}
-                            </h3>
-                            <div className="flex items-center gap-1">
-                              <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                              <span className="text-sm font-medium text-gray-900">
-                                {displayData.rating.toFixed(1)}
-                              </span>
-                              <span className="text-sm text-gray-500">
-                                ({tech.ratingCount || 0} reviews)
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <EmojiEventsOutlined className="w-4 h-4 text-blue-600" />
-                            <span>Experience: {displayData.experience}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <BuildOutlined className="w-4 h-4 text-blue-600" />
-                            <span>
-                              Specialization: {displayData.specialization}
-                            </span>
-                          </div>
-                          {tech.workAreas && tech.workAreas.length > 0 && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <span>
-                                📍 Areas:{" "}
-                                {tech.workAreas.slice(0, 2).join(", ")}
-                              </span>
-                            </div>
                           )}
                         </div>
-                        <button
-                          onClick={() => handleViewTechnicianProfile(tech._id)}
-                          className="w-full py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium"
-                        >
-                          View Profile
-                        </button>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">
+                            {displayData.name}
+                          </h3>
+                          <div className="flex items-center gap-1">
+                            <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {displayData.rating.toFixed(1)}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              ({tech.ratingCount || 0} reviews)
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    );
-                  }
-                )}
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <LocationOnOutlined className="w-4 h-4 text-blue-600" />
+                          <span className="font-medium">{displayData.shortAddress}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <EmojiEventsOutlined className="w-4 h-4 text-blue-600" />
+                          <span>Experience: {displayData.experience}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <BuildOutlined className="w-4 h-4 text-blue-600" />
+                          <span>
+                            Specialization: {displayData.specialization}
+                          </span>
+                        </div>
+                        {tech.workAreas && tech.workAreas.length > 0 && (
+                          <div className="flex items-start gap-2 text-sm text-gray-600">
+                            <span className="mt-0.5"><MiscellaneousServicesOutlined className="w-4 h-4 text-blue-600"/></span>
+                            <span>
+                              Areas: {tech.workAreas.slice(0, 3).join(", ")}
+                              {tech.workAreas.length > 3 && "..."}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleViewTechnicianProfile(tech._id)}
+                        className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+                      >
+                        View Profile
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
                 <BuildOutlined className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No Technicians Available
+                  {locationSearch ? "No Technicians Found" : "No Technicians Available"}
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  Currently, there are no verified technicians for{" "}
-                  {service.name}.
+                  {locationSearch 
+                    ? `No technicians found matching "${locationSearch}". Try a different location.`
+                    : `Currently, there are no verified technicians for ${service.name}.`
+                  }
                 </p>
+                {locationSearch && (
+                  <button
+                    onClick={() => setLocationSearch("")}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mr-2"
+                  >
+                    Clear Search
+                  </button>
+                )}
                 <button
                   onClick={() => navigate("/services")}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Browse Other Services
                 </button>
@@ -471,7 +569,10 @@ const ServiceDetails: React.FC = () => {
             {showAllTechnicians && allTechnicians.length > 6 && (
               <div className="flex justify-center mt-6">
                 <button
-                  onClick={() => setShowAllTechnicians(false)}
+                  onClick={() => {
+                    setShowAllTechnicians(false);
+                    setLocationSearch(""); // Clear search when showing less
+                  }}
                   className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 >
                   Show Less
