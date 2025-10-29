@@ -93,15 +93,19 @@ interface AvailableDocument {
   mimetype?: string;
 }
 
-
 const PendingTechnicianApplication: React.FC = () => {
-  const [applicationData, setApplicationData] = useState<ApplicationData | null>(null);
-  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(null);
+  const [applicationData, setApplicationData] =
+    useState<ApplicationData | null>(null);
+  const [technicianData, setTechnicianData] = useState<TechnicianData | null>(
+    null
+  );
   const [applicationStatus, setApplicationStatus] = useState<string>("pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isResubmitting, setIsResubmitting] = useState(false);
-  const { user, accessToken, isLoggedIn } = useAppSelector((state) => state.auth);
+  const { user, accessToken, isLoggedIn } = useAppSelector(
+    (state) => state.auth
+  );
   const navigate = useNavigate();
 
   const fetchApplicationData = useCallback(async () => {
@@ -192,8 +196,14 @@ const PendingTechnicianApplication: React.FC = () => {
         appData = applicationResponse.data;
       }
 
-      if (appData && (appData as unknown as { data: { application: ApplicationData } }).data?.application) {
-        appData = (appData as unknown as { data: { application: ApplicationData } }).data.application;
+      if (
+        appData &&
+        (appData as unknown as { data: { application: ApplicationData } }).data
+          ?.application
+      ) {
+        appData = (
+          appData as unknown as { data: { application: ApplicationData } }
+        ).data.application;
       }
 
       if (appData) {
@@ -258,61 +268,54 @@ const PendingTechnicianApplication: React.FC = () => {
     }
   }, [accessToken, isLoggedIn, navigate]);
 
- const handleEditApplication = () => {
-  console.log("🔍 handleEditApplication - STARTING");
-  
-  if (!applicationData?._id) {
-    toast.error("Application ID not found");
-    return;
-  }
+  const handleEditApplication = () => {
+    console.log("🔍 handleEditApplication - STARTING");
 
-  // 🚨 ONLY clear application-related data, NOT authentication data
-  const authData = {
-    accessToken: localStorage.getItem("accessToken"),
-    refreshToken: localStorage.getItem("refreshToken"),
-    user: localStorage.getItem("user"),
-    isLoggedIn: localStorage.getItem("isLoggedIn"),
+    if (!applicationData?._id) {
+      toast.error("Application ID not found");
+      return;
+    }
+
+    const authData = {
+      accessToken: localStorage.getItem("accessToken"),
+      refreshToken: localStorage.getItem("refreshToken"),
+      user: localStorage.getItem("user"),
+      isLoggedIn: localStorage.getItem("isLoggedIn"),
+    };
+
+    // Clear only application data
+    localStorage.removeItem("applicationId");
+    localStorage.removeItem("currentTechnicianApplication");
+    localStorage.removeItem("technicianApplicationData");
+    localStorage.removeItem("isEditMode");
+
+    if (user?._id) {
+      localStorage.removeItem(`techApp-${user._id}`);
+      localStorage.removeItem(`techApp-step-${user._id}`);
+      localStorage.removeItem(`techApp-applicationId-${user._id}`);
+      localStorage.removeItem(`techApp-timestamp-${user._id}`);
+    }
+
+    // Restore authentication data
+    if (authData.accessToken)
+      localStorage.setItem("accessToken", authData.accessToken);
+    if (authData.refreshToken)
+      localStorage.setItem("refreshToken", authData.refreshToken);
+    if (authData.user) localStorage.setItem("user", authData.user);
+    if (authData.isLoggedIn)
+      localStorage.setItem("isLoggedIn", authData.isLoggedIn);
+
+    // Set edit mode and application ID
+    localStorage.setItem("applicationId", applicationData._id);
+    localStorage.setItem("isEditMode", "true");
+
+    // Use a small timeout to ensure the state is properly set
+    setTimeout(() => {
+      window.location.href = "/technicians/apply";
+    }, 100);
   };
 
-  // Clear only application data
-  localStorage.removeItem("applicationId");
-  localStorage.removeItem("currentTechnicianApplication");
-  localStorage.removeItem("technicianApplicationData");
-  localStorage.removeItem("isEditMode");
-  
-  if (user?._id) {
-    localStorage.removeItem(`techApp-${user._id}`);
-    localStorage.removeItem(`techApp-step-${user._id}`);
-    localStorage.removeItem(`techApp-applicationId-${user._id}`);
-    localStorage.removeItem(`techApp-timestamp-${user._id}`);
-  }
-
-  // Restore authentication data
-  if (authData.accessToken) localStorage.setItem("accessToken", authData.accessToken);
-  if (authData.refreshToken) localStorage.setItem("refreshToken", authData.refreshToken);
-  if (authData.user) localStorage.setItem("user", authData.user);
-  if (authData.isLoggedIn) localStorage.setItem("isLoggedIn", authData.isLoggedIn);
-
-  // Set edit mode and application ID
-  localStorage.setItem("applicationId", applicationData._id);
-  localStorage.setItem("isEditMode", "true");
-  
-  console.log("🔍 Navigating to edit application");
-  
-  // Use a small timeout to ensure the state is properly set
-  setTimeout(() => {
-    window.location.href = "/technicians/apply";
-  }, 100);
-};
-
-// Add this debug useEffect to your PendingTechnicianApplication component
-useEffect(() => {
-  console.log("🔍 PendingTechnicianApplication mounted");
-  console.log("🔍 Current application status:", applicationData?.status);
-  console.log("🔍 Current path:", window.location.pathname);
-}, [applicationData?.status]);
-
-// Also check if you have any other useEffects that might redirect
+  useEffect(() => {}, [applicationData?.status]);
 
   // Function to get all available documents dynamically
   const getAvailableDocuments = (): AvailableDocument[] => {
@@ -561,8 +564,6 @@ useEffect(() => {
           },
         }
       );
-
-      console.log("🔍 Start new application response:", response.data);
 
       if (response.data.success) {
         localStorage.removeItem("applicationId");
@@ -1198,7 +1199,6 @@ useEffect(() => {
               </div>
             </div>
           )}
-
 
           {/* Need Help */}
           <div className="bg-white rounded-lg shadow-sm p-4">

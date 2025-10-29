@@ -1,4 +1,3 @@
-// interfaces/dtos/serviceDtos.ts
 import { Types } from "mongoose";
 import { ServiceStatus } from "../../constants";
 
@@ -10,7 +9,6 @@ export interface ServiceResponseDto {
   description: string;
   avgBasePrice: number;
   iconUrl: string;
-  // NEW FIELDS
   rating: number;
   estimatedDuration: string;
   features: string[];
@@ -27,7 +25,6 @@ export interface CreateServiceDto {
   description: string;
   avgBasePrice: number;
   iconUrl?: string;
-  // NEW FIELDS
   rating?: number;
   estimatedDuration?: string;
   features?: string[];
@@ -40,7 +37,6 @@ export interface UpdateServiceDto {
   description?: string;
   avgBasePrice?: number;
   iconUrl?: string;
-  // NEW FIELDS
   rating?: number;
   estimatedDuration?: string;
   features?: string[];
@@ -58,5 +54,10 @@ export interface ServiceListResponseDto {
 
 export interface ServiceMapper {
   toServiceResponseDto(service: any): ServiceResponseDto;
-  toServiceListResponseDto(services: any[], total: number, page: number, limit: number): ServiceListResponseDto;
+  toServiceListResponseDto(
+    services: any[],
+    total: number,
+    page: number,
+    limit: number
+  ): ServiceListResponseDto;
 }

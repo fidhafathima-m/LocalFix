@@ -24,6 +24,12 @@ export interface UserDetailDto extends UserListDto {
   lastLogin?: Date;
   loginCount?: number;
   profilePictureUrl?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  wallet?: {
+    balance: number;
+    transactions: any[];
+  };
 }
 
 export interface AddressDto {
@@ -55,7 +61,6 @@ export interface UserStatsDto {
   blockedUsers: number;
 }
 
-// ✅ FIX: Remove nested "data" property from response DTOs
 export interface UsersListResponseDto extends BaseResponseDto {
   users?: UserListDto[];
 }

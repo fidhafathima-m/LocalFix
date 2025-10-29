@@ -138,7 +138,7 @@ export function EditCategoryModal({
               disabled={loading || !categoryName.trim() || !description.trim()}
               className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600/90 hover:bg-blue-700/90 border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-white/50 transition-all duration-200 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Updating...' : 'Update Category'}
+              {loading ? "Updating..." : "Update Category"}
             </button>
           </div>
         </form>

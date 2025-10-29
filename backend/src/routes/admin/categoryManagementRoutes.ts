@@ -1,11 +1,8 @@
-// routes/categoryRoutes.ts
-import { categoryManagementController } from "../../config/container"
+import { categoryManagementController } from "../../config/container";
 import { Router } from "express";
-
 
 const router = Router();
 
-// Routes
 router.post("/", categoryManagementController.createCategory);
 router.get("/", categoryManagementController.getAllCategories);
 router.get("/search", categoryManagementController.searchCategories);

@@ -3,6 +3,7 @@ import { CloseOutlined, CheckCircleOutlineOutlined } from "@mui/icons-material";
 import type { User } from "../pages/UserManagement";
 import toast from "react-hot-toast";
 import { adminAPI } from "../../../services/common/adminApi";
+import { AdminSidebar } from "./AdminSidebar";
 
 type Status = "Active" | "Inactive" | "Blocked";
 
@@ -83,44 +84,41 @@ export const UserModal: React.FC<UserModalProps> = ({
   };
 
   const handleSave = async () => {
-  // Validation with optional chaining
-  if (!formData.fullName?.trim()) {
-    toast.error("Full name is required");
-    return;
-  }
-
-  if (isSaving) return;
-
-  setIsSaving(true);
-  try {
-    // Remove the ApiResponse type - let TypeScript infer it
-    const response = await adminAPI.updateUser(user._id, formData);
-    
-    console.log("Full API Response:", response);
-    
-    if (response.data.success) {
-      // Based on your API interface, the user data is at:
-      // response.data.data?.user (NOT response.data.user)
-      const updatedUser = response.data.data?.user;
-
-      if (updatedUser) {
-        onUserUpdated(updatedUser);
-        toast.success("User updated successfully!");
-        setEditingMode(false);
-      } else {
-        throw new Error("User data not found in response");
-      }
-    } else {
-      throw new Error(response.data.message || "Failed to update user");
+    // Validation with optional chaining
+    if (!formData.fullName?.trim()) {
+      toast.error("Full name is required");
+      return;
     }
-  } catch (err: unknown) {
-    console.error("Error updating user:", err);
-    const errorMessage = err instanceof Error ? err.message : "Failed to update user";
-    toast.error(errorMessage);
-  } finally {
-    setIsSaving(false);
-  }
-};
+
+    if (isSaving) return;
+
+    setIsSaving(true);
+    try {
+      // Remove the ApiResponse type - let TypeScript infer it
+      const response = await adminAPI.updateUser(user._id, formData);
+
+      if (response.data.success) {
+        const updatedUser = response.data.data?.user;
+
+        if (updatedUser) {
+          onUserUpdated(updatedUser);
+          toast.success("User updated successfully!");
+          setEditingMode(false);
+        } else {
+          throw new Error("User data not found in response");
+        }
+      } else {
+        throw new Error(response.data.message || "Failed to update user");
+      }
+    } catch (err: unknown) {
+      console.error("Error updating user:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update user";
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
   const getFieldValue = (field: keyof FormData): string => {
     return formData[field];
   };
@@ -136,7 +134,7 @@ export const UserModal: React.FC<UserModalProps> = ({
     if (!user.wallet) {
       return "₹0.00";
     }
-    
+
     const balance = user.wallet.balance ?? 0;
     return `₹${balance.toFixed(2)}`;
   };
@@ -152,9 +150,11 @@ export const UserModal: React.FC<UserModalProps> = ({
     <>
       {/* Overlay that covers only the content area */}
       <div
-        className="fixed inset-0 bg-gray-100 bg-opacity-50 z-40 ml-[240px]"
+        className="fixed inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         onClick={onClose}
-      />
+      >
+        <AdminSidebar activePage="Users" />
+      </div>
 
       {/* Modal container */}
       <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
@@ -193,7 +193,9 @@ export const UserModal: React.FC<UserModalProps> = ({
                   className="text-lg font-medium border-b border-gray-300 focus:outline-none focus:border-blue-500 text-center px-2 py-1"
                 />
               ) : (
-                <h3 className="text-lg font-medium">{user.fullName || "Unknown User"}</h3>
+                <h3 className="text-lg font-medium">
+                  {user.fullName || "Unknown User"}
+                </h3>
               )}
 
               <div className="flex items-center mt-1 space-x-2">
@@ -270,14 +272,8 @@ export const UserModal: React.FC<UserModalProps> = ({
                   )
                 }
               />
-              <DetailItem
-                label="Registered On"
-                value={getRegistrationDate()}
-              />
-              <DetailItem
-                label="Wallet Balance"
-                value={getWalletBalance()}
-              />
+              <DetailItem label="Registered On" value={getRegistrationDate()} />
+              <DetailItem label="Wallet Balance" value={getWalletBalance()} />
             </div>
           </div>
 

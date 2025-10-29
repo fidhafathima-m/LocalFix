@@ -13,6 +13,12 @@ const UserSchema = new Schema<IUser>(
       sparse: true,
     },
     passwordHash: { type: String },
+    profilePictureUrl: { type: String },
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Other", "Prefer not to say"],
+    },
+    dateOfBirth: { type: String },
     isVerified: { type: Boolean, default: false },
     roles: {
       type: [String],

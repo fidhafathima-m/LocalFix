@@ -22,6 +22,8 @@ import {
 } from "../../interfaces/technician/ITechnician";
 import { IUser } from "@/interfaces/admin/IUserManagements";
 import { IUserAddress } from "@/models/UserAddressSchema";
+import SlotRuleSchema from "../../models/technician/SlotRuleSchema";
+import TechnicianAvailabilitySchema from "../../models/technician/TechnicianAvailabilitySchema";
 
 // Define interfaces for filter and data objects
 interface TechnicianFilter {
@@ -72,7 +74,6 @@ interface PaymentDetails {
 const convertToAdminApplication = (
   app: ModelITechnicianApplication
 ): AdminITechnicianApplication => {
-  // Safely extract skills properties with proper fallbacks
   const skillsData = app.skills || {};
 
   const baseApplication = {
@@ -114,7 +115,6 @@ const convertToAdminApplication = (
     skills: {
       services: (skillsData as any).services || [],
       yearsOfExperience: (skillsData as any).yearsOfExperience || "",
-      // 🚨 FIXED: Safe languages handling
       languages: getLanguagesFromSkills(skillsData),
       bio: (skillsData as any).bio || "",
       serviceAreas: (skillsData as any).serviceAreas || [],
@@ -154,7 +154,6 @@ const convertToAdminApplication = (
     user: undefined,
   };
 
-  // Add toObject method for compatibility
   const result = {
     ...baseApplication,
     toObject: () => baseApplication,
@@ -460,7 +459,8 @@ export class TechnicianManagementRepository
   }
 
   async findOrCreateTechnician(
-    application: AdminITechnicianApplication
+    application: AdminITechnicianApplication,
+    availabilityData?: any
   ): Promise<ITechnician> {
     try {
       // Convert AdminITechnicianApplication to a format compatible with the model
@@ -498,6 +498,18 @@ export class TechnicianManagementRepository
           application.personal?.address || technician?.personalInfo?.address,
       };
 
+      const availabilityPreferences = availabilityData || {
+        daysAvailable: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+        startTime: "09:00",
+        endTime: "18:00",
+        workRadius: application.availability?.workRadius
+          ? parseInt(application.availability.workRadius as string)
+          : 10,
+        serviceAreas: application.availability?.serviceAreas || [],
+        emergencyService: false,
+        afterHoursService: false,
+      };
+
       if (technician) {
         // Update existing technician
         technician = await Technician.findOneAndUpdate(
@@ -521,6 +533,7 @@ export class TechnicianManagementRepository
                 technician.profilePictureUrl,
               phone: personalInfo.phoneNumber || technician.phone,
               personalInfo: personalInfo,
+              availabilityPreferences: availabilityPreferences,
               updatedAt: new Date(),
             },
           },
@@ -545,6 +558,7 @@ export class TechnicianManagementRepository
             application.documents?.profilePhoto?.url,
           phone: personalInfo.phoneNumber,
           personalInfo: personalInfo,
+          availabilityPreferences: availabilityPreferences,
           averageRating: 0,
           ratingCount: 0,
           totalJobs: 0,
@@ -628,7 +642,6 @@ export class TechnicianManagementRepository
     }
   }
 
-  // In your TechnicianManagementRepository
   async updateTechnicianPaymentDetails(
     technicianId: string,
     paymentDetails: {
@@ -732,7 +745,6 @@ export class TechnicianManagementRepository
     }
   }
 
-  // In your TechnicianManagementRepository, add this method
   async updateTechnicianDocuments(
     technicianId: string,
     documents: any[]
@@ -751,11 +763,8 @@ export class TechnicianManagementRepository
       throw error;
     }
   }
-  // Add this method to your TechnicianManagementRepository class
   async findTechnicians(filters: TechnicianFilter): Promise<ITechnician[]> {
     try {
-      console.log("🔍 Repository: Finding technicians with filters:", filters);
-
       // Build the MongoDB query
       const query: any = {};
 
@@ -796,51 +805,36 @@ export class TechnicianManagementRepository
       if (filters.createdAt) {
         query.createdAt = filters.createdAt;
       }
-
-      console.log(
-        "🔍 Repository: Final query:",
-        JSON.stringify(query, null, 2)
-      );
-
       const technicians = await Technician.find(query)
         .populate("userId", "email phone fullName")
         .sort({ createdAt: -1 })
         .lean();
 
-      console.log(`✅ Repository: Found ${technicians.length} technicians`);
-
       return technicians as ITechnician[];
     } catch (error) {
-      console.error("❌ Repository: Error finding technicians:", error);
+      console.error("Repository: Error finding technicians:", error);
       throw error;
     }
   }
 
-  // Also add a public version that only returns approved technicians
   async findPublicTechnicians(
     filters: TechnicianFilter
   ): Promise<ITechnician[]> {
     try {
-      console.log(
-        "🔍 Repository: Finding PUBLIC technicians with filters:",
-        filters
-      );
-
       // Force only approved technicians for public access
       const publicFilters = {
         ...filters,
-        status: "approved", // Always filter by approved status
+        status: "approved",
       };
 
       // Remove any sensitive filter fields that shouldn't be exposed publicly
-      delete publicFilters.$or; // Remove search queries for public access
+      delete publicFilters.$or;
 
       const technicians = await this.findTechnicians(publicFilters);
 
       // Remove sensitive data before returning
       const publicTechnicians = technicians.map((tech) => ({
         ...tech,
-        // Remove sensitive fields for public access
         identityVerification: undefined,
         paymentDetails: undefined,
         suspensionReason: undefined,
@@ -863,17 +857,12 @@ export class TechnicianManagementRepository
           : undefined,
       }));
 
-      console.log(
-        `✅ Repository: Returning ${publicTechnicians.length} public technicians`
-      );
-
       return publicTechnicians as ITechnician[];
     } catch (error) {
-      console.error("❌ Repository: Error finding public technicians:", error);
+      console.error("Repository: Error finding public technicians:", error);
       throw error;
     }
   }
-  // In TechnicianManagementRepository class
   async findById(id: string): Promise<ITechnician | null> {
     try {
       const technician = await Technician.findById(id)

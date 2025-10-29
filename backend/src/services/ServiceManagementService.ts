@@ -1,6 +1,11 @@
 import { IServiceService } from "../interfaces/services/admin/IServiceManagementService";
 import { IServiceRepository } from "../interfaces/repository/admin/IServiceRepository";
-import { ServiceResponseDto, CreateServiceDto, UpdateServiceDto, ServiceListResponseDto } from "../interfaces/dtos/serviceDtos";
+import {
+  ServiceResponseDto,
+  CreateServiceDto,
+  UpdateServiceDto,
+  ServiceListResponseDto,
+} from "../interfaces/dtos/serviceDtos";
 import { ServiceMapper } from "../mappers/serviceMapper";
 import { SERVICE_MESSAGES, ServiceStatus } from "../constants";
 import { Types } from "mongoose";
@@ -15,10 +20,14 @@ export class ServiceService implements IServiceService {
     this.serviceMapper = new ServiceMapper();
   }
 
-   async createService(createDto: CreateServiceDto): Promise<ServiceResponseDto> {
+  async createService(
+    createDto: CreateServiceDto
+  ): Promise<ServiceResponseDto> {
     try {
       // Check if service with same name already exists
-      const existingService = await this.serviceRepository.findByName(createDto.name);
+      const existingService = await this.serviceRepository.findByName(
+        createDto.name
+      );
       if (existingService) {
         throw new Error(SERVICE_MESSAGES.SERVICE_ALREADY_EXISTS);
       }
@@ -45,7 +54,6 @@ export class ServiceService implements IServiceService {
     }
   }
 
-
   async getServiceById(serviceId: string): Promise<ServiceResponseDto> {
     try {
       const service = await this.serviceRepository.findById(serviceId);
@@ -53,15 +61,15 @@ export class ServiceService implements IServiceService {
         throw new Error(SERVICE_MESSAGES.SERVICE_NOT_FOUND);
       }
 
-      const itemCount = await Item.countDocuments({ 
-      serviceId: service._id,
-      isActive: true 
-    });
+      const itemCount = await Item.countDocuments({
+        serviceId: service._id,
+        isActive: true,
+      });
 
-    const serviceWithCount = {
-      ...service.toObject(),
-      itemCount
-    };
+      const serviceWithCount = {
+        ...service.toObject(),
+        itemCount,
+      };
       return this.serviceMapper.toServiceResponseDto(serviceWithCount);
     } catch (error) {
       console.error("Get service by ID error:", error);
@@ -98,27 +106,40 @@ export class ServiceService implements IServiceService {
       let total: number;
 
       if (search) {
-        services = await this.serviceRepository.searchByCategory(categoryId, search, limit);
+        services = await this.serviceRepository.searchByCategory(
+          categoryId,
+          search,
+          limit
+        );
         total = services.length;
       } else {
-        services = await this.serviceRepository.findAll({ categoryId }, skip, limit);
+        services = await this.serviceRepository.findAll(
+          { categoryId },
+          skip,
+          limit
+        );
         total = await this.serviceRepository.count({ categoryId });
       }
 
       const servicesWithCounts = await Promise.all(
-      services.map(async (service) => {
-        const itemCount = await Item.countDocuments({ 
-          serviceId: service._id,
-          isActive: true 
-        });
-        return {
-          ...service.toObject(),
-          itemCount
-        };
-      })
-    );
+        services.map(async (service) => {
+          const itemCount = await Item.countDocuments({
+            serviceId: service._id,
+            isActive: true,
+          });
+          return {
+            ...service.toObject(),
+            itemCount,
+          };
+        })
+      );
 
-      return this.serviceMapper.toServiceListResponseDto(servicesWithCounts, total, page, limit);
+      return this.serviceMapper.toServiceListResponseDto(
+        servicesWithCounts,
+        total,
+        page,
+        limit
+      );
     } catch (error) {
       console.error("Get services by category error:", error);
       throw error;
@@ -143,14 +164,22 @@ export class ServiceService implements IServiceService {
         total = await this.serviceRepository.count();
       }
 
-      return this.serviceMapper.toServiceListResponseDto(services, total, page, limit);
+      return this.serviceMapper.toServiceListResponseDto(
+        services,
+        total,
+        page,
+        limit
+      );
     } catch (error) {
       console.error("Get all services error:", error);
       throw error;
     }
   }
 
-  async updateService(serviceId: string, updateDto: UpdateServiceDto): Promise<ServiceResponseDto> {
+  async updateService(
+    serviceId: string,
+    updateDto: UpdateServiceDto
+  ): Promise<ServiceResponseDto> {
     try {
       // Check if service exists
       const existingService = await this.serviceRepository.findById(serviceId);
@@ -160,26 +189,34 @@ export class ServiceService implements IServiceService {
 
       // If name is being updated, check for duplicates
       if (updateDto.name && updateDto.name !== existingService.name) {
-        const duplicateService = await this.serviceRepository.findByName(updateDto.name);
-        if (duplicateService && (duplicateService as any)._id.toString() !== serviceId) {
+        const duplicateService = await this.serviceRepository.findByName(
+          updateDto.name
+        );
+        if (
+          duplicateService &&
+          (duplicateService as any)._id.toString() !== serviceId
+        ) {
           throw new Error(SERVICE_MESSAGES.SERVICE_ALREADY_EXISTS);
         }
       }
 
-      // Build an update payload that omits undefined optional fields (so it matches the repository's expected shape)
       const updatePayload: any = { ...updateDto };
 
-      // If rating is undefined in DTO, remove it so the repository isn't forced to accept undefined for a required number field
       if (updatePayload.rating === undefined) {
         delete updatePayload.rating;
       }
 
-      // If categoryId is provided as string, convert to ObjectId to match repository expectations
-      if (updatePayload.categoryId && Types.ObjectId.isValid(updatePayload.categoryId)) {
+      if (
+        updatePayload.categoryId &&
+        Types.ObjectId.isValid(updatePayload.categoryId)
+      ) {
         updatePayload.categoryId = new Types.ObjectId(updatePayload.categoryId);
       }
 
-      const updatedService = await this.serviceRepository.update(serviceId, updatePayload as any);
+      const updatedService = await this.serviceRepository.update(
+        serviceId,
+        updatePayload as any
+      );
       if (!updatedService) {
         throw new Error(SERVICE_MESSAGES.FAILED_UPDATE_SERVICE);
       }
@@ -209,10 +246,15 @@ export class ServiceService implements IServiceService {
     }
   }
 
-  async searchServices(query: string, limit: number = 10): Promise<ServiceResponseDto[]> {
+  async searchServices(
+    query: string,
+    limit: number = 10
+  ): Promise<ServiceResponseDto[]> {
     try {
       const services = await this.serviceRepository.search(query, limit);
-      return services.map(service => this.serviceMapper.toServiceResponseDto(service));
+      return services.map((service) =>
+        this.serviceMapper.toServiceResponseDto(service)
+      );
     } catch (error) {
       console.error("Search services error:", error);
       throw error;

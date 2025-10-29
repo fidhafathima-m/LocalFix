@@ -3,7 +3,6 @@ import { itemManagementController } from "../../config/container";
 
 const router = Router();
 
-// Routes
 router.post("/", itemManagementController.createItem);
 router.get("/", itemManagementController.getAllItems);
 router.get("/search", itemManagementController.searchItems);

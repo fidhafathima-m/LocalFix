@@ -16,18 +16,7 @@ const ProtectedRoute: React.FC<ProtectedProps> = ({
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
   const location = useLocation();
 
-  console.log("🔍 ProtectedRoute Debug:", {
-    pathname: location.pathname,
-    isLoggedIn,
-    user: user ? { 
-      roles: user.roles, 
-      applicationStatus: user.applicationStatus 
-    } : null,
-    allowedRoles
-  });
-
   if (requireAuth && !isLoggedIn) {
-    console.log("🔍 Redirecting: Not logged in");
     if (allowedRoles.includes("admin"))
       return <Navigate to="/admin/login" replace state={{ from: location }} />;
     if (allowedRoles.includes("serviceProvider"))
@@ -46,40 +35,28 @@ const ProtectedRoute: React.FC<ProtectedProps> = ({
     const primaryRole = user.roles[0];
     const isApplyPage = location.pathname === "/technicians/apply";
 
-    console.log("🔍 Role check - redirecting:", {
-      primaryRole,
-      applicationStatus: user.applicationStatus,
-      isApplyPage,
-      currentPath: location.pathname
-    });
-
     switch (primaryRole) {
       case "admin":
         return <Navigate to="/admin/dashboard" replace />;
       case "serviceProvider":
-        // CRITICAL: Allow access to apply page regardless of status
         if (user.applicationStatus === "approved" && !isApplyPage) {
-          console.log("🔍 Redirecting to technician dashboard - approved status");
           return <Navigate to="/technicians/dashboard" replace />;
         } else if (
-          ["submitted", "under_review"].includes(user.applicationStatus || "") && 
+          ["submitted", "under_review"].includes(
+            user.applicationStatus || ""
+          ) &&
           !isApplyPage
         ) {
-          console.log("🔍 Redirecting to pending dashboard - submitted/under_review status");
           return <Navigate to="/pending-technician/dashboard" replace />;
         } else if (!user.applicationStatus && !isApplyPage) {
-          console.log("🔍 Redirecting to apply page - no application status");
           return <Navigate to="/technicians/application" replace />;
         }
-        // If it's the apply page, allow access regardless of status
-        console.log("🔍 Allowing access to apply page");
         break;
       default:
         return <Navigate to="/" replace />;
     }
   }
 
-  console.log("🔍 Allowing access to:", location.pathname);
   return children;
 };
 

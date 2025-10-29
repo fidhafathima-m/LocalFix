@@ -24,7 +24,8 @@ export class TechnicianApplicationController {
   startApplication = async (req: Request, res: Response): Promise<void> => {
     try {
       const requestData: StartApplicationRequestDto = req.body;
-      const result: ApplicationResponseDto = await this.applicationService.startApplication(requestData);
+      const result: ApplicationResponseDto =
+        await this.applicationService.startApplication(requestData);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Start application controller error:", error);
@@ -37,11 +38,9 @@ export class TechnicianApplicationController {
     try {
       const requestData: SaveStepRequestDto = req.body;
       const files: FilesCollectionDto = this.convertExpressFiles(req.files);
-      
-      const result: ApplicationResponseDto = await this.applicationService.saveStep(
-        requestData,
-        files
-      );
+
+      const result: ApplicationResponseDto =
+        await this.applicationService.saveStep(requestData, files);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Save step controller error:", error);
@@ -52,25 +51,27 @@ export class TechnicianApplicationController {
 
   private convertExpressFiles(files: any): FilesCollectionDto {
     if (!files) return {};
-    
+
     const convertedFiles: FilesCollectionDto = {};
-    
+
     // If files is an array
     if (Array.isArray(files)) {
-      convertedFiles.files = files.map(file => this.convertExpressFile(file));
+      convertedFiles.files = files.map((file) => this.convertExpressFile(file));
       return convertedFiles;
     }
-    
+
     // If files is an object with field names as keys
     for (const [fieldname, fileArray] of Object.entries(files)) {
       if (Array.isArray(fileArray)) {
-        convertedFiles[fieldname] = fileArray.map((file: any) => this.convertExpressFile(file));
+        convertedFiles[fieldname] = fileArray.map((file: any) =>
+          this.convertExpressFile(file)
+        );
       } else {
         const file = fileArray as any;
         convertedFiles[fieldname] = [this.convertExpressFile(file)];
       }
     }
-    
+
     return convertedFiles;
   }
 
@@ -92,7 +93,8 @@ export class TechnicianApplicationController {
   getApplication = async (req: Request, res: Response): Promise<void> => {
     try {
       const { applicationId } = req.params;
-      const result: ApplicationResponseDto = await this.applicationService.getApplication(applicationId);
+      const result: ApplicationResponseDto =
+        await this.applicationService.getApplication(applicationId);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application controller error:", error);
@@ -101,21 +103,27 @@ export class TechnicianApplicationController {
     }
   };
 
-  submitApplication = async (req: AuthRequest, res: Response): Promise<void> => {
+  submitApplication = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const requestData: SubmitApplicationRequestDto = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      const result: ApplicationResponseDto = await this.applicationService.submitApplication(
-        requestData.applicationId,
-        userId
-      );
+      const result: ApplicationResponseDto =
+        await this.applicationService.submitApplication(
+          requestData.applicationId,
+          userId
+        );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Submit application controller error:", error);
@@ -127,7 +135,8 @@ export class TechnicianApplicationController {
   getApplicationStatus = async (req: Request, res: Response): Promise<void> => {
     try {
       const { applicationId } = req.params;
-      const result: ApplicationResponseDto = await this.applicationService.getApplicationStatus(applicationId);
+      const result: ApplicationResponseDto =
+        await this.applicationService.getApplicationStatus(applicationId);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application status controller error:", error);
@@ -136,17 +145,23 @@ export class TechnicianApplicationController {
     }
   };
 
-  getUserApplications = async (req: AuthRequest, res: Response): Promise<void> => {
+  getUserApplications = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const userId = req.user?.id;
 
       if (!userId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      const result: ApplicationListResponseDto = await this.applicationService.getUserApplications(userId);
+      const result: ApplicationListResponseDto =
+        await this.applicationService.getUserApplications(userId);
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get user applications controller error:", error);
@@ -155,21 +170,27 @@ export class TechnicianApplicationController {
     }
   };
 
-  resubmitApplication = async (req: AuthRequest, res: Response): Promise<void> => {
+  resubmitApplication = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const { applicationId } = req.params;
       const userId = req.user?.id;
 
       if (!userId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      const result: ApplicationResponseDto = await this.applicationService.resubmitApplication(
-        applicationId,
-        userId
-      );
+      const result: ApplicationResponseDto =
+        await this.applicationService.resubmitApplication(
+          applicationId,
+          userId
+        );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Resubmit application controller error:", error);
@@ -178,21 +199,27 @@ export class TechnicianApplicationController {
     }
   };
 
-  startNewAfterRejection = async (req: AuthRequest, res: Response): Promise<void> => {
+  startNewAfterRejection = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const requestData: StartNewAfterRejectionRequestDto = req.body;
       const userId = req.user?.id;
 
       if (!userId || !requestData.email) {
-        const badRequestResponse = ResponseHelper.badRequest("User ID and email are required");
+        const badRequestResponse = ResponseHelper.badRequest(
+          "User ID and email are required"
+        );
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
       }
 
-      const result: ApplicationResponseDto = await this.applicationService.startNewApplicationAfterRejection(
-        userId,
-        requestData.email
-      );
+      const result: ApplicationResponseDto =
+        await this.applicationService.startNewApplicationAfterRejection(
+          userId,
+          requestData.email
+        );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Start new after rejection controller error:", error);
@@ -200,21 +227,27 @@ export class TechnicianApplicationController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
-  getApplicationForEdit = async (req: AuthRequest, res: Response): Promise<void> => {
+  getApplicationForEdit = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const { applicationId } = req.params;
       const userId = req.user?.id;
 
       if (!userId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      const result: ApplicationResponseDto = await this.applicationService.getApplicationForEdit(
-        applicationId,
-        userId
-      );
+      const result: ApplicationResponseDto =
+        await this.applicationService.getApplicationForEdit(
+          applicationId,
+          userId
+        );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get application for edit controller error:", error);

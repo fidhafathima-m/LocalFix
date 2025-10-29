@@ -82,13 +82,11 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         }
       }
 
-      // ✅ FIX: Properly extract documents from Mongoose document
       let documents = [];
       const technicianObject = technician.toObject
         ? technician.toObject()
         : { ...technician };
 
-      // Try multiple ways to get documents from Mongoose document
       if (technician.documents && Array.isArray(technician.documents)) {
         documents = technician.documents;
       } else if (
@@ -97,12 +95,9 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       ) {
         documents = technician._doc.documents;
       } else {
-        // Use toObject with proper options to include documents
-
         documents = technicianObject.documents || [];
       }
 
-      // ✅ Create profile data with properly extracted documents
       const profileData = {
         ...technicianObject,
         personalInfo: {
@@ -112,7 +107,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         documents: technician.documents || technicianObject.documents || [],
       };
 
-      // ✅ Map to DTO
       const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
         profileData,
         user
@@ -149,14 +143,13 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      // Fix the update logic - don't use || with defaults that override empty strings
       const updatePayload: any = {
         personalInfo: {
-          ...technician.personalInfo, // Keep existing data
+          ...technician.personalInfo,
         },
       };
 
-      // Only update fields that are provided (not undefined)
+      // Only update fields that are provided
       if (updateData.personalInfo?.fullName !== undefined) {
         updatePayload.personalInfo.fullName = updateData.personalInfo?.fullName;
       }
@@ -212,7 +205,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         });
       }
 
-      // ✅ Get updated user data and map to DTO
       const updatedUser = await this.userRepository.findById(technicianId);
       const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
         updatedTechnician,
@@ -251,7 +243,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      // ✅ Build update payload
       const updatePayload: any = {
         identityVerification: {
           ...technician.identityVerification,
@@ -266,7 +257,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         },
       };
 
-      // ✅ Handle address update in personalInfo
       if (updateData.address) {
         updatePayload.personalInfo = {
           ...technician.personalInfo,
@@ -274,7 +264,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         };
       }
 
-      // Call the repository
       const updatedTechnician =
         await this.technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
@@ -350,7 +339,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      // ✅ Map to DTO
       const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
         updatedTechnician,
         user
@@ -417,7 +405,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      // ✅ Map to DTO
       const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
         updatedTechnician,
         user
@@ -455,7 +442,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      // ✅ Handle both data structures - frontend might send paymentDetails object or flat structure
       let paymentData: any = {};
 
       if (updateData.paymentDetails) {
@@ -535,7 +521,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      // ✅ Map to DTO
       const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
         updatedTechnician,
         user
@@ -590,7 +575,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         return ResponseHelper.badRequest("Current password is required");
       }
 
-      // Update password - Use the correct repository method
+      // Update password
       if (updateData.newPassword) {
         if (updateData.newPassword !== updateData.confirmPassword) {
           return ResponseHelper.badRequest(
@@ -598,7 +583,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           );
         }
 
-        // Use the correct method from technicianProfileRepository
         const updateResult =
           await this.technicianProfileRepository.updateUserPassword(
             technicianId,
@@ -614,7 +598,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         return ResponseHelper.badRequest("New password is required");
       }
 
-      // ✅ Map to DTO
       const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
         technician,
         user
@@ -659,7 +642,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       // Handle both DocumentUploadDto and Multer file
       if (documentData instanceof Object && "fileUrl" in documentData) {
-        // It's a DocumentUploadDto
         fileUrl = documentData.fileUrl;
         fileName = documentData.fileName;
         finalDocumentType = documentData.type;
@@ -715,7 +697,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      // ✅ Map to DTO
       const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
         updatedTechnician,
         user
@@ -739,7 +720,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   async getStaticData(): Promise<StaticDataResponseDto> {
     try {
-      // ✅ Map to DTO
       const staticDataDto = TechnicianProfileMapper.toStaticDataDto();
 
       return ResponseHelper.success("Static data retrieved successfully", {
@@ -796,7 +776,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      // ✅ Map to DTO
       const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
         updatedTechnician,
         user

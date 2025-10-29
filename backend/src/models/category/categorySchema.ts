@@ -1,4 +1,3 @@
-// models/category/CategorySchema.ts
 import { Schema, model } from "mongoose";
 import { ICategory } from "../../interfaces/admin/ICategoryManagement";
 

@@ -2,7 +2,10 @@ import { Request, Response } from "express";
 import { IServiceService } from "../../interfaces/services/admin/IServiceManagementService";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { SERVICE_MESSAGES } from "../../constants";
-import { CreateServiceDto, UpdateServiceDto } from "../../interfaces/dtos/serviceDtos";
+import {
+  CreateServiceDto,
+  UpdateServiceDto,
+} from "../../interfaces/dtos/serviceDtos";
 
 export class ServiceController {
   private serviceService: IServiceService;
@@ -17,35 +20,48 @@ export class ServiceController {
 
       // Validation
       if (!createDto.name?.trim()) {
-        const response = ResponseHelper.badRequest(SERVICE_MESSAGES.NAME_REQUIRED);
+        const response = ResponseHelper.badRequest(
+          SERVICE_MESSAGES.NAME_REQUIRED
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
       if (!createDto.description?.trim()) {
-        const response = ResponseHelper.badRequest(SERVICE_MESSAGES.DESCRIPTION_REQUIRED);
+        const response = ResponseHelper.badRequest(
+          SERVICE_MESSAGES.DESCRIPTION_REQUIRED
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
       if (!createDto.categoryId?.trim()) {
-        const response = ResponseHelper.badRequest(SERVICE_MESSAGES.CATEGORY_ID_REQUIRED);
+        const response = ResponseHelper.badRequest(
+          SERVICE_MESSAGES.CATEGORY_ID_REQUIRED
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
       if (createDto.avgBasePrice === undefined || createDto.avgBasePrice < 0) {
-        const response = ResponseHelper.badRequest(SERVICE_MESSAGES.INVALID_BASE_PRICE);
+        const response = ResponseHelper.badRequest(
+          SERVICE_MESSAGES.INVALID_BASE_PRICE
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
       const service = await this.serviceService.createService(createDto);
-      const response = ResponseHelper.success(SERVICE_MESSAGES.SERVICE_CREATED, { service });
+      const response = ResponseHelper.success(
+        SERVICE_MESSAGES.SERVICE_CREATED,
+        { service }
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Create service controller error:", error);
-      const response = ResponseHelper.error(error.message || SERVICE_MESSAGES.FAILED_CREATE_SERVICE);
+      const response = ResponseHelper.error(
+        error.message || SERVICE_MESSAGES.FAILED_CREATE_SERVICE
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -54,11 +70,16 @@ export class ServiceController {
     try {
       const { id } = req.params;
       const service = await this.serviceService.getServiceById(id);
-      const response = ResponseHelper.success(SERVICE_MESSAGES.SERVICE_RETRIEVED, { service });
+      const response = ResponseHelper.success(
+        SERVICE_MESSAGES.SERVICE_RETRIEVED,
+        { service }
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get service by ID controller error:", error);
-      const response = ResponseHelper.error(error.message || SERVICE_MESSAGES.SERVICE_NOT_FOUND);
+      const response = ResponseHelper.error(
+        error.message || SERVICE_MESSAGES.SERVICE_NOT_FOUND
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -67,28 +88,46 @@ export class ServiceController {
     try {
       const { slug } = req.params;
       const service = await this.serviceService.getServiceBySlug(slug);
-      const response = ResponseHelper.success(SERVICE_MESSAGES.SERVICE_RETRIEVED, { service });
+      const response = ResponseHelper.success(
+        SERVICE_MESSAGES.SERVICE_RETRIEVED,
+        { service }
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get service by slug controller error:", error);
-      const response = ResponseHelper.error(error.message || SERVICE_MESSAGES.SERVICE_NOT_FOUND);
+      const response = ResponseHelper.error(
+        error.message || SERVICE_MESSAGES.SERVICE_NOT_FOUND
+      );
       res.status(response.statusCode).json(response);
     }
   };
 
-  getServicesByCategoryId = async (req: Request, res: Response): Promise<void> => {
+  getServicesByCategoryId = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       const { categoryId } = req.params;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const search = req.query.search as string;
 
-      const result = await this.serviceService.getServicesByCategoryId(categoryId, page, limit, search);
-      const response = ResponseHelper.success(SERVICE_MESSAGES.SERVICES_RETRIEVED, result);
+      const result = await this.serviceService.getServicesByCategoryId(
+        categoryId,
+        page,
+        limit,
+        search
+      );
+      const response = ResponseHelper.success(
+        SERVICE_MESSAGES.SERVICES_RETRIEVED,
+        result
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get services by category controller error:", error);
-      const response = ResponseHelper.error(error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES);
+      const response = ResponseHelper.error(
+        error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -99,12 +138,21 @@ export class ServiceController {
       const limit = parseInt(req.query.limit as string) || 10;
       const search = req.query.search as string;
 
-      const result = await this.serviceService.getAllServices(page, limit, search);
-      const response = ResponseHelper.success(SERVICE_MESSAGES.SERVICES_RETRIEVED, result);
+      const result = await this.serviceService.getAllServices(
+        page,
+        limit,
+        search
+      );
+      const response = ResponseHelper.success(
+        SERVICE_MESSAGES.SERVICES_RETRIEVED,
+        result
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get all services controller error:", error);
-      const response = ResponseHelper.error(error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES);
+      const response = ResponseHelper.error(
+        error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -115,11 +163,16 @@ export class ServiceController {
       const updateDto: UpdateServiceDto = req.body;
 
       const service = await this.serviceService.updateService(id, updateDto);
-      const response = ResponseHelper.success(SERVICE_MESSAGES.SERVICE_UPDATED, { service });
+      const response = ResponseHelper.success(
+        SERVICE_MESSAGES.SERVICE_UPDATED,
+        { service }
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Update service controller error:", error);
-      const response = ResponseHelper.error(error.message || SERVICE_MESSAGES.FAILED_UPDATE_SERVICE);
+      const response = ResponseHelper.error(
+        error.message || SERVICE_MESSAGES.FAILED_UPDATE_SERVICE
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -132,7 +185,9 @@ export class ServiceController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Delete service controller error:", error);
-      const response = ResponseHelper.error(error.message || SERVICE_MESSAGES.FAILED_DELETE_SERVICE);
+      const response = ResponseHelper.error(
+        error.message || SERVICE_MESSAGES.FAILED_DELETE_SERVICE
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -149,7 +204,9 @@ export class ServiceController {
       }
 
       const services = await this.serviceService.searchServices(q, limit);
-      const response = ResponseHelper.success("Services search completed", { services });
+      const response = ResponseHelper.success("Services search completed", {
+        services,
+      });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Search services controller error:", error);

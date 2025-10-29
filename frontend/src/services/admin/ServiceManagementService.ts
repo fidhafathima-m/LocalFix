@@ -1,28 +1,36 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// services/admin/ServiceManagementService.ts
 import { adminAPI } from "../common/adminApi";
-import type { CreateServiceData, UpdateServiceData } from "../common/adminApi"
+import type { CreateServiceData, UpdateServiceData } from "../common/adminApi";
 
 export class ServiceManagementService {
-  static async getServicesByCategory(categoryId: string, page: number = 1, limit: number = 10, search?: string) {
+  static async getServicesByCategory(
+    categoryId: string,
+    page: number = 1,
+    limit: number = 10,
+    search?: string
+  ) {
     try {
-      console.log("📡 Calling API for services by category:", { categoryId, page, limit, search });
-      
-      const response = await adminAPI.getServicesByCategory(categoryId, page, limit, search);
-      console.log("✅ Raw API response:", response);
-      
+      const response = await adminAPI.getServicesByCategory(
+        categoryId,
+        page,
+        limit,
+        search
+      );
+
       // Extract data from the response
       const result = this.handleResponse(response);
-      console.log("✅ Processed result:", result);
       return result;
-      
     } catch (error: any) {
-      console.error("💥 Error in getServicesByCategory:", error);
+      console.error("Error in getServicesByCategory:", error);
       throw this.handleError(error, "Failed to get services");
     }
   }
 
-  static async getAllServices(page: number = 1, limit: number = 10, search?: string) {
+  static async getAllServices(
+    page: number = 1,
+    limit: number = 10,
+    search?: string
+  ) {
     try {
       const response = await adminAPI.getAllServices(page, limit, search);
       return this.handleResponse(response);
@@ -54,7 +62,6 @@ export class ServiceManagementService {
 
   static async createService(serviceData: CreateServiceData) {
     try {
-      console.log("📡 Creating service:", serviceData);
       const response = await adminAPI.createService(serviceData);
       return this.handleResponse(response);
     } catch (error: any) {
@@ -93,26 +100,20 @@ export class ServiceManagementService {
     }
   }
 
- private static handleResponse(response: any) {
-  console.log("🔄 Handling response:", response);
-  
-  if (response.success === false) {
-    throw new Error(response.message || "Operation failed");
+  private static handleResponse(response: any) {
+    if (response.success === false) {
+      throw new Error(response.message || "Operation failed");
+    }
+
+    if (response.data && response.data.data) {
+      return response.data.data;
+    }
+
+    if (response.data) {
+      return response.data;
+    }
+    return response;
   }
-  
-  if (response.data && response.data.data) {
-    console.log("✅ Extracting nested data:", response.data.data);
-    return response.data.data;
-  }
-  
-  if (response.data) {
-    console.log("✅ Extracting data from response.data:", response.data);
-    return response.data;
-  }
-  
-  console.log("⚠️ No nested data structure found, returning response:", response);
-  return response;
-}
 
   private static handleError(error: any, defaultMessage: string) {
     if (error instanceof Error) {

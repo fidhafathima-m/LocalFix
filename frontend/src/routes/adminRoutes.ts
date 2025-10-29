@@ -5,6 +5,9 @@ export const ADMIN_ROUTES = {
   USER_BY_ID: (userId: string) => `/admin/users/${userId}`,
   USER_STATUS: (userId: string) => `/admin/users/${userId}/status`,
 
+  PUBLIC_USER_PROFILE: "/public/user/profile",
+  PUBLIC_USER_BY_ID: (userId: string) => `/public/user/${userId}`,  
+
   // Technician routes
   TECHNICIANS: "/admin/technicians",
   TECHNICIAN_BY_ID: (technicianId: string) =>
@@ -46,4 +49,8 @@ export const ADMIN_ROUTES = {
   UPDATE_ITEM: (itemId: string) => `/admin/items/${itemId}`,
   DELETE_ITEM: (itemId: string) => `/admin/items/${itemId}`,
   SEARCH_ITEM: "/admin/items/search",
+
+  // User profile
+  UPDATE_USER_PROFILE: "/user/profile",
+  UPDATE_PROFILE_PHOTO: "/user/profile/upload-photo",
 } as const;

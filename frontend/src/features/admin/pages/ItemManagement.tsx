@@ -13,22 +13,26 @@ import {
   DeleteOutlineOutlined,
   ChevronLeftOutlined,
 } from "@mui/icons-material";
-import Search from "../components/Search"
+import Search from "../components/Search";
 import { AddItemModal } from "../components/categoryManagement/AddItemModal";
 import { EditItemModal } from "../components/categoryManagement/EditItemModal";
 import { ItemManagementService } from "../../../services/admin/ItemManagementService";
-import type { Item, CreateItemData, UpdateItemData } from "../../../services/common/adminApi";
+import type {
+  Item,
+  CreateItemData,
+  UpdateItemData,
+} from "../../../services/common/adminApi";
 
 const ItemManagement: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const service = location.state?.service || {
-    name: 'Service',
-    id: '',
+    name: "Service",
+    id: "",
   };
   const category = location.state?.category || {
-    name: 'Category',
-    id: '',
+    name: "Category",
+    id: "",
   };
 
   const [items, setItems] = useState<Item[]>([]);
@@ -49,27 +53,28 @@ const ItemManagement: React.FC = () => {
   // Load items from backend
   const loadItems = async (page: number = 1, search?: string) => {
     try {
-      console.log("🔄 Loading items...", { page, search, serviceId: service.id });
       setLoading(true);
-      
-      const response = await ItemManagementService.getItemsByService(service.id, page, itemsPerPage, search);
-      
-      console.log("📡 Processed API Response:", response);
-      
-      // Now response should be the direct data: { items: [], total: 0, ... }
-      if (response && typeof response === 'object') {
-        console.log("✅ Items data loaded:", response.items?.length || 0);
+
+      const response = await ItemManagementService.getItemsByService(
+        service.id,
+        page,
+        itemsPerPage,
+        search
+      );
+
+
+      if (response && typeof response === "object") {
         setItems(response.items || []);
         setTotalCount(response.total || 0);
         setTotalPages(response.totalPages || 0);
       } else {
-        console.error("❌ Invalid final data structure:", response);
+        console.error("Invalid final data structure:", response);
         setItems([]);
         setTotalCount(0);
         setTotalPages(0);
       }
     } catch (error: any) {
-      console.error("💥 Error loading items:", error);
+      console.error("Error loading items:", error);
       toast.error(error.message || "Failed to load items");
       setItems([]);
       setTotalCount(0);
@@ -93,7 +98,7 @@ const ItemManagement: React.FC = () => {
         ...itemData,
         serviceId: service.id,
       });
-      
+
       if (response && response.item) {
         toast.success("Item created successfully");
         setShowAddModal(false);
@@ -106,9 +111,9 @@ const ItemManagement: React.FC = () => {
     } catch (error: any) {
       console.error("Error creating item:", error);
       toast.error(error.message || "Failed to create item");
-      return { 
-        success: false, 
-        message: error.message || "Failed to create item" 
+      return {
+        success: false,
+        message: error.message || "Failed to create item",
       };
     }
   };
@@ -118,10 +123,16 @@ const ItemManagement: React.FC = () => {
     setShowEditModal(true);
   };
 
-  const handleUpdateItem = async (itemId: string, updateData: UpdateItemData) => {
+  const handleUpdateItem = async (
+    itemId: string,
+    updateData: UpdateItemData
+  ) => {
     try {
-      const response = await ItemManagementService.updateItem(itemId, updateData);
-      
+      const response = await ItemManagementService.updateItem(
+        itemId,
+        updateData
+      );
+
       if (response && response.item) {
         toast.success("Item updated successfully");
         setShowEditModal(false);
@@ -135,9 +146,9 @@ const ItemManagement: React.FC = () => {
     } catch (error: any) {
       console.error("Error updating item:", error);
       toast.error(error.message || "Failed to update item");
-      return { 
-        success: false, 
-        message: error.message || "Failed to update item" 
+      return {
+        success: false,
+        message: error.message || "Failed to update item",
       };
     }
   };
@@ -157,7 +168,7 @@ const ItemManagement: React.FC = () => {
 
     try {
       const response = await ItemManagementService.deleteItem(id);
-      
+
       if (response) {
         toast.success("Item deleted successfully");
         await loadItems(currentPage, searchQuery); // Refresh the list
@@ -174,9 +185,9 @@ const ItemManagement: React.FC = () => {
     setSearchQuery(query);
   };
 
-  // Stats calculations - now based on real data
+  // Stats calculations
   const totalItems = totalCount;
-  const activeItems = items.filter(item => item.isActive).length;
+  const activeItems = items.filter((item) => item.isActive).length;
   const totalValue = items.reduce((sum, item) => sum + item.price, 0);
 
   if (loading && items.length === 0) {
@@ -199,7 +210,7 @@ const ItemManagement: React.FC = () => {
     <>
       <div className="flex h-screen bg-gray-50">
         <AdminSidebar activePage="Category" />
-        
+
         <div className="flex-1 overflow-y-auto ml-[240px]">
           <div className="p-6">
             {/* Header */}
@@ -213,7 +224,8 @@ const ItemManagement: React.FC = () => {
               </button>
               <h1 className="text-2xl font-bold mb-1">Item Management</h1>
               <p className="text-gray-600">
-                Manage items for {service.name} in {category.name}, view their details, and control item status.
+                Manage items for {service.name} in {category.name}, view their
+                details, and control item status.
               </p>
             </div>
 
@@ -253,10 +265,7 @@ const ItemManagement: React.FC = () => {
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="w-full md:w-auto flex-1">
                   <div className="relative">
-                    <Search
-                      value={searchQuery}
-                      onChange={handleSearch}
-                    />
+                    <Search value={searchQuery} onChange={handleSearch} />
                   </div>
                 </div>
                 <div className="w-full md:w-auto flex gap-4">
@@ -353,12 +362,14 @@ const ItemManagement: React.FC = () => {
 
                           {/* Status */}
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              item.isActive 
-                                ? "bg-green-100 text-green-800" 
-                                : "bg-red-100 text-red-800"
-                            }`}>
-                              {item.isActive ? 'Active' : 'Inactive'}
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                item.isActive
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {item.isActive ? "Active" : "Inactive"}
                             </span>
                           </td>
 
@@ -424,7 +435,7 @@ const ItemManagement: React.FC = () => {
                   <div className="flex space-x-2">
                     <button
                       disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(prev => prev - 1)}
+                      onClick={() => setCurrentPage((prev) => prev - 1)}
                       className={`px-3 py-1 rounded-md text-sm font-medium ${
                         currentPage === 1
                           ? "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -450,7 +461,7 @@ const ItemManagement: React.FC = () => {
 
                     <button
                       disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
                       className={`px-3 py-1 rounded-md text-sm font-medium ${
                         currentPage === totalPages
                           ? "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -468,7 +479,7 @@ const ItemManagement: React.FC = () => {
       </div>
 
       {showAddModal && (
-        <AddItemModal 
+        <AddItemModal
           onClose={() => setShowAddModal(false)}
           onSubmit={handleCreateItem}
           serviceName={service.name}

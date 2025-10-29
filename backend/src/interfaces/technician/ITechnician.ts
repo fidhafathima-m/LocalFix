@@ -21,15 +21,14 @@ export interface PersonalInfo {
     state?: string;
     pincode?: string;
   };
-   
 }
 export interface IdentityInfo {
   idType?: string;
   idNumber?: string;
-    idDocument?: string;
-    verified?: boolean;
-    verificationStatus?: "pending" | "approved" | "rejected";
-    verifiedAt?: Date;
+  idDocument?: string;
+  verified?: boolean;
+  verificationStatus?: "pending" | "approved" | "rejected";
+  verifiedAt?: Date;
   location?: {
     coordinates?: [number, number];
     formattedAddress?: string;
@@ -37,16 +36,16 @@ export interface IdentityInfo {
   };
   address?: {
     street?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
-  landmark?: string;
-  }
+    city?: string;
+    state?: string;
+    pincode?: string;
+    landmark?: string;
+  };
 }
 
 export interface SkillsInfo {
   services?: string[];
-  yearsOfExperience?: string; 
+  yearsOfExperience?: string;
   languages?: string[];
   bio?: string;
   serviceAreas?: string[];
@@ -71,7 +70,7 @@ export interface WeeklyAvailability {
 
 export interface AvailabilityInfo {
   serviceAreas?: string[];
-  workRadius?: string; 
+  workRadius?: string;
   availability?: WeeklyAvailability;
 }
 
@@ -99,9 +98,8 @@ export interface DocumentsInfo {
   idProof?: DocumentFile;
   addressProof?: DocumentFile;
   passportPhoto?: DocumentFile;
-  profilePhoto?: DocumentFile
+  profilePhoto?: DocumentFile;
 }
-
 
 export interface ITechnician extends Document {
   _doc: any;
@@ -126,16 +124,26 @@ export interface ITechnician extends Document {
     verificationStatus?: "pending" | "approved" | "rejected";
     verifiedAt?: Date;
     address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    pincode?: string;
-    landmark?: string;
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      landmark?: string;
+    };
+    location?: {
+      coordinates: number[];
+      formattedAddress: string;
+    };
   };
-  location?: {
-    coordinates: number[];
-    formattedAddress: string;
-  };
+
+  availabilityPreferences?: {
+    daysAvailable: string[];
+    startTime: string;
+    endTime: string;
+    workRadius: number;
+    serviceAreas: string[];
+    emergencyService: boolean;
+    afterHoursService: boolean;
   };
 
   // Skills & Services
@@ -181,7 +189,13 @@ export interface ITechnician extends Document {
   // Documents - Updated to match schema
   documents?: Array<{
     _id: Types.ObjectId;
-    type: "idProof" | "addressProof" | "policeVerification" | "passportPhoto" | "profilePhoto" | "tradeLicense";
+    type:
+      | "idProof"
+      | "addressProof"
+      | "policeVerification"
+      | "passportPhoto"
+      | "profilePhoto"
+      | "tradeLicense";
     fileName: string;
     url: string;
     uploadedAt: Date;

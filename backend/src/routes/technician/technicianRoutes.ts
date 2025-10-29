@@ -5,7 +5,7 @@ import { protect, serviceProvider } from "../../middleware/authMiddleware";
 
 const router = express.Router();
 
-router.use(serviceProvider)
+router.use(serviceProvider);
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();

@@ -1,4 +1,9 @@
-import { EditUserRequestDto, UpdateUserStatusRequestDto, UserManagementResponseDto, UsersListResponseDto } from "@/interfaces/dtos/userDtos";
+import {
+  EditUserRequestDto,
+  UpdateUserStatusRequestDto,
+  UserManagementResponseDto,
+  UsersListResponseDto,
+} from "@/interfaces/dtos/userDtos";
 import { ApiResponse } from "../../../utils/responseHelper";
 import {
   IUserWithAddress,
@@ -14,11 +19,15 @@ export interface IUserManagementService {
     statusData: UpdateUserStatusRequestDto
   ): Promise<UserManagementResponseDto>;
 
-  editUser(userId: string, userData: EditUserRequestDto): Promise<UserManagementResponseDto>;
+  editUser(
+    userId: string,
+    userData: EditUserRequestDto
+  ): Promise<UserManagementResponseDto>;
 
   deleteUser(userId: string): Promise<UserManagementResponseDto>;
 
   getUserStats(): Promise<UserManagementResponseDto>;
 
   getUserById(userId: string): Promise<UserManagementResponseDto>;
+  getPublicUserById(userId: string): Promise<UserManagementResponseDto>;
 }

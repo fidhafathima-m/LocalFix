@@ -12,6 +12,8 @@ import technicianProfileRoutes from "./routes/technician/technicianProfileRoutes
 import categoryManagementRoutes from "./routes/admin/categoryManagementRoutes";
 import serviceMangementRoutes from "./routes/admin/serviceManagementRoutes";
 import itemManagementRoutes from "./routes/admin/itemManagementRoutes";
+import pubicUserRoutes from "./routes/publicUserRoutes";
+import userProfileRoutes from "./routes/user/userProfileRoutes"
 
 connectDB();
 
@@ -45,7 +47,9 @@ app.use("/api/technician-application", technicianRoutes);
 app.use("/api/technician/profile", technicianProfileRoutes);
 app.use("/api/technician", technicianDashboardRoutes);
 
+app.use("/api/public/user", pubicUserRoutes);
 
+app.use("/api/user", userProfileRoutes);
 
 
 app.get("/", (req: Request, res: Response) => {

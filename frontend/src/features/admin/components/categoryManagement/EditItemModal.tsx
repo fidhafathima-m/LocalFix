@@ -1,14 +1,20 @@
-import { useState } from 'react'
-import { CloseOutlined } from '@mui/icons-material'
-import { AdminSidebar } from '../AdminSidebar'
-import type { Item, UpdateItemData } from '../../../../services/common/adminApi'
+import { useState } from "react";
+import { CloseOutlined } from "@mui/icons-material";
+import { AdminSidebar } from "../AdminSidebar";
+import type {
+  Item,
+  UpdateItemData,
+} from "../../../../services/common/adminApi";
 
 interface EditItemModalProps {
-  item: Item
-  serviceName: string
-  categoryName: string
-  onClose: () => void
-  onSubmit: (itemId: string, updateData: UpdateItemData) => Promise<{ success: boolean; message?: string }>
+  item: Item;
+  serviceName: string;
+  categoryName: string;
+  onClose: () => void;
+  onSubmit: (
+    itemId: string,
+    updateData: UpdateItemData
+  ) => Promise<{ success: boolean; message?: string }>;
 }
 
 export function EditItemModal({
@@ -18,52 +24,54 @@ export function EditItemModal({
   onClose,
   onSubmit,
 }: EditItemModalProps) {
-  const [itemName, setItemName] = useState(item.name)
-  const [description, setDescription] = useState(item.description)
-  const [price, setPrice] = useState(item.price.toString())
-  const [sku, setSku] = useState(item.sku)
-  const [isActive, setIsActive] = useState(item.isActive)
-  const [loading, setLoading] = useState(false)
+  const [itemName, setItemName] = useState(item.name);
+  const [description, setDescription] = useState(item.description);
+  const [price, setPrice] = useState(item.price.toString());
+  const [sku, setSku] = useState(item.sku);
+  const [isActive, setIsActive] = useState(item.isActive);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!itemName.trim() || !description.trim() || !price) {
-      return
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const updateData: UpdateItemData = {}
-      
+      const updateData: UpdateItemData = {};
+
       // Only include changed fields
-      if (itemName !== item.name) updateData.name = itemName.trim()
-      if (description !== item.description) updateData.description = description.trim()
-      if (parseFloat(price) !== item.price) updateData.price = parseFloat(price)
-      if (sku !== item.sku) updateData.sku = sku.trim()
-      if (isActive !== item.isActive) updateData.isActive = isActive
+      if (itemName !== item.name) updateData.name = itemName.trim();
+      if (description !== item.description)
+        updateData.description = description.trim();
+      if (parseFloat(price) !== item.price)
+        updateData.price = parseFloat(price);
+      if (sku !== item.sku) updateData.sku = sku.trim();
+      if (isActive !== item.isActive) updateData.isActive = isActive;
 
       // Only submit if there are changes
       if (Object.keys(updateData).length === 0) {
-        onClose()
-        return
+        onClose();
+        return;
       }
 
-      const result = await onSubmit(item.id, updateData)
+      const result = await onSubmit(item.id, updateData);
 
       if (result.success) {
-        onClose()
+        onClose();
       }
     } catch (error) {
-      console.error('Error updating item:', error)
+      console.error("Error updating item:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <AdminSidebar activePage='Category'/>
+      <AdminSidebar activePage="Category" />
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Header - Fixed */}
         <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200">
@@ -71,7 +79,9 @@ export function EditItemModal({
             <h2 className="text-xl font-semibold text-gray-900">
               Edit Item - {serviceName}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">Category: {categoryName}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Category: {categoryName}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -159,8 +169,8 @@ export function EditItemModal({
                 Status
               </label>
               <select
-                value={isActive ? 'active' : 'inactive'}
-                onChange={(e) => setIsActive(e.target.value === 'active')}
+                value={isActive ? "active" : "inactive"}
+                onChange={(e) => setIsActive(e.target.value === "active")}
                 disabled={loading}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               >
@@ -184,15 +194,17 @@ export function EditItemModal({
             </button>
             <button
               type="submit"
-              disabled={loading || !itemName.trim() || !description.trim() || !price}
+              disabled={
+                loading || !itemName.trim() || !description.trim() || !price
+              }
               onClick={handleSubmit}
               className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Updating...' : 'Update Item'}
+              {loading ? "Updating..." : "Update Item"}
             </button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

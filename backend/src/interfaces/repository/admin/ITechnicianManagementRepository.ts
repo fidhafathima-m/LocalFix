@@ -1,4 +1,4 @@
-import { PersonalInfo } from "@/interfaces/technician/ITechnician";
+import { PersonalInfo } from "../../../interfaces/technician/ITechnician";
 import {
   ITechnician,
   ITechnicianApplication,
@@ -97,7 +97,8 @@ export interface ITechnicianManagementRepository {
 
   // Create technician
   findOrCreateTechnician(
-    application: ITechnicianApplication
+    application: ITechnicianApplication,
+    availabilityData?: any
   ): Promise<ITechnician>;
   updateTechnicianPaymentDetails(
     technicianId: string,

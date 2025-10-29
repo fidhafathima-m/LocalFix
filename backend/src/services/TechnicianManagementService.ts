@@ -51,6 +51,7 @@ import {
 } from "@/interfaces/dtos/technicianDtos";
 import { TechnicianMapper } from "../mappers/technicianMappers";
 import { ApplicationMapper } from "../mappers/applicationMapper";
+import { TechnicianAvailabilityService } from "./AvailabilityService";
 
 interface DocumentInfo {
   url: string;
@@ -202,7 +203,6 @@ export class TechnicianManagementService
       );
       const total = await this.technicianRepository.countTechnicians(filter);
 
-      // ✅ FIX: Map to DTOs instead of domain objects
       const technicianDtos: TechnicianListDto[] = await Promise.all(
         technicians.map(async (tech: ITechnician) => {
           const adminTechnician = await this.convertToAdminTechnician(tech);
@@ -213,7 +213,7 @@ export class TechnicianManagementService
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED,
         {
-          technicians: technicianDtos, // ✅ Now this is TechnicianListDto[]
+          technicians: technicianDtos,
           pagination: {
             page: pageNum,
             limit: limitNum,
@@ -250,6 +250,10 @@ export class TechnicianManagementService
       completedJobs: adminTechnician.completedJobs || 0,
       createdAt: adminTechnician.createdAt || new Date(),
       profilePictureUrl: adminTechnician.profilePictureUrl,
+
+      address: adminTechnician.personalInfo?.address,
+      workAreas: adminTechnician.workAreas,
+      serviceRadiusKm: adminTechnician.serviceRadiusKm,
     };
   }
   async getTechnicianById(id: string): Promise<SingleTechnicianResponseDto> {
@@ -264,13 +268,12 @@ export class TechnicianManagementService
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      // ✅ FIX: Use TechnicianMapper to convert to DTO
       const technicianDto = TechnicianMapper.toDetailDto(adminTechnician);
 
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_RETRIEVED,
         {
-          technician: technicianDto, // ✅ Now this is TechnicianDetailDto
+          technician: technicianDto,
         }
       );
     } catch (error: unknown) {
@@ -660,7 +663,6 @@ export class TechnicianManagementService
       );
       const total = await this.technicianRepository.countApplications(filter);
 
-      // ✅ FIX: Map domain objects to DTOs
       const applicationDtos: ApplicationListDto[] = applications.map((app) =>
         ApplicationMapper.toListDto(app)
       );
@@ -668,7 +670,7 @@ export class TechnicianManagementService
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.PENDING_APPLICATIONS_RETRIEVED,
         {
-          applications: applicationDtos, // ✅ Now this is ApplicationListDto[]
+          applications: applicationDtos,
           pagination: {
             page: pageNum,
             limit: limitNum,
@@ -698,6 +700,8 @@ export class TechnicianManagementService
         );
       }
 
+      const availabilityService = new TechnicianAvailabilityService();
+
       // Update application status
       const updatedApplication =
         await this.technicianRepository.updateApplicationStatus(
@@ -721,6 +725,13 @@ export class TechnicianManagementService
       const technician = await this.technicianRepository.findOrCreateTechnician(
         application
       );
+
+      if (technician && application.availability) {
+        await availabilityService.createTechnicianAvailabilityFromApplication(
+          technician._id.toString(),
+          application.availability
+        );
+      }
 
       if (application.documents && technician) {
         const technicianDocuments: any[] = [];
@@ -749,7 +760,6 @@ export class TechnicianManagementService
         );
       }
 
-      // 🚨 FIXED: Get languages from skills.languages
       let languagesArray: string[] = [];
 
       if (application.skills?.languages) {
@@ -773,7 +783,6 @@ export class TechnicianManagementService
         }
       }
 
-      // 🚨 NEW: Get address data
       let addressData: Record<string, unknown> = {};
       if (application.identity?.address) {
         if (typeof application.identity.address === "string") {
@@ -788,9 +797,8 @@ export class TechnicianManagementService
         }
       }
 
-      // 🚨 NEW: Get identity verification data
       const identityVerificationData = {
-        idType: application.identity?.idType || "",
+        idType: this.mapIdType(application.identity?.idType || ""),
         idNumber: application.identity?.idNumber || "",
         idDocument: application.documents?.idProof?.url || "",
         verificationStatus: "approved" as const,
@@ -809,13 +817,11 @@ export class TechnicianManagementService
           }
         );
 
-        // 🚨 NEW: Update identity verification details
         await this.technicianRepository.updateTechnicianIdentityVerification(
           technician._id.toString(),
           identityVerificationData
         );
 
-        // 🚨 NEW: Auto-approve documents in technician profile as well
         if (application.documents) {
           const technicianDocuments = Object.entries(application.documents).map(
             ([type, doc]: [string, any]) => ({
@@ -837,7 +843,6 @@ export class TechnicianManagementService
         }
       }
 
-      // 🚨 FIXED: Update technician payment details with proper structure
       if (application.bank && technician) {
         const bankData = application.bank;
 
@@ -860,9 +865,6 @@ export class TechnicianManagementService
             paymentDetails
           );
       } else {
-        console.log(
-          "No bank data found in application or technician not found"
-        );
       }
 
       // Send approval email
@@ -937,11 +939,9 @@ export class TechnicianManagementService
               TECHNICIAN_STATUS.REJECTED
             );
           } else {
-            console.log("Technician not found by userId either");
           }
         }
       } else {
-        console.log("No technicianId found in application");
       }
 
       const updatedApplication =
@@ -954,7 +954,6 @@ export class TechnicianManagementService
           }
         );
 
-      // ✅ FIX: Check if updatedApplication is null
       if (!updatedApplication) {
         return ResponseHelper.badRequest(
           TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
@@ -981,7 +980,6 @@ export class TechnicianManagementService
           : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
       }
 
-      // ✅ FIX: Now updatedApplication is guaranteed to be non-null
       const applicationDto = ApplicationMapper.toListDto(updatedApplication);
 
       return ResponseHelper.success(
@@ -1022,7 +1020,6 @@ export class TechnicianManagementService
         application.documents || {}
       );
 
-      // ✅ FIX: Create application data with formatted documents
       const applicationData: ITechnicianApplication = {
         ...application.toObject(),
         _id: application._id as Types.ObjectId,
@@ -1031,13 +1028,12 @@ export class TechnicianManagementService
         documents: formattedDocuments,
       } as ITechnicianApplication;
 
-      // ✅ FIX: Map to DTO
       const applicationDto = ApplicationMapper.toDetailDto(applicationData);
 
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_RETRIEVED,
         {
-          applications: [applicationDto], // ✅ Now this is ApplicationDetailDto[]
+          applications: [applicationDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
         }
       );
@@ -1086,13 +1082,12 @@ export class TechnicianManagementService
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      // ✅ FIX: Map to DTO
       const technicianDto = TechnicianMapper.toDetailDto(adminTechnician);
 
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_BY_APPLICATION_RETRIEVED,
         {
-          technicians: [technicianDto], // ✅ Now this is TechnicianDetailDto[]
+          technicians: [technicianDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
         }
       );
@@ -1105,61 +1100,60 @@ export class TechnicianManagementService
       );
     }
   }
-  // In your TechnicianManagementService - Add backend debugging
-async getPublicTechnicians(filters: TechnicianFiltersDto): Promise<TechnicianListResponseDto> {
-  try {
-    console.log("🔄 Backend Service: Getting public technicians with filters:", filters);
-    
-    // Convert DTO to repository filter
-    const repoFilters: TechnicianFilter = {
-      status: 'approved' // Always approved for public
-    };
-    
-    // Add service filter if provided
-    if (filters.service) {
-      console.log("🔄 Backend Service: Filtering by service:", filters.service);
-      repoFilters.services = { $in: [filters.service] };
-    }
-    
-    console.log("🔄 Backend Service: Final repository filters:", JSON.stringify(repoFilters, null, 2));
-    
-    const technicians = await this.technicianRepository.findPublicTechnicians(repoFilters);
-    
-    console.log(`✅ Backend Service: Repository returned ${technicians.length} technicians`);
-    
-    // Map to DTOs
-    const technicianDtos: TechnicianListDto[] = await Promise.all(
-      technicians.map(async (tech: ITechnician) => {
-        const adminTechnician = await this.convertToAdminTechnician(tech);
-        return this.mapAdminTechnicianToListDto(adminTechnician);
-      })
-    );
+  async getPublicTechnicians(
+    filters: TechnicianFiltersDto
+  ): Promise<TechnicianListResponseDto> {
+    try {
+      const repoFilters: TechnicianFilter = {
+        status: "approved",
+      };
 
-    console.log(`✅ Backend Service: Returning ${technicianDtos.length} technician DTOs`);
-    
-    return ResponseHelper.success(
-      "Technicians retrieved successfully",
-      {
+      if (filters.service) {
+        repoFilters.services = { $in: [filters.service] };
+      }
+
+      const technicians = await this.technicianRepository.findPublicTechnicians(
+        repoFilters
+      );
+      // Map to DTOs with proper address mapping
+      const technicianDtos: TechnicianListDto[] = await Promise.all(
+        technicians.map(async (tech: ITechnician) => {
+          const adminTechnician = await this.convertToAdminTechnician(tech);
+
+          // Create public technician with address data
+          const publicTechnician = {
+            ...this.mapAdminTechnicianToListDto(adminTechnician),
+            address: adminTechnician.personalInfo?.address,
+            workAreas: adminTechnician.workAreas,
+            serviceRadiusKm: adminTechnician.serviceRadiusKm,
+          };
+
+          return publicTechnician;
+        })
+      );
+
+      return ResponseHelper.success("Technicians retrieved successfully", {
         technicians: technicianDtos,
         pagination: {
           page: 1,
           limit: technicians.length,
           total: technicians.length,
-          pages: 1
-        }
-      }
-    );
-  } catch (error) {
-    console.error("❌ Backend Service: Error getting public technicians:", error);
-    return ResponseHelper.error("Failed to retrieve technicians");
+          pages: 1,
+        },
+      });
+    } catch (error) {
+      console.error(
+        "Backend Service: Error getting public technicians:",
+        error
+      );
+      return ResponseHelper.error("Failed to retrieve technicians");
+    }
   }
-}
 
   async getPublicTechnicianById(
     id: string
   ): Promise<SingleTechnicianResponseDto> {
     try {
-      // Use findTechnicianById instead of findById
       const technician = await this.technicianRepository.findTechnicianById(id);
 
       if (!technician) {
@@ -1182,7 +1176,6 @@ async getPublicTechnicians(filters: TechnicianFiltersDto): Promise<TechnicianLis
         rejectionReason: undefined,
       };
 
-      // ✅ FIX: Use TechnicianMapper to convert to DTO
       const technicianDto = TechnicianMapper.toDetailDto(publicTechnician);
 
       return ResponseHelper.success("Technician retrieved successfully", {
@@ -1192,5 +1185,80 @@ async getPublicTechnicians(filters: TechnicianFiltersDto): Promise<TechnicianLis
       console.error("Get public technician service error:", error);
       return ResponseHelper.error("Failed to retrieve technician");
     }
+  }
+
+  private processAvailabilityData(availability: any): any {
+    if (!availability) return {};
+
+    // Extract availability preferences from application
+    const daysAvailable: string[] = [];
+    const serviceAreas: string[] = [];
+    let workRadius = 10;
+    let startTime = "09:00";
+    let endTime = "18:00";
+
+    // Process days availability
+    if (availability.days) {
+      Object.entries(availability.days).forEach(
+        ([day, dayData]: [string, any]) => {
+          if (dayData.available === true) {
+            daysAvailable.push(day.toLowerCase());
+
+            // Use the first available day's timing as default
+            if (
+              daysAvailable.length === 1 &&
+              dayData.startTime &&
+              dayData.endTime
+            ) {
+              startTime = dayData.startTime;
+              endTime = dayData.endTime;
+            }
+          }
+        }
+      );
+    }
+
+    // Process work radius
+    if (availability.workRadius) {
+      workRadius = parseInt(availability.workRadius) || 10;
+    }
+
+    // Process service areas
+    if (availability.serviceAreas) {
+      if (Array.isArray(availability.serviceAreas)) {
+        serviceAreas.push(...availability.serviceAreas);
+      } else if (typeof availability.serviceAreas === "string") {
+        serviceAreas.push(availability.serviceAreas);
+      }
+    }
+
+    return {
+      daysAvailable,
+      startTime,
+      endTime,
+      workRadius,
+      serviceAreas,
+      emergencyService: availability.emergencyService || false,
+      afterHoursService: availability.afterHoursService || false,
+    };
+  }
+
+  private processAvailabilityPreferences(availability: any): any {
+    const processed = this.processAvailabilityData(availability);
+
+    return {
+      availabilityPreferences: processed,
+    };
+  }
+  private mapIdType(governmentIdType: string): string {
+    const idTypeMap: { [key: string]: string } = {
+      drivingLicense: "driving_license",
+      passport: "passport",
+      aadhaar: "aadhaar",
+      voterId: "national_id",
+      panCard: "national_id",
+    };
+
+    return idTypeMap[governmentIdType] || "national_id";
   }
 }

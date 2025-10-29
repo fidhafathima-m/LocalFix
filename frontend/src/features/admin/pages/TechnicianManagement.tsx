@@ -128,68 +128,65 @@ const TechnicianManagement: React.FC = () => {
     fetchData();
   }, [dispatch]);
 
+  const getCurrentItems = (): (Technician | TechnicianApplication)[] => {
+    if (activeTab === "pending") {
+      return applications.filter((app) => {
+        const matchesSearch =
+          app.personal?.fullName
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          app.personal?.phoneNumber?.includes(searchQuery);
 
-// Replace with single filtering function:
-const getCurrentItems = (): (Technician | TechnicianApplication)[] => {
-  if (activeTab === "pending") {
-    return applications.filter((app) => {
-      const matchesSearch =
-        app.personal?.fullName
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.personal?.phoneNumber?.includes(searchQuery);
+        const matchesService =
+          serviceFilter === "All Services" ||
+          (app.skills?.services?.includes(serviceFilter) ?? false);
 
-      const matchesService =
-        serviceFilter === "All Services" ||
-        (app.skills?.services?.includes(serviceFilter) ?? false);
+        return matchesSearch && matchesService;
+      });
+    } else {
+      return technicians.filter((tech) => {
+        // Filter by status
+        let statusMatch = false;
+        switch (activeTab) {
+          case "suspended":
+            statusMatch = tech.status === "suspended";
+            break;
+          case "active":
+            statusMatch = tech.status === "approved";
+            break;
+          case "rejected":
+            statusMatch = tech.status === "rejected";
+            break;
+          default:
+            statusMatch = false;
+        }
 
-      return matchesSearch && matchesService;
-    });
-  } else {
-    return technicians.filter((tech) => {
-      // Filter by status
-      let statusMatch = false;
-      switch (activeTab) {
-        case "suspended":
-          statusMatch = tech.status === "suspended";
-          break;
-        case "active":
-          statusMatch = tech.status === "approved";
-          break;
-        case "rejected":
-          statusMatch = tech.status === "rejected";
-          break;
-        default:
-          statusMatch = false;
-      }
-      
-      if (!statusMatch) return false;
+        if (!statusMatch) return false;
 
-      // Apply search and other filters
-      const matchesSearch =
-        tech.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tech.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tech.user?.phone?.includes(searchQuery) ||
-        tech.workAreas.some((area) =>
-          area.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        // Apply search and other filters
+        const matchesSearch =
+          tech.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          tech.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          tech.user?.phone?.includes(searchQuery) ||
+          tech.workAreas.some((area) =>
+            area.toLowerCase().includes(searchQuery.toLowerCase())
+          );
 
-      const matchesService =
-        serviceFilter === "All Services" || tech.services.includes(serviceFilter);
+        const matchesService =
+          serviceFilter === "All Services" ||
+          tech.services.includes(serviceFilter);
 
-      const matchesRating =
-        ratingFilter === "All Ratings" ||
-        (ratingFilter === "5 Star" && tech.averageRating >= 4.8) ||
-        (ratingFilter === "4+ Star" && tech.averageRating >= 4.0) ||
-        (ratingFilter === "3+ Star" && tech.averageRating >= 3.0);
+        const matchesRating =
+          ratingFilter === "All Ratings" ||
+          (ratingFilter === "5 Star" && tech.averageRating >= 4.8) ||
+          (ratingFilter === "4+ Star" && tech.averageRating >= 4.0) ||
+          (ratingFilter === "3+ Star" && tech.averageRating >= 3.0);
 
-      return matchesSearch && matchesService && matchesRating;
-    });
-  }
-};
-
-  
+        return matchesSearch && matchesService && matchesRating;
+      });
+    }
+  };
 
   // Pagination calculations
   const currentItems = getCurrentItems();
@@ -289,208 +286,204 @@ const getCurrentItems = (): (Technician | TechnicianApplication)[] => {
   };
 
   const renderTableRows = () => {
-  return currentItemsPage.map((item) => {
-    // Check if it's an application (for pending tab)
-    if (activeTab === "pending") {
-      // In pending tab, all items should be applications
-      const app = item as TechnicianApplication;
-      return (
-        <tr key={app._id} className="hover:bg-gray-50">
-          <td className="px-6 py-4 whitespace-nowrap">
-            <div className="flex items-center">
-              <div className="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 text-sm font-medium">
-                  {app.personal?.fullName?.charAt(0) || "A"}
-                </span>
-              </div>
-              <div className="ml-4">
-                <div className="text-sm font-medium text-gray-900">
-                  {app.personal?.fullName || "N/A"}
+    return currentItemsPage.map((item) => {
+      // Check if it's an application
+      if (activeTab === "pending") {
+        const app = item as TechnicianApplication;
+        return (
+          <tr key={app._id} className="hover:bg-gray-50">
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="flex items-center">
+                <div className="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 text-sm font-medium">
+                    {app.personal?.fullName?.charAt(0) || "A"}
+                  </span>
                 </div>
-                <div className="text-sm text-gray-500">
-                  #{app._id.slice(-6)}
-                </div>
-              </div>
-            </div>
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap">
-            <div className="text-sm text-gray-900">
-              {app.personal?.phoneNumber || "N/A"}
-            </div>
-            <div className="text-sm text-gray-500">{app.email}</div>
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap">
-            <div className="flex flex-wrap gap-1">
-              {app.skills?.services?.slice(0, 2).map((service: string) => (
-                <span
-                  key={service}
-                  className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(
-                    service
-                  )}`}
-                >
-                  {service}
-                </span>
-              ))}
-              {app.skills?.services && app.skills.services.length > 2 && (
-                <span className="px-2 py-1 text-xs text-gray-500">
-                  +{app.skills.services.length - 2} more
-                </span>
-              )}
-            </div>
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {app.skills?.yearsOfExperience || 0} years
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {new Date(
-              app.submittedAt || app.createdAt
-            ).toLocaleDateString()}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <QuickActionButtons
-              type="icon"
-              actions={[
-                {
-                  type: "approve",
-                  onClick: () =>
-                    handleApproveApplication(
-                      app._id,
-                      app.personal?.fullName || "Applicant"
-                    ),
-                  disabled: actionInProgress,
-                  loading: actionInProgress,
-                  title: "Approve Application",
-                },
-                {
-                  type: "reject",
-                  onClick: () =>
-                    handleRejectApplication(
-                      app._id,
-                      app.personal?.fullName || "Applicant"
-                    ),
-                  disabled: actionInProgress,
-                  title: "Reject Application",
-                },
-                {
-                  type: "view",
-                  onClick: () => handleViewDetails(app._id, "application"),
-                  title: "View Application Details",
-                },
-              ]}
-            />
-          </td>
-        </tr>
-      );
-    } else {
-      // For other tabs, all items should be technicians
-      const tech = item as Technician;
-      return (
-        <tr key={tech._id} className="hover:bg-gray-50">
-          <td className="px-6 py-4 whitespace-nowrap">
-            <div className="flex items-center">
-              <div className="h-10 w-10 flex-shrink-0 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span className="text-yellow-600 text-sm font-medium">
-                  {tech.displayName.charAt(0)}
-                </span>
-              </div>
-              <div className="ml-4">
-                <div className="text-sm font-medium text-gray-900">
-                  {tech.displayName}
-                </div>
-                <div className="text-sm text-gray-500">
-                  #{tech._id.slice(-6)}
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-gray-900">
+                    {app.personal?.fullName || "N/A"}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    #{app._id.slice(-6)}
+                  </div>
                 </div>
               </div>
-            </div>
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap">
-            <div className="text-sm text-gray-900">
-              {tech.user?.phone || "N/A"}
-            </div>
-            <div className="text-sm text-gray-500">
-              {tech.user?.email || tech.email}
-            </div>
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap">
-            <div className="flex flex-wrap gap-1">
-              {tech.services.slice(0, 2).map((service: string) => (
-                <span
-                  key={service}
-                  className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(
-                    service
-                  )}`}
-                >
-                  {service}
-                </span>
-              ))}
-              {tech.services.length > 2 && (
-                <span className="px-2 py-1 text-xs text-gray-500">
-                  +{tech.services.length - 2} more
-                </span>
-              )}
-            </div>
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {tech.experienceYears} years
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap">
-            {getStatusBadge(tech.status)}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <QuickActionButtons
-              type="icon"
-              actions={[
-                {
-                  type: "view" as ActionType,
-                  onClick: () => handleViewDetails(tech._id, "technician"),
-                  title: "View Technician Details",
-                },
-                {
-                  type: "edit" as ActionType,
-                  onClick: () =>
-                    handleEditTechnician(tech._id, tech.displayName),
-                  title: "Edit Technician",
-                },
-                ...(tech.status === "approved"
-                  ? [
-                      {
-                        type: "suspend" as ActionType,
-                        onClick: () =>
-                          handleStatusChange(
-                            tech._id,
-                            "suspended",
-                            tech.displayName
-                          ),
-                        disabled: actionInProgress,
-                        loading: actionInProgress,
-                        title: "Suspend Technician",
-                      },
-                    ]
-                  : []),
-                ...(tech.status === "suspended"
-                  ? [
-                      {
-                        type: "activate" as ActionType,
-                        onClick: () =>
-                          handleStatusChange(
-                            tech._id,
-                            "approved",
-                            tech.displayName
-                          ),
-                        disabled: actionInProgress,
-                        loading: actionInProgress,
-                        title: "Activate Technician",
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-          </td>
-        </tr>
-      );
-    }
-  });
-};
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="text-sm text-gray-900">
+                {app.personal?.phoneNumber || "N/A"}
+              </div>
+              <div className="text-sm text-gray-500">{app.email}</div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="flex flex-wrap gap-1">
+                {app.skills?.services?.slice(0, 2).map((service: string) => (
+                  <span
+                    key={service}
+                    className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(
+                      service
+                    )}`}
+                  >
+                    {service}
+                  </span>
+                ))}
+                {app.skills?.services && app.skills.services.length > 2 && (
+                  <span className="px-2 py-1 text-xs text-gray-500">
+                    +{app.skills.services.length - 2} more
+                  </span>
+                )}
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {app.skills?.yearsOfExperience || 0} years
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {new Date(app.submittedAt || app.createdAt).toLocaleDateString()}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <QuickActionButtons
+                type="icon"
+                actions={[
+                  {
+                    type: "approve",
+                    onClick: () =>
+                      handleApproveApplication(
+                        app._id,
+                        app.personal?.fullName || "Applicant"
+                      ),
+                    disabled: actionInProgress,
+                    loading: actionInProgress,
+                    title: "Approve Application",
+                  },
+                  {
+                    type: "reject",
+                    onClick: () =>
+                      handleRejectApplication(
+                        app._id,
+                        app.personal?.fullName || "Applicant"
+                      ),
+                    disabled: actionInProgress,
+                    title: "Reject Application",
+                  },
+                  {
+                    type: "view",
+                    onClick: () => handleViewDetails(app._id, "application"),
+                    title: "View Application Details",
+                  },
+                ]}
+              />
+            </td>
+          </tr>
+        );
+      } else {
+        const tech = item as Technician;
+        return (
+          <tr key={tech._id} className="hover:bg-gray-50">
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="flex items-center">
+                <div className="h-10 w-10 flex-shrink-0 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <span className="text-yellow-600 text-sm font-medium">
+                    {tech.displayName.charAt(0)}
+                  </span>
+                </div>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-gray-900">
+                    {tech.displayName}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    #{tech._id.slice(-6)}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="text-sm text-gray-900">
+                {tech.user?.phone || "N/A"}
+              </div>
+              <div className="text-sm text-gray-500">
+                {tech.user?.email || tech.email}
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              <div className="flex flex-wrap gap-1">
+                {tech.services.slice(0, 2).map((service: string) => (
+                  <span
+                    key={service}
+                    className={`px-2 py-1 inline-flex text-xs leading-4 font-medium rounded-full ${getServiceColor(
+                      service
+                    )}`}
+                  >
+                    {service}
+                  </span>
+                ))}
+                {tech.services.length > 2 && (
+                  <span className="px-2 py-1 text-xs text-gray-500">
+                    +{tech.services.length - 2} more
+                  </span>
+                )}
+              </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {tech.experienceYears} years
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+              {getStatusBadge(tech.status)}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <QuickActionButtons
+                type="icon"
+                actions={[
+                  {
+                    type: "view" as ActionType,
+                    onClick: () => handleViewDetails(tech._id, "technician"),
+                    title: "View Technician Details",
+                  },
+                  {
+                    type: "edit" as ActionType,
+                    onClick: () =>
+                      handleEditTechnician(tech._id, tech.displayName),
+                    title: "Edit Technician",
+                  },
+                  ...(tech.status === "approved"
+                    ? [
+                        {
+                          type: "suspend" as ActionType,
+                          onClick: () =>
+                            handleStatusChange(
+                              tech._id,
+                              "suspended",
+                              tech.displayName
+                            ),
+                          disabled: actionInProgress,
+                          loading: actionInProgress,
+                          title: "Suspend Technician",
+                        },
+                      ]
+                    : []),
+                  ...(tech.status === "suspended"
+                    ? [
+                        {
+                          type: "activate" as ActionType,
+                          onClick: () =>
+                            handleStatusChange(
+                              tech._id,
+                              "approved",
+                              tech.displayName
+                            ),
+                          disabled: actionInProgress,
+                          loading: actionInProgress,
+                          title: "Activate Technician",
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+            </td>
+          </tr>
+        );
+      }
+    });
+  };
 
   if (techniciansLoading || applicationsLoading) {
     return (

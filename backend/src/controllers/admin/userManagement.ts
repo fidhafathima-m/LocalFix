@@ -96,4 +96,6 @@ export class UserManagementController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
+
+  
 }

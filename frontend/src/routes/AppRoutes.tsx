@@ -41,6 +41,9 @@ const UserTechnicianProfile = lazy(
 const BookingPage = lazy(
   () => import("../features/user/pages/Booking")
 );
+const UserProfile = lazy(
+  () => import("../features/user/pages/UserProfile")
+);
 
 // Service Provider Routes imports
 const TechHome = lazy(
@@ -137,6 +140,7 @@ const AppRoutes = () => {
             <Route path="/service/:slug" element={<ServiceDetails />} />
             <Route path="/technicians/:id" element={<UserTechnicianProfile />} />
             <Route path="/booking" element={<BookingPage />} />
+            <Route path="//my-profile" element={<UserProfile />} />
 
             {/* technicians routes */}
             <Route path="/technicians" element={<TechHome />} />

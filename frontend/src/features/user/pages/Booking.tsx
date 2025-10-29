@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
-    ArrowBackIosNewOutlined,
-    StarBorderOutlined,
-    PersonOutlined,
-    ShoppingBagOutlined,
-    CalendarMonthOutlined,
-    HomeOutlined,
-    LoginOutlined
-} from '@mui/icons-material'
-import Footer from '../../../components/common/Footer'
-import Header from '../../../components/common/Header'
-import { selectIsLoggedIn, selectUser } from '../../../store/slices/authSlice' 
-import { useAppSelector } from '../../../hooks/redux'
-import { TechnicianMangementService } from '../../../services/admin/TechnicianManagementService'
+  ArrowBackIosNewOutlined,
+  StarBorderOutlined,
+  PersonOutlined,
+  ShoppingBagOutlined,
+  CalendarMonthOutlined,
+  HomeOutlined,
+  LoginOutlined,
+} from "@mui/icons-material";
+import Footer from "../../../components/common/Footer";
+import Header from "../../../components/common/Header";
+import { selectIsLoggedIn, selectUser } from "../../../store/slices/authSlice";
+import { useAppSelector } from "../../../hooks/redux";
+import { TechnicianMangementService } from "../../../services/admin/TechnicianManagementService";
 
 // Add interface for technician data
 interface Technician {
@@ -29,44 +29,43 @@ interface Technician {
 }
 
 const BookingPage: React.FC = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [usesSavedAddress, setUsesSavedAddress] = useState(true)
-  const [technician, setTechnician] = useState<Technician | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [usesSavedAddress, setUsesSavedAddress] = useState(true);
+  const [technician, setTechnician] = useState<Technician | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   // Get auth state from Redux
-  const isLoggedIn = useAppSelector(selectIsLoggedIn)
-  const user = useAppSelector(selectUser)
+  const isLoggedIn = useAppSelector(selectIsLoggedIn);
+  const user = useAppSelector(selectUser);
 
   // Get technician ID from URL parameters or location state
-  const searchParams = new URLSearchParams(location.search)
-  const technicianId = searchParams.get('technicianId') || location.state?.technicianId
+  const searchParams = new URLSearchParams(location.search);
+  const technicianId =
+    searchParams.get("technicianId") || location.state?.technicianId;
 
   // Fetch technician data
   useEffect(() => {
     const fetchTechnicianData = async () => {
       if (!technicianId) {
-        setError("Technician ID not provided")
-        setLoading(false)
-        return
+        setError("Technician ID not provided");
+        setLoading(false);
+        return;
       }
 
       try {
-        setLoading(true)
-        setError(null)
-        
+        setLoading(true);
+        setError(null);
+
         // Fetch technician data
-        const technicianResponse = await TechnicianMangementService.getPublicTechnicianById(technicianId);
-        
-        // Log the response to see the actual structure
-        console.log("Technician API Response:", technicianResponse);
-        
-        // Extract technician data based on the actual API response structure
-        // The response might be nested under data.data.technician or similar
+        const technicianResponse =
+          await TechnicianMangementService.getPublicTechnicianById(
+            technicianId
+          );
+
         let technicianData;
-        
+
         if (technicianResponse.data?.data?.technician) {
           // If nested under data.data.technician
           technicianData = technicianResponse.data.data.technician;
@@ -80,39 +79,36 @@ const BookingPage: React.FC = () => {
           // If response is the technician object directly
           technicianData = technicianResponse;
         }
-        
-        console.log("Extracted technician data:", technicianData);
-        
+
         if (technicianData) {
           setTechnician(technicianData);
         } else {
           setError("Technician data not found in response");
         }
-        
       } catch (err) {
-        console.error("Error fetching technician data:", err)
-        setError("Failed to load technician information")
+        console.error("Error fetching technician data:", err);
+        setError("Failed to load technician information");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (isLoggedIn && technicianId) {
-      fetchTechnicianData()
+      fetchTechnicianData();
     } else {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [technicianId, isLoggedIn])
+  }, [technicianId, isLoggedIn]);
 
   // Handle navigation to login
   const handleLoginRedirect = () => {
     // Save the current URL and technician ID to return after login
     const currentPath = window.location.pathname + window.location.search;
-    navigate('/login', { 
-      state: { 
+    navigate("/login", {
+      state: {
         from: currentPath,
-        technicianId: technicianId // Pass technician ID to login page
-      } 
+        technicianId: technicianId, // Pass technician ID to login page
+      },
     });
   };
 
@@ -149,25 +145,27 @@ const BookingPage: React.FC = () => {
   if (loading) {
     return (
       <>
-        <Header userType='user'/>
+        <Header userType="user" />
         <div className="w-full min-h-screen bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <div className="flex justify-center items-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-gray-600">Loading technician information...</span>
+              <span className="ml-3 text-gray-600">
+                Loading technician information...
+              </span>
             </div>
           </div>
         </div>
-        <Footer/>
+        <Footer />
       </>
-    )
+    );
   }
 
   // Error state for technician data
   if (error && isLoggedIn) {
     return (
       <>
-        <Header userType='user'/>
+        <Header userType="user" />
         <div className="w-full min-h-screen bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
@@ -175,7 +173,7 @@ const BookingPage: React.FC = () => {
                 {error}
               </h3>
               <button
-                onClick={() => navigate('/services')}
+                onClick={() => navigate("/services")}
                 className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Back to Services
@@ -183,16 +181,16 @@ const BookingPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <Footer/>
+        <Footer />
       </>
-    )
+    );
   }
 
   // Not logged in state - show login prompt
   if (!isLoggedIn) {
     return (
       <>
-        <Header userType='user'/>
+        <Header userType="user" />
         <div className="w-full min-h-screen bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <Link
@@ -202,7 +200,7 @@ const BookingPage: React.FC = () => {
               <ArrowBackIosNewOutlined className="w-4 h-4 mr-2" />
               Back to Services
             </Link>
-            
+
             {/* Login Required Message */}
             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -212,7 +210,9 @@ const BookingPage: React.FC = () => {
                 Login Required
               </h2>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Please log in to your account to book this service. This helps us provide you with a secure and personalized booking experience.
+                Please log in to your account to book this service. This helps
+                us provide you with a secure and personalized booking
+                experience.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -223,16 +223,16 @@ const BookingPage: React.FC = () => {
                   Login to Continue
                 </button>
                 <button
-                  onClick={() => navigate('/signup')}
+                  onClick={() => navigate("/signup")}
                   className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Create Account
                 </button>
               </div>
               <p className="text-sm text-gray-500 mt-6">
-                Don't have an account?{' '}
+                Don't have an account?{" "}
                 <button
-                  onClick={() => navigate('/signup')}
+                  onClick={() => navigate("/signup")}
                   className="text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                 >
                   Sign up here
@@ -241,16 +241,16 @@ const BookingPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <Footer/>
+        <Footer />
       </>
-    )
+    );
   }
 
   // If technician data is still null after loading, show error
   if (!technician) {
     return (
       <>
-        <Header userType='user'/>
+        <Header userType="user" />
         <div className="w-full min-h-screen bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
@@ -258,7 +258,7 @@ const BookingPage: React.FC = () => {
                 Technician not found
               </h3>
               <button
-                onClick={() => navigate('/services')}
+                onClick={() => navigate("/services")}
                 className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Back to Services
@@ -266,15 +266,15 @@ const BookingPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <Footer/>
+        <Footer />
       </>
-    )
+    );
   }
 
   // Main booking form (only shown when logged in and technician data is loaded)
   return (
     <>
-      <Header/>
+      <Header />
       <div className="w-full min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Dynamic back link to technician profile */}
@@ -285,17 +285,17 @@ const BookingPage: React.FC = () => {
             <ArrowBackIosNewOutlined className="w-4 h-4 mr-2" />
             Back to Technician Profile
           </Link>
-          
+
           <h1 className="text-3xl font-bold mb-8">Book Your Service</h1>
-          
+
           {/* Technician Info Card */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                   {technician?.profilePictureUrl ? (
-                    <img 
-                      src={technician.profilePictureUrl} 
+                    <img
+                      src={technician.profilePictureUrl}
                       alt={technician.displayName}
                       className="w-16 h-16 rounded-full object-cover"
                     />
@@ -305,7 +305,9 @@ const BookingPage: React.FC = () => {
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h3 className="font-semibold text-lg">{technician?.displayName}</h3>
+                    <h3 className="font-semibold text-lg">
+                      {technician?.displayName}
+                    </h3>
                     <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">
                       Verified
                     </span>
@@ -316,7 +318,7 @@ const BookingPage: React.FC = () => {
                     <span>•</span>
                     <span>{getSafeRatingCount()} reviews</span>
                     <span>•</span>
-                    <span>{getSafeServices()[0] || 'Service'}</span>
+                    <span>{getSafeServices()[0] || "Service"}</span>
                   </div>
                   {getSafeExperienceYears() > 0 && (
                     <div className="text-sm text-gray-500 mt-1">
@@ -342,7 +344,7 @@ const BookingPage: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Enter your full name"
-                  defaultValue={user?.fullName || ''}
+                  defaultValue={user?.fullName || ""}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -357,7 +359,7 @@ const BookingPage: React.FC = () => {
                   <input
                     type="tel"
                     placeholder="10-digit mobile number"
-                    defaultValue={user?.phone || ''}
+                    defaultValue={user?.phone || ""}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -370,7 +372,7 @@ const BookingPage: React.FC = () => {
               <input
                 type="email"
                 placeholder="Enter your email address"
-                defaultValue={user?.email || ''}
+                defaultValue={user?.email || ""}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -488,13 +490,13 @@ const BookingPage: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex space-x-4">
             <button
-              onClick={() => navigate('/services')}
+              onClick={() => navigate("/services")}
               className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
-              onClick={() => navigate('/checkout')}
+              onClick={() => navigate("/checkout")}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
             >
               Continue to Checkout
@@ -502,9 +504,9 @@ const BookingPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <Footer/>
+      <Footer />
     </>
-  )
-}
+  );
+};
 
-export default BookingPage
+export default BookingPage;

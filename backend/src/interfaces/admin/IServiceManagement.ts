@@ -8,7 +8,6 @@ export interface IService extends Document {
   description: string;
   avgBasePrice: number;
   iconUrl: string;
-  // NEW FIELDS
   rating: number;
   estimatedDuration: string;
   features: string[];
@@ -16,7 +15,6 @@ export interface IService extends Document {
   status: ServiceStatus;
   createdAt: Date;
   updatedAt: Date;
-  // Virtual field for item count
   itemCount?: number;
 }
 

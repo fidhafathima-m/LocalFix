@@ -1,4 +1,10 @@
-import { AvailabilityInfo, BankInfo, DocumentsInfo, ITechnician, PersonalInfo } from "../../../interfaces/technician/ITechnician";
+import {
+  AvailabilityInfo,
+  BankInfo,
+  DocumentsInfo,
+  ITechnician,
+  PersonalInfo,
+} from "../../../interfaces/technician/ITechnician";
 import { IUser, IUserUpdate } from "../../../interfaces/user/IUser";
 import { FilterQuery } from "../admin/ITechnicianManagementRepository";
 
@@ -9,7 +15,6 @@ export interface VerificationData {
   verifiedAt?: Date;
   verifiedBy?: string;
 }
-
 
 export interface DocumentUpdateData {
   verified?: boolean;
@@ -23,7 +28,6 @@ export interface ProfileData {
   profilePicture?: string;
   [key: string]: unknown;
 }
-
 
 export interface ITechnicianProfileRepository {
   updateTechnician(
@@ -54,18 +58,18 @@ export interface ITechnicianProfileRepository {
   ): Promise<ITechnician | null>;
 
   updateTechnicianPaymentDetails(
-  technicianId: string,
-  paymentDetails: {
-    bankAccount: {
-      holderName: string;
-      accountNumber: string;
-      ifscCode: string;
-      bankName: string;
-    };
-    upiId: string;
-    withdrawalPreference: string;
-  }
-): Promise<boolean>
+    technicianId: string,
+    paymentDetails: {
+      bankAccount: {
+        holderName: string;
+        accountNumber: string;
+        ifscCode: string;
+        bankName: string;
+      };
+      upiId: string;
+      withdrawalPreference: string;
+    }
+  ): Promise<boolean>;
   updateIdentityVerification(
     technicianId: string,
     verificationData: VerificationData
@@ -74,7 +78,11 @@ export interface ITechnicianProfileRepository {
   findByLocation(location: string): Promise<ITechnician[]>;
   findAvailableTechnicians(): Promise<ITechnician[]>;
   countTechnicians(filter: FilterQuery): Promise<number>;
-  findAll(filter: FilterQuery, skip: number, limit: number): Promise<ITechnician[]>;
+  findAll(
+    filter: FilterQuery,
+    skip: number,
+    limit: number
+  ): Promise<ITechnician[]>;
   updateUser(userId: string, updateData: IUserUpdate): Promise<IUser | null>;
   verifyPassword(userId: string, password: string): Promise<boolean>;
   updateUserPassword(
@@ -85,7 +93,14 @@ export interface ITechnicianProfileRepository {
   updateLoginDevice(userId: string, deviceInfo: string): Promise<IUser | null>;
   findByRole(role: string): Promise<IUser[]>;
   countUsers(filter: FilterQuery): Promise<number>;
-  findAllUsers(filter: FilterQuery, skip: number, limit: number): Promise<IUser[]>;
+  findAllUsers(
+    filter: FilterQuery,
+    skip: number,
+    limit: number
+  ): Promise<IUser[]>;
   deleteUser(userId: string): Promise<boolean>;
-  updateProfile(userId: string, profileData: ProfileData): Promise<IUser | null>;
+  updateProfile(
+    userId: string,
+    profileData: ProfileData
+  ): Promise<IUser | null>;
 }

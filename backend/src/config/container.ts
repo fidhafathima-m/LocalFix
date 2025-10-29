@@ -30,6 +30,10 @@ import { ServiceController } from "../controllers/admin/serviceManagement";
 import { ItemRepository } from "../repositories/admin/ItemManagementRepository";
 import { ItemService } from "../services/ItemManagementService";
 import { ItemController } from "../controllers/admin/itemManagementController";
+import { TechnicianAvailabilityRepository } from "../repositories/technician/TechnicianAvailabilityRepository";
+import { PublicUserController } from "../controllers/admin/publicUserManagement";
+import { UserProfileService } from "../services/UserProfileService";
+import { UserProfileController } from "../controllers/user/userProfileController";
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
@@ -39,6 +43,7 @@ const userManagementService = new UserManagementService(
 const userManagementController = new UserManagementController(
   userManagementService
 );
+const publicUserManagementController = new PublicUserController(userManagementService);
 
 // Technician Management Dependencies
 const technicianManagementRepository = new TechnicianManagementRepository();
@@ -54,11 +59,13 @@ const technicianApplicationRepository = new TechnicianApplicationRepository();
 const technicianRepository = new TechnicianRepository();
 const technicianDocumentRepository = new TechnicianDocumentRepository();
 const userRepository = new UserRepository();
+const availabilityRepository = new TechnicianAvailabilityRepository
 const technicianApplicationService = new TechnicianApplicationService(
   technicianApplicationRepository,
   technicianRepository,
   technicianDocumentRepository,
-  userRepository
+  userRepository,
+  availabilityRepository
 );
 const technicianApplicationController = new TechnicianApplicationController(
   technicianApplicationService
@@ -118,10 +125,15 @@ const itemManagementRepository = new ItemRepository();
 const itemManagementService = new ItemService(itemManagementRepository);
 const itemManagementController = new ItemController(itemManagementService);
 
+// User Profile
+const userProfileService = new UserProfileService(userManagementRepository);
+const userProfileController = new UserProfileController(userProfileService);
+
 export {
   userManagementController,
   userManagementService,
   userManagementRepository,
+  publicUserManagementController,
   technicianManagementController,
   technicianManagementService,
   technicianManagementRepository,
@@ -144,4 +156,6 @@ export {
   itemManagementRepository,
   itemManagementService,
   itemManagementController,
+  userProfileService,
+  userProfileController,
 };

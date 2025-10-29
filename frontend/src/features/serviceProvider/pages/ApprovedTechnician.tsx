@@ -39,7 +39,9 @@ interface DashboardData {
 
 // Type guard to check if value is a valid string array for languages
 function isValidStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every(item => typeof item === "string");
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
 }
 
 const ApprovedTechnicianDashboard: React.FC = () => {
@@ -54,28 +56,24 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     reason?: string;
     suspendedAt?: string;
   }>({});
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadTechnicianData = async () => {
       try {
         setLoading(true);
         setError(null);
-        console.log('🔍 Fetching technician profile...');
 
         const response = await TechnicianService.getProfile();
-
-        console.log('🔍 Raw API Response:', response);
-    console.log('🔍 Response data:', response.data);
-    console.log('🔍 Response data.data:', response.data?.data);
 
         if (!response.success) {
           throw new Error("Failed to fetch profile: API returned unsuccessful");
         }
 
-        const profile = response.data?.data?.profile || 
-                   response.data?.profile || 
-                   response.data?.data;
+        const profile =
+          response.data?.data?.profile ||
+          response.data?.profile ||
+          response.data?.data;
 
         if (!profile) {
           throw new Error("Profile data not found in response");
@@ -378,32 +376,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     return "Location not set";
   };
 
-  // Update status display in profile header
-  const getStatusBadge = (profile: TechnicianProfile) => {
-    if (isSuspended) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          <WarningOutlined className="h-3 w-3 mr-1" />
-          Suspended
-        </span>
-      );
-    }
-
-    if (profile.isVerified) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          Verified
-        </span>
-      );
-    }
-
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-        Pending Verification
-      </span>
-    );
-  };
-
   if (loading) {
     return (
       <>
@@ -466,9 +438,10 @@ const ApprovedTechnicianDashboard: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium">Profile Information</h3>
         {!isSuspended && (
-          <button 
-          className="text-blue-600 text-sm font-medium hover:text-blue-700 cursor-pointer"
-          onClick={() => navigate("/technician/profile")}>
+          <button
+            className="text-blue-600 text-sm font-medium hover:text-blue-700 cursor-pointer"
+            onClick={() => navigate("/technician/profile")}
+          >
             Edit Profile
           </button>
         )}
@@ -589,12 +562,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
               <dd className="text-sm font-medium">
                 {dashboardData.profile.averageRating.toFixed(1)} (
                 {dashboardData.profile.ratingCount} reviews)
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm text-gray-500">Status</dt>
-              <dd className="text-sm font-medium">
-                {getStatusBadge(dashboardData.profile)}
               </dd>
             </div>
           </dl>
@@ -818,49 +785,50 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         {isSuspended && <SuspensionBanner />}
 
         {/* Header */}
-<div className="bg-white border-b border-gray-200">
-  <div className="max-w-3xl mx-auto px-4 py-4">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center">
-        <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
-          {profile.profilePictureUrl ? (
-            <img
-              src={profile.profilePictureUrl}
-              alt={profile.personalInfo?.fullName || "Technician"}
-              className="h-12 w-12 rounded-full object-cover"
-            />
-          ) : (
-            <span className="text-yellow-700 text-lg font-medium">
-              {(profile.personalInfo?.fullName?.charAt(0) || 'T').toUpperCase()}
-            </span>
-          )}
-        </div>
-        <div>
-          <div className="flex items-center">
-            <h1 className="text-lg font-semibold mr-2">
-              {profile.personalInfo?.fullName || "Technician"}
-            </h1>
-            {getStatusBadge(profile)}
-          </div>
-          <div className="flex items-center mt-1">
-            <div className="flex items-center">
-              {renderStars(profile.averageRating, true)}
-              <span className="ml-1 text-sm text-gray-600">
-                {profile.averageRating.toFixed(1)} (
-                {profile.ratingCount})
-              </span>
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-3xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                  {profile.profilePictureUrl ? (
+                    <img
+                      src={profile.profilePictureUrl}
+                      alt={profile.personalInfo?.fullName || "Technician"}
+                      className="h-12 w-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-yellow-700 text-lg font-medium">
+                      {(
+                        profile.personalInfo?.fullName?.charAt(0) || "T"
+                      ).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center">
+                    <h1 className="text-lg font-semibold mr-2">
+                      {profile.personalInfo?.fullName || "Technician"}
+                    </h1>
+                  </div>
+                  <div className="flex items-center mt-1">
+                    <div className="flex items-center">
+                      {renderStars(profile.averageRating, true)}
+                      <span className="ml-1 text-sm text-gray-600">
+                        {profile.averageRating.toFixed(1)} (
+                        {profile.ratingCount})
+                      </span>
+                    </div>
+                    <span className="mx-2 text-gray-300">|</span>
+                    <span className="text-sm text-gray-600 flex items-center">
+                      <FmdGoodOutlined className="h-3 w-3 mr-1" />
+                      {getLocation(profile)}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <span className="mx-2 text-gray-300">|</span>
-            <span className="text-sm text-gray-600 flex items-center">
-              <FmdGoodOutlined className="h-3 w-3 mr-1" />
-              {getLocation(profile)}
-            </span>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
 
         {/* Navigation */}
         <div className="border-b border-gray-200 bg-white">

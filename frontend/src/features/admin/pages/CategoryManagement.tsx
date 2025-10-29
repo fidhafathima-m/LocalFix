@@ -43,43 +43,38 @@ const CategoryManagement: React.FC = () => {
   const categoriesPerPage = 10;
 
   // Update the loadCategories function
-const loadCategories = async (page: number = 1, search?: string) => {
-  try {
-    console.log("🔄 Loading categories...", { page, search });
-    setLoading(true);
+  const loadCategories = async (page: number = 1, search?: string) => {
+    try {
+      setLoading(true);
 
-    const response = await CategoryManagementService.getCategories(
-      page,
-      categoriesPerPage,
-      search
-    );
+      const response = await CategoryManagementService.getCategories(
+        page,
+        categoriesPerPage,
+        search
+      );
 
-    console.log("📡 API Response:", response);
-
-    // Fix: response should be the data object directly
-    if (response && Array.isArray(response.categories)) {
-      console.log("✅ Categories loaded successfully:", response.categories.length);
-      setCategories(response.categories);
-      setTotalCount(response.total);
-      setTotalPages(response.totalPages);
-    } else {
-      console.error("❌ Invalid response structure:", response);
-      // Set empty state
+      if (response && Array.isArray(response.categories)) {
+        setCategories(response.categories);
+        setTotalCount(response.total);
+        setTotalPages(response.totalPages);
+      } else {
+        console.error("Invalid response structure:", response);
+        // Set empty state
+        setCategories([]);
+        setTotalCount(0);
+        setTotalPages(0);
+      }
+    } catch (error: any) {
+      console.error("Error loading categories:", error);
+      toast.error(error.message || "Failed to load categories");
+      // Set empty state on error
       setCategories([]);
       setTotalCount(0);
       setTotalPages(0);
+    } finally {
+      setLoading(false);
     }
-  } catch (error: any) {
-    console.error("💥 Error loading categories:", error);
-    toast.error(error.message || "Failed to load categories");
-    // Set empty state on error
-    setCategories([]);
-    setTotalCount(0);
-    setTotalPages(0);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     loadCategories(currentPage, searchQuery);
@@ -181,7 +176,7 @@ const loadCategories = async (page: number = 1, search?: string) => {
     setSearchQuery(query);
   };
 
-  // Stats calculations - now based on real data
+  // Stats calculations
   const totalCategories = totalCount;
   const totalServices = categories.reduce(
     (sum, category) => sum + (category.serviceCount || 0),

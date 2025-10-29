@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ADMIN_ROUTES } from "../../routes/adminRoutes";
 import api from "../../utils/axiosConfig";
 
@@ -7,10 +8,14 @@ export interface User {
   email?: string;
   phone: string;
   status: "Active" | "Inactive" | "Blocked";
+  dateOfBirth?: string;
+  gender?: string;
+  profilePictureUrl?: string;
   defaultAddress?: {
     city: string;
     state: string;
     pincode: string;
+    landmark: string;
     location: { type: "Point"; coordinates: [number, number] };
   };
   isVerified: boolean;
@@ -228,6 +233,10 @@ export const adminAPI = {
       status,
     }),
 
+    getUserProfile: () => api.get<ApiResponse<UserResponse>>(ADMIN_ROUTES.PUBLIC_USER_PROFILE),
+    getPublicUserById: (userId: string) =>
+    api.get<ApiResponse<void>>(ADMIN_ROUTES.PUBLIC_USER_BY_ID(userId)),
+
   // Technicians
   getTechnicians: (filters: { status?: string } = {}) =>
     api.get<ApiResponse<TechniciansResponse>>(ADMIN_ROUTES.TECHNICIANS, {
@@ -395,6 +404,17 @@ export const adminAPI = {
   searchItems: (query: string, limit: number = 10) =>
     api.get<ApiResponse<{ items: Item[] }>>(ADMIN_ROUTES.SEARCH_ITEM, {
       params: { q: query, limit },
+    }),
+
+    // User profile
+    updateUserProfile: (updateData: any) =>
+    api.put<ApiResponse<any>>(ADMIN_ROUTES.UPDATE_USER_PROFILE, updateData),
+
+  uploadProfilePicture: (formData: FormData) =>
+    api.post<ApiResponse<any>>(ADMIN_ROUTES.UPDATE_PROFILE_PHOTO, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     }),
 
 };

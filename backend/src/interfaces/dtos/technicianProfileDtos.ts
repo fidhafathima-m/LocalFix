@@ -15,16 +15,15 @@ export interface PersonalInfoUpdateDto {
     languages?: string[];
   };
   bio?: string;
-  email?: string; // This should be at root level for user update
+  email?: string;
   profilePicture?: string;
 }
 
 export interface IdentityVerificationUpdateDto {
-  // ✅ These should match what frontend sends
   idType?: string;
   idNumber?: string;
   idDocument?: string;
-  
+
   address?: {
     street?: string;
     city?: string;
@@ -47,17 +46,14 @@ export interface AvailabilityPreferencesUpdateDto {
   weeklyAvailability?: Record<string, any>;
 }
 
-// In your dtos/technicianProfileDtos.ts
 export interface BankPaymentUpdateDto {
-  // Flat structure (for direct API calls)
   accountHolderName?: string;
   accountNumber?: string;
   ifscCode?: string;
   bankName?: string;
   upiId?: string;
   withdrawalPreference?: "auto" | "manual";
-  
-  // Nested structure (for frontend)
+
   paymentDetails?: {
     bankAccount?: {
       holderName?: string;
@@ -111,7 +107,7 @@ export interface PersonalInfoDto {
     state?: string;
     pincode?: string;
     landmark?: string;
-  }
+  };
 }
 
 export interface IdentityVerificationDto {
@@ -186,8 +182,7 @@ export interface TechnicianProfileDto {
   identityVerification: IdentityVerificationDto;
   skillsServices: SkillsServicesDto;
   availabilityPreferences: AvailabilityPreferencesDto;
-  
-  // ✅ ADD THIS: For backward compatibility with frontend
+
   paymentDetails?: {
     bankAccount: {
       holderName: string;
@@ -198,7 +193,7 @@ export interface TechnicianProfileDto {
     upiId: string;
     withdrawalPreference: string;
   };
-  
+
   documents: DocumentDataDto[];
   securitySettings: SecuritySettingsDto;
 }

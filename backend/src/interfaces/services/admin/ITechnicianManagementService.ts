@@ -1,5 +1,14 @@
-import { ApplicationFiltersDto, ApplicationListResponseDto, ApplicationStatsResponseDto, RejectApplicationRequestDto, SingleTechnicianResponseDto, TechnicianFiltersDto, TechnicianListResponseDto, TechnicianStatsResponseDto, UpdateStatusRequestDto } from "@/interfaces/dtos/technicianDtos";
-
+import {
+  ApplicationFiltersDto,
+  ApplicationListResponseDto,
+  ApplicationStatsResponseDto,
+  RejectApplicationRequestDto,
+  SingleTechnicianResponseDto,
+  TechnicianFiltersDto,
+  TechnicianListResponseDto,
+  TechnicianStatsResponseDto,
+  UpdateStatusRequestDto,
+} from "@/interfaces/dtos/technicianDtos";
 
 export interface ITechnicianManagementService {
   // Technician methods
@@ -28,7 +37,9 @@ export interface ITechnicianManagementService {
   getApplicationById(id: string): Promise<ApplicationListResponseDto>;
   getApplicationStats(): Promise<ApplicationStatsResponseDto>;
 
-  // Public technciian 
-  getPublicTechnicians(filters: TechnicianFiltersDto): Promise<TechnicianListResponseDto>;
+  // Public technciian
+  getPublicTechnicians(
+    filters: TechnicianFiltersDto
+  ): Promise<TechnicianListResponseDto>;
   getPublicTechnicianById(id: string): Promise<SingleTechnicianResponseDto>;
 }

@@ -1,6 +1,9 @@
-// mappers/CategoryMapper.ts
-import { CategoryResponseDto, CategoryListResponseDto, CategoryMapper as ICategoryMapper } from "../interfaces/dtos/categoryDtos";
-import { ICategory } from "../interfaces/admin/ICategoryManagement"
+import {
+  CategoryResponseDto,
+  CategoryListResponseDto,
+  CategoryMapper as ICategoryMapper,
+} from "../interfaces/dtos/categoryDtos";
+import { ICategory } from "../interfaces/admin/ICategoryManagement";
 
 export class CategoryMapper implements ICategoryMapper {
   toCategoryResponseDto(category: ICategory): CategoryResponseDto {
@@ -12,7 +15,7 @@ export class CategoryMapper implements ICategoryMapper {
       iconUrl: category.iconUrl,
       createdAt: category.createdAt.toISOString(),
       updatedAt: category.updatedAt.toISOString(),
-       serviceCount: category.serviceCount || 0,
+      serviceCount: category.serviceCount || 0,
     };
   }
 
@@ -23,7 +26,9 @@ export class CategoryMapper implements ICategoryMapper {
     limit: number
   ): CategoryListResponseDto {
     return {
-      categories: categories.map(category => this.toCategoryResponseDto(category)),
+      categories: categories.map((category) =>
+        this.toCategoryResponseDto(category)
+      ),
       total,
       page,
       limit,

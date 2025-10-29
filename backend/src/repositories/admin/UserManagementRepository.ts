@@ -6,13 +6,26 @@ import {
   IUserWithAddress,
 } from "../../interfaces/admin/IUserManagements";
 import User from "../../models/UserSchema";
+import UserAddress from "../../models/UserAddressSchema";
 
 export class UserManagementRepository
   extends BaseRepository<IUser>
   implements IUserManagementRepository
 {
+  private userAddressModel: Model<any>;
+
   constructor() {
     super(User as unknown as Model<IUser>);
+    this.userAddressModel = UserAddress as Model<any>;
+  }
+
+  async findUserAddresses(userId: string): Promise<any[]> {
+    try {
+      return await this.userAddressModel.find({ userId }).lean();
+    } catch (error) {
+      console.error("Error finding user addresses:", error);
+      return [];
+    }
   }
 
   async findAllUsers(): Promise<IUserWithAddress[]> {
@@ -86,5 +99,13 @@ export class UserManagementRepository
     });
 
     return { totalUsers, activeUsers, inactiveUsers, blockedUsers };
+  }
+  async findByEmail(email: string): Promise<IUser | null> {
+    try {
+      return await this.model.findOne({ email, isDeleted: { $ne: true } });
+    } catch (error) {
+      console.error("Error finding user by email:", error);
+      return null;
+    }
   }
 }

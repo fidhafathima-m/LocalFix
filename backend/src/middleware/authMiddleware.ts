@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import jwt, { JwtPayload, TokenExpiredError, JsonWebTokenError } from "jsonwebtoken";
+import jwt, {
+  JwtPayload,
+  TokenExpiredError,
+  JsonWebTokenError,
+} from "jsonwebtoken";
 import User from "../models/UserSchema";
 import { Types } from "mongoose";
 import { ResponseHelper } from "../utils/responseHelper";
@@ -28,35 +32,44 @@ export const protect = async (
   }
 
   if (!token) {
-    return ResponseHelper.unauthorized("Authentication required");
+    const response = ResponseHelper.unauthorized("Authentication required");
+    return res.status(response.statusCode || 401).json(response);
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as JwtPayload;
 
     const userId = decoded._id || decoded.id;
 
     if (!userId) {
-      return ResponseHelper.unauthorized("Invalid token structure");
+      const response = ResponseHelper.unauthorized("Invalid token structure");
+      return res.status(response.statusCode || 401).json(response);
     }
 
     const user = await User.findById(userId).select("-passwordHash");
 
     if (!user) {
-      return ResponseHelper.notFound("User not found");
+      const response = ResponseHelper.notFound("User not found");
+      return res.status(response.statusCode || 404).json(response);
     }
 
     // Check if user is active and not blocked
     if (user.isDeleted) {
-      return ResponseHelper.forbidden("Account has been deleted");
+      const response = ResponseHelper.forbidden("Account has been deleted");
+      return res.status(response.statusCode || 403).json(response);
     }
 
     if (user.status === "Blocked") {
-      return ResponseHelper.forbidden("Account has been blocked");
+      const response = ResponseHelper.forbidden("Account has been blocked");
+      return res.status(response.statusCode || 403).json(response);
     }
 
     if (user.status !== "Active") {
-      return ResponseHelper.forbidden("Account is not active");
+      const response = ResponseHelper.forbidden("Account is not active");
+      return res.status(response.statusCode || 403).json(response);
     }
 
     req.user = {
@@ -69,35 +82,30 @@ export const protect = async (
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    
-    // Handle specific JWT errors with proper error codes
+
+    let response;
     if (error instanceof TokenExpiredError) {
-      return res.status(401).json({
-        success: false,
-        message: "Token expired",
+      response = ResponseHelper.unauthorized("Token expired");
+      return res.status(response.statusCode || 401).json({
+        ...response,
         code: "TOKEN_EXPIRED",
-        expiredAt: error.expiredAt
-      });
-    }
-    
-    if (error instanceof JsonWebTokenError) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid token",
-        code: "INVALID_TOKEN"
+        expiredAt: error.expiredAt,
       });
     }
 
-    // For other errors
-    return res.status(401).json({
-      success: false,
-      message: "Authentication failed",
-      code: "AUTH_FAILED"
-    });
+    if (error instanceof JsonWebTokenError) {
+      response = ResponseHelper.unauthorized("Invalid token");
+      return res.status(response.statusCode || 401).json({
+        ...response,
+        code: "INVALID_TOKEN",
+      });
+    }
+
+    response = ResponseHelper.unauthorized("Authentication failed");
+    return res.status(response.statusCode || 401).json(response);
   }
 };
 
-// Alternative version if you want to keep using ResponseHelper but with custom codes:
 export const protectWithRefresh = async (
   req: AuthRequest,
   res: Response,
@@ -117,7 +125,10 @@ export const protectWithRefresh = async (
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as JwtPayload;
 
     const userId = decoded._id || decoded.id;
 
@@ -154,22 +165,21 @@ export const protectWithRefresh = async (
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    
-    // Use ResponseHelper but add custom properties
+
     if (error instanceof TokenExpiredError) {
       const response = ResponseHelper.unauthorized("Token expired");
       return res.status(response.statusCode).json({
         ...response,
         code: "TOKEN_EXPIRED",
-        expiredAt: error.expiredAt
+        expiredAt: error.expiredAt,
       });
     }
-    
+
     if (error instanceof JsonWebTokenError) {
       const response = ResponseHelper.unauthorized("Invalid token");
       return res.status(response.statusCode).json({
         ...response,
-        code: "INVALID_TOKEN"
+        code: "INVALID_TOKEN",
       });
     }
 
@@ -177,7 +187,6 @@ export const protectWithRefresh = async (
   }
 };
 
-// Your other middleware functions remain the same...
 export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.user && req.user.roles.includes("admin")) {
     next();
@@ -186,11 +195,9 @@ export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
   }
 };
 
-// In your authMiddleware.ts - FIX the serviceProvider middleware
 export const serviceProvider = [
-  protect, // ← ADD THIS - verifies token and sets req.user
+  protect,
   (req: AuthRequest, res: Response, next: NextFunction) => {
-    
     if (req.user && req.user.roles.includes("serviceProvider")) {
       next();
     } else {
@@ -198,7 +205,7 @@ export const serviceProvider = [
         "Access denied. Service Provider role required."
       );
     }
-  }
+  },
 ];
 
 export const user = (req: AuthRequest, res: Response, next: NextFunction) => {

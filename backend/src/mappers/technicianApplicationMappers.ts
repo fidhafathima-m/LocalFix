@@ -15,11 +15,13 @@ import { ITechnicianApplication } from "../models/technician/TechnicianApplicati
 
 export class TechnicianApplicationMapper {
   // Map to application data DTO
-  static toApplicationDataDto(application: ITechnicianApplication): ApplicationDataDto {
+  static toApplicationDataDto(
+    application: ITechnicianApplication
+  ): ApplicationDataDto {
     return {
       _id: application._id.toString(),
-      email: application.email || '',
-      status: application.status || 'draft',
+      email: application.email || "",
+      status: application.status || "draft",
       stepsCompleted: application.stepsCompleted || [],
       personal: this.mapPersonalInfo(application.personal),
       identity: this.mapIdentityInfo(application.identity),
@@ -39,13 +41,15 @@ export class TechnicianApplicationMapper {
   }
 
   // Map to application list DTO
-  static toApplicationListDto(applications: ITechnicianApplication[]): ApplicationDataDto[] {
-    return applications.map(app => this.toApplicationDataDto(app));
+  static toApplicationListDto(
+    applications: ITechnicianApplication[]
+  ): ApplicationDataDto[] {
+    return applications.map((app) => this.toApplicationDataDto(app));
   }
 
   private static mapPersonalInfo(personal: any): PersonalInfoDto {
     if (!personal) return {};
-    
+
     return {
       fullName: personal.fullName,
       phoneNumber: personal.phoneNumber,
@@ -59,37 +63,43 @@ export class TechnicianApplicationMapper {
 
   private static mapIdentityInfo(identity: any): IdentityInfoDto {
     if (!identity) return {};
-    
+
     return {
       governmentIdType: identity.governmentIdType,
       governmentIdNumber: identity.governmentIdNumber,
       idDocument: identity.idDocument,
       verified: identity.verified || false,
-      verificationStatus: identity.verificationStatus || 'pending',
+      verificationStatus: identity.verificationStatus || "pending",
       verifiedAt: identity.verifiedAt,
-      location: identity.location ? this.mapLocation(identity.location) : undefined,
+      location: identity.location
+        ? this.mapLocation(identity.location)
+        : undefined,
       address: identity.address,
     };
   }
 
   private static mapSkillsInfo(skills: any): SkillsInfoDto {
     if (!skills) return {};
-    
+
     return {
       services: Array.isArray(skills.services) ? skills.services : [],
       yearsOfExperience: skills.yearsOfExperience,
       languages: Array.isArray(skills.languages) ? skills.languages : [],
       bio: skills.bio,
-      serviceAreas: Array.isArray(skills.serviceAreas) ? skills.serviceAreas : [],
+      serviceAreas: Array.isArray(skills.serviceAreas)
+        ? skills.serviceAreas
+        : [],
       workRadius: skills.workRadius,
     };
   }
 
   private static mapAvailabilityInfo(availability: any): AvailabilityInfoDto {
     if (!availability) return {};
-    
+
     return {
-      serviceAreas: Array.isArray(availability.serviceAreas) ? availability.serviceAreas : [],
+      serviceAreas: Array.isArray(availability.serviceAreas)
+        ? availability.serviceAreas
+        : [],
       workRadius: availability.workRadius,
       availability: availability.availability || {},
     };
@@ -97,7 +107,7 @@ export class TechnicianApplicationMapper {
 
   private static mapBankInfo(bank: any): BankInfoDto {
     if (!bank) return {};
-    
+
     return {
       accountHolderName: bank.accountHolderName,
       accountNumber: bank.accountNumber,
@@ -110,33 +120,33 @@ export class TechnicianApplicationMapper {
 
   private static mapDocumentsInfo(documents: any): DocumentsInfoDto {
     if (!documents) return {};
-    
+
     const result: DocumentsInfoDto = {};
-    
+
     const documentFields = [
-      'idProof',
-      'addressProof',
-      'policeVerification',
-      'passportPhoto',
-      'profilePhoto',
-      'tradeLicense'
+      "idProof",
+      "addressProof",
+      "policeVerification",
+      "passportPhoto",
+      "profilePhoto",
+      "tradeLicense",
     ];
-    
-    documentFields.forEach(field => {
+
+    documentFields.forEach((field) => {
       if (documents[field]) {
         result[field] = this.mapDocumentData(documents[field]);
       }
     });
-    
+
     return result;
   }
 
   private static mapDocumentData(document: any): DocumentDataDto {
     return {
-      url: document.url || '',
+      url: document.url || "",
       publicId: document.publicId,
-      filename: document.filename || '',
-      mimetype: document.mimetype || '',
+      filename: document.filename || "",
+      mimetype: document.mimetype || "",
       size: document.size || 0,
       uploadedAt: document.uploadedAt || new Date(),
       verified: document.verified || false,
@@ -146,7 +156,7 @@ export class TechnicianApplicationMapper {
   }
 
   private static mapAddress(address: any): AddressDto {
-    if (typeof address === 'string') {
+    if (typeof address === "string") {
       try {
         const parsed = JSON.parse(address);
         return this.mapAddress(parsed);
@@ -154,7 +164,7 @@ export class TechnicianApplicationMapper {
         return {};
       }
     }
-    
+
     return {
       street: address.street,
       city: address.city,
@@ -166,8 +176,10 @@ export class TechnicianApplicationMapper {
 
   private static mapLocation(location: any): LocationDto {
     return {
-      type: location.type || 'Point',
-      coordinates: Array.isArray(location.coordinates) ? location.coordinates : [0, 0],
+      type: location.type || "Point",
+      coordinates: Array.isArray(location.coordinates)
+        ? location.coordinates
+        : [0, 0],
       formattedAddress: location.formattedAddress,
       placeId: location.placeId,
     };
