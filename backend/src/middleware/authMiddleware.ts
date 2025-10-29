@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import jwt, { JwtPayload, TokenExpiredError, JsonWebTokenError } from "jsonwebtoken";
+import jwt, {
+  JwtPayload,
+  TokenExpiredError,
+  JsonWebTokenError,
+} from "jsonwebtoken";
 import User from "../models/UserSchema";
 import { Types } from "mongoose";
 import { ResponseHelper } from "../utils/responseHelper";
@@ -33,7 +37,10 @@ export const protect = async (
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as JwtPayload;
 
     const userId = decoded._id || decoded.id;
 
@@ -75,22 +82,22 @@ export const protect = async (
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    
+
     let response;
     if (error instanceof TokenExpiredError) {
       response = ResponseHelper.unauthorized("Token expired");
       return res.status(response.statusCode || 401).json({
         ...response,
         code: "TOKEN_EXPIRED",
-        expiredAt: error.expiredAt
+        expiredAt: error.expiredAt,
       });
     }
-    
+
     if (error instanceof JsonWebTokenError) {
       response = ResponseHelper.unauthorized("Invalid token");
       return res.status(response.statusCode || 401).json({
         ...response,
-        code: "INVALID_TOKEN"
+        code: "INVALID_TOKEN",
       });
     }
 
@@ -99,7 +106,6 @@ export const protect = async (
   }
 };
 
-// Alternative version if you want to keep using ResponseHelper but with custom codes:
 export const protectWithRefresh = async (
   req: AuthRequest,
   res: Response,
@@ -119,7 +125,10 @@ export const protectWithRefresh = async (
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as JwtPayload;
 
     const userId = decoded._id || decoded.id;
 
@@ -156,22 +165,21 @@ export const protectWithRefresh = async (
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    
-    // Use ResponseHelper but add custom properties
+
     if (error instanceof TokenExpiredError) {
       const response = ResponseHelper.unauthorized("Token expired");
       return res.status(response.statusCode).json({
         ...response,
         code: "TOKEN_EXPIRED",
-        expiredAt: error.expiredAt
+        expiredAt: error.expiredAt,
       });
     }
-    
+
     if (error instanceof JsonWebTokenError) {
       const response = ResponseHelper.unauthorized("Invalid token");
       return res.status(response.statusCode).json({
         ...response,
-        code: "INVALID_TOKEN"
+        code: "INVALID_TOKEN",
       });
     }
 
@@ -179,7 +187,6 @@ export const protectWithRefresh = async (
   }
 };
 
-// Your other middleware functions remain the same...
 export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.user && req.user.roles.includes("admin")) {
     next();
@@ -188,11 +195,9 @@ export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
   }
 };
 
-// In your authMiddleware.ts - FIX the serviceProvider middleware
 export const serviceProvider = [
-  protect, // ← ADD THIS - verifies token and sets req.user
+  protect,
   (req: AuthRequest, res: Response, next: NextFunction) => {
-    
     if (req.user && req.user.roles.includes("serviceProvider")) {
       next();
     } else {
@@ -200,7 +205,7 @@ export const serviceProvider = [
         "Access denied. Service Provider role required."
       );
     }
-  }
+  },
 ];
 
 export const user = (req: AuthRequest, res: Response, next: NextFunction) => {

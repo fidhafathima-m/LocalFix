@@ -1,4 +1,3 @@
-// interfaces/category/ICategory.ts
 import { Document, Types } from "mongoose";
 
 export interface ICategory extends Document {

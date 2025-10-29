@@ -21,7 +21,6 @@ import {
 } from "../constants";
 import { IUser } from "@/interfaces/user/IUser";
 
-// Import DTOs
 import {
   SignupDataDto,
   LoginCredentialsDto,
@@ -506,7 +505,9 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async resetPassword(resetData: ResetPasswordDataDto): Promise<AuthResponseDto> {
+  async resetPassword(
+    resetData: ResetPasswordDataDto
+  ): Promise<AuthResponseDto> {
     try {
       const { phone, email, otp, token, password, userType } = resetData;
 
@@ -589,7 +590,9 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async verifyResetOtp(otpData: OTPVerificationDataDto): Promise<AuthResponseDto> {
+  async verifyResetOtp(
+    otpData: OTPVerificationDataDto
+  ): Promise<AuthResponseDto> {
     try {
       const { phone, email, otp, userType } = otpData;
 
@@ -888,7 +891,10 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async logout(userId: string, refreshToken?: string): Promise<AuthResponseDto> {
+  async logout(
+    userId: string,
+    refreshToken?: string
+  ): Promise<AuthResponseDto> {
     try {
       if (refreshToken) {
         // Remove specific refresh token

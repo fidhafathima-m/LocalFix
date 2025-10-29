@@ -1,13 +1,15 @@
-import { useState } from 'react'
-import { CloseOutlined } from '@mui/icons-material'
-import { AdminSidebar } from '../AdminSidebar'
-import type { CreateItemData } from '../../../../services/common/adminApi'
+import { useState } from "react";
+import { CloseOutlined } from "@mui/icons-material";
+import { AdminSidebar } from "../AdminSidebar";
+import type { CreateItemData } from "../../../../services/common/adminApi";
 
 interface AddItemModalProps {
-  serviceName: string
-  categoryName: string
-  onClose: () => void
-  onSubmit: (itemData: CreateItemData) => Promise<{ success: boolean; message?: string }>
+  serviceName: string;
+  categoryName: string;
+  onClose: () => void;
+  onSubmit: (
+    itemData: CreateItemData
+  ) => Promise<{ success: boolean; message?: string }>;
 }
 
 export function AddItemModal({
@@ -16,21 +18,21 @@ export function AddItemModal({
   onClose,
   onSubmit,
 }: AddItemModalProps) {
-  const [itemName, setItemName] = useState('')
-  const [description, setDescription] = useState('')
-  const [price, setPrice] = useState('')
-  const [sku, setSku] = useState('')
-  const [isActive, setIsActive] = useState(true)
-  const [loading, setLoading] = useState(false)
+  const [itemName, setItemName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [sku, setSku] = useState("");
+  const [isActive, setIsActive] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!itemName.trim() || !description.trim() || !price) {
-      return
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const result = await onSubmit({
         name: itemName.trim(),
@@ -38,21 +40,21 @@ export function AddItemModal({
         price: parseFloat(price),
         sku: sku.trim() || undefined,
         isActive,
-      })
+      });
 
       if (result.success) {
-        onClose()
+        onClose();
       }
     } catch (error) {
-      console.error('Error submitting item:', error)
+      console.error("Error submitting item:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <AdminSidebar activePage='Category'/>
+      <AdminSidebar activePage="Category" />
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Header - Fixed */}
         <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200">
@@ -60,7 +62,9 @@ export function AddItemModal({
             <h2 className="text-xl font-semibold text-gray-900">
               Add Item - {serviceName}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">Category: {categoryName}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Category: {categoryName}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -148,8 +152,8 @@ export function AddItemModal({
                 Status
               </label>
               <select
-                value={isActive ? 'active' : 'inactive'}
-                onChange={(e) => setIsActive(e.target.value === 'active')}
+                value={isActive ? "active" : "inactive"}
+                onChange={(e) => setIsActive(e.target.value === "active")}
                 disabled={loading}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               >
@@ -173,15 +177,17 @@ export function AddItemModal({
             </button>
             <button
               type="submit"
-              disabled={loading || !itemName.trim() || !description.trim() || !price}
+              disabled={
+                loading || !itemName.trim() || !description.trim() || !price
+              }
               onClick={handleSubmit}
               className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Create Item'}
+              {loading ? "Creating..." : "Create Item"}
             </button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

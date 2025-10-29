@@ -1,6 +1,11 @@
 import { IItemService } from "../interfaces/services/admin/IItemManagementService";
 import { IItemRepository } from "../interfaces/repository/admin/IItemRepository";
-import { ItemResponseDto, CreateItemDto, UpdateItemDto, ItemListResponseDto } from "../interfaces/dtos/itemDtos";
+import {
+  ItemResponseDto,
+  CreateItemDto,
+  UpdateItemDto,
+  ItemListResponseDto,
+} from "../interfaces/dtos/itemDtos";
 import { ItemMapper } from "../mappers/itemMapper";
 import { ITEM_MESSAGES } from "../constants";
 import { Types } from "mongoose";
@@ -69,7 +74,11 @@ export class ItemService implements IItemService {
       let total: number;
 
       if (search) {
-        items = await this.itemRepository.searchByService(serviceId, search, limit);
+        items = await this.itemRepository.searchByService(
+          serviceId,
+          search,
+          limit
+        );
         total = items.length;
       } else {
         items = await this.itemRepository.findAll({ serviceId }, skip, limit);
@@ -108,7 +117,10 @@ export class ItemService implements IItemService {
     }
   }
 
-  async updateItem(itemId: string, updateDto: UpdateItemDto): Promise<ItemResponseDto> {
+  async updateItem(
+    itemId: string,
+    updateDto: UpdateItemDto
+  ): Promise<ItemResponseDto> {
     try {
       // Check if item exists
       const existingItem = await this.itemRepository.findById(itemId);
@@ -118,7 +130,9 @@ export class ItemService implements IItemService {
 
       // If name is being updated, check for duplicates
       if (updateDto.name && updateDto.name !== existingItem.name) {
-        const duplicateItem = await this.itemRepository.findByName(updateDto.name);
+        const duplicateItem = await this.itemRepository.findByName(
+          updateDto.name
+        );
         if (duplicateItem && duplicateItem._id.toString() !== itemId) {
           throw new Error(ITEM_MESSAGES.ITEM_ALREADY_EXISTS);
         }
@@ -154,10 +168,13 @@ export class ItemService implements IItemService {
     }
   }
 
-  async searchItems(query: string, limit: number = 10): Promise<ItemResponseDto[]> {
+  async searchItems(
+    query: string,
+    limit: number = 10
+  ): Promise<ItemResponseDto[]> {
     try {
       const items = await this.itemRepository.search(query, limit);
-      return items.map(item => this.itemMapper.toItemResponseDto(item));
+      return items.map((item) => this.itemMapper.toItemResponseDto(item));
     } catch (error) {
       console.error("Search items error:", error);
       throw error;

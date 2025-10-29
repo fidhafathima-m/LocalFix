@@ -61,7 +61,6 @@ export interface UserStatsDto {
   blockedUsers: number;
 }
 
-// ✅ FIX: Remove nested "data" property from response DTOs
 export interface UsersListResponseDto extends BaseResponseDto {
   users?: UserListDto[];
 }

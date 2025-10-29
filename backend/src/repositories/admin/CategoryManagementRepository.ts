@@ -1,16 +1,19 @@
-// repositories/CategoryRepository.ts
 import { FilterQuery, Types } from "mongoose";
-import { ICategory, ICategoryCreate, ICategoryUpdate } from "../../interfaces/admin/ICategoryManagement";
+import {
+  ICategory,
+  ICategoryCreate,
+  ICategoryUpdate,
+} from "../../interfaces/admin/ICategoryManagement";
 import { ICategoryRepository } from "../../interfaces/repository/admin/ICategoryRepository";
 import { Category } from "../../models/category/categorySchema";
 import slugify from "slugify";
 
 export class CategoryRepository implements ICategoryRepository {
   async create(categoryData: ICategoryCreate): Promise<ICategory> {
-    const slug = slugify(categoryData.name, { 
-      lower: true, 
-      strict: true, 
-      trim: true 
+    const slug = slugify(categoryData.name, {
+      lower: true,
+      strict: true,
+      trim: true,
     });
 
     const category = new Category({
@@ -21,7 +24,9 @@ export class CategoryRepository implements ICategoryRepository {
     return await category.save();
   }
 
-  async findById(categoryId: string | Types.ObjectId): Promise<ICategory | null> {
+  async findById(
+    categoryId: string | Types.ObjectId
+  ): Promise<ICategory | null> {
     return await Category.findById(categoryId);
   }
 
@@ -30,7 +35,9 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async findByName(name: string): Promise<ICategory | null> {
-    return await Category.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
+    return await Category.findOne({
+      name: { $regex: new RegExp(`^${name}$`, "i") },
+    });
   }
 
   async findAll(

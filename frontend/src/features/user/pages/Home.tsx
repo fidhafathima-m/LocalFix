@@ -55,9 +55,11 @@ const Home = () => {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 mb-8 lg:mb-0">
-                <button className="p-3 px-6 outline-1 outline-blue-600 rounded bg-white text-black font-semibold hover:bg-gray-100 transition">
+                <Link 
+                className="p-3 px-6 outline-1 outline-blue-600 rounded bg-white text-black font-semibold hover:bg-gray-100 transition cursor-pointer"
+                to="/services">
                   Book a Service
-                </button>
+                </Link>
                 <button className="p-3 px-6 outline-1 outline-white border border-white rounded font-semibold hover:bg-white hover:text-blue-600 transition">
                   How it works
                 </button>

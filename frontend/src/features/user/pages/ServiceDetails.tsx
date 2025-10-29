@@ -21,7 +21,6 @@ import { ServiceManagementService } from "../../../services/admin/ServiceManagem
 import { TechnicianMangementService } from "../../../services/admin/TechnicianManagementService";
 import type { Service } from "../data/services";
 
-// Use the same Technician interface from your admin API
 interface Technician {
   _id: string;
   userId: string;
@@ -64,7 +63,9 @@ const ServiceDetails: React.FC = () => {
   const [service, setService] = useState<Service | null>(null);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [allTechnicians, setAllTechnicians] = useState<Technician[]>([]);
-  const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>([]);
+  const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>(
+    []
+  );
   const [showAllTechnicians, setShowAllTechnicians] = useState(false);
   const [loading, setLoading] = useState(true);
   const [techniciansLoading, setTechniciansLoading] = useState(false);
@@ -84,12 +85,9 @@ const ServiceDetails: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        console.log("🔄 Fetching service details for slug:", slug);
         const serviceResponse = await ServiceManagementService.getServiceBySlug(
           slug
         );
-
-        console.log("📡 Service details response:", serviceResponse);
 
         if (serviceResponse && serviceResponse.service) {
           setService(serviceResponse.service);
@@ -116,28 +114,33 @@ const ServiceDetails: React.FC = () => {
       setFilteredTechnicians(showAllTechnicians ? allTechnicians : technicians);
     } else {
       const searchTerm = locationSearch.toLowerCase().trim();
-      const techniciansToFilter = showAllTechnicians ? allTechnicians : technicians;
-      
-      const filtered = techniciansToFilter.filter(tech => {
+      const techniciansToFilter = showAllTechnicians
+        ? allTechnicians
+        : technicians;
+
+      const filtered = techniciansToFilter.filter((tech) => {
         // Search in workAreas
-        const workAreaMatch = tech.workAreas?.some(area => 
+        const workAreaMatch = tech.workAreas?.some((area) =>
           area.toLowerCase().includes(searchTerm)
         );
-        
+
         // Search in personalInfo address
-        const addressMatch = 
-          tech.personalInfo?.address?.city?.toLowerCase().includes(searchTerm) ||
-          tech.personalInfo?.address?.state?.toLowerCase().includes(searchTerm) ||
+        const addressMatch =
+          tech.personalInfo?.address?.city
+            ?.toLowerCase()
+            .includes(searchTerm) ||
+          tech.personalInfo?.address?.state
+            ?.toLowerCase()
+            .includes(searchTerm) ||
           tech.personalInfo?.address?.pincode?.includes(searchTerm);
-        
+
         return workAreaMatch || addressMatch;
       });
-      
+
       setFilteredTechnicians(filtered);
     }
   }, [locationSearch, technicians, allTechnicians, showAllTechnicians]);
 
-  // Update the fetchTechniciansForService function to debug experience data
   const fetchTechniciansForService = async (serviceName: string) => {
     try {
       setTechniciansLoading(true);
@@ -162,37 +165,9 @@ const ServiceDetails: React.FC = () => {
       const response = await TechnicianMangementService.getPublicTechnicians(
         mappedServiceName
       );
-      console.log(
-      "🔍 DEBUG: Complete API response:",
-      response
-    );
-
-    console.log(
-      "🔍 DEBUG: Response data structure:",
-      response.data
-    );
-
-      console.log(
-        "🔍 DEBUG: All technicians from API:",
-        response.data?.data?.technicians
-      );
 
       if (response.data && response.data.data) {
         const technicians = response.data.data.technicians || [];
-        console.log(
-          `✅ Found ${technicians.length} technicians for service: ${mappedServiceName}`
-        );
-
-        // Debug each technician's experience data
-        technicians.forEach((tech: Technician, index: number) => {
-          console.log(`🔍 Technician ${index + 1}:`, {
-            name: tech.displayName,
-            experienceYears: tech.experienceYears,
-            hasExperience: tech.experienceYears !== undefined,
-            experienceValue: tech.experienceYears,
-            fullData: tech,
-          });
-        });
 
         // Show only first 6 technicians with "View All" option
         const displayedTechnicians = technicians.slice(0, 6);
@@ -202,13 +177,13 @@ const ServiceDetails: React.FC = () => {
         // Store all technicians for "View All" functionality
         setAllTechnicians(technicians);
       } else {
-        console.warn("❌ No technicians data in response structure");
+        console.warn("No technicians data in response structure");
         setTechnicians([]);
         setAllTechnicians([]);
         setFilteredTechnicians([]);
       }
     } catch (error: any) {
-      console.error("❌ ERROR DETAILS:", error.message);
+      console.error("ERROR DETAILS:", error.message);
       setTechnicians([]);
       setAllTechnicians([]);
       setFilteredTechnicians([]);
@@ -222,12 +197,13 @@ const ServiceDetails: React.FC = () => {
     const city = tech.personalInfo?.address?.city;
     const state = tech.personalInfo?.address?.state;
     const workArea = tech.workAreas?.[0];
-    
-    const shortAddress = city && state 
-      ? `${city}, ${state}`
-      : workArea 
-      ? workArea
-      : "Location not specified";
+
+    const shortAddress =
+      city && state
+        ? `${city}, ${state}`
+        : workArea
+        ? workArea
+        : "Location not specified";
 
     return {
       id: tech._id,
@@ -451,7 +427,8 @@ const ServiceDetails: React.FC = () => {
               </div>
               {locationSearch && (
                 <p className="text-sm text-gray-500 mt-2">
-                  Showing {filteredTechnicians.length} technicians matching "{locationSearch}"
+                  Showing {filteredTechnicians.length} technicians matching "
+                  {locationSearch}"
                 </p>
               )}
             </div>
@@ -504,7 +481,9 @@ const ServiceDetails: React.FC = () => {
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <LocationOnOutlined className="w-4 h-4 text-blue-600" />
-                          <span className="font-medium">{displayData.shortAddress}</span>
+                          <span className="font-medium">
+                            {displayData.shortAddress}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <EmojiEventsOutlined className="w-4 h-4 text-blue-600" />
@@ -518,7 +497,9 @@ const ServiceDetails: React.FC = () => {
                         </div>
                         {tech.workAreas && tech.workAreas.length > 0 && (
                           <div className="flex items-start gap-2 text-sm text-gray-600">
-                            <span className="mt-0.5"><MiscellaneousServicesOutlined className="w-4 h-4 text-blue-600"/></span>
+                            <span className="mt-0.5">
+                              <MiscellaneousServicesOutlined className="w-4 h-4 text-blue-600" />
+                            </span>
                             <span>
                               Areas: {tech.workAreas.slice(0, 3).join(", ")}
                               {tech.workAreas.length > 3 && "..."}
@@ -540,13 +521,14 @@ const ServiceDetails: React.FC = () => {
               <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
                 <BuildOutlined className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {locationSearch ? "No Technicians Found" : "No Technicians Available"}
+                  {locationSearch
+                    ? "No Technicians Found"
+                    : "No Technicians Available"}
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  {locationSearch 
+                  {locationSearch
                     ? `No technicians found matching "${locationSearch}". Try a different location.`
-                    : `Currently, there are no verified technicians for ${service.name}.`
-                  }
+                    : `Currently, there are no verified technicians for ${service.name}.`}
                 </p>
                 {locationSearch && (
                   <button

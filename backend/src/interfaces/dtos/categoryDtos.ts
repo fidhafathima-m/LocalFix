@@ -1,4 +1,3 @@
-// interfaces/dtos/categoryDtos.ts
 import { Types } from "mongoose";
 
 export interface CategoryResponseDto {
@@ -9,7 +8,7 @@ export interface CategoryResponseDto {
   iconUrl: string;
   createdAt: string;
   updatedAt: string;
-  serviceCount: number
+  serviceCount: number;
 }
 
 export interface CreateCategoryDto {
@@ -34,5 +33,10 @@ export interface CategoryListResponseDto {
 
 export interface CategoryMapper {
   toCategoryResponseDto(category: any): CategoryResponseDto;
-  toCategoryListResponseDto(categories: any[], total: number, page: number, limit: number): CategoryListResponseDto;
+  toCategoryListResponseDto(
+    categories: any[],
+    total: number,
+    page: number,
+    limit: number
+  ): CategoryListResponseDto;
 }

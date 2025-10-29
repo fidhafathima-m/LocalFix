@@ -22,7 +22,7 @@ const Services: React.FC = () => {
   const [, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
@@ -88,26 +88,35 @@ const Services: React.FC = () => {
   };
 
   // Get price range limits from actual services
-  const minPrice = services.length > 0 ? Math.min(...services.map(s => s.avgBasePrice || 299)) : 0;
-  const maxPrice = services.length > 0 ? Math.max(...services.map(s => s.avgBasePrice || 299)) : 5000;
+  const minPrice =
+    services.length > 0
+      ? Math.min(...services.map((s) => s.avgBasePrice || 299))
+      : 0;
+  const maxPrice =
+    services.length > 0
+      ? Math.max(...services.map((s) => s.avgBasePrice || 299))
+      : 5000;
 
   // Apply all filters
   const filteredServices = services
     .filter((service) => {
       // Category filter
-      const categoryMatch = selectedCategory === "all" || service.categoryId === selectedCategory;
-      
+      const categoryMatch =
+        selectedCategory === "all" || service.categoryId === selectedCategory;
+
       // Search filter
-      const searchMatch = 
+      const searchMatch =
         service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         service.description.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
       // Price filter
       const servicePrice = service.avgBasePrice || 299;
-      const priceMatch = servicePrice >= priceRange[0] && servicePrice <= priceRange[1];
-      
+      const priceMatch =
+        servicePrice >= priceRange[0] && servicePrice <= priceRange[1];
+
       // Rating filter
-      const ratingMatch = ratingFilter === null || (service.rating || 4.5) >= ratingFilter;
+      const ratingMatch =
+        ratingFilter === null || (service.rating || 4.5) >= ratingFilter;
 
       return categoryMatch && searchMatch && priceMatch && ratingMatch;
     })
@@ -134,9 +143,9 @@ const Services: React.FC = () => {
   };
 
   // Check if any filter is active
-  const isAnyFilterActive = 
-    priceRange[0] !== minPrice || 
-    priceRange[1] !== maxPrice || 
+  const isAnyFilterActive =
+    priceRange[0] !== minPrice ||
+    priceRange[1] !== maxPrice ||
     ratingFilter !== null;
 
   return (
@@ -150,7 +159,8 @@ const Services: React.FC = () => {
               Our Services
             </h1>
             <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
-              Professional appliance repair services in Kannur with verified technicians
+              Professional appliance repair services in Kannur with verified
+              technicians
             </p>
             <div className="max-w-md mx-auto">
               <div className="relative">
@@ -266,7 +276,9 @@ const Services: React.FC = () => {
                       min={minPrice}
                       max={maxPrice}
                       value={priceRange[0]}
-                      onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
+                      onChange={(e) =>
+                        setPriceRange([parseInt(e.target.value), priceRange[1]])
+                      }
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                     />
                     <input
@@ -274,7 +286,9 @@ const Services: React.FC = () => {
                       min={minPrice}
                       max={maxPrice}
                       value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+                      onChange={(e) =>
+                        setPriceRange([priceRange[0], parseInt(e.target.value)])
+                      }
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
@@ -293,7 +307,9 @@ const Services: React.FC = () => {
                     {[4, 3, 2, 1].map((stars) => (
                       <button
                         key={stars}
-                        onClick={() => setRatingFilter(ratingFilter === stars ? null : stars)}
+                        onClick={() =>
+                          setRatingFilter(ratingFilter === stars ? null : stars)
+                        }
                         className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${
                           ratingFilter === stars
                             ? "bg-blue-600 text-white border-blue-600"
@@ -323,7 +339,10 @@ const Services: React.FC = () => {
               <p className="text-gray-500 text-lg">
                 {searchQuery || isAnyFilterActive
                   ? "No services match your current filters."
-                  : `No services available in ${categories.find(cat => cat.id === selectedCategory)?.name || "selected category"} at the moment.`}
+                  : `No services available in ${
+                      categories.find((cat) => cat.id === selectedCategory)
+                        ?.name || "selected category"
+                    } at the moment.`}
               </p>
               {(searchQuery || isAnyFilterActive) && (
                 <div className="mt-4">
@@ -358,7 +377,9 @@ const Services: React.FC = () => {
                           alt={service.name}
                           className="w-8 h-8 object-contain"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = getDefaultIcon(service.name);
+                            (e.target as HTMLImageElement).src = getDefaultIcon(
+                              service.name
+                            );
                           }}
                         />
                       </div>
@@ -408,14 +429,16 @@ const Services: React.FC = () => {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-sm text-gray-600">Starting at </span>
+                        <span className="text-sm text-gray-600">
+                          Starting at{" "}
+                        </span>
                         <span className="text-xl font-bold text-blue-600">
                           ₹{service.avgBasePrice || 299}
                         </span>
                       </div>
                       <button
                         onClick={() => navigate(`/service/${service.slug}`)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
                       >
                         See more
                         <ArrowForwardOutlined className="w-4 h-4" />
@@ -437,7 +460,8 @@ const Services: React.FC = () => {
                   Need help choosing the right service?
                 </h2>
                 <p className="text-gray-600">
-                  Our customer support team is available to help you find the right technician.
+                  Our customer support team is available to help you find the
+                  right technician.
                 </p>
               </div>
               <div className="flex gap-3">

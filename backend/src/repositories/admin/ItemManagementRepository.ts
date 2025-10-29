@@ -1,11 +1,14 @@
 import { FilterQuery, Types } from "mongoose";
-import { IItem, IItemCreate, IItemUpdate } from "../../interfaces/admin/IItemManagement";
+import {
+  IItem,
+  IItemCreate,
+  IItemUpdate,
+} from "../../interfaces/admin/IItemManagement";
 import { IItemRepository } from "../../interfaces/repository/admin/IItemRepository";
 import { Item } from "../../models/category/itemSchema";
 
 export class ItemRepository implements IItemRepository {
   async create(itemData: IItemCreate): Promise<IItem> {
-    // Generate SKU if not provided
     if (!itemData.sku) {
       itemData.sku = this.generateSKU(itemData.name);
     }
@@ -23,7 +26,9 @@ export class ItemRepository implements IItemRepository {
   }
 
   async findByName(name: string): Promise<IItem | null> {
-    return await Item.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
+    return await Item.findOne({
+      name: { $regex: new RegExp(`^${name}$`, "i") },
+    });
   }
 
   async findByServiceId(serviceId: string | Types.ObjectId): Promise<IItem[]> {
@@ -73,7 +78,11 @@ export class ItemRepository implements IItemRepository {
       .sort({ createdAt: -1 });
   }
 
-  async searchByService(serviceId: string | Types.ObjectId, query: string, limit: number = 10): Promise<IItem[]> {
+  async searchByService(
+    serviceId: string | Types.ObjectId,
+    query: string,
+    limit: number = 10
+  ): Promise<IItem[]> {
     return await Item.find({
       serviceId,
       $or: [

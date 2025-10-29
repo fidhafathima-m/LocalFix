@@ -37,5 +37,10 @@ export interface ItemListResponseDto {
 
 export interface ItemMapper {
   toItemResponseDto(item: any): ItemResponseDto;
-  toItemListResponseDto(items: any[], total: number, page: number, limit: number): ItemListResponseDto;
+  toItemListResponseDto(
+    items: any[],
+    total: number,
+    page: number,
+    limit: number
+  ): ItemListResponseDto;
 }

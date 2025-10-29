@@ -6,7 +6,6 @@ interface IWallet {
   transactions: any[];
 }
 
-
 export interface IUser extends IUserBase {
   lastLogin?: Date;
   loginCount?: number;

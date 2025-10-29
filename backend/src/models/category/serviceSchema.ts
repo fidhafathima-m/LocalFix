@@ -1,4 +1,3 @@
-// models/category/serviceSchema.ts
 import { Schema, model } from "mongoose";
 import { IService } from "../../interfaces/admin/IServiceManagement";
 import { ServiceStatus } from "../../constants";
@@ -39,7 +38,6 @@ const serviceSchema = new Schema<IService>(
       default: "",
       trim: true,
     },
-    // NEW FIELDS
     rating: {
       type: Number,
       default: 4.5,
@@ -51,10 +49,12 @@ const serviceSchema = new Schema<IService>(
       default: "2-4 hours",
       trim: true,
     },
-    features: [{
-      type: String,
-      trim: true,
-    }],
+    features: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     popular: {
       type: Boolean,
       default: false,

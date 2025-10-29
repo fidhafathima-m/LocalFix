@@ -1,4 +1,3 @@
-// mappers/UserMapper.ts
 import { Types } from "mongoose";
 import {
   UserListDto,
@@ -13,31 +12,35 @@ export class UserMapper {
   static toListDto(user: IUserWithAddress): UserListDto {
     return {
       _id: user._id.toString(),
-      fullName: user.fullName || '',
-      email: user.email || '',
+      fullName: user.fullName || "",
+      email: user.email || "",
       phone: user.phone,
-      status: user.status || 'Active',
-      roles: Array.isArray(user.roles) ? user.roles : ['user'],
+      status: user.status || "Active",
+      roles: Array.isArray(user.roles) ? user.roles : ["user"],
       isEmailVerified: user.isVerified || false,
       createdAt: user.createdAt || new Date(),
       updatedAt: user.updatedAt || new Date(),
-      defaultAddress: user.defaultAddress ? this.mapAddress(user.defaultAddress) : undefined,
+      defaultAddress: user.defaultAddress
+        ? this.mapAddress(user.defaultAddress)
+        : undefined,
     };
   }
 
-  // Map to detail DTO - CORRECTED VERSION
+  // Map to detail DTO
   static toDetailDto(user: IUser): UserDetailDto {
     const baseDto: UserListDto = {
       _id: user._id.toString(),
-      fullName: user.fullName || '',
-      email: user.email || '',
+      fullName: user.fullName || "",
+      email: user.email || "",
       phone: user.phone,
-      status: user.status || 'Active',
-      roles: Array.isArray(user.roles) ? user.roles : ['user'],
+      status: user.status || "Active",
+      roles: Array.isArray(user.roles) ? user.roles : ["user"],
       isEmailVerified: user.isVerified || false,
       createdAt: user.createdAt || new Date(),
       updatedAt: user.updatedAt || new Date(),
-      defaultAddress: user.defaultAddress ? this.mapAddress(user.defaultAddress) : undefined,
+      defaultAddress: user.defaultAddress
+        ? this.mapAddress(user.defaultAddress)
+        : undefined,
     };
 
     return {
@@ -46,13 +49,14 @@ export class UserMapper {
       lastLogin: user.lastLogin,
       loginCount: user.loginCount,
       profilePictureUrl: user.profilePictureUrl,
-      // ✅ CORRECTED: Properly map the wallet object
       dateOfBirth: user.dateOfBirth,
       gender: user.gender,
-      wallet: user.wallet ? { 
-        balance: user.wallet.balance || 0, 
-        transactions: user.wallet.transactions || [] 
-      } : { balance: 0, transactions: [] },
+      wallet: user.wallet
+        ? {
+            balance: user.wallet.balance || 0,
+            transactions: user.wallet.transactions || [],
+          }
+        : { balance: 0, transactions: [] },
     };
   }
 

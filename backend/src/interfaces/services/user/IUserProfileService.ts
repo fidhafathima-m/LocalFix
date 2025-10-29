@@ -1,4 +1,3 @@
-// interfaces/services/user/IUserProfileService.ts
 import { IUser } from "@/interfaces/admin/IUserManagements";
 import { UpdateUserProfileData } from "@/services/UserProfileService";
 
@@ -22,6 +21,12 @@ export interface UploadProfilePictureResponse {
 
 export interface IUserProfileService {
   getUserProfile(userId: string): Promise<UserProfileResponse>;
-  updateUserProfile(userId: string, updateData: UpdateUserProfileData): Promise<UserProfileResponse>;
-  uploadProfilePicture(userId: string, file: Express.Multer.File): Promise<UploadProfilePictureResponse>;
+  updateUserProfile(
+    userId: string,
+    updateData: UpdateUserProfileData
+  ): Promise<UserProfileResponse>;
+  uploadProfilePicture(
+    userId: string,
+    file: Express.Multer.File
+  ): Promise<UploadProfilePictureResponse>;
 }

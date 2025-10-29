@@ -1,4 +1,3 @@
-// services/user/UserProfileService.ts
 import { IUserManagementRepository } from "../interfaces/repository/admin/IUserManagementRepository";
 import { ResponseHelper } from "../utils/responseHelper";
 import { uploadToCloudinary } from "../utils/cloudinary";
@@ -17,55 +16,46 @@ export interface UpdateUserProfileData {
 export class UserProfileService {
   constructor(private userManagementRepository: IUserManagementRepository) {}
 
- // services/user/UserProfileService.ts
-async getUserProfile(userId: string) {
-  try {
-    const user = await this.userManagementRepository.findById(userId);
+  async getUserProfile(userId: string) {
+    try {
+      const user = await this.userManagementRepository.findById(userId);
 
-    console.log("🔍 DEBUG - Raw user from database:", user);
-    console.log("🔍 DEBUG - User wallet:", user?.wallet);
-    console.log("🔍 DEBUG - User dateOfBirth:", user?.dateOfBirth);
-    console.log("🔍 DEBUG - User gender:", user?.gender);
+      if (!user) {
+        return ResponseHelper.notFound("User not found");
+      }
 
-    if (!user) {
-      return ResponseHelper.notFound("User not found");
+      if (user.isDeleted) {
+        return ResponseHelper.forbidden("Account has been deleted");
+      }
+
+      const userDetailDto = {
+        _id: user._id.toString(),
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        status: user.status,
+        roles: user.roles,
+        isEmailVerified: user.isVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        applicationStatus: user.applicationStatus,
+        lastLogin: user.lastLogin,
+        loginCount: user.loginCount,
+        profilePictureUrl: user.profilePictureUrl,
+        dateOfBirth: user.dateOfBirth,
+        gender: user.gender,
+        wallet: user.wallet,
+        defaultAddress: user.defaultAddress,
+      };
+
+      return ResponseHelper.success("User profile retrieved successfully", {
+        user: userDetailDto,
+      });
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return ResponseHelper.error("Failed to fetch user profile");
     }
-
-    if (user.isDeleted) {
-      return ResponseHelper.forbidden("Account has been deleted");
-    }
-
-    // ✅ TEMPORARY: Bypass mapper to test
-    const userDetailDto = {
-      _id: user._id.toString(),
-      fullName: user.fullName,
-      email: user.email,
-      phone: user.phone,
-      status: user.status,
-      roles: user.roles,
-      isEmailVerified: user.isVerified,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      applicationStatus: user.applicationStatus,
-      lastLogin: user.lastLogin,
-      loginCount: user.loginCount,
-      profilePictureUrl: user.profilePictureUrl,
-      dateOfBirth: user.dateOfBirth,
-      gender: user.gender,
-      wallet: user.wallet,
-      defaultAddress: user.defaultAddress,
-    };
-
-    console.log("🔍 DEBUG - User DTO being returned:", userDetailDto);
-
-    return ResponseHelper.success("User profile retrieved successfully", {
-      user: userDetailDto,
-    });
-  } catch (error) {
-    console.error("Error fetching user profile:", error);
-    return ResponseHelper.error("Failed to fetch user profile");
   }
-}
 
   async updateUserProfile(userId: string, updateData: UpdateUserProfileData) {
     try {
@@ -92,7 +82,9 @@ async getUserProfile(userId: string) {
 
       if (updateData.email !== undefined && updateData.email !== user.email) {
         // Check if email already exists
-        const existingUser = await this.userManagementRepository.findByEmail(updateData.email);
+        const existingUser = await this.userManagementRepository.findByEmail(
+          updateData.email
+        );
         if (existingUser && existingUser._id.toString() !== userId) {
           return ResponseHelper.error("Email already exists");
         }
@@ -108,27 +100,18 @@ async getUserProfile(userId: string) {
       }
 
       if (updateData.profilePicture !== undefined) {
-        updatePayload.profilePictureUrl = updateData.profilePicture; // Use correct field name
+        updatePayload.profilePictureUrl = updateData.profilePicture;
+      }
 
-       }
-       console.log("User ID:", userId);
-    console.log("Update data received:", updateData);
-    console.log("Update payload:", updatePayload);
-
-      // Update user - make sure this updates existing user, not creates new one
       const updatedUser = await this.userManagementRepository.update(
         userId,
         updatePayload
       );
-      
 
       if (!updatedUser) {
         return ResponseHelper.error("Failed to update user profile");
       }
 
-      console.log("Updated user:", updatedUser); // Debug log
-
-      // Return updated user data
       const publicUserDto = {
         _id: updatedUser._id.toString(),
         fullName: updatedUser.fullName,
@@ -171,10 +154,9 @@ async getUserProfile(userId: string) {
       const profilePictureUrl = uploadResult.secure_url;
 
       // Update user profile picture
-      const updatedUser = await this.userManagementRepository.update(
-        userId,
-        { profilePictureUrl }
-      );
+      const updatedUser = await this.userManagementRepository.update(userId, {
+        profilePictureUrl,
+      });
 
       if (!updatedUser) {
         return ResponseHelper.error("Failed to update profile picture");

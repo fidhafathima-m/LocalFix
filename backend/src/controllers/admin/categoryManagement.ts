@@ -1,9 +1,11 @@
-// controllers/CategoryController.ts
 import { Request, Response } from "express";
 import { ICategoryService } from "../../interfaces/services/admin/ICategoryManagementService";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { CATEGORY_MESSAGES } from "../../constants";
-import { CreateCategoryDto, UpdateCategoryDto } from "../../interfaces/dtos/categoryDtos";
+import {
+  CreateCategoryDto,
+  UpdateCategoryDto,
+} from "../../interfaces/dtos/categoryDtos";
 
 export class CategoryController {
   private categoryService: ICategoryService;
@@ -18,23 +20,32 @@ export class CategoryController {
 
       // Validation
       if (!createDto.name?.trim()) {
-        const response = ResponseHelper.badRequest(CATEGORY_MESSAGES.NAME_REQUIRED);
+        const response = ResponseHelper.badRequest(
+          CATEGORY_MESSAGES.NAME_REQUIRED
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
       if (!createDto.description?.trim()) {
-        const response = ResponseHelper.badRequest(CATEGORY_MESSAGES.DESCRIPTION_REQUIRED);
+        const response = ResponseHelper.badRequest(
+          CATEGORY_MESSAGES.DESCRIPTION_REQUIRED
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
       const category = await this.categoryService.createCategory(createDto);
-      const response = ResponseHelper.success(CATEGORY_MESSAGES.CATEGORY_CREATED, { category });
+      const response = ResponseHelper.success(
+        CATEGORY_MESSAGES.CATEGORY_CREATED,
+        { category }
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Create category controller error:", error);
-      const response = ResponseHelper.error(error.message || CATEGORY_MESSAGES.FAILED_CREATE_CATEGORY);
+      const response = ResponseHelper.error(
+        error.message || CATEGORY_MESSAGES.FAILED_CREATE_CATEGORY
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -43,11 +54,16 @@ export class CategoryController {
     try {
       const { id } = req.params;
       const category = await this.categoryService.getCategoryById(id);
-      const response = ResponseHelper.success(CATEGORY_MESSAGES.CATEGORY_RETRIEVED, { category });
+      const response = ResponseHelper.success(
+        CATEGORY_MESSAGES.CATEGORY_RETRIEVED,
+        { category }
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get category by ID controller error:", error);
-      const response = ResponseHelper.error(error.message || CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
+      const response = ResponseHelper.error(
+        error.message || CATEGORY_MESSAGES.CATEGORY_NOT_FOUND
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -56,11 +72,16 @@ export class CategoryController {
     try {
       const { slug } = req.params;
       const category = await this.categoryService.getCategoryBySlug(slug);
-      const response = ResponseHelper.success(CATEGORY_MESSAGES.CATEGORY_RETRIEVED, { category });
+      const response = ResponseHelper.success(
+        CATEGORY_MESSAGES.CATEGORY_RETRIEVED,
+        { category }
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get category by slug controller error:", error);
-      const response = ResponseHelper.error(error.message || CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
+      const response = ResponseHelper.error(
+        error.message || CATEGORY_MESSAGES.CATEGORY_NOT_FOUND
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -71,12 +92,21 @@ export class CategoryController {
       const limit = parseInt(req.query.limit as string) || 10;
       const search = req.query.search as string;
 
-      const result = await this.categoryService.getAllCategories(page, limit, search);
-      const response = ResponseHelper.success(CATEGORY_MESSAGES.CATEGORIES_RETRIEVED, result);
+      const result = await this.categoryService.getAllCategories(
+        page,
+        limit,
+        search
+      );
+      const response = ResponseHelper.success(
+        CATEGORY_MESSAGES.CATEGORIES_RETRIEVED,
+        result
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get all categories controller error:", error);
-      const response = ResponseHelper.error(error.message || CATEGORY_MESSAGES.FAILED_FETCH_CATEGORIES);
+      const response = ResponseHelper.error(
+        error.message || CATEGORY_MESSAGES.FAILED_FETCH_CATEGORIES
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -87,11 +117,16 @@ export class CategoryController {
       const updateDto: UpdateCategoryDto = req.body;
 
       const category = await this.categoryService.updateCategory(id, updateDto);
-      const response = ResponseHelper.success(CATEGORY_MESSAGES.CATEGORY_UPDATED, { category });
+      const response = ResponseHelper.success(
+        CATEGORY_MESSAGES.CATEGORY_UPDATED,
+        { category }
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Update category controller error:", error);
-      const response = ResponseHelper.error(error.message || CATEGORY_MESSAGES.FAILED_UPDATE_CATEGORY);
+      const response = ResponseHelper.error(
+        error.message || CATEGORY_MESSAGES.FAILED_UPDATE_CATEGORY
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -100,11 +135,15 @@ export class CategoryController {
     try {
       const { id } = req.params;
       await this.categoryService.deleteCategory(id);
-      const response = ResponseHelper.success(CATEGORY_MESSAGES.CATEGORY_DELETED);
+      const response = ResponseHelper.success(
+        CATEGORY_MESSAGES.CATEGORY_DELETED
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Delete category controller error:", error);
-      const response = ResponseHelper.error(error.message || CATEGORY_MESSAGES.FAILED_DELETE_CATEGORY);
+      const response = ResponseHelper.error(
+        error.message || CATEGORY_MESSAGES.FAILED_DELETE_CATEGORY
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -121,7 +160,9 @@ export class CategoryController {
       }
 
       const categories = await this.categoryService.searchCategories(q, limit);
-      const response = ResponseHelper.success("Categories search completed", { categories });
+      const response = ResponseHelper.success("Categories search completed", {
+        categories,
+      });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Search categories controller error:", error);

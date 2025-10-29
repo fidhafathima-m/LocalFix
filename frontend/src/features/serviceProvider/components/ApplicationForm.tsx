@@ -25,7 +25,6 @@ import {
 } from "../../../store/slices/authSlice";
 import { TechnicianApplicationService } from "../../../services/technician/technicianApplicationService";
 import type { ApplicationData } from "../../../store/slices/technicianSlice";
-import { EditOffOutlined } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import {
   AvailabilitySelector,
@@ -309,7 +308,6 @@ export const ApplicationForm: React.FC = () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const originalXMLHttpRequest = window.XMLHttpRequest;
 
-    // Intercept fetch requests that might cause redirects
     window.fetch = function (...args) {
       const url = args[0];
       if (
@@ -329,7 +327,6 @@ export const ApplicationForm: React.FC = () => {
     };
   }, []);
 
-  // 🚨 COMPLETELY DISABLE THE REDIRECT USEFFECT
   useEffect(() => {
     // This useEffect intentionally does nothing to prevent redirects
   }, [
@@ -339,7 +336,6 @@ export const ApplicationForm: React.FC = () => {
     user?.applicationStatus,
   ]);
 
-  // 🚨 ADD THIS TO CATCH ANY REDIRECT ATTEMPTS
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if ((window as any).__BLOCK_REDIRECTS__) {
@@ -356,7 +352,6 @@ export const ApplicationForm: React.FC = () => {
     };
   }, []);
 
-  // Add this useEffect for debugging
   useEffect(() => {
     console.log("ApplicationForm State:", {
       isEditMode,
@@ -386,11 +381,10 @@ export const ApplicationForm: React.FC = () => {
     }
   }, [existingApplicationData]);
 
-  // Replace the existing checkEditMode useEffect with this:
   useEffect(() => {
     const checkEditMode = async () => {
       const currentPath = window.location.pathname;
-      const isEditPath = currentPath.includes("/technicians/apply");
+      const isApplyPath = currentPath.includes("/technicians/apply");
 
       // Get application ID from localStorage or URL
       let appId = applicationId;
@@ -399,19 +393,10 @@ export const ApplicationForm: React.FC = () => {
         if (appId) setApplicationId(appId);
       }
 
-      if (isEditPath && appId) {
+      if (isApplyPath && appId) {
         try {
-          setIsEditMode(true);
-          console.log("🔍 Edit mode detected, loading application:", appId);
-
-          // Clear any existing form data first
-          localStorage.removeItem("currentTechnicianApplication");
-
-          // Use the getApplicationForEdit service
           const response =
             await TechnicianApplicationService.getApplicationForEdit(appId);
-
-          console.log("🔍 Edit mode response:", response);
 
           if (response.success) {
             // Handle different response structures
@@ -421,53 +406,27 @@ export const ApplicationForm: React.FC = () => {
               response.data;
 
             if (appData) {
-              console.log("🔍 Application data structure:", {
-                personal: appData.personal,
-                identity: appData.identity,
-                skills: appData.skills,
-                availability: appData.availability,
-                bank: appData.bank,
-                documents: appData.documents,
-              });
+              setIsEditMode(true);
               setExistingApplicationData(appData);
               populateFormWithExistingData(appData);
             } else {
-              console.error("❌ No application data in response");
-              toast.error("No application data found");
+              setIsEditMode(false);
             }
           } else {
-            console.error(
-              "❌ Failed to load application for editing:",
-              response.message
-            );
-            toast.error(response.message || "Failed to load application data");
-
-            // Fallback to regular getApplication if edit endpoint fails
-            console.log("🔄 Trying fallback to regular getApplication...");
-            const fallbackResponse =
-              await TechnicianApplicationService.getApplication(appId);
-            if (fallbackResponse.success) {
-              const fallbackData =
-                fallbackResponse.data?.application ||
-                fallbackResponse.data?.data?.application;
-              setExistingApplicationData(fallbackData);
-              populateFormWithExistingData(fallbackData);
-              console.log("✅ Fallback successful");
-            } else {
-              console.error("❌ Fallback also failed");
-            }
+            setIsEditMode(false);
           }
         } catch (error) {
-          console.error("❌ Error loading application for editing:", error);
-          toast.error("Failed to load application data for editing");
+          console.error("Error checking application for edit:", error);
+          setIsEditMode(false); // Default to new application on error
         }
+      } else if (isApplyPath && !appId) {
+        setIsEditMode(false);
       }
     };
 
     checkEditMode();
   }, [applicationId]);
 
-  // Add this useEffect to clean up edit mode flags
   useEffect(() => {
     return () => {
       // Clean up edit mode flags when component unmounts
@@ -541,8 +500,6 @@ export const ApplicationForm: React.FC = () => {
         ...prev,
         ...documentMetadata,
       }));
-
-      console.log("Form populated successfully");
     } catch (error) {
       console.error("Error populating form data:", error);
       toast.error("Error loading application data");
@@ -606,10 +563,7 @@ export const ApplicationForm: React.FC = () => {
         const parsedData = JSON.parse(savedUserData);
         const savedStepNumber = parseInt(savedUserStep);
 
-        // CRITICAL FIX: Only show "restored" banner if user was beyond step 1
-        // If user was only on step 1, treat it as a new application
         if (savedStepNumber <= 1) {
-          console.log("User was only on step 1 - treating as new application");
           setHasRestoredFromLocalStorage(false);
           return;
         }
@@ -621,9 +575,6 @@ export const ApplicationForm: React.FC = () => {
           !parsedData.services?.length;
 
         if (isEmptyApplication) {
-          console.log(
-            "Found empty application data - treating as new application"
-          );
           setHasRestoredFromLocalStorage(false);
           return;
         }
@@ -642,7 +593,7 @@ export const ApplicationForm: React.FC = () => {
             email: user?.email || prev.email,
           };
 
-          // Handle file restoration - USE BACKEND DATA IF AVAILABLE
+          // Handle file restoration
           const fileFields = [
             "idProof",
             "addressProof",
@@ -774,19 +725,11 @@ export const ApplicationForm: React.FC = () => {
       return null;
     }
 
-    console.log("🔍 startApplication called - Debug Info:");
-    console.log("User ID:", user?._id);
-    console.log("Current path:", window.location.pathname);
-    console.log("Is edit mode:", localStorage.getItem("isEditMode"));
-    console.log("Application ID:", applicationId);
-    console.log("Has restored from localStorage:", hasRestoredFromLocalStorage);
-
     const isEditMode = localStorage.getItem("isEditMode") === "true";
     const savedAppId = localStorage.getItem("applicationId");
 
     // If we're in edit mode and have an application ID, use it directly
     if (isEditMode && savedAppId) {
-      console.log("Edit mode: Using existing application ID", savedAppId);
       setApplicationId(savedAppId);
 
       // Clear the edit mode flag after using it
@@ -809,7 +752,6 @@ export const ApplicationForm: React.FC = () => {
         const currentPath = window.location.pathname;
         const isEditPath = currentPath.includes("/technicians/apply");
         if (response.data?.redirectTo && !isEditPath) {
-          console.log("Redirecting to:", response.data.redirectTo);
           window.location.href = response.data.redirectTo;
           return null;
         }
@@ -861,23 +803,16 @@ export const ApplicationForm: React.FC = () => {
     }
   }, [applicationId, user?._id]);
 
-  // Check existing application status
-  // Check existing application status
   useEffect(() => {
     const checkExistingApplication = async () => {
-      console.log("🔍 checkExistingApplication running");
-
       if (window.location.pathname === "/technicians/apply") {
-        console.log("🚨 ON APPLY PAGE - BLOCKING ALL REDIRECT LOGIC");
         return;
       }
 
       const currentPath = window.location.pathname;
       const isEditMode = localStorage.getItem("isEditMode") === "true";
 
-      // CRITICAL FIX: If we're in edit mode, skip ALL redirects
       if (isEditMode) {
-        console.log("🔍 Edit mode detected - SKIPPING ALL REDIRECTS");
         localStorage.removeItem("isEditMode"); // Clear the flag
         return;
       }
@@ -894,18 +829,12 @@ export const ApplicationForm: React.FC = () => {
         user?.applicationStatus === "submitted" ||
         user?.applicationStatus === "under_review"
       ) {
-        console.log(
-          "🔍 User has submitted/under_review application - redirecting to pending dashboard"
-        );
         clearLocalApplicationData();
         window.location.replace("/pending-technician/dashboard");
         return;
       }
 
       if (user?.applicationStatus === "approved") {
-        console.log(
-          "🔍 User has approved application - redirecting to technician dashboard"
-        );
         clearLocalApplicationData();
         window.location.replace("/technician/dashboard");
         return;
@@ -954,9 +883,6 @@ export const ApplicationForm: React.FC = () => {
                 !currentPath.includes("/pending-technician") &&
                 !currentPath.includes("/technicians/apply")
               ) {
-                console.log(
-                  "🔍 Application is submitted/under_review - redirecting to pending dashboard"
-                );
                 clearLocalApplicationData();
                 window.location.replace("/pending-technician/dashboard");
                 return;
@@ -966,9 +892,6 @@ export const ApplicationForm: React.FC = () => {
                 appStatus === "approved" &&
                 !currentPath.includes("/technician/dashboard")
               ) {
-                console.log(
-                  "🔍 Application is approved - redirecting to technician dashboard"
-                );
                 clearLocalApplicationData();
                 window.location.replace("/technician/dashboard");
                 return;
@@ -1571,7 +1494,7 @@ export const ApplicationForm: React.FC = () => {
         currentStepFields.forEach((field) => {
           let value = formData[field as keyof FormDataState];
           if (value !== null && value !== undefined) {
-            if (value instanceof File) return; // Skip files for now
+            if (value instanceof File) return;
             if (field === "agreement") {
               stepForm.append(field, value ? "true" : "false");
             } else if (
@@ -1615,7 +1538,6 @@ export const ApplicationForm: React.FC = () => {
 
     if (isEditMode) {
       if (existingApplicationData?.status === "rejected") {
-        // SweetAlert for resubmission of rejected applications
         const result = await Swal.fire({
           title: "Resubmit Application?",
           text: "Are you ready to resubmit your application for review? Your changes will be saved and sent for verification.",
@@ -1640,7 +1562,6 @@ export const ApplicationForm: React.FC = () => {
         existingApplicationData?.status === "submitted" ||
         existingApplicationData?.status === "under_review"
       ) {
-        // SweetAlert for updating submitted applications
         const result = await Swal.fire({
           title: "Update Application?",
           html: `
@@ -3155,46 +3076,6 @@ export const ApplicationForm: React.FC = () => {
   };
   return (
     <div className="bg-white rounded-lg shadow-md p-8">
-      {isEditMode && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div className="flex items-center">
-            <EditOffOutlined className="w-5 h-5 text-yellow-600 mr-2" />
-            <p className="text-yellow-800 font-medium">Edit Mode</p>
-          </div>
-          <p className="text-sm text-yellow-700 mt-1">
-            You are editing your existing application. Changes will be saved
-            automatically.
-            {existingApplicationData?.status === "rejected" && (
-              <span className="font-semibold">
-                {" "}
-                After making corrections, you can resubmit for review.
-              </span>
-            )}
-          </p>
-          {existingApplicationData?.status && (
-            <p className="text-xs text-yellow-600 mt-1">
-              Current Status:{" "}
-              <span className="font-medium">
-                {existingApplicationData.status}
-              </span>
-            </p>
-          )}
-        </div>
-      )}
-      {/* NEW: Add resume notification banner */}
-      {hasRestoredFromLocalStorage && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-          <div className="flex items-center">
-            <CheckCircleIcon className="w-5 h-5 text-blue-500 mr-2" />
-            <p className="text-blue-800 font-medium">Application Restored</p>
-          </div>
-          <p className="text-sm text-blue-700 mt-1">
-            Your previous application has been restored. You can continue from
-            where you left off.
-          </p>
-        </div>
-      )}
-
       <StepIndicator
         steps={STEPS}
         currentStep={currentStep}

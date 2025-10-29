@@ -1,9 +1,12 @@
-// services/CategoryService.ts
 import { ICategoryService } from "../interfaces/services/admin/ICategoryManagementService";
 import { ICategoryRepository } from "../interfaces/repository/admin/ICategoryRepository";
-import { CategoryResponseDto, CreateCategoryDto, UpdateCategoryDto, CategoryListResponseDto } from "../interfaces/dtos/categoryDtos";
+import {
+  CategoryResponseDto,
+  CreateCategoryDto,
+  UpdateCategoryDto,
+  CategoryListResponseDto,
+} from "../interfaces/dtos/categoryDtos";
 import { CategoryMapper } from "../mappers/categoryMapper";
-// import { ResponseHelper } from "../../utils/responseHelper";
 import { CATEGORY_MESSAGES } from "../constants";
 import { Service } from "../models/category/serviceSchema";
 
@@ -16,10 +19,14 @@ export class CategoryService implements ICategoryService {
     this.categoryMapper = new CategoryMapper();
   }
 
-  async createCategory(createDto: CreateCategoryDto): Promise<CategoryResponseDto> {
+  async createCategory(
+    createDto: CreateCategoryDto
+  ): Promise<CategoryResponseDto> {
     try {
       // Check if category with same name already exists
-      const existingCategory = await this.categoryRepository.findByName(createDto.name);
+      const existingCategory = await this.categoryRepository.findByName(
+        createDto.name
+      );
       if (existingCategory) {
         throw new Error(CATEGORY_MESSAGES.CATEGORY_ALREADY_EXISTS);
       }
@@ -38,15 +45,15 @@ export class CategoryService implements ICategoryService {
       if (!category) {
         throw new Error(CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
       }
-      const serviceCount = await Service.countDocuments({ 
-      categoryId: category._id,
-      status: 'active' 
-    });
+      const serviceCount = await Service.countDocuments({
+        categoryId: category._id,
+        status: "active",
+      });
 
-    const categoryWithCount = {
-      ...category.toObject(),
-      serviceCount
-    };
+      const categoryWithCount = {
+        ...category.toObject(),
+        serviceCount,
+      };
       return this.categoryMapper.toCategoryResponseDto(categoryWithCount);
     } catch (error) {
       console.error("Get category by ID error:", error);
@@ -85,43 +92,61 @@ export class CategoryService implements ICategoryService {
         total = await this.categoryRepository.count();
       }
 
-       const categoriesWithCounts = await Promise.all(
-      categories.map(async (category) => {
-        const serviceCount = await Service.countDocuments({ 
-          categoryId: category._id,
-          status: 'active' 
-        });
-        return {
-          ...category.toObject(),
-          serviceCount
-        };
-      })
-    );
+      const categoriesWithCounts = await Promise.all(
+        categories.map(async (category) => {
+          const serviceCount = await Service.countDocuments({
+            categoryId: category._id,
+            status: "active",
+          });
+          return {
+            ...category.toObject(),
+            serviceCount,
+          };
+        })
+      );
 
-      return this.categoryMapper.toCategoryListResponseDto(categoriesWithCounts, total, page, limit);
+      return this.categoryMapper.toCategoryListResponseDto(
+        categoriesWithCounts,
+        total,
+        page,
+        limit
+      );
     } catch (error) {
       console.error("Get all categories error:", error);
       throw error;
     }
   }
 
-  async updateCategory(categoryId: string, updateDto: UpdateCategoryDto): Promise<CategoryResponseDto> {
+  async updateCategory(
+    categoryId: string,
+    updateDto: UpdateCategoryDto
+  ): Promise<CategoryResponseDto> {
     try {
       // Check if category exists
-      const existingCategory = await this.categoryRepository.findById(categoryId);
+      const existingCategory = await this.categoryRepository.findById(
+        categoryId
+      );
       if (!existingCategory) {
         throw new Error(CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
       }
 
       // If name is being updated, check for duplicates
       if (updateDto.name && updateDto.name !== existingCategory.name) {
-        const duplicateCategory = await this.categoryRepository.findByName(updateDto.name);
-        if (duplicateCategory && duplicateCategory._id.toString() !== categoryId) {
+        const duplicateCategory = await this.categoryRepository.findByName(
+          updateDto.name
+        );
+        if (
+          duplicateCategory &&
+          duplicateCategory._id.toString() !== categoryId
+        ) {
           throw new Error(CATEGORY_MESSAGES.CATEGORY_ALREADY_EXISTS);
         }
       }
 
-      const updatedCategory = await this.categoryRepository.update(categoryId, updateDto);
+      const updatedCategory = await this.categoryRepository.update(
+        categoryId,
+        updateDto
+      );
       if (!updatedCategory) {
         throw new Error(CATEGORY_MESSAGES.FAILED_UPDATE_CATEGORY);
       }
@@ -136,7 +161,9 @@ export class CategoryService implements ICategoryService {
   async deleteCategory(categoryId: string): Promise<void> {
     try {
       // Check if category exists
-      const existingCategory = await this.categoryRepository.findById(categoryId);
+      const existingCategory = await this.categoryRepository.findById(
+        categoryId
+      );
       if (!existingCategory) {
         throw new Error(CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
       }
@@ -151,10 +178,15 @@ export class CategoryService implements ICategoryService {
     }
   }
 
-  async searchCategories(query: string, limit: number = 10): Promise<CategoryResponseDto[]> {
+  async searchCategories(
+    query: string,
+    limit: number = 10
+  ): Promise<CategoryResponseDto[]> {
     try {
       const categories = await this.categoryRepository.search(query, limit);
-      return categories.map(category => this.categoryMapper.toCategoryResponseDto(category));
+      return categories.map((category) =>
+        this.categoryMapper.toCategoryResponseDto(category)
+      );
     } catch (error) {
       console.error("Search categories error:", error);
       throw error;

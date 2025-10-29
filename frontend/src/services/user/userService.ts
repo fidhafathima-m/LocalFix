@@ -1,13 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// services/userService.ts
 import { adminAPI } from "../common/adminApi";
 
 export const userService = {
   getUserProfile: async () => {
     try {
-      // This would require the user to be an admin, which might not be suitable
       const response = await adminAPI.getUserProfile();
-      // Filter to find current user
       return response.data;
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -16,9 +13,7 @@ export const userService = {
   },
   getUserById: async (userId: string) => {
     try {
-      // This would require the user to be an admin, which might not be suitable
       const response = await adminAPI.getPublicUserById(userId);
-      // Filter to find current user
       return response.data;
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -39,8 +34,8 @@ export const userService = {
   uploadProfilePicture: async (file: File) => {
     try {
       const formData = new FormData();
-      formData.append('profilePicture', file);
-      
+      formData.append("profilePicture", file);
+
       const response = await adminAPI.uploadProfilePicture(formData);
       return response.data;
     } catch (error) {

@@ -167,4 +167,3 @@ export interface UploadedFileDto {
 export interface FilesCollectionDto {
   [fieldname: string]: UploadedFileDto | UploadedFileDto[];
 }
-

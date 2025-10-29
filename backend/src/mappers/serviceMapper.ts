@@ -1,5 +1,8 @@
-// mappers/serviceMapper.ts
-import { ServiceResponseDto, ServiceListResponseDto, ServiceMapper as IServiceMapper } from "../interfaces/dtos/serviceDtos";
+import {
+  ServiceResponseDto,
+  ServiceListResponseDto,
+  ServiceMapper as IServiceMapper,
+} from "../interfaces/dtos/serviceDtos";
 import { IService } from "../interfaces/admin/IServiceManagement";
 
 export class ServiceMapper implements IServiceMapper {
@@ -12,7 +15,6 @@ export class ServiceMapper implements IServiceMapper {
       description: service.description,
       avgBasePrice: service.avgBasePrice,
       iconUrl: service.iconUrl,
-      // NEW FIELDS
       rating: service.rating,
       estimatedDuration: service.estimatedDuration,
       features: service.features || [],
@@ -31,7 +33,7 @@ export class ServiceMapper implements IServiceMapper {
     limit: number
   ): ServiceListResponseDto {
     return {
-      services: services.map(service => this.toServiceResponseDto(service)),
+      services: services.map((service) => this.toServiceResponseDto(service)),
       total,
       page,
       limit,

@@ -1,4 +1,8 @@
-import { ItemResponseDto, ItemListResponseDto, ItemMapper as IItemMapper } from "../interfaces/dtos/itemDtos";
+import {
+  ItemResponseDto,
+  ItemListResponseDto,
+  ItemMapper as IItemMapper,
+} from "../interfaces/dtos/itemDtos";
 import { IItem } from "../interfaces/admin/IItemManagement";
 
 export class ItemMapper implements IItemMapper {
@@ -23,7 +27,7 @@ export class ItemMapper implements IItemMapper {
     limit: number
   ): ItemListResponseDto {
     return {
-      items: items.map(item => this.toItemResponseDto(item)),
+      items: items.map((item) => this.toItemResponseDto(item)),
       total,
       page,
       limit,

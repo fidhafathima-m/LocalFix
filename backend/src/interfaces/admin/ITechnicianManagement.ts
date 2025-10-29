@@ -1,6 +1,11 @@
 import { ApiResponse } from "../../utils/responseHelper";
 import { Types } from "mongoose";
-import { AvailabilityInfo, BankInfo, DocumentsInfo, IdentityInfo } from "../technician/ITechnician";
+import {
+  AvailabilityInfo,
+  BankInfo,
+  DocumentsInfo,
+  IdentityInfo,
+} from "../technician/ITechnician";
 
 export interface IAdminTechnician {
   _id: Types.ObjectId;
@@ -149,46 +154,50 @@ export interface ITechnicianApplication {
   user?: unknown;
 }
 
-// FIXED: Remove duplicate properties since ApiResponse already has them
-export interface TechnicianListResponse extends ApiResponse<{
-  technicians: IAdminTechnician[];
-  pagination: {
-    page: number;
-    limit: number;
+export interface TechnicianListResponse
+  extends ApiResponse<{
+    technicians: IAdminTechnician[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }> {}
+
+export interface SingleTechnicianResponse
+  extends ApiResponse<{
+    technician: IAdminTechnician;
+  }> {}
+
+export interface ApplicationListResponse
+  extends ApiResponse<{
+    applications: ITechnicianApplication[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }> {}
+
+export interface TechnicianStatsResponse
+  extends ApiResponse<{
     total: number;
-    pages: number;
-  };
-}> {}
+    active: number;
+    pending: number;
+    suspended: number;
+    recent: number;
+  }> {}
 
-export interface SingleTechnicianResponse extends ApiResponse<{
-  technician: IAdminTechnician;
-}> {}
-
-export interface ApplicationListResponse extends ApiResponse<{
-  applications: ITechnicianApplication[];
-  pagination: {
-    page: number;
-    limit: number;
+export interface ApplicationStatsResponse
+  extends ApiResponse<{
     total: number;
-    pages: number;
-  };
-}> {}
-
-export interface TechnicianStatsResponse extends ApiResponse<{
-  total: number;
-  active: number;
-  pending: number;
-  suspended: number;
-  recent: number;
-}> {}
-
-export interface ApplicationStatsResponse extends ApiResponse<{
-  total: number;
-  pending: number;
-  approved: number;
-  rejected: number;
-  recent: number;
-}> {}
+    pending: number;
+    approved: number;
+    rejected: number;
+    recent: number;
+  }> {}
 
 export interface UpdateStatusRequest {
   status: "approved" | "suspended" | "rejected";

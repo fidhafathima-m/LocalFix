@@ -81,7 +81,9 @@ type DocumentsCollection = {
   [key: string]: DocumentData | undefined;
 };
 
-export class TechnicianApplicationService implements ITechnicianApplicationService {
+export class TechnicianApplicationService
+  implements ITechnicianApplicationService
+{
   private applicationRepository: ITechnicianApplicationRepository;
   private technicianRepository: ITechnicianRepository;
   private documentRepository: ITechnicianDocumentRepository;
@@ -99,7 +101,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
     this.technicianRepository = technicianRepository;
     this.documentRepository = documentRepository;
     this.userRepository = userRepository;
-    this.availabilityRepository = availabilityRepository; 
+    this.availabilityRepository = availabilityRepository;
   }
 
   async startApplication(
@@ -293,7 +295,6 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
 
       await this.applicationRepository.save(application);
 
-      // ✅ Return the full application data using the mapper
       const applicationDto =
         TechnicianApplicationMapper.toApplicationDataDto(application);
 
@@ -537,37 +538,44 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
     }
   }
 
- private async handleAvailabilityStep(
+  private async handleAvailabilityStep(
     application: ITechnicianApplication,
     stepData: StepData
   ): Promise<void> {
     if (!application.technicianId) {
-      console.warn('No technician ID found for availability setup');
+      console.warn("No technician ID found for availability setup");
       return;
     }
 
     const availabilityData = stepData.availability;
-    if (!availabilityData || typeof availabilityData !== 'object') {
-      console.warn('No availability data provided');
+    if (!availabilityData || typeof availabilityData !== "object") {
+      console.warn("No availability data provided");
       return;
     }
 
     try {
       // Convert the old format to new slot-based system
       const daysMap: { [key: string]: string } = {
-        monday: 'monday', tuesday: 'tuesday', wednesday: 'wednesday',
-        thursday: 'thursday', friday: 'friday', saturday: 'saturday', sunday: 'sunday'
+        monday: "monday",
+        tuesday: "tuesday",
+        wednesday: "wednesday",
+        thursday: "thursday",
+        friday: "friday",
+        saturday: "saturday",
+        sunday: "sunday",
       };
 
       const availableDays: string[] = [];
-      const availabilityConfig: { [key: string]: { startTime: string; endTime: string } } = {};
+      const availabilityConfig: {
+        [key: string]: { startTime: string; endTime: string };
+      } = {};
 
       for (const [day, dayData] of Object.entries(availabilityData)) {
         if (daysMap[day] && (dayData as any).available === true) {
           availableDays.push(day);
           availabilityConfig[day] = {
-            startTime: (dayData as any).startTime || '09:00',
-            endTime: (dayData as any).endTime || '18:00'
+            startTime: (dayData as any).startTime || "09:00",
+            endTime: (dayData as any).endTime || "18:00",
           };
         }
       }
@@ -575,48 +583,62 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       if (availableDays.length > 0) {
         // Convert day names to numbers (0-6, Sunday-Saturday)
         const dayNumbers = this.convertDaysToNumbers(availableDays);
-        
+
         // Generate dates for the specified period (8 weeks ahead)
         const startDate = new Date();
         const dates = this.generateDates(startDate, 8, dayNumbers);
-        
+
         // Generate time slots for each date (using first day's timing)
         const firstDay = availableDays[0];
         const timing = availabilityConfig[firstDay];
-        
+
         for (const date of dates) {
-          const timeSlots = this.generateTimeSlots(timing.startTime, timing.endTime, 60);
-          
+          const timeSlots = this.generateTimeSlots(
+            timing.startTime,
+            timing.endTime,
+            60
+          );
+
           // Create or update availability using repository
           await this.availabilityRepository.upsertAvailability({
             technicianId: application.technicianId,
             date: date,
             timeSlots: timeSlots,
-            isRecurring: false
+            isRecurring: false,
           });
         }
       }
 
       // Create default slot rules using repository
       await this.createDefaultSlotRules(application.technicianId.toString());
-
     } catch (error) {
-      console.error('Error handling availability step:', error);
+      console.error("Error handling availability step:", error);
     }
   }
   private convertDaysToNumbers(days: string[]): number[] {
     const dayMap: { [key: string]: number } = {
-      'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3,
-      'thursday': 4, 'friday': 5, 'saturday': 6
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
     };
 
-    return days.map(day => dayMap[day.toLowerCase()]).filter(day => day !== undefined);
+    return days
+      .map((day) => dayMap[day.toLowerCase()])
+      .filter((day) => day !== undefined);
   }
 
-  private generateDates(startDate: Date, weeksAhead: number, dayNumbers: number[]): Date[] {
+  private generateDates(
+    startDate: Date,
+    weeksAhead: number,
+    dayNumbers: number[]
+  ): Date[] {
     const dates: Date[] = [];
     const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + (weeksAhead * 7));
+    endDate.setDate(endDate.getDate() + weeksAhead * 7);
 
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
@@ -629,37 +651,51 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
     return dates;
   }
 
-  private generateTimeSlots(startTime: string, endTime: string, slotDuration: number): any[] {
+  private generateTimeSlots(
+    startTime: string,
+    endTime: string,
+    slotDuration: number
+  ): any[] {
     const slots: any[] = [];
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
 
     let currentHour = startHour;
     let currentMinute = startMinute;
 
-    while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
-      const slotStart = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-      
+    while (
+      currentHour < endHour ||
+      (currentHour === endHour && currentMinute < endMinute)
+    ) {
+      const slotStart = `${currentHour
+        .toString()
+        .padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
+
       // Calculate end time
       let slotEndHour = currentHour;
       let slotEndMinute = currentMinute + slotDuration;
-      
+
       while (slotEndMinute >= 60) {
         slotEndHour++;
         slotEndMinute -= 60;
       }
-      
-      const slotEnd = `${slotEndHour.toString().padStart(2, '0')}:${slotEndMinute.toString().padStart(2, '0')}`;
+
+      const slotEnd = `${slotEndHour
+        .toString()
+        .padStart(2, "0")}:${slotEndMinute.toString().padStart(2, "0")}`;
 
       // Check if slot end exceeds the working end time
-      if (slotEndHour > endHour || (slotEndHour === endHour && slotEndMinute > endMinute)) {
+      if (
+        slotEndHour > endHour ||
+        (slotEndHour === endHour && slotEndMinute > endMinute)
+      ) {
         break;
       }
 
       slots.push({
         start: slotStart,
         end: slotEnd,
-        status: 'available'
+        status: "available",
       });
 
       // Move to next slot
@@ -678,16 +714,16 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       // Create default slot rule for weekdays (Monday-Friday)
       const defaultRule = {
         technicianId: new Types.ObjectId(technicianId),
-        name: 'Default Working Hours',
+        name: "Default Working Hours",
         daysOfWeek: [1, 2, 3, 4, 5], // Monday to Friday
-        startTime: '09:00',
-        endTime: '18:00',
+        startTime: "09:00",
+        endTime: "18:00",
         slotDurationMinutes: 60,
         bookingBufferBeforeMinutes: 0,
         bookingBufferAfterMinutes: 0,
         maxBookingsPerSlot: 1,
         effectiveFrom: new Date(),
-        isActive: true
+        isActive: true,
       };
 
       await this.availabilityRepository.createSlotRule(defaultRule);
@@ -695,22 +731,21 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       // Create weekend rule (Saturday)
       const weekendRule = {
         technicianId: new Types.ObjectId(technicianId),
-        name: 'Weekend Hours',
+        name: "Weekend Hours",
         daysOfWeek: [6], // Saturday
-        startTime: '10:00',
-        endTime: '16:00',
+        startTime: "10:00",
+        endTime: "16:00",
         slotDurationMinutes: 60,
         bookingBufferBeforeMinutes: 0,
         bookingBufferAfterMinutes: 0,
         maxBookingsPerSlot: 1,
         effectiveFrom: new Date(),
-        isActive: true
+        isActive: true,
       };
 
       await this.availabilityRepository.createSlotRule(weekendRule);
-
     } catch (error) {
-      console.error('Error creating default slot rules:', error);
+      console.error("Error creating default slot rules:", error);
     }
   }
 
@@ -883,7 +918,6 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       }
 
       // Create or update technician record
-      // Create or update technician record
       let technician = await this.technicianRepository.findByUserId(userId);
 
       let addressData: Record<string, unknown> = {};
@@ -901,7 +935,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
       }
 
       if (!technician) {
-        // Create new technician - FIXED VERSION
+        // Create new technician
         technician = await this.technicianRepository.create({
           userId: new Types.ObjectId(userId),
           displayName:
@@ -911,9 +945,9 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
             parseInt(application.skills?.yearsOfExperience as string) || 0,
           services: (application.skills?.services as string[]) || [],
           serviceRates: {},
-          workAreas: (application.availability?.serviceAreas as string[]) || [], // Fixed: should be from availability, not skills
+          workAreas: (application.availability?.serviceAreas as string[]) || [],
           serviceRadiusKm:
-            parseInt(application.availability?.workRadius as string) || 10, // Fixed: should be from availability, not skills
+            parseInt(application.availability?.workRadius as string) || 10,
           currentLocation: {
             type: "Point",
             coordinates: [0, 0],
@@ -928,12 +962,12 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
             gender: (application.personal?.gender as string) || "",
             phoneNumber: (application.personal?.phoneNumber as string) || "",
             dateOfBirth: (application.personal?.dateOfBirth as string) || "",
-            languages: languagesArray, // This should contain the languages
+            languages: languagesArray,
             address: addressData,
           },
         });
       } else {
-        // Update existing technician - FIXED VERSION
+        // Update existing technician
         await this.technicianRepository.updateByUserId(userId, {
           displayName:
             (application.personal?.fullName as string) ||
@@ -946,9 +980,9 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
             (application.skills?.services as string[]) || technician.services,
           workAreas:
             (application.availability?.serviceAreas as string[]) ||
-            technician.workAreas, // Fixed
+            technician.workAreas,
           serviceRadiusKm:
-            parseInt(application.availability?.workRadius as string) || // Fixed
+            parseInt(application.availability?.workRadius as string) ||
             technician.serviceRadiusKm,
           profilePictureUrl:
             (application.documents?.passportPhoto?.url as string) ||
@@ -972,7 +1006,7 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
               (application.personal?.dateOfBirth as string) ||
               technician.personalInfo?.dateOfBirth ||
               "",
-            languages: languagesArray, // Make sure this is set
+            languages: languagesArray,
             address: addressData,
           },
         });
@@ -1047,14 +1081,13 @@ export class TechnicianApplicationService implements ITechnicianApplicationServi
         userId
       );
 
-      // ✅ Map domain objects to DTOs
       const applicationDtos =
         TechnicianApplicationMapper.toApplicationListDto(applications);
 
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.USER_APPLICATIONS_RETRIEVED,
         {
-          applications: applicationDtos, // ✅ Now this is ApplicationDataDto[]
+          applications: applicationDtos,
         }
       );
     } catch (error: unknown) {

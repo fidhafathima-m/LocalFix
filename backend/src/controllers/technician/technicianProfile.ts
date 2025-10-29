@@ -44,7 +44,6 @@ export class TechnicianProfileController {
         return;
       }
 
-
       const result: TechnicianProfileResponseDto =
         await this.profileService.getTechnicianProfile(technicianId);
 
@@ -92,7 +91,6 @@ export class TechnicianProfileController {
   uploadPhoto = [
     async (req: AuthRequest, res: Response): Promise<void> => {
       try {
-
         const technicianId = req.user?.id;
 
         if (!technicianId) {
@@ -281,45 +279,52 @@ export class TechnicianProfileController {
     }
   };
 
-  // Add to your controller
-  // Updated controller method
-uploadDocument = [
-  async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      
-      const technicianId = req.user?.id;
-      const documentType = req.body.type;
-      
-      if (!technicianId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
-        res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
-        return;
+  uploadDocument = [
+    async (req: AuthRequest, res: Response): Promise<void> => {
+      try {
+        const technicianId = req.user?.id;
+        const documentType = req.body.type;
+
+        if (!technicianId) {
+          const unauthorizedResponse = ResponseHelper.unauthorized(
+            "Authentication required"
+          );
+          res
+            .status(unauthorizedResponse.statusCode)
+            .json(unauthorizedResponse);
+          return;
+        }
+
+        if (!req.file) {
+          const badRequestResponse =
+            ResponseHelper.badRequest("No file uploaded");
+          res.status(badRequestResponse.statusCode).json(badRequestResponse);
+          return;
+        }
+
+        if (!documentType) {
+          const badRequestResponse = ResponseHelper.badRequest(
+            "Document type is required"
+          );
+          res.status(badRequestResponse.statusCode).json(badRequestResponse);
+          return;
+        }
+
+        // Use the updated method that handles Multer files
+        const result = await this.profileService.uploadDocument(
+          technicianId,
+          req.file,
+          documentType
+        );
+
+        res.status(result.statusCode).json(result);
+      } catch (error) {
+        console.error("Upload document controller error:", error);
+        const errorResponse = ResponseHelper.error("Failed to upload document");
+        res.status(errorResponse.statusCode).json(errorResponse);
       }
-
-      if (!req.file) {
-        const badRequestResponse = ResponseHelper.badRequest("No file uploaded");
-        res.status(badRequestResponse.statusCode).json(badRequestResponse);
-        return;
-      }
-
-      if (!documentType) {
-        const badRequestResponse = ResponseHelper.badRequest("Document type is required");
-        res.status(badRequestResponse.statusCode).json(badRequestResponse);
-        return;
-      }
-
-
-      // Use the updated method that handles Multer files
-      const result = await this.profileService.uploadDocument(technicianId, req.file, documentType);
-      
-      res.status(result.statusCode).json(result);
-    } catch (error) {
-      console.error('Upload document controller error:', error);
-      const errorResponse = ResponseHelper.error("Failed to upload document");
-      res.status(errorResponse.statusCode).json(errorResponse);
-    }
-  }
-];
+    },
+  ];
 
   getStaticData = async (req: AuthRequest, res: Response): Promise<void> => {
     try {

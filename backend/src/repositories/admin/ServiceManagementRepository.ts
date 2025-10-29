@@ -1,15 +1,19 @@
 import { FilterQuery, Types } from "mongoose";
-import { IService, IServiceCreate, IServiceUpdate } from "../../interfaces/admin/IServiceManagement";
+import {
+  IService,
+  IServiceCreate,
+  IServiceUpdate,
+} from "../../interfaces/admin/IServiceManagement";
 import { IServiceRepository } from "../../interfaces/repository/admin/IServiceRepository";
 import { Service } from "../../models/category/serviceSchema";
 import slugify from "slugify";
 
 export class ServiceRepository implements IServiceRepository {
   async create(serviceData: IServiceCreate): Promise<IService> {
-    const slug = slugify(serviceData.name, { 
-      lower: true, 
-      strict: true, 
-      trim: true 
+    const slug = slugify(serviceData.name, {
+      lower: true,
+      strict: true,
+      trim: true,
     });
 
     const service = new Service({
@@ -29,10 +33,14 @@ export class ServiceRepository implements IServiceRepository {
   }
 
   async findByName(name: string): Promise<IService | null> {
-    return await Service.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
+    return await Service.findOne({
+      name: { $regex: new RegExp(`^${name}$`, "i") },
+    });
   }
 
-  async findByCategoryId(categoryId: string | Types.ObjectId): Promise<IService[]> {
+  async findByCategoryId(
+    categoryId: string | Types.ObjectId
+  ): Promise<IService[]> {
     return await Service.find({ categoryId }).sort({ createdAt: -1 });
   }
 
@@ -86,7 +94,11 @@ export class ServiceRepository implements IServiceRepository {
       .sort({ createdAt: -1 });
   }
 
-  async searchByCategory(categoryId: string | Types.ObjectId, query: string, limit: number = 10): Promise<IService[]> {
+  async searchByCategory(
+    categoryId: string | Types.ObjectId,
+    query: string,
+    limit: number = 10
+  ): Promise<IService[]> {
     return await Service.find({
       categoryId,
       $or: [

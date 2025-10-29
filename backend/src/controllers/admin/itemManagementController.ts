@@ -23,13 +23,17 @@ export class ItemController {
       }
 
       if (!createDto.description?.trim()) {
-        const response = ResponseHelper.badRequest(ITEM_MESSAGES.DESCRIPTION_REQUIRED);
+        const response = ResponseHelper.badRequest(
+          ITEM_MESSAGES.DESCRIPTION_REQUIRED
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
       if (!createDto.serviceId?.trim()) {
-        const response = ResponseHelper.badRequest(ITEM_MESSAGES.SERVICE_ID_REQUIRED);
+        const response = ResponseHelper.badRequest(
+          ITEM_MESSAGES.SERVICE_ID_REQUIRED
+        );
         res.status(response.statusCode).json(response);
         return;
       }
@@ -41,11 +45,15 @@ export class ItemController {
       }
 
       const item = await this.itemService.createItem(createDto);
-      const response = ResponseHelper.success(ITEM_MESSAGES.ITEM_CREATED, { item });
+      const response = ResponseHelper.success(ITEM_MESSAGES.ITEM_CREATED, {
+        item,
+      });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Create item controller error:", error);
-      const response = ResponseHelper.error(error.message || ITEM_MESSAGES.FAILED_CREATE_ITEM);
+      const response = ResponseHelper.error(
+        error.message || ITEM_MESSAGES.FAILED_CREATE_ITEM
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -54,11 +62,15 @@ export class ItemController {
     try {
       const { id } = req.params;
       const item = await this.itemService.getItemById(id);
-      const response = ResponseHelper.success(ITEM_MESSAGES.ITEM_RETRIEVED, { item });
+      const response = ResponseHelper.success(ITEM_MESSAGES.ITEM_RETRIEVED, {
+        item,
+      });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get item by ID controller error:", error);
-      const response = ResponseHelper.error(error.message || ITEM_MESSAGES.ITEM_NOT_FOUND);
+      const response = ResponseHelper.error(
+        error.message || ITEM_MESSAGES.ITEM_NOT_FOUND
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -70,12 +82,22 @@ export class ItemController {
       const limit = parseInt(req.query.limit as string) || 10;
       const search = req.query.search as string;
 
-      const result = await this.itemService.getItemsByServiceId(serviceId, page, limit, search);
-      const response = ResponseHelper.success(ITEM_MESSAGES.ITEMS_RETRIEVED, result);
+      const result = await this.itemService.getItemsByServiceId(
+        serviceId,
+        page,
+        limit,
+        search
+      );
+      const response = ResponseHelper.success(
+        ITEM_MESSAGES.ITEMS_RETRIEVED,
+        result
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get items by service controller error:", error);
-      const response = ResponseHelper.error(error.message || ITEM_MESSAGES.FAILED_FETCH_ITEMS);
+      const response = ResponseHelper.error(
+        error.message || ITEM_MESSAGES.FAILED_FETCH_ITEMS
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -87,11 +109,16 @@ export class ItemController {
       const search = req.query.search as string;
 
       const result = await this.itemService.getAllItems(page, limit, search);
-      const response = ResponseHelper.success(ITEM_MESSAGES.ITEMS_RETRIEVED, result);
+      const response = ResponseHelper.success(
+        ITEM_MESSAGES.ITEMS_RETRIEVED,
+        result
+      );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Get all items controller error:", error);
-      const response = ResponseHelper.error(error.message || ITEM_MESSAGES.FAILED_FETCH_ITEMS);
+      const response = ResponseHelper.error(
+        error.message || ITEM_MESSAGES.FAILED_FETCH_ITEMS
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -102,11 +129,15 @@ export class ItemController {
       const updateDto: UpdateItemDto = req.body;
 
       const item = await this.itemService.updateItem(id, updateDto);
-      const response = ResponseHelper.success(ITEM_MESSAGES.ITEM_UPDATED, { item });
+      const response = ResponseHelper.success(ITEM_MESSAGES.ITEM_UPDATED, {
+        item,
+      });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Update item controller error:", error);
-      const response = ResponseHelper.error(error.message || ITEM_MESSAGES.FAILED_UPDATE_ITEM);
+      const response = ResponseHelper.error(
+        error.message || ITEM_MESSAGES.FAILED_UPDATE_ITEM
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -119,7 +150,9 @@ export class ItemController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Delete item controller error:", error);
-      const response = ResponseHelper.error(error.message || ITEM_MESSAGES.FAILED_DELETE_ITEM);
+      const response = ResponseHelper.error(
+        error.message || ITEM_MESSAGES.FAILED_DELETE_ITEM
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -136,7 +169,9 @@ export class ItemController {
       }
 
       const items = await this.itemService.searchItems(q, limit);
-      const response = ResponseHelper.success("Items search completed", { items });
+      const response = ResponseHelper.success("Items search completed", {
+        items,
+      });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       console.error("Search items controller error:", error);

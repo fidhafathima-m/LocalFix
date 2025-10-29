@@ -1,5 +1,4 @@
-// components/AvailabilitySelector.tsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 export interface TimeSlot {
   start: string;
@@ -28,15 +27,24 @@ interface AvailabilitySelectorProps {
 }
 
 const TIME_SLOTS = [
-  '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
 ];
 
 export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
   value,
-  onChange
+  onChange,
 }) => {
-  const [bulkStartTime, setBulkStartTime] = useState('09:00');
-  const [bulkEndTime, setBulkEndTime] = useState('18:00');
+  const [bulkStartTime, setBulkStartTime] = useState("09:00");
+  const [bulkEndTime, setBulkEndTime] = useState("18:00");
 
   const toggleDayAvailability = (day: keyof AvailabilityDatas) => {
     const current = value[day];
@@ -44,8 +52,8 @@ export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
       ...value,
       [day]: {
         ...current,
-        available: !current.available
-      }
+        available: !current.available,
+      },
     };
     onChange(newAvailability);
   };
@@ -55,7 +63,7 @@ export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
     const newSlots = [...dayAvailability.slots];
     newSlots[slotIndex] = {
       ...newSlots[slotIndex],
-      available: !newSlots[slotIndex].available
+      available: !newSlots[slotIndex].available,
     };
 
     const newAvailability = {
@@ -63,49 +71,53 @@ export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
       [day]: {
         ...dayAvailability,
         slots: newSlots,
-        available: newSlots.some(slot => slot.available)
-      }
+        available: newSlots.some((slot) => slot.available),
+      },
     };
     onChange(newAvailability);
   };
 
   const applyBulkSlots = () => {
     const newAvailability = { ...value };
-    
-    (Object.keys(newAvailability) as Array<keyof AvailabilityDatas>).forEach(day => {
-      const dayAvailability = newAvailability[day];
-      
-      if (dayAvailability.available) {
-        const newSlots = dayAvailability.slots.map(slot => ({
-          ...slot,
-          available: slot.start >= bulkStartTime && slot.end <= bulkEndTime
-        }));
 
-        newAvailability[day] = {
-          ...dayAvailability,
-          slots: newSlots
-        };
+    (Object.keys(newAvailability) as Array<keyof AvailabilityDatas>).forEach(
+      (day) => {
+        const dayAvailability = newAvailability[day];
+
+        if (dayAvailability.available) {
+          const newSlots = dayAvailability.slots.map((slot) => ({
+            ...slot,
+            available: slot.start >= bulkStartTime && slot.end <= bulkEndTime,
+          }));
+
+          newAvailability[day] = {
+            ...dayAvailability,
+            slots: newSlots,
+          };
+        }
       }
-    });
+    );
 
     onChange(newAvailability);
   };
 
   const DAYS = [
-    { key: 'monday' as const, label: 'Monday' },
-    { key: 'tuesday' as const, label: 'Tuesday' },
-    { key: 'wednesday' as const, label: 'Wednesday' },
-    { key: 'thursday' as const, label: 'Thursday' },
-    { key: 'friday' as const, label: 'Friday' },
-    { key: 'saturday' as const, label: 'Saturday' },
-    { key: 'sunday' as const, label: 'Sunday' }
+    { key: "monday" as const, label: "Monday" },
+    { key: "tuesday" as const, label: "Tuesday" },
+    { key: "wednesday" as const, label: "Wednesday" },
+    { key: "thursday" as const, label: "Thursday" },
+    { key: "friday" as const, label: "Friday" },
+    { key: "saturday" as const, label: "Saturday" },
+    { key: "sunday" as const, label: "Sunday" },
   ];
 
   return (
     <div className="space-y-6">
       {/* Bulk Time Selection */}
       <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-medium text-gray-800 mb-3">Quick Set Available Times</h4>
+        <h4 className="font-medium text-gray-800 mb-3">
+          Quick Set Available Times
+        </h4>
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -116,8 +128,10 @@ export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
               onChange={(e) => setBulkStartTime(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md"
             >
-              {TIME_SLOTS.map(time => (
-                <option key={time} value={time}>{time}</option>
+              {TIME_SLOTS.map((time) => (
+                <option key={time} value={time}>
+                  {time}
+                </option>
               ))}
             </select>
           </div>
@@ -130,8 +144,10 @@ export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
               onChange={(e) => setBulkEndTime(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md"
             >
-              {TIME_SLOTS.map(time => (
-                <option key={time} value={time}>{time}</option>
+              {TIME_SLOTS.map((time) => (
+                <option key={time} value={time}>
+                  {time}
+                </option>
               ))}
             </select>
           </div>
@@ -162,9 +178,9 @@ export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {DAYS.map(dayObj => {
+            {DAYS.map((dayObj) => {
               const dayAvailability = value[dayObj.key];
-              
+
               return (
                 <tr key={dayObj.key}>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -188,8 +204,8 @@ export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
                             onClick={() => toggleTimeSlot(dayObj.key, index)}
                             className={`px-3 py-1 text-xs rounded-full border ${
                               slot.available
-                                ? 'bg-green-100 text-green-800 border-green-300'
-                                : 'bg-gray-100 text-gray-600 border-gray-300'
+                                ? "bg-green-100 text-green-800 border-green-300"
+                                : "bg-gray-100 text-gray-600 border-gray-300"
                             }`}
                           >
                             {slot.start} - {slot.end}
@@ -197,7 +213,9 @@ export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
                         ))}
                       </div>
                     ) : (
-                      <span className="text-gray-400 text-sm">Not available</span>
+                      <span className="text-gray-400 text-sm">
+                        Not available
+                      </span>
                     )}
                   </td>
                 </tr>

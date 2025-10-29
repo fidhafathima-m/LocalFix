@@ -17,7 +17,9 @@ import {
 import { UserMapper } from "../mappers/userMapper";
 
 // Type guard function for status validation
-function isValidStatus(status: string): status is "Active" | "Inactive" | "Blocked" {
+function isValidStatus(
+  status: string
+): status is "Active" | "Inactive" | "Blocked" {
   return VALID_STATUSES.includes(status as any);
 }
 
@@ -28,11 +30,10 @@ export class UserManagementService implements IUserManagementService {
     try {
       const users = await this.userManagementRepository.findAllUsers();
 
-      // ✅ Map to DTOs
-      const userDtos = users.map(user => UserMapper.toListDto(user));
+      const userDtos = users.map((user) => UserMapper.toListDto(user));
 
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USERS_RETRIEVED, {
-        users: userDtos, // ✅ Now this is UserListDto[]
+        users: userDtos,
       });
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -75,13 +76,12 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      // ✅ Map to DTO
       const userDto = UserMapper.toDetailDto(updatedUser);
 
       return ResponseHelper.success(
         USER_MANAGEMENT_MESSAGES.USER_STATUS_UPDATED,
         {
-          user: userDto // ✅ Now this is UserDetailDto
+          user: userDto,
         }
       );
     } catch (error) {
@@ -164,11 +164,10 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      // ✅ Map to DTO
       const userDto = UserMapper.toDetailDto(updatedUser);
 
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_UPDATED, {
-        user: userDto, // ✅ Now this is UserDetailDto
+        user: userDto,
       });
     } catch (error) {
       console.error("Error updating user:", error);
@@ -199,11 +198,10 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      // ✅ Map to DTO
       const userDto = UserMapper.toDetailDto(deletedUser);
 
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_DELETED, {
-        user: userDto, // ✅ Now this is UserDetailDto
+        user: userDto,
       });
     } catch (error) {
       console.error("Error deleting user:", error);
@@ -212,23 +210,22 @@ export class UserManagementService implements IUserManagementService {
   }
 
   async getUserStats(): Promise<UserStatsResponseDto> {
-  try {
-    const stats = await this.userManagementRepository.getUserStats();
+    try {
+      const stats = await this.userManagementRepository.getUserStats();
 
-    // ✅ Map to DTO
-    const statsDto = UserMapper.toStatsDto(stats);
+      const statsDto = UserMapper.toStatsDto(stats);
 
-    return ResponseHelper.success(
-      USER_MANAGEMENT_MESSAGES.USER_STATS_RETRIEVED,
-      {
-        stats: statsDto, // ✅ This matches UserStatsResponseDto structure
-      }
-    );
-  } catch (error) {
-    console.error("Error fetching user stats:", error);
-    return ResponseHelper.error(USER_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS);
+      return ResponseHelper.success(
+        USER_MANAGEMENT_MESSAGES.USER_STATS_RETRIEVED,
+        {
+          stats: statsDto,
+        }
+      );
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      return ResponseHelper.error(USER_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS);
+    }
   }
-}
 
   async getUserById(userId: string): Promise<UserManagementResponseDto> {
     try {
@@ -244,65 +241,65 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      // ✅ Map to DTO
       const userDto = UserMapper.toDetailDto(user);
 
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_RETRIEVED, {
-        user: userDto, // ✅ Now this is UserDetailDto
+        user: userDto,
       });
     } catch (error) {
       console.error("Error fetching user:", error);
       return ResponseHelper.error(USER_MANAGEMENT_MESSAGES.FAILED_FETCH_USER);
     }
   }
-  // In UserManagementService.ts
-// In UserManagementService.ts - update getPublicUserById
-async getPublicUserById(userId: string): Promise<UserManagementResponseDto> {
-  try {
-    const user = await this.userManagementRepository.findById(userId);
+  async getPublicUserById(userId: string): Promise<UserManagementResponseDto> {
+    try {
+      const user = await this.userManagementRepository.findById(userId);
 
-    if (!user) {
-      return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
+      if (!user) {
+        return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
+      }
+
+      if (user.isDeleted) {
+        return ResponseHelper.forbidden(
+          USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER
+        );
+      }
+
+      // Get user addresses
+      const userAddresses =
+        await this.userManagementRepository.findUserAddresses(userId);
+      const defaultAddress =
+        userAddresses.find((addr) => addr.isDefault) || userAddresses[0];
+
+      // Create complete public user DTO
+      const publicUserDto = {
+        _id: user._id.toString(),
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone || "Not provided",
+        profilePicture: user.profilePictureUrl,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt,
+        defaultAddress: defaultAddress
+          ? {
+              city: defaultAddress.city,
+              state: defaultAddress.state,
+              pincode: defaultAddress.pincode,
+              landmark: defaultAddress.landmark,
+              location: defaultAddress.location,
+            }
+          : undefined,
+        wallet: user.wallet || { balance: 0 },
+        status: user.status || "Active",
+        role: user.roles?.[0] || "user",
+      };
+
+      return ResponseHelper.success("User retrieved successfully", {
+        user: publicUserDto,
+      });
+    } catch (error) {
+      console.error("Error fetching public user:", error);
+      return ResponseHelper.error("Failed to fetch user");
     }
-
-    if (user.isDeleted) {
-      return ResponseHelper.forbidden(
-        USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER
-      );
-    }
-
-    // Get user addresses
-    const userAddresses = await this.userManagementRepository.findUserAddresses(userId);
-    const defaultAddress = userAddresses.find(addr => addr.isDefault) || userAddresses[0];
-
-    // Create complete public user DTO
-    const publicUserDto = {
-      _id: user._id.toString(),
-      fullName: user.fullName,
-      email: user.email,
-      phone: user.phone || "Not provided", // Add fallback
-      profilePicture: user.profilePictureUrl,
-      isVerified: user.isVerified,
-      createdAt: user.createdAt,
-      defaultAddress: defaultAddress ? {
-        city: defaultAddress.city,
-        state: defaultAddress.state,
-        pincode: defaultAddress.pincode,
-        landmark: defaultAddress.landmark,
-        location: defaultAddress.location
-      } : undefined,
-      wallet: user.wallet || { balance: 0 }, // Add wallet with fallback
-      status: user.status || "Active",
-      role: user.roles?.[0] || "user"
-      // Note: dateOfBirth and gender might need to be added to your User model
-    };
-
-    return ResponseHelper.success("User retrieved successfully", {
-      user: publicUserDto,
-    });
-  } catch (error) {
-    console.error("Error fetching public user:", error);
-    return ResponseHelper.error("Failed to fetch user");
   }
-}
 }

@@ -54,7 +54,9 @@ export class AuthController {
   verifyResetOtp = async (req: Request, res: Response): Promise<void> => {
     try {
       const otpData: VerifyResetOtpRequestDto = req.body;
-      const result: AuthResponseDto = await this.authService.verifyResetOtp(otpData);
+      const result: AuthResponseDto = await this.authService.verifyResetOtp(
+        otpData
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Verify reset OTP controller error:", error);
@@ -94,7 +96,9 @@ export class AuthController {
   resetPassword = async (req: Request, res: Response): Promise<void> => {
     try {
       const resetData: ResetPasswordRequestDto = req.body;
-      const result: AuthResponseDto = await this.authService.resetPassword(resetData);
+      const result: AuthResponseDto = await this.authService.resetPassword(
+        resetData
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Reset password controller error:", error);
@@ -123,7 +127,9 @@ export class AuthController {
   googleAuth = async (req: Request, res: Response): Promise<void> => {
     try {
       const googleData: GoogleAuthRequestDto = req.body;
-      const result: AuthResponseDto = await this.authService.googleAuth(googleData);
+      const result: AuthResponseDto = await this.authService.googleAuth(
+        googleData
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Google auth controller error:", error);
@@ -135,7 +141,10 @@ export class AuthController {
   facebookLogin = async (req: Request, res: Response): Promise<void> => {
     try {
       const { accessToken, userID }: FacebookLoginRequestDto = req.body;
-      const result: AuthResponseDto = await this.authService.facebookLogin(accessToken, userID);
+      const result: AuthResponseDto = await this.authService.facebookLogin(
+        accessToken,
+        userID
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Facebook login controller error:", error);
@@ -147,7 +156,9 @@ export class AuthController {
   async refreshToken(req: Request, res: Response): Promise<void> {
     try {
       const { refreshToken }: RefreshTokenRequestDto = req.body;
-      const result: AuthResponseDto = await this.authService.refreshToken(refreshToken);
+      const result: AuthResponseDto = await this.authService.refreshToken(
+        refreshToken
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Refresh token controller error:", error);
@@ -162,12 +173,17 @@ export class AuthController {
       const userId = req.user?.id;
 
       if (!userId) {
-        const unauthorizedResponse = ResponseHelper.unauthorized("Authentication required");
+        const unauthorizedResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      const result: AuthResponseDto = await this.authService.logout(userId, refreshToken);
+      const result: AuthResponseDto = await this.authService.logout(
+        userId,
+        refreshToken
+      );
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Logout controller error:", error);

@@ -1,14 +1,24 @@
-// components/categoryManagement/EditServiceModal.tsx
-import { useState } from 'react'
-import { CloseOutlined, FileUploadOutlined, AddOutlined, RemoveOutlined } from '@mui/icons-material'
-import { AdminSidebar } from '../AdminSidebar'
-import type { Service, UpdateServiceData } from '../../../../services/common/adminApi'
+import { useState } from "react";
+import {
+  CloseOutlined,
+  FileUploadOutlined,
+  AddOutlined,
+  RemoveOutlined,
+} from "@mui/icons-material";
+import { AdminSidebar } from "../AdminSidebar";
+import type {
+  Service,
+  UpdateServiceData,
+} from "../../../../services/common/adminApi";
 
 interface EditServiceModalProps {
-  service: Service
-  categoryName: string
-  onClose: () => void
-  onSubmit: (serviceId: string, updateData: UpdateServiceData) => Promise<{ success: boolean; message?: string }>
+  service: Service;
+  categoryName: string;
+  onClose: () => void;
+  onSubmit: (
+    serviceId: string,
+    updateData: UpdateServiceData
+  ) => Promise<{ success: boolean; message?: string }>;
 }
 
 export function EditServiceModal({
@@ -17,76 +27,88 @@ export function EditServiceModal({
   onClose,
   onSubmit,
 }: EditServiceModalProps) {
-  const [serviceName, setServiceName] = useState(service.name)
-  const [description, setDescription] = useState(service.description)
-  const [avgBasePrice, setAvgBasePrice] = useState(service.avgBasePrice.toString())
-  const [rating, setRating] = useState(service.rating?.toString() || '4.5')
-  const [estimatedDuration, setEstimatedDuration] = useState(service.estimatedDuration || '2-4 hours')
-  const [features, setFeatures] = useState<string[]>(service.features || [''])
-  const [popular, setPopular] = useState(service.popular || false)
-  const [status, setStatus] = useState<'active' | 'inactive'>(service.status)
-  const [iconUrl, setIconUrl] = useState(service.iconUrl || '')
-  const [loading, setLoading] = useState(false)
+  const [serviceName, setServiceName] = useState(service.name);
+  const [description, setDescription] = useState(service.description);
+  const [avgBasePrice, setAvgBasePrice] = useState(
+    service.avgBasePrice.toString()
+  );
+  const [rating, setRating] = useState(service.rating?.toString() || "4.5");
+  const [estimatedDuration, setEstimatedDuration] = useState(
+    service.estimatedDuration || "2-4 hours"
+  );
+  const [features, setFeatures] = useState<string[]>(service.features || [""]);
+  const [popular, setPopular] = useState(service.popular || false);
+  const [status, setStatus] = useState<"active" | "inactive">(service.status);
+  const [iconUrl, setIconUrl] = useState(service.iconUrl || "");
+  const [loading, setLoading] = useState(false);
 
   const addFeature = () => {
-    setFeatures([...features, ''])
-  }
+    setFeatures([...features, ""]);
+  };
 
   const removeFeature = (index: number) => {
-    setFeatures(features.filter((_, i) => i !== index))
-  }
+    setFeatures(features.filter((_, i) => i !== index));
+  };
 
   const updateFeature = (index: number, value: string) => {
-    const newFeatures = [...features]
-    newFeatures[index] = value
-    setFeatures(newFeatures)
-  }
+    const newFeatures = [...features];
+    newFeatures[index] = value;
+    setFeatures(newFeatures);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!serviceName.trim() || !description.trim()) {
-      return
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const updateData: UpdateServiceData = {}
-      
+      const updateData: UpdateServiceData = {};
+
       // Only include changed fields
-      if (serviceName !== service.name) updateData.name = serviceName.trim()
-      if (description !== service.description) updateData.description = description.trim()
-      if (parseFloat(avgBasePrice) !== service.avgBasePrice) updateData.avgBasePrice = parseFloat(avgBasePrice)
-      if (parseFloat(rating) !== service.rating) updateData.rating = parseFloat(rating)
-      if (estimatedDuration !== service.estimatedDuration) updateData.estimatedDuration = estimatedDuration.trim()
-      if (JSON.stringify(features.filter(f => f.trim() !== '')) !== JSON.stringify(service.features || [])) {
-        updateData.features = features.filter(f => f.trim() !== '')
+      if (serviceName !== service.name) updateData.name = serviceName.trim();
+      if (description !== service.description)
+        updateData.description = description.trim();
+      if (parseFloat(avgBasePrice) !== service.avgBasePrice)
+        updateData.avgBasePrice = parseFloat(avgBasePrice);
+      if (parseFloat(rating) !== service.rating)
+        updateData.rating = parseFloat(rating);
+      if (estimatedDuration !== service.estimatedDuration)
+        updateData.estimatedDuration = estimatedDuration.trim();
+      if (
+        JSON.stringify(features.filter((f) => f.trim() !== "")) !==
+        JSON.stringify(service.features || [])
+      ) {
+        updateData.features = features.filter((f) => f.trim() !== "");
       }
-      if (popular !== service.popular) updateData.popular = popular
-      if (status !== service.status) updateData.status = status
-      if (iconUrl !== service.iconUrl) updateData.iconUrl = iconUrl.trim() || undefined
+      if (popular !== service.popular) updateData.popular = popular;
+      if (status !== service.status) updateData.status = status;
+      if (iconUrl !== service.iconUrl)
+        updateData.iconUrl = iconUrl.trim() || undefined;
 
       // Only submit if there are changes
       if (Object.keys(updateData).length === 0) {
-        onClose()
-        return
+        onClose();
+        return;
       }
 
-      const result = await onSubmit(service.id, updateData)
+      const result = await onSubmit(service.id, updateData);
 
       if (result.success) {
-        onClose()
+        onClose();
       }
     } catch (error) {
-      console.error('Error updating service:', error)
+      console.error("Error updating service:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <AdminSidebar activePage='Category'/>
+      <AdminSidebar activePage="Category" />
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header - Fixed */}
         <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200">
@@ -241,7 +263,10 @@ export function EditServiceModal({
                   disabled={loading}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="popular" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="popular"
+                  className="ml-2 block text-sm text-gray-700"
+                >
                   Mark as Popular Service
                 </label>
               </div>
@@ -253,7 +278,9 @@ export function EditServiceModal({
                 </label>
                 <select
                   value={status}
-                  onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
+                  onChange={(e) =>
+                    setStatus(e.target.value as "active" | "inactive")
+                  }
                   disabled={loading}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                 >
@@ -311,15 +338,20 @@ export function EditServiceModal({
             </button>
             <button
               type="submit"
-              disabled={loading || !serviceName.trim() || !description.trim() || !avgBasePrice}
+              disabled={
+                loading ||
+                !serviceName.trim() ||
+                !description.trim() ||
+                !avgBasePrice
+              }
               onClick={handleSubmit}
               className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Updating...' : 'Update Service'}
+              {loading ? "Updating..." : "Update Service"}
             </button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

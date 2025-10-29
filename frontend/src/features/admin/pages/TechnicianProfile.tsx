@@ -24,12 +24,12 @@ export const TechnicianProfile: React.FC = () => {
   const { technicians } = useAppSelector((state) => state.admin);
 
   useEffect(() => {
-  if (technician) {
-    console.log("Technician data:", technician);
-    console.log("Profile picture URL:", technician.profilePictureUrl);
-    console.log("Profile picture exists:", !!technician.profilePictureUrl);
-  }
-}, [technician]);
+    if (technician) {
+      console.log("Technician data:", technician);
+      console.log("Profile picture URL:", technician.profilePictureUrl);
+      console.log("Profile picture exists:", !!technician.profilePictureUrl);
+    }
+  }, [technician]);
 
   const getActiveTab = (): string => {
     const pathSegments = location.pathname.split("/");
@@ -37,30 +37,36 @@ export const TechnicianProfile: React.FC = () => {
   };
 
   const getProfilePictureUrl = (technician: TechnicianDetails): string => {
-  // First check if there's a direct profilePictureUrl
-  if (technician.profilePictureUrl) {
-    return technician.profilePictureUrl;
-  }
-  
-  // Then check in documents for passportPhoto
-  if (technician.documents && Array.isArray(technician.documents)) {
-    const passportPhoto = technician.documents.find(
-      doc => doc.type === 'passportPhoto'
-    );
-    if (passportPhoto?.url) {
-      return passportPhoto.url;
+    if (technician.profilePictureUrl) {
+      return technician.profilePictureUrl;
     }
-  }
-  
-  return ''; // Return empty string if no profile picture found
-};
+
+    if (technician.documents && Array.isArray(technician.documents)) {
+      const passportPhoto = technician.documents.find(
+        (doc) => doc.type === "passportPhoto"
+      );
+      if (passportPhoto?.url) {
+        return passportPhoto.url;
+      }
+    }
+
+    return "";
+  };
 
   const activeTab = getActiveTab();
 
-  const getAdminActionsType = (): "approved" | "pending" | "suspended" | "rejected" => {
+  const getAdminActionsType = ():
+    | "approved"
+    | "pending"
+    | "suspended"
+    | "rejected" => {
     if (!technician) return "approved";
 
-    return technician.status as "approved" | "pending" | "suspended" | "rejected";
+    return technician.status as
+      | "approved"
+      | "pending"
+      | "suspended"
+      | "rejected";
   };
 
   // Check if technician is currently suspended
@@ -78,7 +84,6 @@ export const TechnicianProfile: React.FC = () => {
       }
     }
   }, [technicianId, technicians]);
-  
 
   const fetchTechnicianDetails = async (): Promise<void> => {
     try {
@@ -102,7 +107,10 @@ export const TechnicianProfile: React.FC = () => {
       }
     } catch (error: unknown) {
       console.error("Error fetching technician details:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to load technician details";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to load technician details";
       setError(errorMessage);
       setTechnician(null);
     } finally {

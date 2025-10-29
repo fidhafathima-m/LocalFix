@@ -69,8 +69,7 @@ const UserManagement: React.FC = () => {
     ? filteredUsers.filter(
         (u) =>
           u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.phone.includes(searchQuery)
+          u.email?.toLowerCase().includes(searchQuery.toLowerCase()) 
       )
     : filteredUsers;
 

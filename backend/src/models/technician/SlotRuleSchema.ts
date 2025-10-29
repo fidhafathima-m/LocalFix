@@ -1,5 +1,4 @@
-// models/SlotRuleSchema.ts
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface ISlotRule extends Document {
   technicianId?: mongoose.Types.ObjectId;
@@ -18,62 +17,67 @@ export interface ISlotRule extends Document {
   updatedAt: Date;
 }
 
-const SlotRuleSchema = new Schema<ISlotRule>({
-  technicianId: { 
-    type: Schema.Types.ObjectId, 
-    ref: 'User',
-    required: false 
+const SlotRuleSchema = new Schema<ISlotRule>(
+  {
+    technicianId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    daysOfWeek: [
+      {
+        type: Number,
+        min: 0,
+        max: 6,
+      },
+    ],
+    startTime: {
+      type: String,
+      required: true,
+      match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+    endTime: {
+      type: String,
+      required: true,
+      match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+    slotDurationMinutes: {
+      type: Number,
+      default: 60,
+      min: 15,
+      max: 480,
+    },
+    bookingBufferBeforeMinutes: {
+      type: Number,
+      default: 0,
+    },
+    bookingBufferAfterMinutes: {
+      type: Number,
+      default: 0,
+    },
+    maxBookingsPerSlot: {
+      type: Number,
+      default: 1,
+    },
+    effectiveFrom: {
+      type: Date,
+      default: Date.now,
+    },
+    effectiveTo: {
+      type: Date,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
-  name: { 
-    type: String, 
-    required: true 
-  },
-  daysOfWeek: [{ 
-    type: Number, 
-    min: 0, 
-    max: 6 
-  }],
-  startTime: { 
-    type: String, 
-    required: true,
-    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
-  },
-  endTime: { 
-    type: String, 
-    required: true,
-    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
-  },
-  slotDurationMinutes: { 
-    type: Number, 
-    default: 60,
-    min: 15,
-    max: 480
-  },
-  bookingBufferBeforeMinutes: { 
-    type: Number, 
-    default: 0 
-  },
-  bookingBufferAfterMinutes: { 
-    type: Number, 
-    default: 0 
-  },
-  maxBookingsPerSlot: { 
-    type: Number, 
-    default: 1 
-  },
-  effectiveFrom: { 
-    type: Date, 
-    default: Date.now 
-  },
-  effectiveTo: { 
-    type: Date 
-  },
-  isActive: { 
-    type: Boolean, 
-    default: true 
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true
-});
+);
 
-export default mongoose.model<ISlotRule>('SlotRule', SlotRuleSchema);
+export default mongoose.model<ISlotRule>("SlotRule", SlotRuleSchema);

@@ -4,9 +4,7 @@ import { ITechnicianRepository } from "../interfaces/repository/technician/ITech
 import { IUserRepository } from "../interfaces/repository/user/IUserRepository";
 import { IUserAddressRepository } from "../interfaces/repository/user/IUserAddressRepository";
 import { ResponseHelper } from "../utils/responseHelper";
-import {
-  DASHBOARD_MESSAGES,
-} from "../constants";
+import { DASHBOARD_MESSAGES } from "../constants";
 import { ITechnician } from "@/interfaces/technician/ITechnician";
 import { IUser } from "@/interfaces/user/IUser";
 import { IAddress } from "@/interfaces/user/IAddress";
@@ -35,21 +33,25 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     this.userAddressRepository = userAddressRepository;
   }
 
-  async getDashboardOverview(technicianId: string): Promise<DashboardOverviewResponseDto> {
+  async getDashboardOverview(
+    technicianId: string
+  ): Promise<DashboardOverviewResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(technicianId);
+      const technician = await this.technicianRepository.findByUserId(
+        technicianId
+      );
 
       if (!technician) {
         return ResponseHelper.notFound(DASHBOARD_MESSAGES.TECHNICIAN_NOT_FOUND);
       }
 
-      // ✅ Map to DTO
-      const overviewDto = TechnicianDashboardMapper.toDashboardOverviewDto(technician);
+      const overviewDto =
+        TechnicianDashboardMapper.toDashboardOverviewDto(technician);
 
       return ResponseHelper.success(
         DASHBOARD_MESSAGES.DASHBOARD_OVERVIEW_RETRIEVED,
         {
-          overview: overviewDto, // ✅ Direct property, no nested "data"
+          overview: overviewDto,
         }
       );
     } catch (error: unknown) {
@@ -60,9 +62,13 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     }
   }
 
-  async getTechnicianProfile(technicianId: string): Promise<TechnicianProfileResponseDto> {
+  async getTechnicianProfile(
+    technicianId: string
+  ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(technicianId);
+      const technician = await this.technicianRepository.findByUserId(
+        technicianId
+      );
       const user = await this.userRepository.findById(technicianId);
 
       if (!technician || !user) {
@@ -75,7 +81,6 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         technician.userId as Types.ObjectId
       );
 
-      // ✅ Map to DTO
       const profileDto = TechnicianDashboardMapper.toTechnicianProfileDto(
         technician,
         user,
@@ -85,7 +90,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
       return ResponseHelper.success(
         DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_RETRIEVED,
         {
-          profile: profileDto, // ✅ Direct property, no nested "data"
+          profile: profileDto,
         }
       );
     } catch (error: unknown) {

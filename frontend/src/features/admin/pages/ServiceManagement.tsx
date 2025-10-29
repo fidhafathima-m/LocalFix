@@ -15,17 +15,21 @@ import {
   ChevronLeftOutlined,
 } from "@mui/icons-material";
 import Search from "../components/Search";
-import { AddServiceModal } from "../components/categoryManagement/AddServiceModal"
+import { AddServiceModal } from "../components/categoryManagement/AddServiceModal";
 import { EditServiceModal } from "../components/categoryManagement/EditServiceModal";
 import { ServiceManagementService } from "../../../services/admin/ServiceManagementService";
-import type { Service, CreateServiceData, UpdateServiceData } from "../../../services/common/adminApi";
+import type {
+  Service,
+  CreateServiceData,
+  UpdateServiceData,
+} from "../../../services/common/adminApi";
 
 const ServiceManagement: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const category = location.state?.category || {
-    name: 'Category',
-    id: '',
+    name: "Category",
+    id: "",
   };
 
   const [services, setServices] = useState<Service[]>([]);
@@ -43,38 +47,37 @@ const ServiceManagement: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const servicesPerPage = 10;
 
-  // Your current loadServices function is correct
-const loadServices = async (page: number = 1, search?: string) => {
-  try {
-    console.log("🔄 Loading services...", { page, search, categoryId: category.id });
-    setLoading(true);
-    
-    const response = await ServiceManagementService.getServicesByCategory(category.id, page, servicesPerPage, search);
-    
-    console.log("📡 Processed API Response:", response);
-    
-    // Now response should be the direct data: { services: [], total: 0, ... }
-    if (response && typeof response === 'object') {
-      console.log("✅ Services data loaded:", response.services?.length || 0);
-      setServices(response.services || []);
-      setTotalCount(response.total || 0);
-      setTotalPages(response.totalPages || 0);
-    } else {
-      console.error("❌ Invalid final data structure:", response);
+  const loadServices = async (page: number = 1, search?: string) => {
+    try {
+      setLoading(true);
+
+      const response = await ServiceManagementService.getServicesByCategory(
+        category.id,
+        page,
+        servicesPerPage,
+        search
+      );
+
+      if (response && typeof response === "object") {
+        setServices(response.services || []);
+        setTotalCount(response.total || 0);
+        setTotalPages(response.totalPages || 0);
+      } else {
+        console.error("Invalid final data structure:", response);
+        setServices([]);
+        setTotalCount(0);
+        setTotalPages(0);
+      }
+    } catch (error: any) {
+      console.error("Error loading services:", error);
+      toast.error(error.message || "Failed to load services");
       setServices([]);
       setTotalCount(0);
       setTotalPages(0);
+    } finally {
+      setLoading(false);
     }
-  } catch (error: any) {
-    console.error("💥 Error loading services:", error);
-    toast.error(error.message || "Failed to load services");
-    setServices([]);
-    setTotalCount(0);
-    setTotalPages(0);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     loadServices(currentPage, searchQuery);
@@ -90,7 +93,7 @@ const loadServices = async (page: number = 1, search?: string) => {
         ...serviceData,
         categoryId: category.id,
       });
-      
+
       if (response && response.service) {
         toast.success("Service created successfully");
         setShowAddModal(false);
@@ -103,9 +106,9 @@ const loadServices = async (page: number = 1, search?: string) => {
     } catch (error: any) {
       console.error("Error creating service:", error);
       toast.error(error.message || "Failed to create service");
-      return { 
-        success: false, 
-        message: error.message || "Failed to create service" 
+      return {
+        success: false,
+        message: error.message || "Failed to create service",
       };
     }
   };
@@ -115,10 +118,16 @@ const loadServices = async (page: number = 1, search?: string) => {
     setShowEditModal(true);
   };
 
-  const handleUpdateService = async (serviceId: string, updateData: UpdateServiceData) => {
+  const handleUpdateService = async (
+    serviceId: string,
+    updateData: UpdateServiceData
+  ) => {
     try {
-      const response = await ServiceManagementService.updateService(serviceId, updateData);
-      
+      const response = await ServiceManagementService.updateService(
+        serviceId,
+        updateData
+      );
+
       if (response && response.service) {
         toast.success("Service updated successfully");
         setShowEditModal(false);
@@ -132,9 +141,9 @@ const loadServices = async (page: number = 1, search?: string) => {
     } catch (error: any) {
       console.error("Error updating service:", error);
       toast.error(error.message || "Failed to update service");
-      return { 
-        success: false, 
-        message: error.message || "Failed to update service" 
+      return {
+        success: false,
+        message: error.message || "Failed to update service",
       };
     }
   };
@@ -154,7 +163,7 @@ const loadServices = async (page: number = 1, search?: string) => {
 
     try {
       const response = await ServiceManagementService.deleteService(id);
-      
+
       if (response) {
         toast.success("Service deleted successfully");
         await loadServices(currentPage, searchQuery); // Refresh the list
@@ -180,9 +189,11 @@ const loadServices = async (page: number = 1, search?: string) => {
     });
   };
 
-  // Stats calculations - now based on real data
+  // Stats calculations
   const totalServices = totalCount;
-  const activeServices = services.filter(service => service.status === "active").length;
+  const activeServices = services.filter(
+    (service) => service.status === "active"
+  ).length;
 
   if (loading && services.length === 0) {
     return (
@@ -204,7 +215,7 @@ const loadServices = async (page: number = 1, search?: string) => {
     <>
       <div className="flex h-screen bg-gray-50">
         <AdminSidebar activePage="Category" />
-        
+
         <div className="flex-1 overflow-y-auto ml-[240px]">
           <div className="p-6">
             {/* Header */}
@@ -218,7 +229,8 @@ const loadServices = async (page: number = 1, search?: string) => {
               </button>
               <h1 className="text-2xl font-bold mb-1">Service Management</h1>
               <p className="text-gray-600">
-                Manage services for {category.name}, view their details, and control service status.
+                Manage services for {category.name}, view their details, and
+                control service status.
               </p>
             </div>
 
@@ -249,7 +261,10 @@ const loadServices = async (page: number = 1, search?: string) => {
                 <div>
                   <p className="text-sm text-gray-600">Total Items</p>
                   <p className="text-xl font-bold">
-                    {services.reduce((sum, service) => sum + (service.itemCount || 0), 0)}
+                    {services.reduce(
+                      (sum, service) => sum + (service.itemCount || 0),
+                      0
+                    )}
                   </p>
                 </div>
               </div>
@@ -260,10 +275,7 @@ const loadServices = async (page: number = 1, search?: string) => {
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="w-full md:w-auto flex-1">
                   <div className="relative">
-                    <Search
-                      value={searchQuery}
-                      onChange={handleSearch}
-                    />
+                    <Search value={searchQuery} onChange={handleSearch} />
                   </div>
                 </div>
                 <div className="w-full md:w-auto flex gap-4">
@@ -358,12 +370,15 @@ const loadServices = async (page: number = 1, search?: string) => {
 
                           {/* Status */}
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              service.status === "active" 
-                                ? "bg-green-100 text-green-800" 
-                                : "bg-red-100 text-red-800"
-                            }`}>
-                              {service.status.charAt(0).toUpperCase() + service.status.slice(1)}
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                service.status === "active"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {service.status.charAt(0).toUpperCase() +
+                                service.status.slice(1)}
                             </span>
                           </td>
 
@@ -431,7 +446,7 @@ const loadServices = async (page: number = 1, search?: string) => {
                   <div className="flex space-x-2">
                     <button
                       disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(prev => prev - 1)}
+                      onClick={() => setCurrentPage((prev) => prev - 1)}
                       className={`px-3 py-1 rounded-md text-sm font-medium ${
                         currentPage === 1
                           ? "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -457,7 +472,7 @@ const loadServices = async (page: number = 1, search?: string) => {
 
                     <button
                       disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
                       className={`px-3 py-1 rounded-md text-sm font-medium ${
                         currentPage === totalPages
                           ? "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -475,7 +490,7 @@ const loadServices = async (page: number = 1, search?: string) => {
       </div>
 
       {showAddModal && (
-        <AddServiceModal 
+        <AddServiceModal
           onClose={() => setShowAddModal(false)}
           onSubmit={handleCreateService}
           categoryName={category.name}

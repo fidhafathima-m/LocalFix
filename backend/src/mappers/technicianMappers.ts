@@ -6,20 +6,23 @@ import {
   AddressDto,
   DocumentDto,
 } from "../interfaces/dtos/technicianDtos";
-import { ITechnician, IAdminTechnician } from "../interfaces/admin/ITechnicianManagement";
+import {
+  ITechnician,
+  IAdminTechnician,
+} from "../interfaces/admin/ITechnicianManagement";
 import { IUser } from "../interfaces/user/IUser";
 
 export class TechnicianMapper {
   // Map to basic list DTO
   static toListDto(technician: ITechnician, user?: IUser): TechnicianListDto {
     return {
-      _id: technician._id?.toString() || '',
-      userId: technician.userId?.toString() || '',
-      displayName: technician.displayName || '',
-      email: user?.email || '',
-      phone: user?.phone || technician.phone || '',
+      _id: technician._id?.toString() || "",
+      userId: technician.userId?.toString() || "",
+      displayName: technician.displayName || "",
+      email: user?.email || "",
+      phone: user?.phone || technician.phone || "",
       services: technician.services || [],
-      status: technician.status || '',
+      status: technician.status || "",
       averageRating: technician.averageRating || 0,
       totalJobs: technician.totalJobs || 0,
       completedJobs: technician.completedJobs || 0,
@@ -31,22 +34,22 @@ export class TechnicianMapper {
   // Map to detailed DTO
   static toDetailDto(adminTechnician: IAdminTechnician): TechnicianDetailDto {
     // Convert availability to a compatible type
-    const availability = adminTechnician.availability 
+    const availability = adminTechnician.availability
       ? this.mapAvailability(adminTechnician.availability)
       : undefined;
 
     return {
       // Basic info
-      _id: adminTechnician._id?.toString() || '',
-      userId: adminTechnician.userId?.toString() || '',
-      displayName: adminTechnician.displayName || '',
-      email: adminTechnician.email || '',
-      phone: adminTechnician.phone || '',
+      _id: adminTechnician._id?.toString() || "",
+      userId: adminTechnician.userId?.toString() || "",
+      displayName: adminTechnician.displayName || "",
+      email: adminTechnician.email || "",
+      phone: adminTechnician.phone || "",
       services: adminTechnician.services || [],
-      status: adminTechnician.status || '',
-      bio:adminTechnician.bio || '',
+      status: adminTechnician.status || "",
+      bio: adminTechnician.bio || "",
       profilePictureUrl: adminTechnician.profilePictureUrl || "",
-      
+
       // Ratings and jobs
       averageRating: adminTechnician.averageRating || 0,
       ratingCount: adminTechnician.ratingCount || 0,
@@ -54,18 +57,18 @@ export class TechnicianMapper {
       completedJobs: adminTechnician.completedJobs || 0,
       ongoingJobs: adminTechnician.ongoingJobs || 0,
       totalEarnings: adminTechnician.totalEarnings || 0,
-      
+
       // Professional info
       experienceYears: adminTechnician.experienceYears || 0,
       workAreas: adminTechnician.workAreas || [],
       serviceRadiusKm: adminTechnician.serviceRadiusKm || 0,
-      
+
       // Personal info
       personalInfo: this.mapPersonalInfo(adminTechnician.personalInfo),
-      
+
       // Documents
       documents: this.mapDocuments(adminTechnician.documents),
-      
+
       // Additional fields
       availability,
       suspensionReason: adminTechnician.suspensionReason,
@@ -77,26 +80,30 @@ export class TechnicianMapper {
 
   private static mapPersonalInfo(personalInfo: any): PersonalInfoDto {
     return {
-      fullName: personalInfo?.fullName || '',
-      gender: personalInfo?.gender || '',
-      phoneNumber: personalInfo?.phoneNumber || '',
-      dateOfBirth: personalInfo?.dateOfBirth || '',
-      languages: Array.isArray(personalInfo?.languages) ? personalInfo.languages : [],
-      address: personalInfo?.address ? this.mapAddress(personalInfo.address) : undefined,
+      fullName: personalInfo?.fullName || "",
+      gender: personalInfo?.gender || "",
+      phoneNumber: personalInfo?.phoneNumber || "",
+      dateOfBirth: personalInfo?.dateOfBirth || "",
+      languages: Array.isArray(personalInfo?.languages)
+        ? personalInfo.languages
+        : [],
+      address: personalInfo?.address
+        ? this.mapAddress(personalInfo.address)
+        : undefined,
     };
   }
 
   private static mapAddress(address: any): AddressDto {
     return {
-      street: address?.street || '',
-      city: address?.city || '',
-      state: address?.state || '',
-      pincode: address?.pincode || '',
+      street: address?.street || "",
+      city: address?.city || "",
+      state: address?.state || "",
+      pincode: address?.pincode || "",
     };
   }
 
   private static mapDocuments(documents: any): DocumentDto[] {
-    if (!documents || typeof documents !== 'object') {
+    if (!documents || typeof documents !== "object") {
       return [];
     }
 
@@ -111,7 +118,7 @@ export class TechnicianMapper {
   }
 
   private static mapAvailability(availability: any): Record<string, any> {
-    if (!availability || typeof availability !== 'object') {
+    if (!availability || typeof availability !== "object") {
       return {};
     }
 

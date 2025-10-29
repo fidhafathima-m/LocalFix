@@ -1,4 +1,3 @@
-// routes/userProfileRoutes.ts
 import { Router } from "express";
 import { protect } from "../../middleware/authMiddleware";
 import multer from "multer";
@@ -21,7 +20,6 @@ const upload = multer({
   },
 });
 
-// All routes require authentication
 router.use(protect);
 
 router.get("/profile", userProfileController.getUserProfile);

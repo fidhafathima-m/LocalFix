@@ -93,24 +93,17 @@ const TechnicianProfile: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        console.log("🔄 Fetching technician data for ID:", id);
-
         // Fetch technician details
         const technicianResponse =
           await TechnicianMangementService.getPublicTechnicianById(id);
 
         if (technicianResponse.data?.data?.technician) {
           setTechnician(technicianResponse.data.data.technician);
-          console.log(
-            "✅ Technician data loaded:",
-            technicianResponse.data.data.technician
-          );
         } else {
           setError("Technician not found");
         }
 
         // TODO: Fetch reviews for this technician
-        // You'll need to create a reviews service
         // const reviewsResponse = await ReviewsService.getTechnicianReviews(id)
         // setReviews(reviewsResponse.data?.reviews || [])
       } catch (err) {

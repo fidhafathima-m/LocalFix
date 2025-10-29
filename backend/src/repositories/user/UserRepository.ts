@@ -103,7 +103,9 @@ export class UserRepository
     userId: string,
     applicationStatus: string
   ): Promise<IUser | null> {
-    return this.update(userId, { $set: { applicationStatus } as Partial<IUser> });
+    return this.update(userId, {
+      $set: { applicationStatus } as Partial<IUser>,
+    });
   }
 
   async storeRefreshToken(userId: string, refreshToken: string): Promise<void> {

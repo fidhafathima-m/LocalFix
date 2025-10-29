@@ -1,13 +1,19 @@
-// components/categoryManagement/AddServiceModal.tsx
-import { useState } from 'react'
-import { CloseOutlined, FileUploadOutlined, AddOutlined, RemoveOutlined } from '@mui/icons-material'
-import { AdminSidebar } from '../AdminSidebar'
-import type { CreateServiceData } from '../../../../services/common/adminApi'
+import { useState } from "react";
+import {
+  CloseOutlined,
+  FileUploadOutlined,
+  AddOutlined,
+  RemoveOutlined,
+} from "@mui/icons-material";
+import { AdminSidebar } from "../AdminSidebar";
+import type { CreateServiceData } from "../../../../services/common/adminApi";
 
 interface AddServiceModalProps {
-  categoryName: string
-  onClose: () => void
-  onSubmit: (serviceData: CreateServiceData) => Promise<{ success: boolean; message?: string }>
+  categoryName: string;
+  onClose: () => void;
+  onSubmit: (
+    serviceData: CreateServiceData
+  ) => Promise<{ success: boolean; message?: string }>;
 }
 
 export function AddServiceModal({
@@ -15,39 +21,39 @@ export function AddServiceModal({
   onClose,
   onSubmit,
 }: AddServiceModalProps) {
-  const [serviceName, setServiceName] = useState('')
-  const [description, setDescription] = useState('')
-  const [avgBasePrice, setAvgBasePrice] = useState('')
-  const [rating, setRating] = useState('4.5')
-  const [estimatedDuration, setEstimatedDuration] = useState('2-4 hours')
-  const [features, setFeatures] = useState<string[]>([''])
-  const [popular, setPopular] = useState(false)
-  const [status, setStatus] = useState<'active' | 'inactive'>('active')
-  const [iconUrl, setIconUrl] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [serviceName, setServiceName] = useState("");
+  const [description, setDescription] = useState("");
+  const [avgBasePrice, setAvgBasePrice] = useState("");
+  const [rating, setRating] = useState("4.5");
+  const [estimatedDuration, setEstimatedDuration] = useState("2-4 hours");
+  const [features, setFeatures] = useState<string[]>([""]);
+  const [popular, setPopular] = useState(false);
+  const [status, setStatus] = useState<"active" | "inactive">("active");
+  const [iconUrl, setIconUrl] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const addFeature = () => {
-    setFeatures([...features, ''])
-  }
+    setFeatures([...features, ""]);
+  };
 
   const removeFeature = (index: number) => {
-    setFeatures(features.filter((_, i) => i !== index))
-  }
+    setFeatures(features.filter((_, i) => i !== index));
+  };
 
   const updateFeature = (index: number, value: string) => {
-    const newFeatures = [...features]
-    newFeatures[index] = value
-    setFeatures(newFeatures)
-  }
+    const newFeatures = [...features];
+    newFeatures[index] = value;
+    setFeatures(newFeatures);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!serviceName.trim() || !description.trim()) {
-      return
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const result = await onSubmit({
         name: serviceName.trim(),
@@ -55,25 +61,25 @@ export function AddServiceModal({
         avgBasePrice: avgBasePrice ? parseFloat(avgBasePrice) : 0,
         rating: parseFloat(rating),
         estimatedDuration: estimatedDuration.trim(),
-        features: features.filter(f => f.trim() !== ''),
+        features: features.filter((f) => f.trim() !== ""),
         popular,
         status,
         iconUrl: iconUrl.trim() || undefined,
-      })
+      });
 
       if (result.success) {
-        onClose()
+        onClose();
       }
     } catch (error) {
-      console.error('Error submitting service:', error)
+      console.error("Error submitting service:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <AdminSidebar activePage='Category'/>
+      <AdminSidebar activePage="Category" />
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header - Fixed */}
         <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200">
@@ -228,7 +234,10 @@ export function AddServiceModal({
                   disabled={loading}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="popular" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="popular"
+                  className="ml-2 block text-sm text-gray-700"
+                >
                   Mark as Popular Service
                 </label>
               </div>
@@ -240,7 +249,9 @@ export function AddServiceModal({
                 </label>
                 <select
                   value={status}
-                  onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
+                  onChange={(e) =>
+                    setStatus(e.target.value as "active" | "inactive")
+                  }
                   disabled={loading}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                 >
@@ -290,15 +301,20 @@ export function AddServiceModal({
             </button>
             <button
               type="submit"
-              disabled={loading || !serviceName.trim() || !description.trim() || !avgBasePrice}
+              disabled={
+                loading ||
+                !serviceName.trim() ||
+                !description.trim() ||
+                !avgBasePrice
+              }
               onClick={handleSubmit}
               className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Create Service'}
+              {loading ? "Creating..." : "Create Service"}
             </button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
