@@ -726,6 +726,40 @@ export class TechnicianManagementService
         application
       );
 
+      let locationCoordinates: [number, number] | null = null;
+
+      if (application.identity?.location) {
+      try {
+        let locationData: any;
+        
+        // Parse location if it's a string
+        if (typeof application.identity.location === 'string') {
+          locationData = JSON.parse(application.identity.location);
+        } else {
+          locationData = application.identity.location;
+        }
+
+        // Extract coordinates from the location data
+        if (locationData.coordinates && Array.isArray(locationData.coordinates)) {
+          const [lng, lat] = locationData.coordinates;
+          if (typeof lng === 'number' && typeof lat === 'number' && lng !== 0 && lat !== 0) {
+            locationCoordinates = [lng, lat];
+            console.log("Extracted location coordinates:", locationCoordinates);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing location data:", error);
+      }
+    }
+
+    if (technician && locationCoordinates) {
+      await this.technicianRepository.updateTechnicianLocation(
+        technician._id.toString(),
+        locationCoordinates
+      );
+      console.log("Technician location updated with coordinates:", locationCoordinates);
+    }
+
       if (technician && application.availability) {
         await availabilityService.createTechnicianAvailabilityFromApplication(
           technician._id.toString(),

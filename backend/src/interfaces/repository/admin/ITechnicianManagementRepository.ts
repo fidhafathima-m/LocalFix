@@ -133,4 +133,8 @@ export interface ITechnicianManagementRepository {
   findTechnicians(filters: TechnicianFilter): Promise<ITechnician[]>;
   findPublicTechnicians(filters: TechnicianFilter): Promise<ITechnician[]>;
   findById(id: string): Promise<ITechnician | null>;
+  updateTechnicianLocation(
+    technicianId: string, 
+    coordinates: [number, number]
+  ): Promise<ITechnician | null>
 }

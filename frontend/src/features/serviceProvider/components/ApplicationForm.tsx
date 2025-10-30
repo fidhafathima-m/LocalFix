@@ -17,7 +17,7 @@ import {
   type SkillsData,
 } from "../../../validation/schemas/technicianApplicationSchema";
 import toast from "react-hot-toast";
-import { OSMLocationPicker } from "../../../components/common/LocationPicker";
+import { OSMLocationPicker } from "../../../components/common/OSMLocationPicker";
 import { useAppDispatch, useAppSelector } from "../../../hooks/redux";
 import {
   updateApplicationStatus,

@@ -875,4 +875,24 @@ export class TechnicianManagementRepository
       throw error;
     }
   }
+  async updateTechnicianLocation(
+  technicianId: string, 
+  coordinates: [number, number]
+): Promise<ITechnician | null> {
+  try {
+    return await Technician.findByIdAndUpdate(
+      technicianId,
+      {
+        $set: {
+          'currentLocation.coordinates': coordinates,
+          'currentLocation.type': 'Point'
+        }
+      },
+      { new: true }
+    );
+  } catch (error) {
+    console.error("Error updating technician location:", error);
+    return null;
+  }
+}
 }

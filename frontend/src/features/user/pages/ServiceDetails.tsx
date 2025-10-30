@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type React from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ChevronRightOutlined,
   StarBorderOutlined,
@@ -13,6 +12,9 @@ import {
   SearchOutlined,
   LocationOnOutlined,
   MiscellaneousServicesOutlined,
+  GpsFixedOutlined,
+  MyLocationOutlined,
+  ClearOutlined,
 } from "@mui/icons-material";
 import serviceHero from "../../../assets/images/service_hero.png";
 import Footer from "../../../components/common/Footer";
@@ -20,6 +22,13 @@ import Header from "../../../components/common/Header";
 import { ServiceManagementService } from "../../../services/admin/ServiceManagementService";
 import { TechnicianMangementService } from "../../../services/admin/TechnicianManagementService";
 import type { Service } from "../data/services";
+import LocationService, {
+  type GeocodeResult,
+} from "../../../services/common/locationService";
+import { OSMLocationPicker } from "../../../components/common/OSMLocationPicker";
+import { useAppSelector } from "../../../hooks/redux";
+import { selectIsLoggedIn, selectUser } from "../../../store/slices/authSlice";
+import toast from "react-hot-toast";
 
 interface Technician {
   _id: string;
@@ -55,10 +64,36 @@ interface Technician {
     type: string;
     coordinates: number[];
   };
+  distance?: number;
+  isNearby?: boolean;
+  hasLocation?: boolean;
+  technicianLocation?: any;
+}
+
+interface UserLocation {
+  lat: number;
+  lng: number;
+  address: string;
+  addressComponents?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    landmark?: string;
+  };
+}
+
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark: string;
 }
 
 const ServiceDetails: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { slug } = useParams<{ slug: string }>();
   const [service, setService] = useState<Service | null>(null);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
@@ -71,8 +106,29 @@ const ServiceDetails: React.FC = () => {
   const [techniciansLoading, setTechniciansLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locationSearch, setLocationSearch] = useState("");
+  const user = useAppSelector(selectUser);
+  const isLoggedIn = useAppSelector(selectIsLoggedIn);
 
-  // Fetch service details and technicians
+  // New state for location features
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [sortBy, setSortBy] = useState<
+    "default" | "nearby" | "rating" | "experience"
+  >("default");
+  const [hasFetchedWithLocation, setHasFetchedWithLocation] = useState(false);
+  const [showLocationSetup, setShowLocationSetup] = useState(false);
+
+  // Address form state
+  const [addressForm, setAddressForm] = useState<Address>({
+    street: "",
+    city: "",
+    state: "",
+    pincode: "",
+    landmark: "",
+  });
+
+  // Fetch service details
   useEffect(() => {
     const fetchServiceDetails = async () => {
       if (!slug) {
@@ -91,9 +147,6 @@ const ServiceDetails: React.FC = () => {
 
         if (serviceResponse && serviceResponse.service) {
           setService(serviceResponse.service);
-
-          // Fetch technicians for this service using the SAME admin service
-          await fetchTechniciansForService(serviceResponse.service.name);
         } else {
           setError("Service not found");
         }
@@ -108,46 +161,538 @@ const ServiceDetails: React.FC = () => {
     fetchServiceDetails();
   }, [slug]);
 
-  // Filter technicians based on location search
+  // Handle user location and technician fetching
   useEffect(() => {
-    if (locationSearch.trim() === "") {
-      setFilteredTechnicians(showAllTechnicians ? allTechnicians : technicians);
-    } else {
-      const searchTerm = locationSearch.toLowerCase().trim();
-      const techniciansToFilter = showAllTechnicians
-        ? allTechnicians
-        : technicians;
+    const initializeLocationAndTechnicians = async () => {
+      if (!service) return;
 
-      const filtered = techniciansToFilter.filter((tech) => {
-        // Search in workAreas
-        const workAreaMatch = tech.workAreas?.some((area) =>
-          area.toLowerCase().includes(searchTerm)
+      try {
+        // If user is logged in, try to get their location
+        if (isLoggedIn && user) {
+          const requireLocation = location.state?.requireLocation;
+
+          try {
+            const locationResponse = await LocationService.getUserLocation();
+            if (locationResponse.success && locationResponse.data) {
+              const locationData = locationResponse.data;
+              console.log("User location data:", locationData);
+
+              const userLocationData: UserLocation = {
+                lat: locationData.location.coordinates[1],
+                lng: locationData.location.coordinates[0],
+                address: getFormattedAddress(locationData.address),
+                addressComponents: {
+                  street: locationData.address.street || "",
+                  city: locationData.address.city || "",
+                  state: locationData.address.state || "",
+                  pincode: locationData.address.pincode || "",
+                  landmark: locationData.address.landmark || "",
+                },
+              };
+
+              setUserLocation(userLocationData);
+
+              // Populate address form with existing location data
+              setAddressForm({
+                street: locationData.address.street || "",
+                city: locationData.address.city || "",
+                state: locationData.address.state || "",
+                pincode: locationData.address.pincode || "",
+                landmark: locationData.address.landmark || "",
+              });
+
+              // Fetch technicians with location priority
+              await fetchTechniciansWithLocationPriority(
+                service.name,
+                userLocationData
+              );
+              setSortBy("nearby");
+              setHasFetchedWithLocation(true);
+
+              if (requireLocation) {
+                navigate(location.pathname, { replace: true, state: {} });
+              }
+              return;
+            }
+          } catch (error) {
+            console.log("No existing user location found", error);
+          }
+
+          // If we reach here, user has no location but might want to set one
+          if (requireLocation) {
+            setTimeout(() => {
+              setShowLocationSetup(true);
+            }, 1500);
+            navigate(location.pathname, { replace: true, state: {} });
+          }
+        }
+
+        // Fallback: fetch technicians without location
+        if (!hasFetchedWithLocation) {
+          await fetchTechniciansForService(service.name);
+        }
+      } catch (error) {
+        console.error("Error initializing technicians:", error);
+        await fetchTechniciansForService(service.name);
+      }
+    };
+
+    initializeLocationAndTechnicians();
+  }, [
+    service,
+    isLoggedIn,
+    user,
+    location.state,
+    navigate,
+    location.pathname,
+    hasFetchedWithLocation,
+  ]);
+
+  // Helper function to format address for display
+  const getFormattedAddress = (address: any): string => {
+    if (!address) return "Your Location";
+
+    const parts = [];
+    if (address.city) parts.push(address.city);
+    if (address.state) parts.push(address.state);
+    if (address.pincode) parts.push(address.pincode);
+
+    return parts.length > 0 ? parts.join(", ") : "Your Location";
+  };
+
+  // Handle address form input changes
+  const handleAddressInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setAddressForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSortChange = async (
+    newSort: "default" | "nearby" | "rating" | "experience"
+  ) => {
+    console.log("Sort changed to:", newSort);
+
+    if (newSort === "default") {
+      setSortBy("default");
+      resetToDefaultOrder();
+      toast.success("Sorting cleared to default order");
+      return;
+    }
+
+    if (newSort === "nearby") {
+      if (!isLoggedIn) {
+        toast(
+          (t) => (
+            <div className="text-center">
+              <p className="font-medium mb-2">Login Required</p>
+              <p className="text-sm text-gray-600 mb-3">
+                Please login to see nearby technicians
+              </p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => {
+                    navigate("/login", {
+                      state: {
+                        from: `/service/${slug}`,
+                        requireLocation: true,
+                      },
+                    });
+                    toast.dismiss(t.id);
+                  }}
+                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                >
+                  Login Now
+                </button>
+                <button
+                  onClick={() => {
+                    setSortBy("rating");
+                    toast.dismiss(t.id);
+                  }}
+                  className="px-3 py-1 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50"
+                >
+                  Continue without
+                </button>
+              </div>
+            </div>
+          ),
+          { duration: 8000 }
         );
+        return;
+      }
 
-        // Search in personalInfo address
-        const addressMatch =
-          tech.personalInfo?.address?.city
-            ?.toLowerCase()
-            .includes(searchTerm) ||
-          tech.personalInfo?.address?.state
-            ?.toLowerCase()
-            .includes(searchTerm) ||
-          tech.personalInfo?.address?.pincode?.includes(searchTerm);
+      if (userLocation && service) {
+        setSortBy("nearby");
+        await fetchTechniciansWithLocationPriority(service.name, userLocation);
+        toast.success("Showing nearby technicians first");
+      } else {
+        setShowLocationSetup(true);
+      }
+    } else {
+      setSortBy(newSort);
+      applyLocalSorting(newSort);
+      toast.success(`Sorted by ${newSort}`);
+    }
+  };
 
-        return workAreaMatch || addressMatch;
+  const handleClearSorting = () => {
+    setSortBy("default");
+    resetToDefaultOrder();
+    toast.success("Sorting cleared to default order");
+  };
+
+  const handleChangeLocation = () => {
+    setShowLocationSetup(true);
+  };
+
+  const resetToDefaultOrder = () => {
+    const techsToFilter = showAllTechnicians ? allTechnicians : technicians;
+    setFilteredTechnicians(techsToFilter);
+  };
+
+  const applyLocalSorting = (sortType: "nearby" | "rating" | "experience") => {
+    const techsToFilter = showAllTechnicians ? allTechnicians : technicians;
+    const sorted = sortTechnicians(techsToFilter, sortType);
+    setFilteredTechnicians(sorted);
+  };
+
+  const promptForLocation = () => {
+    setShowLocationSetup(true);
+  };
+
+  // Handle automatic location detection
+  // Handle automatic location detection
+  const handleAllowLocation = async (): Promise<void> => {
+    try {
+      setLocationLoading(true);
+      const toastId = toast.loading("Detecting your location...");
+
+      const position = await LocationService.getCurrentPosition();
+      const { latitude, longitude } = position.coords;
+
+      const geocodeResult: GeocodeResult = await LocationService.reverseGeocode(
+        latitude,
+        longitude
+      );
+      const locationData: UserLocation = {
+        lat: latitude,
+        lng: longitude,
+        address: geocodeResult.formattedAddress,
+        addressComponents: {
+          street: geocodeResult.addressComponents.street || "",
+          city: geocodeResult.addressComponents.city || "",
+          state: geocodeResult.addressComponents.state || "",
+          pincode: geocodeResult.addressComponents.pincode || "",
+          landmark: geocodeResult.addressComponents.landmark || "",
+        },
+      };
+
+      setUserLocation(locationData);
+
+      // Auto-fill the address form
+      setAddressForm({
+        street: geocodeResult.addressComponents.street || "",
+        city: geocodeResult.addressComponents.city || "",
+        state: geocodeResult.addressComponents.state || "",
+        pincode: geocodeResult.addressComponents.pincode || "",
+        landmark: geocodeResult.addressComponents.landmark || "",
       });
 
-      setFilteredTechnicians(filtered);
-    }
-  }, [locationSearch, technicians, allTechnicians, showAllTechnicians]);
+      // Fix: Provide default values for all required address fields
+      await LocationService.updateUserLocation({
+        coordinates: [longitude, latitude],
+        address: {
+          street: geocodeResult.addressComponents.street || "Not specified",
+          city: geocodeResult.addressComponents.city || "Not specified",
+          state: geocodeResult.addressComponents.state || "Not specified",
+          pincode: geocodeResult.addressComponents.pincode || "Not specified",
+          landmark: geocodeResult.addressComponents.landmark || "",
+        },
+      });
 
-  const fetchTechniciansForService = async (serviceName: string) => {
+      if (service) {
+        await fetchTechniciansWithLocationPriority(service.name, locationData);
+        setSortBy("nearby");
+      }
+
+      setShowLocationSetup(false);
+      toast.success("Location saved! Showing nearby technicians", {
+        id: toastId,
+      });
+    } catch (error: any) {
+      console.error("Error getting location:", error);
+      toast.dismiss();
+
+      let errorMessage = "Failed to get your location";
+      if (error instanceof GeolocationPositionError) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage =
+              "Location access was denied. Please enable location permissions.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage =
+              "Location information is unavailable. Please try manual location entry.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Location request timed out. Please try again.";
+            break;
+        }
+      }
+
+      toast.error(errorMessage);
+
+      setTimeout(() => {
+        toast(
+          (t) => (
+            <div className="text-center">
+              <p className="text-sm mb-2">Try manual location entry?</p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => {
+                    setShowMapPicker(true);
+                    toast.dismiss(t.id);
+                  }}
+                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                >
+                  Select on Map
+                </button>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="px-3 py-1 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ),
+          { duration: 5000 }
+        );
+      }, 1000);
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  const handleUseManualAddress = async () => {
+    if (
+      !addressForm.street ||
+      !addressForm.city ||
+      !addressForm.state ||
+      !addressForm.pincode
+    ) {
+      toast.error("Please fill in all required address fields");
+      return;
+    }
+
+    try {
+      setLocationLoading(true);
+      const toastId = toast.loading("Setting your location...");
+
+      // Use a default location (center of the service area) since we don't have coordinates
+      const defaultLocation = { lat: 10.8505, lng: 76.2711 }; // Kerala center
+
+      const locationData: UserLocation = {
+        lat: defaultLocation.lat,
+        lng: defaultLocation.lng,
+        address: `${addressForm.street}, ${addressForm.city}, ${addressForm.state} ${addressForm.pincode}`,
+        addressComponents: {
+          street: addressForm.street,
+          city: addressForm.city,
+          state: addressForm.state,
+          pincode: addressForm.pincode,
+          landmark: addressForm.landmark,
+        },
+      };
+
+      setUserLocation(locationData);
+
+      // Fix: Use the actual form values which are guaranteed to be strings
+      await LocationService.updateUserLocation({
+        coordinates: [defaultLocation.lng, defaultLocation.lat],
+        address: {
+          street: addressForm.street,
+          city: addressForm.city,
+          state: addressForm.state,
+          pincode: addressForm.pincode,
+          landmark: addressForm.landmark,
+        },
+      });
+
+      if (service) {
+        await fetchTechniciansWithLocationPriority(service.name, locationData);
+        setSortBy("nearby");
+      }
+
+      setShowLocationSetup(false);
+      toast.success("Location saved! Showing technicians for your area", {
+        id: toastId,
+      });
+    } catch (error) {
+      console.error("Error saving manual address:", error);
+      toast.error("Failed to save location. Please try again.");
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  // Handle location selection from map
+  // Handle location selection from map
+  const handleMapLocationSelect = async (locationData: {
+    lat: number;
+    lng: number;
+    address: string;
+    addressComponents: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      landmark?: string;
+    };
+  }): Promise<void> => {
+    try {
+      setLocationLoading(true);
+      const toastId = toast.loading("Saving your location...");
+
+      const newUserLocation: UserLocation = {
+        lat: locationData.lat,
+        lng: locationData.lng,
+        address: locationData.address,
+        addressComponents: {
+          street: locationData.addressComponents.street || "",
+          city: locationData.addressComponents.city || "",
+          state: locationData.addressComponents.state || "",
+          pincode: locationData.addressComponents.pincode || "",
+          landmark: locationData.addressComponents.landmark || "",
+        },
+      };
+
+      setUserLocation(newUserLocation);
+
+      // Auto-fill the address form with map data
+      setAddressForm({
+        street: locationData.addressComponents.street || "",
+        city: locationData.addressComponents.city || "",
+        state: locationData.addressComponents.state || "",
+        pincode: locationData.addressComponents.pincode || "",
+        landmark: locationData.addressComponents.landmark || "",
+      });
+
+      // Fix: Provide default values for all required address fields
+      await LocationService.updateUserLocation({
+        coordinates: [locationData.lng, locationData.lat],
+        address: {
+          street: locationData.addressComponents.street || "Not specified",
+          city: locationData.addressComponents.city || "Not specified",
+          state: locationData.addressComponents.state || "Not specified",
+          pincode: locationData.addressComponents.pincode || "Not specified",
+          landmark: locationData.addressComponents.landmark || "",
+        },
+      });
+
+      if (service) {
+        await fetchTechniciansWithLocationPriority(
+          service.name,
+          newUserLocation
+        );
+        setSortBy("nearby");
+      }
+
+      setShowMapPicker(false);
+      setShowLocationSetup(false);
+      toast.success("Location saved! Showing nearby technicians", {
+        id: toastId,
+      });
+    } catch (error) {
+      console.error("Error saving manual location:", error);
+      toast.error("Failed to save location. Please try again.");
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  // Fetch technicians with location priority
+  const fetchTechniciansWithLocationPriority = async (
+    serviceName: string,
+    location: UserLocation
+  ): Promise<void> => {
+    try {
+      setTechniciansLoading(true);
+      const toastId = toast.loading("Finding technicians...");
+
+      console.log("Fetching technicians with location priority:", {
+        serviceName,
+        location: location.addressComponents,
+        coordinates: { lat: location.lat, lng: location.lng },
+      });
+
+      const response = await LocationService.getNearbyTechnicians({
+        lat: location.lat,
+        lng: location.lng,
+        radius: 50,
+        serviceName,
+      });
+
+      console.log("API Response:", response);
+
+      toast.dismiss(toastId);
+
+      if (response.success && response.data) {
+        const technicians: Technician[] = response.data.map((item: any) => ({
+          ...item,
+          displayName: item.displayName || "Technician",
+          services: item.services || [],
+          experienceYears: item.experienceYears || 0,
+          averageRating: item.averageRating || 0,
+          ratingCount: item.ratingCount || 0,
+          workAreas: item.workAreas || [],
+          personalInfo: item.personalInfo || {},
+          profilePictureUrl: item.profilePictureUrl,
+          status: item.status || "approved",
+          isNearby: item.isNearby || false,
+          hasLocation: item.hasLocation || false,
+          distance: item.distance || null,
+          currentLocation: item.currentLocation || null,
+        }));
+
+        console.log(`Processed ${technicians.length} technicians`);
+        console.log(
+          "Nearby technicians:",
+          technicians.filter((t) => t.isNearby).length
+        );
+
+        const displayedTechnicians = technicians.slice(0, 6);
+        setTechnicians(displayedTechnicians);
+        setFilteredTechnicians(displayedTechnicians);
+        setAllTechnicians(technicians);
+        setHasFetchedWithLocation(true);
+        
+      } else {
+        console.log(
+          "No technicians found with location, falling back to general fetch"
+        );
+        await fetchTechniciansForService(serviceName);
+        toast.success(`Showing all technicians for ${serviceName}`);
+      }
+    } catch (error) {
+      console.error("Error fetching technicians:", error);
+      await fetchTechniciansForService(serviceName);
+      toast.error("Failed to load technicians. Showing all technicians.");
+    } finally {
+      setTechniciansLoading(false);
+    }
+  };
+
+  // Original method to fetch technicians
+  const fetchTechniciansForService = async (
+    serviceName: string
+  ): Promise<void> => {
     try {
       setTechniciansLoading(true);
 
-      // Map service names from service details to technician services
       const serviceNameMap: Record<string, string> = {
-        "Refrigerator Repair": "Refrigerator",
+        "Refrigerator": "Refrigerator",
         "AC Repair": "AC Repair",
         "AC Installation": "AC Installation",
         "Washing Machine": "Washing Machine",
@@ -161,20 +706,15 @@ const ServiceDetails: React.FC = () => {
       };
 
       const mappedServiceName = serviceNameMap[serviceName] || serviceName;
-
       const response = await TechnicianMangementService.getPublicTechnicians(
         mappedServiceName
       );
 
       if (response.data && response.data.data) {
-        const technicians = response.data.data.technicians || [];
-
-        // Show only first 6 technicians with "View All" option
+        const technicians: Technician[] = response.data.data.technicians || [];
         const displayedTechnicians = technicians.slice(0, 6);
         setTechnicians(displayedTechnicians);
         setFilteredTechnicians(displayedTechnicians);
-
-        // Store all technicians for "View All" functionality
         setAllTechnicians(technicians);
       } else {
         console.warn("No technicians data in response structure");
@@ -192,11 +732,85 @@ const ServiceDetails: React.FC = () => {
     }
   };
 
+  // Sort technicians locally
+  const sortTechnicians = (
+    techs: Technician[],
+    sortBy: string
+  ): Technician[] => {
+    const sorted = [...techs];
+    switch (sortBy) {
+      case "nearby":
+        return sorted.sort((a, b) => {
+          if (a.isNearby && !b.isNearby) return -1;
+          if (!a.isNearby && b.isNearby) return 1;
+          return (b.averageRating || 0) - (a.averageRating || 0);
+        });
+      case "rating":
+        return sorted.sort(
+          (a, b) => (b.averageRating || 0) - (a.averageRating || 0)
+        );
+      case "experience":
+        return sorted.sort(
+          (a, b) => (b.experienceYears || 0) - (a.experienceYears || 0)
+        );
+      default:
+        return sorted;
+    }
+  };
+
+  // Update filtered technicians when sort changes
+  useEffect(() => {
+    if (sortBy === "default") {
+      resetToDefaultOrder();
+    } else {
+      applyLocalSorting(sortBy as "nearby" | "rating" | "experience");
+    }
+  }, [sortBy, technicians, allTechnicians, showAllTechnicians]);
+
+  // Filter technicians based on location search
+  useEffect(() => {
+    if (locationSearch.trim() === "") {
+      if (sortBy === "default") {
+        resetToDefaultOrder();
+      } else {
+        applyLocalSorting(sortBy as "nearby" | "rating" | "experience");
+      }
+    } else {
+      const searchTerm = locationSearch.toLowerCase().trim();
+      const techniciansToFilter = showAllTechnicians
+        ? allTechnicians
+        : technicians;
+
+      const filtered = techniciansToFilter.filter((tech) => {
+        const workAreaMatch = tech.workAreas?.some((area) =>
+          area.toLowerCase().includes(searchTerm)
+        );
+        const addressMatch =
+          tech.personalInfo?.address?.city
+            ?.toLowerCase()
+            .includes(searchTerm) ||
+          tech.personalInfo?.address?.state
+            ?.toLowerCase()
+            .includes(searchTerm) ||
+          tech.personalInfo?.address?.pincode?.includes(searchTerm);
+
+        return workAreaMatch || addressMatch;
+      });
+
+      const sortedFiltered =
+        sortBy === "default" ? filtered : sortTechnicians(filtered, sortBy);
+      setFilteredTechnicians(sortedFiltered);
+    }
+  }, [locationSearch, technicians, allTechnicians, showAllTechnicians, sortBy]);
+
   const getTechnicianDisplayData = (tech: Technician) => {
-    // Get short address - prioritize city from personalInfo, then first workArea
-    const city = tech.personalInfo?.address?.city;
-    const state = tech.personalInfo?.address?.state;
-    const workArea = tech.workAreas?.[0];
+    const city = tech.personalInfo?.address?.city || "";
+    const state = tech.personalInfo?.address?.state || "";
+    const workArea = tech.workAreas?.[0] || "";
+
+    const services = tech.services || [];
+    const specialization =
+      services.length > 0 ? services.slice(0, 2).join(", ") : "General Service";
 
     const shortAddress =
       city && state
@@ -207,19 +821,31 @@ const ServiceDetails: React.FC = () => {
 
     return {
       id: tech._id,
-      name: tech.displayName,
+      name: tech.displayName || "Technician",
       profilePhoto: tech.profilePictureUrl,
-      rating: tech.averageRating,
-      experience: `${tech.experienceYears || 0} years`, // Show actual experience
-      specialization: tech.services.slice(0, 2).join(", "),
+      rating: tech.averageRating || 0,
+      experience: `${tech.experienceYears || 0} years`,
+      specialization,
       shortAddress,
+      isNearby: tech.isNearby || false,
       fullData: tech,
     };
   };
 
-  // Handle view technician profile
-  const handleViewTechnicianProfile = (technicianId: string) => {
+  const handleViewTechnicianProfile = (technicianId: string): void => {
     navigate(`/technicians/${technicianId}`);
+  };
+
+  const showLocationCTA = isLoggedIn && !userLocation;
+
+  const getLocationDisplay = (userLocation: UserLocation | null) => {
+    if (!userLocation) return "Your Location";
+
+    if (userLocation.addressComponents?.city) {
+      return userLocation.addressComponents.city;
+    }
+
+    return "Your Location";
   };
 
   // Loading state
@@ -382,27 +1008,221 @@ const ServiceDetails: React.FC = () => {
           </div>
         )}
 
+        {/* Location Setup Section */}
+        {showLocationSetup && (
+          <div className="bg-white border-t border-gray-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Set Your Location
+              </h2>
+              <p className="text-gray-600 mb-8">
+                Set your location to find nearby technicians and get accurate
+                service estimates.
+              </p>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Map Location Picker */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Select on Map
+                  </h3>
+                  <OSMLocationPicker
+                    onLocationSelect={handleMapLocationSelect}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Manual Address Form */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Or Enter Address Manually
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block mb-1 font-medium text-gray-700">
+                        Street Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="street"
+                        value={addressForm.street}
+                        onChange={handleAddressInputChange}
+                        placeholder="House no, street, area"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 font-medium text-gray-700">
+                          City <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="city"
+                          value={addressForm.city}
+                          onChange={handleAddressInputChange}
+                          placeholder="City"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-medium text-gray-700">
+                          State <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="state"
+                          value={addressForm.state}
+                          onChange={handleAddressInputChange}
+                          placeholder="State"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 font-medium text-gray-700">
+                          PIN Code <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="pincode"
+                          value={addressForm.pincode}
+                          onChange={handleAddressInputChange}
+                          placeholder="PIN Code"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 font-medium text-gray-700">
+                          Landmark (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          name="landmark"
+                          value={addressForm.landmark}
+                          onChange={handleAddressInputChange}
+                          placeholder="Nearby landmark"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleUseManualAddress}
+                        disabled={locationLoading}
+                        className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {locationLoading
+                          ? "Setting Location..."
+                          : "Use This Address"}
+                      </button>
+                      <button
+                        onClick={handleAllowLocation}
+                        disabled={locationLoading}
+                        className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {locationLoading ? "Detecting..." : "Auto Detect"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Expert Technicians */}
         <div className="bg-gray-50 border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="flex justify-between items-center mb-8">
-              <div>
+            {showLocationCTA && !showLocationSetup && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <MyLocationOutlined className="text-blue-600" />
+                    <div>
+                      <p className="font-medium text-blue-900">
+                        Find technicians near you
+                      </p>
+                      <p className="text-sm text-blue-700">
+                        Set your location to see closest available technicians
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={promptForLocation}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Set Location
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+              <div className="flex items-center gap-2">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   Expert Technicians
+                  {userLocation && (
+                    <span className="text-blue-600 text-lg ml-2">
+                      • Near {getLocationDisplay(userLocation)}
+                    </span>
+                  )}
                 </h2>
-                <p className="text-gray-600">
-                  Our verified and skilled technicians who specialize in{" "}
-                  {service.name.toLowerCase()}
-                </p>
+                {userLocation && (
+                  <button
+                    onClick={handleChangeLocation}
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
+                    title="Change location"
+                  >
+                    <MyLocationOutlined className="w-4 h-4" />
+                    <span>Change</span>
+                  </button>
+                )}
               </div>
-              {allTechnicians.length > 6 && !showAllTechnicians && (
-                <button
-                  onClick={() => setShowAllTechnicians(true)}
-                  className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium cursor-pointer"
-                >
-                  View All ({allTechnicians.length})
-                </button>
-              )}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value as any)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="default">Default Order</option>
+                    <option value="rating">Sort by Rating</option>
+                    <option value="nearby">Nearby First</option>
+                    <option value="experience">Sort by Experience</option>
+                  </select>
+
+                  {sortBy !== "default" && (
+                    <button
+                      onClick={handleClearSorting}
+                      className="flex items-center gap-1 px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      title="Clear sorting"
+                    >
+                      <ClearOutlined className="w-4 h-4" />
+                      <span className="text-sm">Clear</span>
+                    </button>
+                  )}
+                </div>
+
+                {allTechnicians.length > 6 && !showAllTechnicians && (
+                  <button
+                    onClick={() => setShowAllTechnicians(true)}
+                    className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium cursor-pointer"
+                  >
+                    View All ({allTechnicians.length})
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Location Search Bar */}
@@ -443,6 +1263,10 @@ const ServiceDetails: React.FC = () => {
             ) : filteredTechnicians.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTechnicians.map((tech) => {
+                  if (!tech || !tech._id) {
+                    console.warn("Invalid technician data:", tech);
+                    return null;
+                  }
                   const displayData = getTechnicianDisplayData(tech);
                   return (
                     <div
@@ -467,6 +1291,26 @@ const ServiceDetails: React.FC = () => {
                           <h3 className="font-semibold text-gray-900">
                             {displayData.name}
                           </h3>
+                          {tech.distance && (
+                            <div className="flex items-center gap-2 text-sm text-green-600">
+                              <GpsFixedOutlined className="w-4 h-4" />
+                              <span className="font-medium">
+                                {tech.distance < 1000
+                                  ? `${Math.round(tech.distance)}m away`
+                                  : `${(tech.distance / 1000).toFixed(
+                                      1
+                                    )}km away`}
+                              </span>
+                            </div>
+                          )}
+                          {tech.isNearby && !tech.distance && (
+                            <div className="flex items-center gap-2 text-sm text-green-600">
+                              <GpsFixedOutlined className="w-4 h-4" />
+                              <span className="font-medium">
+                                Nearby Technician
+                              </span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1">
                             <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                             <span className="text-sm font-medium text-gray-900">
@@ -553,7 +1397,7 @@ const ServiceDetails: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowAllTechnicians(false);
-                    setLocationSearch(""); // Clear search when showing less
+                    setLocationSearch("");
                   }}
                   className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 >
@@ -564,6 +1408,36 @@ const ServiceDetails: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Map Location Picker Modal */}
+      {showMapPicker && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold">Select Your Location</h3>
+                <button
+                  onClick={() => setShowMapPicker(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-gray-600 mt-2">
+                Click on the map to select your exact location and find nearby
+                technicians
+              </p>
+            </div>
+            <div className="p-6">
+              <OSMLocationPicker
+                onLocationSelect={handleMapLocationSelect}
+                className="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );

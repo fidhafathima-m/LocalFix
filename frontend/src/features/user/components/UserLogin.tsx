@@ -54,7 +54,7 @@ const UserLogin: React.FC = () => {
         );
 
         // Redirect to the original URL instead of home
-        setTimeout(() => navigate(from, { replace: true }), 1000);
+        setTimeout(() => navigate(from, { replace: true, state: location.state }), 1000);
 
         return { success: true, message: res.message };
       } else {

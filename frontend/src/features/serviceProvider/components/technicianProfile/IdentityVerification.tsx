@@ -8,7 +8,7 @@ import {
 } from "@mui/icons-material";
 import { type TechnicianProfile } from "../../../../services/common/technicianApi";
 import { TechnicianService } from "../../../../services/technician/technicianService";
-import { OSMLocationPicker } from "../../../../components/common/LocationPicker";
+import { OSMLocationPicker } from "../../../../components/common/OSMLocationPicker";
 import toast from "react-hot-toast";
 
 interface IdentityVerificationData {
