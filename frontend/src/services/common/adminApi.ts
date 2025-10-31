@@ -84,6 +84,14 @@ interface UserResponse {
 
 interface TechniciansResponse {
   technicians: Technician[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
 interface TechnicianResponse {
@@ -276,8 +284,25 @@ export const adminAPI = {
     api.get<ApiResponse<TechnicianResponse>>(
       ADMIN_ROUTES.TECHNICIAN_BY_ID(technicianId)
     ),
-    getPublicTechnicians: (params?: { service?: string }) =>
-    api.get<ApiResponse<TechniciansResponse>>(ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN, { params }),
+
+    // In your adminAPI object, fix the getPublicTechnicians method
+getPublicTechnicians: (filters: {
+  service?: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+  location?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (filters.service) params.append('service', filters.service);
+  if (filters.page) params.append('page', filters.page.toString());
+  if (filters.limit) params.append('limit', filters.limit.toString());
+  if (filters.search) params.append('search', filters.search);
+  if (filters.location) params.append('location', filters.location);
+
+  // Add the missing return statement
+  return api.get<ApiResponse<TechniciansResponse>>(ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN, { params });
+},
 
   getPublicTechnicianById: (technicianId: string) =>
     api.get<ApiResponse<TechnicianResponse>>(ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN_BY_ID(technicianId)),

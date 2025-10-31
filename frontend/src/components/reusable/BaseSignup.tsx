@@ -71,7 +71,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Default validation - UPDATED to allow same email/phone for different roles
+  // Default validation - FIXED: Only validate email, remove phone validation
   const defaultValidateForm = (): boolean => {
     const newErrors: SignUpErrors = {};
     let isValid = true;
@@ -81,21 +81,20 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
       isValid = false;
     }
 
-    if (!formData.email && !formData.phone) {
-      newErrors.email = "Email or phone is required";
-      newErrors.phone = "Email or phone is required";
-      isValid = false;
-    }
+    if (!formData.email.trim()) {
+    newErrors.email = "Email is required";
+    isValid = false;
+  } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    // Only check email format if email is not empty
+    newErrors.email = "Please enter a valid email";
+    isValid = false;
+  }
 
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email";
-      isValid = false;
-    }
-
-    if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
-      newErrors.phone = "Please enter a valid 10-digit phone number";
-      isValid = false;
-    }
+    // REMOVED phone validation completely since phone field is hidden
+    // if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
+    //   newErrors.phone = "Please enter a valid 10-digit phone number";
+    //   isValid = false;
+    // }
 
     if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
@@ -209,25 +208,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm mb-1">Phone Number (optional)</label>
-          <div className="flex items-center border rounded overflow-hidden">
-            <span className="px-4 py-2 bg-gray-200 text-sm border-r">+91</span>
-            <input
-              type="text"
-              name="phone"
-              placeholder="Eg: 9876543210"
-              className="flex-1 p-2 text-sm outline-none"
-              value={formData.phone}
-              onChange={handleChange}
-            />
-          </div>
-          {errors.phone && (
-            <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1">Email (optional)</label>
+          <label className="block text-sm mb-1">Email</label>
           <input
             type="text"
             name="email"

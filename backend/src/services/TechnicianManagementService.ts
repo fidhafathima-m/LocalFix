@@ -133,104 +133,122 @@ export class TechnicianManagementService
     return formatted;
   }
 
-  async getAllTechnicians(
-    filters: TechnicianFiltersDto
-  ): Promise<TechnicianListResponseDto> {
-    try {
-      const {
-        status = FILTER_DEFAULTS.STATUS,
-        service = FILTER_DEFAULTS.SERVICE,
-        rating = FILTER_DEFAULTS.RATING,
-        location = FILTER_DEFAULTS.LOCATION,
-        search,
-        page = FILTER_DEFAULTS.PAGE,
-        limit = FILTER_DEFAULTS.LIMIT,
-      } = filters;
+  
+async getAllTechnicians(
+  filters: TechnicianFiltersDto
+): Promise<TechnicianListResponseDto> {
+  try {
+    const {
+      status = FILTER_DEFAULTS.STATUS,
+      service = FILTER_DEFAULTS.SERVICE,
+      rating = FILTER_DEFAULTS.RATING,
+      location = FILTER_DEFAULTS.LOCATION,
+      search,
+      page = PAGINATION_DEFAULTS.PAGE,
+      limit = PAGINATION_DEFAULTS.LIMIT,
+    } = filters;
 
-      // Build filter object
-      const filter: FilterQuery = {};
+    // Build filter object
+    const filter: FilterQuery = {};
 
-      // Status filter
-      if (status && status !== "all") {
-        const dbStatus = STATUS_FILTER_MAPPING[status] || status;
-        filter.status = dbStatus;
-      } else {
-        filter.status = {
-          $in: [
-            TECHNICIAN_STATUS.APPROVED,
-            TECHNICIAN_STATUS.SUSPENDED,
-            TECHNICIAN_STATUS.REJECTED,
-          ],
-        };
-      }
-
-      // Service filter
-      if (service && service !== FILTER_DEFAULTS.SERVICE) {
-        filter.services = service;
-      }
-
-      // Rating filter
-      if (rating && rating !== FILTER_DEFAULTS.RATING) {
-        const ratingFilter =
-          RATING_FILTER_MAPPING[rating as keyof typeof RATING_FILTER_MAPPING];
-        if (ratingFilter) {
-          filter.averageRating = ratingFilter;
-        }
-      }
-
-      // Search filter
-      if (search) {
-        const searchRegex = new RegExp(search as string, "i");
-        filter.$or = SEARCH_FIELDS.TECHNICIAN.map((field) => ({
-          [field]: searchRegex,
-        }));
-      }
-
-      // Location filter
-      if (location && location !== FILTER_DEFAULTS.LOCATION) {
-        filter.workAreas = { $in: [new RegExp(location as string, "i")] };
-      }
-
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
-      const skip = (pageNum - 1) * limitNum;
-
-      // Get technicians with user data populated
-      const technicians = await this.technicianRepository.findAllTechnicians(
-        filter,
-        skip,
-        limitNum
-      );
-      const total = await this.technicianRepository.countTechnicians(filter);
-
-      const technicianDtos: TechnicianListDto[] = await Promise.all(
-        technicians.map(async (tech: ITechnician) => {
-          const adminTechnician = await this.convertToAdminTechnician(tech);
-          return this.mapAdminTechnicianToListDto(adminTechnician);
-        })
-      );
-
-      return ResponseHelper.success(
-        TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED,
-        {
-          technicians: technicianDtos,
-          pagination: {
-            page: pageNum,
-            limit: limitNum,
-            total,
-            pages: Math.ceil(total / limitNum),
-          },
-        }
-      );
-    } catch (error: unknown) {
-      console.error("Get technicians error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS
-      );
+    // Status filter
+    if (status && status !== "all") {
+      const dbStatus = STATUS_FILTER_MAPPING[status] || status;
+      filter.status = dbStatus;
+    } else {
+      filter.status = {
+        $in: [
+          TECHNICIAN_STATUS.APPROVED,
+          TECHNICIAN_STATUS.SUSPENDED,
+          TECHNICIAN_STATUS.REJECTED,
+        ],
+      };
     }
+
+    // Service filter
+    if (service && service !== FILTER_DEFAULTS.SERVICE) {
+      filter.services = service;
+    }
+
+    // Rating filter
+    if (rating && rating !== FILTER_DEFAULTS.RATING) {
+      const ratingFilter =
+        RATING_FILTER_MAPPING[rating as keyof typeof RATING_FILTER_MAPPING];
+      if (ratingFilter) {
+        filter.averageRating = ratingFilter;
+      }
+    }
+
+    // Search filter
+    if (search) {
+      const searchRegex = new RegExp(search as string, "i");
+      filter.$or = SEARCH_FIELDS.TECHNICIAN.map((field) => ({
+        [field]: searchRegex,
+      }));
+    }
+
+    // Location filter
+    if (location && location !== FILTER_DEFAULTS.LOCATION) {
+      filter.workAreas = { $in: [new RegExp(location as string, "i")] };
+    }
+
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    console.log("Fetching all technicians with:", {
+      filter,
+      skip,
+      limit: limitNum,
+      page: pageNum
+    });
+
+    // Get technicians with pagination
+    const technicians = await this.technicianRepository.findAllTechnicians(
+      filter,
+      skip,
+      limitNum
+    );
+    const total = await this.technicianRepository.countTechnicians(filter);
+
+    console.log("All technicians result:", {
+      techniciansCount: technicians.length,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      pages: Math.ceil(total / limitNum)
+    });
+
+    const technicianDtos: TechnicianListDto[] = await Promise.all(
+      technicians.map(async (tech: ITechnician) => {
+        const adminTechnician = await this.convertToAdminTechnician(tech);
+        return this.mapAdminTechnicianToListDto(adminTechnician);
+      })
+    );
+
+    return ResponseHelper.success(
+      TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED,
+      {
+        technicians: technicianDtos,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum),
+          hasNext: pageNum < Math.ceil(total / limitNum),
+          hasPrev: pageNum > 1,
+        },
+      }
+    );
+  } catch (error: unknown) {
+    console.error("Get technicians error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    return ResponseHelper.error(
+      TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS
+    );
   }
+}
 
   private mapAdminTechnicianToListDto(
     adminTechnician: IAdminTechnician
@@ -1135,55 +1153,104 @@ export class TechnicianManagementService
     }
   }
   async getPublicTechnicians(
-    filters: TechnicianFiltersDto
-  ): Promise<TechnicianListResponseDto> {
-    try {
-      const repoFilters: TechnicianFilter = {
-        status: "approved",
-      };
+  filters: TechnicianFiltersDto
+): Promise<TechnicianListResponseDto> {
+  try {
+    const {
+      service,
+      page = PAGINATION_DEFAULTS.PAGE,
+      limit = PAGINATION_DEFAULTS.LIMIT,
+      search,
+      location,
+    } = filters;
 
-      if (filters.service) {
-        repoFilters.services = { $in: [filters.service] };
-      }
+    const repoFilters: TechnicianFilter = {
+      status: "approved",
+    };
 
-      const technicians = await this.technicianRepository.findPublicTechnicians(
-        repoFilters
-      );
-      // Map to DTOs with proper address mapping
-      const technicianDtos: TechnicianListDto[] = await Promise.all(
-        technicians.map(async (tech: ITechnician) => {
-          const adminTechnician = await this.convertToAdminTechnician(tech);
-
-          // Create public technician with address data
-          const publicTechnician = {
-            ...this.mapAdminTechnicianToListDto(adminTechnician),
-            address: adminTechnician.personalInfo?.address,
-            workAreas: adminTechnician.workAreas,
-            serviceRadiusKm: adminTechnician.serviceRadiusKm,
-          };
-
-          return publicTechnician;
-        })
-      );
-
-      return ResponseHelper.success("Technicians retrieved successfully", {
-        technicians: technicianDtos,
-        pagination: {
-          page: 1,
-          limit: technicians.length,
-          total: technicians.length,
-          pages: 1,
-        },
-      });
-    } catch (error) {
-      console.error(
-        "Backend Service: Error getting public technicians:",
-        error
-      );
-      return ResponseHelper.error("Failed to retrieve technicians");
+    if (service) {
+      repoFilters.services = { $in: [service] };
     }
-  }
 
+    // Search filter for public technicians
+    if (search) {
+      const searchRegex = new RegExp(search as string, "i");
+      repoFilters.$or = [
+        { displayName: searchRegex },
+        { services: searchRegex },
+        { workAreas: searchRegex },
+      ];
+    }
+
+    // Location filter for public technicians
+    if (location) {
+      repoFilters.workAreas = { $in: [new RegExp(location as string, "i")] };
+    }
+
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    console.log("Fetching public technicians with:", {
+      repoFilters,
+      skip,
+      limit: limitNum,
+      page: pageNum
+    });
+
+    // Get public technicians with pagination
+    const technicians = await this.technicianRepository.findPublicTechnicians(
+      repoFilters,
+      skip,
+      limitNum
+    );
+    
+    const total = await this.technicianRepository.countPublicTechnicians(repoFilters);
+
+    console.log("Public technicians result:", {
+      techniciansCount: technicians.length,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      pages: Math.ceil(total / limitNum)
+    });
+
+    // Map to DTOs with proper address mapping
+    const technicianDtos: TechnicianListDto[] = await Promise.all(
+      technicians.map(async (tech: ITechnician) => {
+        const adminTechnician = await this.convertToAdminTechnician(tech);
+
+        // Create public technician with address data
+        const publicTechnician = {
+          ...this.mapAdminTechnicianToListDto(adminTechnician),
+          address: adminTechnician.personalInfo?.address,
+          workAreas: adminTechnician.workAreas,
+          serviceRadiusKm: adminTechnician.serviceRadiusKm,
+        };
+
+        return publicTechnician;
+      })
+    );
+
+    return ResponseHelper.success("Technicians retrieved successfully", {
+      technicians: technicianDtos,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+        hasNext: pageNum < Math.ceil(total / limitNum),
+        hasPrev: pageNum > 1,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Backend Service: Error getting public technicians:",
+      error
+    );
+    return ResponseHelper.error("Failed to retrieve technicians");
+  }
+}
   async getPublicTechnicianById(
     id: string
   ): Promise<SingleTechnicianResponseDto> {

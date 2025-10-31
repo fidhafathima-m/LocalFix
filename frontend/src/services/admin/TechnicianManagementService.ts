@@ -34,10 +34,15 @@ export class TechnicianMangementService {
       throw this.handleError(error, "Failed to get technician by id");
     }
   }
-  static async getPublicTechnicians(serviceName?: string) {
+  static async getPublicTechnicians(filters: {
+    service?: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+    location?: string;
+  }) {
     try {
-      const params = serviceName ? { service: serviceName } : {};
-      const response = await adminAPI.getPublicTechnicians(params);
+      const response = await adminAPI.getPublicTechnicians(filters);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to get public technicians");

@@ -1,6 +1,6 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import fetchServices, { type Service } from "../data/services";
+import fetchServices, { type Service, type ServicesResponse } from "../data/services";
 import workingSteps from "../data/working";
 import speciality from "../data/speciality";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
@@ -17,8 +17,8 @@ const Home = () => {
     const loadServices = async () => {
       try {
         setLoading(true);
-        const servicesData = await fetchServices();
-        setServices(servicesData);
+        const servicesResponse: ServicesResponse = await fetchServices(1, 4); // Fetch first page with 4 services
+        setServices(servicesResponse.services); // Extract just the services array
       } catch (err) {
         setError("Failed to load services");
         console.error("Error loading services:", err);
@@ -30,8 +30,8 @@ const Home = () => {
     loadServices();
   }, []);
 
-  // Only show first 4 services
-  const displayedServices = services.slice(0, 4);
+  // Only show first 4 services (already handled by the API call)
+  const displayedServices = services;
 
   return (
     <div>
@@ -252,10 +252,13 @@ const Home = () => {
             </div>
             <div className="pb-6 lg:pb-10 px-4">
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                <button className="bg-white text-black p-3 font-semibold rounded w-full sm:w-auto">
+                <button 
+                  onClick={() => navigate("/services")}
+                  className="bg-white text-black p-3 font-semibold rounded w-full sm:w-auto hover:bg-gray-100 transition cursor-pointer"
+                >
                   Book a Service
                 </button>
-                <button className="p-3 outline-1 outline-white rounded font-semibold w-full sm:w-auto border border-white">
+                <button className="p-3 outline-1 outline-white rounded font-semibold w-full sm:w-auto border border-white hover:bg-white hover:text-blue-600 transition">
                   Join as Technician
                 </button>
               </div>

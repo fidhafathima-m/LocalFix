@@ -188,7 +188,7 @@ const BaseForgetPassword: React.FC<BaseForgetPasswordProps> = ({
       </div>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="p-5">
+        {/* <div className="p-5">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Phone Number (optional)
           </label>
@@ -204,11 +204,11 @@ const BaseForgetPassword: React.FC<BaseForgetPasswordProps> = ({
           {errors.phone && (
             <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
           )}
-        </div>
+        </div> */}
 
         <div className="p-5">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Email (optional)
+            Email
           </label>
           <input
             type="email"

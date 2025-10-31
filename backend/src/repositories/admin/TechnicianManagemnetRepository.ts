@@ -817,8 +817,10 @@ export class TechnicianManagementRepository
     }
   }
 
-  async findPublicTechnicians(
-    filters: TechnicianFilter
+   async findPublicTechnicians(
+    filters: TechnicianFilter,
+    skip: number = 0,
+    limit: number = 10
   ): Promise<ITechnician[]> {
     try {
       // Force only approved technicians for public access
@@ -830,7 +832,58 @@ export class TechnicianManagementRepository
       // Remove any sensitive filter fields that shouldn't be exposed publicly
       delete publicFilters.$or;
 
-      const technicians = await this.findTechnicians(publicFilters);
+      // Build the MongoDB query
+      const query: any = { status: "approved" };
+
+      // Service filter
+      if (filters.services) {
+        if (typeof filters.services === "string") {
+          query.services = { $in: [filters.services] };
+        } else if (filters.services.$in) {
+          query.services = { $in: filters.services.$in };
+        }
+      }
+
+      // Rating filter
+      if (filters.averageRating) {
+        query.averageRating = filters.averageRating;
+      }
+
+      // Work areas filter
+      if (filters.workAreas) {
+        query.workAreas = filters.workAreas;
+      }
+
+      // Search filter (name, email, etc.)
+      if (filters.$or) {
+        // For public access, only allow search on safe fields
+        const safeSearchFields = ['displayName', 'services', 'workAreas'];
+        query.$or = filters.$or.filter(condition => {
+          const field = Object.keys(condition)[0];
+          return safeSearchFields.includes(field);
+        });
+      }
+
+      // Date range filter
+      if (filters.createdAt) {
+        query.createdAt = filters.createdAt;
+      }
+
+      console.log("Public technicians query:", {
+        query,
+        skip,
+        limit,
+        filters
+      });
+
+      const technicians = await Technician.find(query)
+        .populate("userId", "email phone fullName")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      console.log(`Found ${technicians.length} public technicians`);
 
       // Remove sensitive data before returning
       const publicTechnicians = technicians.map((tech) => ({
@@ -845,7 +898,7 @@ export class TechnicianManagementRepository
               // Keep only non-sensitive personal info
               fullName: tech.personalInfo.fullName,
               languages: tech.personalInfo.languages,
-              bio: tech.bio,
+              bio: tech.personalInfo.bio,
               address: tech.personalInfo.address
                 ? {
                     city: tech.personalInfo.address.city,
@@ -860,6 +913,54 @@ export class TechnicianManagementRepository
       return publicTechnicians as ITechnician[];
     } catch (error) {
       console.error("Repository: Error finding public technicians:", error);
+      throw error;
+    }
+  }
+
+  async countPublicTechnicians(filters: TechnicianFilter): Promise<number> {
+    try {
+      // Build the same query as findPublicTechnicians but for counting
+      const query: any = { status: "approved" };
+
+      // Service filter
+      if (filters.services) {
+        if (typeof filters.services === "string") {
+          query.services = { $in: [filters.services] };
+        } else if (filters.services.$in) {
+          query.services = { $in: filters.services.$in };
+        }
+      }
+
+      // Rating filter
+      if (filters.averageRating) {
+        query.averageRating = filters.averageRating;
+      }
+
+      // Work areas filter
+      if (filters.workAreas) {
+        query.workAreas = filters.workAreas;
+      }
+
+      // Search filter
+      if (filters.$or) {
+        const safeSearchFields = ['displayName', 'services', 'workAreas'];
+        query.$or = filters.$or.filter(condition => {
+          const field = Object.keys(condition)[0];
+          return safeSearchFields.includes(field);
+        });
+      }
+
+      // Date range filter
+      if (filters.createdAt) {
+        query.createdAt = filters.createdAt;
+      }
+
+      const count = await Technician.countDocuments(query);
+      console.log(`Counted ${count} public technicians matching filters`);
+      
+      return count;
+    } catch (error) {
+      console.error("Repository: Error counting public technicians:", error);
       throw error;
     }
   }

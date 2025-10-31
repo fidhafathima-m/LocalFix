@@ -8,8 +8,10 @@ import {
   ArrowForwardOutlined,
   FilterListOutlined,
   CloseOutlined,
+  ChevronLeftOutlined,
+  ChevronRightOutlined,
 } from "@mui/icons-material";
-import fetchServices, { type Service } from "../data/services";
+import fetchServices, { type Service, type ServicesResponse } from "../data/services";
 import fetchCategories, { type Category } from "../data/categories";
 import Footer from "../../../components/common/Footer";
 import Header from "../../../components/common/Header";
@@ -19,7 +21,7 @@ const Services: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -28,6 +30,12 @@ const Services: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<string>("name");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   // Helper function for default icons
   const getDefaultIcon = (serviceName: string): string => {
@@ -42,17 +50,38 @@ const Services: React.FC = () => {
     return iconMap[serviceName] || "/icons/default-service.svg";
   };
 
-  // Fetch services and categories
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [servicesData, categoriesData] = await Promise.all([
-          fetchServices(),
-          fetchCategories(),
-        ]);
+  // Fetch services with pagination
+  const loadServices = async (page: number = 1, size: number = pageSize) => {
+    try {
+      setLoading(true);
+      const response: ServicesResponse = await fetchServices(page, size);
+      
+      setServices(response.services);
+      setTotalItems(response.pagination.totalItems);
+      setTotalPages(response.pagination.totalPages);
+      setCurrentPage(response.pagination.currentPage);
+      
+      // Update categories with service counts
+      updateCategoriesWithCounts(response.services);
+    } catch (err) {
+      console.error("Error loading services:", err);
+      setError("Failed to load services");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setServices(servicesData);
+  // Fetch categories and update with service counts
+  const updateCategoriesWithCounts = (servicesData: Service[]) => {
+    const loadCategories = async () => {
+      try {
+        const categoriesData = await fetchCategories();
+        
+        // Calculate service counts for each category
+        const categoriesWithCounts = categoriesData.map(category => ({
+          ...category,
+          serviceCount: servicesData.filter(service => service.categoryId === category.id).length
+        }));
 
         // Add "All Services" category
         const allServicesCategory: Category = {
@@ -65,17 +94,24 @@ const Services: React.FC = () => {
           createdAt: new Date().toISOString(),
         };
 
-        setCategories([allServicesCategory, ...categoriesData]);
+        setCategories([allServicesCategory, ...categoriesWithCounts]);
       } catch (err) {
-        console.error("Error loading data:", err);
-        setError("Failed to load services");
-      } finally {
-        setLoading(false);
+        console.error("Error loading categories:", err);
       }
     };
 
-    loadData();
+    loadCategories();
+  };
+
+  // Initial data load
+  useEffect(() => {
+    loadServices(1, pageSize);
   }, []);
+
+  // Reload services when page or pageSize changes
+  useEffect(() => {
+    loadServices(currentPage, pageSize);
+  }, [currentPage, pageSize]);
 
   // Get icon URLs
   const getServiceIconUrl = (service: Service): string => {
@@ -88,16 +124,14 @@ const Services: React.FC = () => {
   };
 
   // Get price range limits from actual services
-  const minPrice =
-    services.length > 0
-      ? Math.min(...services.map((s) => s.avgBasePrice || 299))
-      : 0;
-  const maxPrice =
-    services.length > 0
-      ? Math.max(...services.map((s) => s.avgBasePrice || 299))
-      : 5000;
+  const minPrice = services.length > 0
+    ? Math.min(...services.map((s) => s.avgBasePrice || 299))
+    : 0;
+  const maxPrice = services.length > 0
+    ? Math.max(...services.map((s) => s.avgBasePrice || 299))
+    : 5000;
 
-  // Apply all filters
+  // Apply all filters (client-side filtering for now)
   const filteredServices = services
     .filter((service) => {
       // Category filter
@@ -140,13 +174,46 @@ const Services: React.FC = () => {
     setPriceRange([minPrice, maxPrice]);
     setRatingFilter(null);
     setSortBy("name");
+    setSearchQuery("");
   };
 
   // Check if any filter is active
   const isAnyFilterActive =
     priceRange[0] !== minPrice ||
     priceRange[1] !== maxPrice ||
-    ratingFilter !== null;
+    ratingFilter !== null ||
+    searchQuery !== "";
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
+  };
 
   return (
     <>
@@ -170,7 +237,7 @@ const Services: React.FC = () => {
                   placeholder="Search for a service..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full pl-12 pr-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
             </div>
@@ -220,6 +287,18 @@ const Services: React.FC = () => {
 
             {/* Filter & Sort Controls */}
             <div className="flex gap-3 items-center">
+              {/* Page Size Selector */}
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={5}>5 per page</option>
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+              </select>
+
               {/* Sort Dropdown */}
               <select
                 value={sortBy}
@@ -330,8 +409,18 @@ const Services: React.FC = () => {
         {/* Services Grid */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
           {/* Results Count */}
-          <div className="mb-6 text-sm text-gray-600">
-            Showing {filteredServices.length} of {services.length} services
+          <div className="mb-6 flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              Showing {filteredServices.length} of {totalItems} services
+              {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
+            </div>
+            
+            {/* Loading State */}
+            {loading && (
+              <div className="text-sm text-blue-600">
+                Loading services...
+              </div>
+            )}
           </div>
 
           {filteredServices.length === 0 ? (
@@ -359,95 +448,153 @@ const Services: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredServices.map((service) => {
-                const serviceIconUrl = getServiceIconUrl(service);
-                const features = service.features || [];
-                const moreFeatures = Math.max(0, features.length - 3);
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredServices.map((service) => {
+                  const serviceIconUrl = getServiceIconUrl(service);
+                  const features = service.features || [];
+                  const moreFeatures = Math.max(0, features.length - 3);
 
-                return (
-                  <div
-                    key={service.id}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <img
-                          src={serviceIconUrl}
-                          alt={service.name}
-                          className="w-8 h-8 object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = getDefaultIcon(
-                              service.name
-                            );
-                          }}
-                        />
+                  return (
+                    <div
+                      key={service.id}
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <img
+                            src={serviceIconUrl}
+                            alt={service.name}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = getDefaultIcon(
+                                service.name
+                              );
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                            {service.name}
+                          </h3>
+                          <p className="text-sm text-gray-600 line-clamp-2">
+                            {service.description}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          {service.name}
-                        </h3>
-                        <p className="text-sm text-gray-600 line-clamp-2">
-                          {service.description}
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="flex items-center gap-1">
-                        <StarBorderOutlined className="w-4 h-4 text-yellow-400" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {service.rating || 4.5}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <AccessTimeOutlined className="w-4 h-4" />
-                        <span className="text-sm">
-                          {service.estimatedDuration || "2-4 hours"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {features.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {features.slice(0, 3).map((feature, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-                          >
-                            <CheckCircleOutlined className="w-3 h-3" />
-                            {feature}
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="flex items-center gap-1">
+                          <StarBorderOutlined className="w-4 h-4 text-yellow-400" />
+                          <span className="text-sm font-medium text-gray-900">
+                            {service.rating || 4.5}
                           </span>
-                        ))}
-                        {moreFeatures > 0 && (
-                          <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                            +{moreFeatures} more
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <AccessTimeOutlined className="w-4 h-4" />
+                          <span className="text-sm">
+                            {service.estimatedDuration || "2-4 hours"}
                           </span>
-                        )}
+                        </div>
                       </div>
-                    )}
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-sm text-gray-600">
-                          Starting at{" "}
-                        </span>
-                        <span className="text-xl font-bold text-blue-600">
-                          ₹{service.avgBasePrice || 299}
-                        </span>
+                      {features.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {features.slice(0, 3).map((feature, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
+                            >
+                              <CheckCircleOutlined className="w-3 h-3" />
+                              {feature}
+                            </span>
+                          ))}
+                          {moreFeatures > 0 && (
+                            <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                              +{moreFeatures} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm text-gray-600">
+                            Starting at{" "}
+                          </span>
+                          <span className="text-xl font-bold text-blue-600">
+                            ₹{service.avgBasePrice || 299}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => navigate(`/service/${service.slug}`)}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                        >
+                          See more
+                          <ArrowForwardOutlined className="w-4 h-4" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => navigate(`/service/${service.slug}`)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
-                      >
-                        See more
-                        <ArrowForwardOutlined className="w-4 h-4" />
-                      </button>
                     </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-sm text-gray-600">
+                    Showing page {currentPage} of {totalPages}
                   </div>
-                );
-              })}
-            </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${
+                        currentPage === 1
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300 cursor-pointer"
+                      }`}
+                    >
+                      <ChevronLeftOutlined className="w-4 h-4" />
+                      Previous
+                    </button>
+
+                    {/* Page Numbers */}
+                    <div className="flex gap-1">
+                      {getPageNumbers().map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`w-10 h-10 rounded-lg border transition-colors ${
+                            currentPage === page
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${
+                        currentPage === totalPages
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300 cursor-pointer"
+                      }`}
+                    >
+                      Next
+                      <ChevronRightOutlined className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

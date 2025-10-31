@@ -15,6 +15,7 @@ import {
   GpsFixedOutlined,
   MyLocationOutlined,
   ClearOutlined,
+  ChevronLeftOutlined,
 } from "@mui/icons-material";
 import serviceHero from "../../../assets/images/service_hero.png";
 import Footer from "../../../components/common/Footer";
@@ -91,13 +92,22 @@ interface Address {
   landmark: string;
 }
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 const ServiceDetails: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { slug } = useParams<{ slug: string }>();
   const [service, setService] = useState<Service | null>(null);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
-  const [allTechnicians, setAllTechnicians] = useState<Technician[]>([]);
+  const [allTechnicians, ] = useState<Technician[]>([]);
   const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>(
     []
   );
@@ -128,8 +138,19 @@ const ServiceDetails: React.FC = () => {
     landmark: "",
   });
 
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 6,
+    total: 0,
+    pages: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
+
+
   // Fetch service details
-  useEffect(() => {
+   useEffect(() => {
     const fetchServiceDetails = async () => {
       if (!slug) {
         setError("Service not found");
@@ -167,6 +188,9 @@ const ServiceDetails: React.FC = () => {
       if (!service) return;
 
       try {
+        // Reset pagination when service changes
+        setPagination(prev => ({ ...prev, page: 1 }));
+
         // If user is logged in, try to get their location
         if (isLoggedIn && user) {
           const requireLocation = location.state?.requireLocation;
@@ -204,7 +228,8 @@ const ServiceDetails: React.FC = () => {
               // Fetch technicians with location priority
               await fetchTechniciansWithLocationPriority(
                 service.name,
-                userLocationData
+                userLocationData,
+                1 // Start from page 1
               );
               setSortBy("nearby");
               setHasFetchedWithLocation(true);
@@ -229,11 +254,11 @@ const ServiceDetails: React.FC = () => {
 
         // Fallback: fetch technicians without location
         if (!hasFetchedWithLocation) {
-          await fetchTechniciansForService(service.name);
+          await fetchTechniciansForService(service.name, 1);
         }
       } catch (error) {
         console.error("Error initializing technicians:", error);
-        await fetchTechniciansForService(service.name);
+        await fetchTechniciansForService(service.name, 1);
       }
     };
 
@@ -247,6 +272,32 @@ const ServiceDetails: React.FC = () => {
     location.pathname,
     hasFetchedWithLocation,
   ]);
+   // Handle page change
+  const handlePageChange = async (newPage: number) => {
+    if (!service) return;
+
+    try {
+      setTechniciansLoading(true);
+      
+      if (userLocation && sortBy === "nearby") {
+        await fetchTechniciansWithLocationPriority(service.name, userLocation, newPage);
+      } else {
+        await fetchTechniciansForService(service.name, newPage);
+      }
+      
+      // Scroll to technicians section
+      const techniciansSection = document.getElementById('technicians-section');
+      if (techniciansSection) {
+        techniciansSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (error) {
+      console.error("Error changing page:", error);
+      toast.error("Failed to load technicians");
+    } finally {
+      setTechniciansLoading(false);
+    }
+  };
+
 
   // Helper function to format address for display
   const getFormattedAddress = (address: any): string => {
@@ -269,14 +320,14 @@ const ServiceDetails: React.FC = () => {
     }));
   };
 
-  const handleSortChange = async (
+   const handleSortChange = async (
     newSort: "default" | "nearby" | "rating" | "experience"
   ) => {
     console.log("Sort changed to:", newSort);
 
     if (newSort === "default") {
       setSortBy("default");
-      resetToDefaultOrder();
+      await fetchTechniciansForService(service?.name || "", 1);
       toast.success("Sorting cleared to default order");
       return;
     }
@@ -324,14 +375,15 @@ const ServiceDetails: React.FC = () => {
 
       if (userLocation && service) {
         setSortBy("nearby");
-        await fetchTechniciansWithLocationPriority(service.name, userLocation);
+        await fetchTechniciansWithLocationPriority(service.name, userLocation, 1);
         toast.success("Showing nearby technicians first");
       } else {
         setShowLocationSetup(true);
       }
     } else {
       setSortBy(newSort);
-      applyLocalSorting(newSort);
+      // For rating and experience, we'll handle sorting on the frontend for now
+      // In a real app, you might want to implement backend sorting
       toast.success(`Sorted by ${newSort}`);
     }
   };
@@ -613,9 +665,10 @@ const ServiceDetails: React.FC = () => {
   };
 
   // Fetch technicians with location priority
-  const fetchTechniciansWithLocationPriority = async (
+   const fetchTechniciansWithLocationPriority = async (
     serviceName: string,
-    location: UserLocation
+    location: UserLocation,
+    page: number = 1
   ): Promise<void> => {
     try {
       setTechniciansLoading(true);
@@ -625,6 +678,8 @@ const ServiceDetails: React.FC = () => {
         serviceName,
         location: location.addressComponents,
         coordinates: { lat: location.lat, lng: location.lng },
+        page,
+        limit: pagination.limit
       });
 
       const response = await LocationService.getNearbyTechnicians({
@@ -632,6 +687,8 @@ const ServiceDetails: React.FC = () => {
         lng: location.lng,
         radius: 50,
         serviceName,
+        page,
+        limit: pagination.limit
       });
 
       console.log("API Response:", response);
@@ -639,7 +696,10 @@ const ServiceDetails: React.FC = () => {
       toast.dismiss(toastId);
 
       if (response.success && response.data) {
-        const technicians: Technician[] = response.data.map((item: any) => ({
+        const techniciansData = response.data.technicians || response.data;
+        const paginationData = response.data.pagination;
+
+        const technicians: Technician[] = techniciansData.map((item: any) => ({
           ...item,
           displayName: item.displayName || "Technician",
           services: item.services || [],
@@ -662,22 +722,32 @@ const ServiceDetails: React.FC = () => {
           technicians.filter((t) => t.isNearby).length
         );
 
-        const displayedTechnicians = technicians.slice(0, 6);
-        setTechnicians(displayedTechnicians);
-        setFilteredTechnicians(displayedTechnicians);
-        setAllTechnicians(technicians);
+        setTechnicians(technicians);
+        
+        // Update pagination info
+        if (paginationData) {
+          setPagination({
+            page: paginationData.page || page,
+            limit: paginationData.limit || pagination.limit,
+            total: paginationData.total || technicians.length,
+            pages: paginationData.pages || Math.ceil((paginationData.total || technicians.length) / (paginationData.limit || pagination.limit)),
+            hasNext: paginationData.hasNext || false,
+            hasPrev: paginationData.hasPrev || page > 1,
+          });
+        }
+        
         setHasFetchedWithLocation(true);
         
       } else {
         console.log(
           "No technicians found with location, falling back to general fetch"
         );
-        await fetchTechniciansForService(serviceName);
+        await fetchTechniciansForService(serviceName, page);
         toast.success(`Showing all technicians for ${serviceName}`);
       }
     } catch (error) {
       console.error("Error fetching technicians:", error);
-      await fetchTechniciansForService(serviceName);
+      await fetchTechniciansForService(serviceName, page);
       toast.error("Failed to load technicians. Showing all technicians.");
     } finally {
       setTechniciansLoading(false);
@@ -685,66 +755,119 @@ const ServiceDetails: React.FC = () => {
   };
 
   // Original method to fetch technicians
-  const fetchTechniciansForService = async (
-    serviceName: string
-  ): Promise<void> => {
-    try {
-      setTechniciansLoading(true);
+  // Updated method to fetch technicians with better error handling
+const fetchTechniciansForService = async (
+  serviceName: string,
+  page: number = 1
+): Promise<void> => {
+  try {
+    setTechniciansLoading(true);
 
-      const serviceNameMap: Record<string, string> = {
-        "Refrigerator": "Refrigerator",
-        "AC Repair": "AC Repair",
-        "AC Installation": "AC Installation",
-        "Washing Machine": "Washing Machine",
-        "TV Repair": "TV Repair",
-        "Water Purifier": "Water Purifier",
-        "Geyser/Water Heater": "Geyser/Water Heater",
-        "Fan Repair": "Fan Repair",
-        "Microwave Oven": "Microwave Oven",
-        Plumbing: "Plumbing",
-        Electrical: "Electrical",
-      };
+    const serviceNameMap: Record<string, string> = {
+      "Refrigerator": "Refrigerator",
+      "AC Repair": "AC Repair",
+      "AC Installation": "AC Installation",
+      "Washing Machine": "Washing Machine",
+      "TV Repair": "TV Repair",
+      "Water Purifier": "Water Purifier",
+      "Geyser/Water Heater": "Geyser/Water Heater",
+      "Fan Repair": "Fan Repair",
+      "Microwave Oven": "Microwave Oven",
+      Plumbing: "Plumbing",
+      Electrical: "Electrical",
+    };
 
-      const mappedServiceName = serviceNameMap[serviceName] || serviceName;
-      const response = await TechnicianMangementService.getPublicTechnicians(
-        mappedServiceName
-      );
+    const mappedServiceName = serviceNameMap[serviceName] || serviceName;
+    
+    console.log("Fetching technicians for service:", {
+      serviceName,
+      mappedServiceName,
+      page,
+      limit: pagination.limit
+    });
 
-      if (response.data && response.data.data) {
-        const technicians: Technician[] = response.data.data.technicians || [];
-        const displayedTechnicians = technicians.slice(0, 6);
-        setTechnicians(displayedTechnicians);
-        setFilteredTechnicians(displayedTechnicians);
-        setAllTechnicians(technicians);
+    const response = await TechnicianMangementService.getPublicTechnicians({
+      service: mappedServiceName,
+      page,
+      limit: pagination.limit,
+      search: locationSearch || undefined,
+      location: locationSearch || undefined,
+    });
+
+    console.log("API Response:", response);
+
+    // Handle different response structures
+    if (response && response.data) {
+      // Handle nested data structure (response.data.data)
+      const responseData = response.data.data || response.data;
+      const technicians: Technician[] = responseData?.technicians || [];
+      const paginationData = responseData?.pagination;
+
+      console.log("Processed technicians:", technicians.length);
+      console.log("Pagination data:", paginationData);
+
+      setTechnicians(technicians);
+      
+      // Update pagination info
+      if (paginationData) {
+        setPagination({
+          page: paginationData.page || page,
+          limit: paginationData.limit || pagination.limit,
+          total: paginationData.total || technicians.length,
+          pages: paginationData.pages || Math.ceil((paginationData.total || technicians.length) / (paginationData.limit || pagination.limit)),
+          hasNext: paginationData.hasNext || false,
+          hasPrev: paginationData.hasPrev || page > 1,
+        });
       } else {
-        console.warn("No technicians data in response structure");
-        setTechnicians([]);
-        setAllTechnicians([]);
-        setFilteredTechnicians([]);
+        // Default pagination if no pagination data
+        setPagination(prev => ({
+          ...prev,
+          page,
+          total: technicians.length,
+          pages: Math.ceil(technicians.length / prev.limit),
+          hasNext: page < Math.ceil(technicians.length / prev.limit),
+          hasPrev: page > 1,
+        }));
       }
-    } catch (error: any) {
-      console.error("ERROR DETAILS:", error.message);
+    } else {
+      console.warn("No valid response data structure");
       setTechnicians([]);
-      setAllTechnicians([]);
-      setFilteredTechnicians([]);
-    } finally {
-      setTechniciansLoading(false);
+      setPagination(prev => ({ 
+        ...prev, 
+        page, 
+        total: 0, 
+        pages: 0, 
+        hasNext: false, 
+        hasPrev: false 
+      }));
     }
-  };
-
+  } catch (error: any) {
+    console.error("ERROR DETAILS:", error);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    
+    setTechnicians([]);
+    setPagination(prev => ({ 
+      ...prev, 
+      page, 
+      total: 0, 
+      pages: 0, 
+      hasNext: false, 
+      hasPrev: false 
+    }));
+    
+    toast.error("Failed to load technicians. Please try again.");
+  } finally {
+    setTechniciansLoading(false);
+  }
+};
   // Sort technicians locally
-  const sortTechnicians = (
+   const sortTechnicians = (
     techs: Technician[],
     sortBy: string
   ): Technician[] => {
     const sorted = [...techs];
     switch (sortBy) {
-      case "nearby":
-        return sorted.sort((a, b) => {
-          if (a.isNearby && !b.isNearby) return -1;
-          if (!a.isNearby && b.isNearby) return 1;
-          return (b.averageRating || 0) - (a.averageRating || 0);
-        });
       case "rating":
         return sorted.sort(
           (a, b) => (b.averageRating || 0) - (a.averageRating || 0)
@@ -769,39 +892,19 @@ const ServiceDetails: React.FC = () => {
 
   // Filter technicians based on location search
   useEffect(() => {
-    if (locationSearch.trim() === "") {
-      if (sortBy === "default") {
-        resetToDefaultOrder();
-      } else {
-        applyLocalSorting(sortBy as "nearby" | "rating" | "experience");
-      }
-    } else {
-      const searchTerm = locationSearch.toLowerCase().trim();
-      const techniciansToFilter = showAllTechnicians
-        ? allTechnicians
-        : technicians;
-
-      const filtered = techniciansToFilter.filter((tech) => {
-        const workAreaMatch = tech.workAreas?.some((area) =>
-          area.toLowerCase().includes(searchTerm)
-        );
-        const addressMatch =
-          tech.personalInfo?.address?.city
-            ?.toLowerCase()
-            .includes(searchTerm) ||
-          tech.personalInfo?.address?.state
-            ?.toLowerCase()
-            .includes(searchTerm) ||
-          tech.personalInfo?.address?.pincode?.includes(searchTerm);
-
-        return workAreaMatch || addressMatch;
-      });
-
-      const sortedFiltered =
-        sortBy === "default" ? filtered : sortTechnicians(filtered, sortBy);
-      setFilteredTechnicians(sortedFiltered);
+    if (service && locationSearch.trim() !== "") {
+      const searchTechnicians = async () => {
+        setPagination(prev => ({ ...prev, page: 1 }));
+        await fetchTechniciansForService(service.name, 1);
+      };
+      
+      const timeoutId = setTimeout(searchTechnicians, 500);
+      return () => clearTimeout(timeoutId);
+    } else if (service && locationSearch.trim() === "" && pagination.page === 1) {
+      // Only refetch if we're on page 1 and search is cleared
+      fetchTechniciansForService(service.name, 1);
     }
-  }, [locationSearch, technicians, allTechnicians, showAllTechnicians, sortBy]);
+  }, [locationSearch, service]);
 
   const getTechnicianDisplayData = (tech: Technician) => {
     const city = tech.personalInfo?.address?.city || "";
@@ -847,6 +950,105 @@ const ServiceDetails: React.FC = () => {
 
     return "Your Location";
   };
+
+  const PaginationControls = () => {
+    if (pagination.pages <= 1) return null;
+
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+    
+    let startPage = Math.max(1, pagination.page - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(pagination.pages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
+        <div className="text-sm text-gray-600">
+          Showing {technicians.length} of {pagination.total} technicians
+          {pagination.pages > 1 && ` (Page ${pagination.page} of ${pagination.pages})`}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {/* Previous Button */}
+          <button
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={!pagination.hasPrev}
+            className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${
+              !pagination.hasPrev
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
+            }`}
+          >
+            <ChevronLeftOutlined className="w-4 h-4" />
+            Previous
+          </button>
+
+          {/* Page Numbers */}
+          <div className="flex gap-1">
+            {pageNumbers.map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => handlePageChange(pageNum)}
+                className={`w-10 h-10 rounded-lg border transition-colors ${
+                  pagination.page === pageNum
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+          </div>
+
+          {/* Next Button */}
+          <button
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={!pagination.hasNext}
+            className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${
+              !pagination.hasNext
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
+            }`}
+          >
+            Next
+            <ChevronRightOutlined className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Page Size Selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Show:</span>
+          <select
+            value={pagination.limit}
+            onChange={(e) => {
+              const newLimit = Number(e.target.value);
+              setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
+              if (userLocation && sortBy === "nearby") {
+                fetchTechniciansWithLocationPriority(service?.name || "", userLocation, 1);
+              } else {
+                fetchTechniciansForService(service?.name || "", 1);
+              }
+            }}
+            className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value={6}>6</option>
+            <option value={12}>12</option>
+            <option value={24}>24</option>
+            <option value={48}>48</option>
+          </select>
+          <span className="text-sm text-gray-600">per page</span>
+        </div>
+      </div>
+    );
+  };
+
 
   // Loading state
   if (loading) {
@@ -1261,6 +1463,7 @@ const ServiceDetails: React.FC = () => {
                 </span>
               </div>
             ) : filteredTechnicians.length > 0 ? (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTechnicians.map((tech) => {
                   if (!tech || !tech._id) {
@@ -1361,6 +1564,8 @@ const ServiceDetails: React.FC = () => {
                   );
                 })}
               </div>
+               <PaginationControls />
+               </>
             ) : (
               <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
                 <BuildOutlined className="w-12 h-12 text-gray-400 mx-auto mb-4" />

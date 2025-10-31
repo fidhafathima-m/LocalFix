@@ -131,7 +131,13 @@ export interface ITechnicianManagementRepository {
     documents: any[]
   ): Promise<ITechnician | null>;
   findTechnicians(filters: TechnicianFilter): Promise<ITechnician[]>;
-  findPublicTechnicians(filters: TechnicianFilter): Promise<ITechnician[]>;
+  findPublicTechnicians(
+    filters: TechnicianFilter,
+    skip?: number,
+    limit?: number
+  ): Promise<ITechnician[]>;
+
+  countPublicTechnicians(filters: TechnicianFilter): Promise<number>;
   findById(id: string): Promise<ITechnician | null>;
   updateTechnicianLocation(
     technicianId: string, 

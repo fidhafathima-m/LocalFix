@@ -29,6 +29,8 @@ export interface NearbyTechniciansParams {
   lng: number;
   radius?: number;
   serviceName?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface OSMAddressData {
@@ -91,6 +93,8 @@ class LocationService {
           lng: params.lng,    // Fixed: pass as individual parameters
           radius: params.radius,
           serviceName: params.serviceName,
+          page: params.page,
+          limit: params.limit,
         }
       });
       
