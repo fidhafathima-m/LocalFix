@@ -1,3 +1,4 @@
+// services/admin/UserManagementService.ts - Updated
 import { UserManagementRepository } from "../repositories/admin/UserManagementRepository";
 import { IUserManagementService } from "../interfaces/services/admin/IUserManagementService";
 import { IUserManagementRepository } from "../interfaces/repository/admin/IUserManagementRepository";
@@ -241,7 +242,10 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      const userDto = UserMapper.toDetailDto(user);
+      // Get user addresses
+      const userAddresses = await this.userManagementRepository.findUserAddresses(userId);
+      
+      const userDto = UserMapper.toDetailDto(user, userAddresses);
 
       return ResponseHelper.success(USER_MANAGEMENT_MESSAGES.USER_RETRIEVED, {
         user: userDto,
@@ -251,6 +255,7 @@ export class UserManagementService implements IUserManagementService {
       return ResponseHelper.error(USER_MANAGEMENT_MESSAGES.FAILED_FETCH_USER);
     }
   }
+
   async getPublicUserById(userId: string): Promise<UserManagementResponseDto> {
     try {
       const user = await this.userManagementRepository.findById(userId);
@@ -265,13 +270,28 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      // Get user addresses
-      const userAddresses =
-        await this.userManagementRepository.findUserAddresses(userId);
-      const defaultAddress =
-        userAddresses.find((addr) => addr.isDefault) || userAddresses[0];
+      // Get ALL user addresses
+      const userAddresses = await this.userManagementRepository.findUserAddresses(userId);
+      
+      // Map addresses to the format expected by frontend
+      const addresses = userAddresses.map(address => ({
+        id: address._id.toString(),
+        label: address.label || "Home",
+        street: address.street || "",
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+        landmark: address.landmark || "",
+        isDefault: address.isDefault,
+        location: address.location,
+        formattedAddress: address.formattedAddress || "",
+        placeId: address.placeId,
+        createdAt: address.createdAt,
+        updatedAt: address.updatedAt,
+      }));
 
-      // FIX: Add dateOfBirth and gender to the DTO
+      const defaultAddress = userAddresses.find((addr) => addr.isDefault) || userAddresses[0];
+
       const publicUserDto = {
         _id: user._id.toString(),
         fullName: user.fullName,
@@ -280,8 +300,8 @@ export class UserManagementService implements IUserManagementService {
         profilePicture: user.profilePictureUrl,
         isVerified: user.isVerified,
         createdAt: user.createdAt,
-        dateOfBirth: user.dateOfBirth, // ADD THIS
-        gender: user.gender, // ADD THIS
+        dateOfBirth: user.dateOfBirth,
+        gender: user.gender,
         defaultAddress: defaultAddress
           ? {
               city: defaultAddress.city,
@@ -294,9 +314,8 @@ export class UserManagementService implements IUserManagementService {
         wallet: user.wallet || { balance: 0 },
         status: user.status || "Active",
         role: user.roles?.[0] || "user",
+        addresses: addresses, // All addresses array
       };
-
-      console.log("🔍 Public user DTO:", publicUserDto); // Debug log
 
       return ResponseHelper.success("User retrieved successfully", {
         user: publicUserDto,

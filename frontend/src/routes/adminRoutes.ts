@@ -1,12 +1,11 @@
 export const ADMIN_ROUTES = {
-  
   // User routes
   USERS: "/admin/users",
   USER_BY_ID: (userId: string) => `/admin/users/${userId}`,
   USER_STATUS: (userId: string) => `/admin/users/${userId}/status`,
 
   PUBLIC_USER_PROFILE: "/public/user/profile",
-  PUBLIC_USER_BY_ID: (userId: string) => `/public/user/${userId}`,  
+  PUBLIC_USER_BY_ID: (userId: string) => `/public/user/${userId}`,
 
   // Technician routes
   TECHNICIANS: "/admin/technicians",
@@ -15,9 +14,10 @@ export const ADMIN_ROUTES = {
   TECHNICIAN_STATUS: (technicianId: string) =>
     `/admin/technicians/${technicianId}/status`,
 
-  //  Public technciian 
+  //  Public technciian
   GET_PUBLIC_TECHNICIAN: "/admin/technicians/public",
-  GET_PUBLIC_TECHNICIAN_BY_ID: (technicianId: string) => `/admin/technicians/public/${technicianId}`,
+  GET_PUBLIC_TECHNICIAN_BY_ID: (technicianId: string) =>
+    `/admin/technicians/public/${technicianId}`,
 
   // Application routes
   APPLICATIONS_PENDING: "/admin/technicians/applications/pending",
@@ -36,7 +36,8 @@ export const ADMIN_ROUTES = {
 
   // Services
   SERVICES: "/admin/services",
-  SERVICES_BY_CATEGORY: (categoryId: string) => `/admin/services/category/${categoryId}`,
+  SERVICES_BY_CATEGORY: (categoryId: string) =>
+    `/admin/services/category/${categoryId}`,
   SERVICE_BY_ID: (id: string) => `/admin/services/${id}`,
   SERVICE_BY_SLUG: (slug: string) => `/admin/services/slug/${slug}`,
   SERVICES_SEARCH: "/admin/services/search",
@@ -54,4 +55,11 @@ export const ADMIN_ROUTES = {
   UPDATE_USER_PROFILE: "/user/profile",
   UPDATE_PROFILE_PHOTO: "/user/profile/upload-photo",
   CHANGE_PASSWORD: "/user/change-password",
+  // Add to your routes file
+  USER_ADDRESSES: "/user/addresses",
+  CREATE_ADDRESS: "/user/addresses",
+  UPDATE_ADDRESS: (addressId: string) => `/user/addresses/${addressId}`,
+  DELETE_ADDRESS: (addressId: string) => `/user/addresses/${addressId}`,
+  SET_DEFAULT_ADDRESS: (addressId: string) =>
+    `/user/addresses/${addressId}/default`,
 } as const;

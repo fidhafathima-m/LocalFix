@@ -10,6 +10,7 @@ export interface IUser extends IUserBase {
   lastLogin?: Date;
   loginCount?: number;
   profilePictureUrl?: string;
+  profilePicture?: string;
   defaultAddress?: IAddress;
   wallet?: IWallet;
   dateOfBirth?: string;

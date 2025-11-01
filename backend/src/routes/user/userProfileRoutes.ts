@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { protect } from "../../middleware/authMiddleware";
 import multer from "multer";
-import { userLocationController, userProfileController } from "../../config/container";
+import { userLocationController, userProfileController, addressController } from "../../config/container";
 
 const router = Router();
 
@@ -33,6 +33,13 @@ router.post(
   userProfileController.uploadProfilePicture
 );
 router.post("/change-password", protect, userProfileController.changePassword);
+
+// addresses
+router.get("/addresses", protect, addressController.getUserAddresses);
+router.post("/addresses", protect, addressController.createAddress);
+router.put("/addresses/:addressId", protect, addressController.getAddressById);
+router.delete("/addresses/:addressId", protect, addressController.deleteAddress);
+router.patch("/addresses/:addressId/default", protect, addressController.setDefaultAddress);
 
 // Location routes
 // Location routes - FIXED: Use the controller methods directly

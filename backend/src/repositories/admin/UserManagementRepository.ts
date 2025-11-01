@@ -1,4 +1,4 @@
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import { BaseRepository } from "../BaseRepository";
 import { IUserManagementRepository } from "../../interfaces/repository/admin/IUserManagementRepository";
 import {
@@ -6,7 +6,7 @@ import {
   IUserWithAddress,
 } from "../../interfaces/admin/IUserManagements";
 import User from "../../models/UserSchema";
-import UserAddress from "../../models/UserAddressSchema";
+import UserAddress, { IUserAddress } from "../../models/UserAddressSchema";
 import bcrypt from "bcrypt"
 
 export class UserManagementRepository
@@ -20,14 +20,24 @@ export class UserManagementRepository
     this.userAddressModel = UserAddress as Model<any>;
   }
 
-  async findUserAddresses(userId: string): Promise<any[]> {
-    try {
-      return await this.userAddressModel.find({ userId }).lean();
-    } catch (error) {
-      console.error("Error finding user addresses:", error);
-      return [];
-    }
+  // In your UserManagementRepository
+async findUserAddresses(userId: string): Promise<IUserAddress[]> {
+  try {
+    console.log("🔍 Searching for addresses for user ID:", userId);
+    
+    const addresses = await UserAddress.find({ 
+      userId: new Types.ObjectId(userId) 
+    }).exec();
+    
+    console.log("🔍 Found addresses:", addresses);
+    console.log("🔍 Number of addresses found:", addresses.length);
+    
+    return addresses;
+  } catch (error) {
+    console.error("Error finding user addresses:", error);
+    return [];
   }
+}
 
   async findAllUsers(): Promise<IUserWithAddress[]> {
     return this.model.aggregate([

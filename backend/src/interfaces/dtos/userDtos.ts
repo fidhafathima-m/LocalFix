@@ -17,12 +17,18 @@ export interface UserListDto {
   createdAt: Date;
   updatedAt: Date;
   defaultAddress?: AddressDto;
+  addresses?: AddressDto[];
+  profilePicture?: string; // ADD THIS
+  profilePictureUrl?: string;
+  dateOfBirth?: string;
+  gender?: string;
 }
 
 export interface UserDetailDto extends UserListDto {
   applicationStatus?: string;
   lastLogin?: Date;
   loginCount?: number;
+  profilePicture?: string; // ADD THIS
   profilePictureUrl?: string;
   dateOfBirth?: string;
   gender?: string;
@@ -38,7 +44,12 @@ export interface AddressDto {
   state?: string;
   pincode?: string;
   landmark?: string;
-  isDefault: boolean;
+  isDefault?: boolean;
+  location?: {
+    type: "Point";
+    coordinates: [number, number]; // [lng, lat]
+  };
+  formattedAddress?: string;
 }
 
 // Request DTOs

@@ -36,6 +36,9 @@
   import { UserLocationService } from "../services/UserLocationService"; // FIXED: Import the class
   import { UserLocationController } from "../controllers/user/userLocationController";
   import { UserLocationRepository } from "../repositories/user/UserLocationRepository";
+import { AddressRepository } from "../repositories/user/AddressRepository";
+import { AddressController } from "../controllers/user/addressController";
+import { AddressService } from "../services/AddressService";
 
   // User Management Dependencies
   const userManagementRepository = new UserManagementRepository();
@@ -126,7 +129,10 @@
   const itemManagementController = new ItemController(itemManagementService);
 
   // User Profile
-  const userProfileService = new UserProfileService(userManagementRepository);
+  const addressRepository = new AddressRepository();
+  const addressService = new AddressService(addressRepository)
+  const addressController = new AddressController(addressService)
+  const userProfileService = new UserProfileService(userManagementRepository, addressRepository);
   const userProfileController = new UserProfileController(userProfileService);
 
   // User Location - FIXED: Create instance properly
@@ -161,6 +167,9 @@
     itemManagementRepository,
     itemManagementService,
     itemManagementController,
+    addressController,
+    addressService,
+    addressRepository,
     userProfileService,
     userProfileController,
     userLocationRepository,

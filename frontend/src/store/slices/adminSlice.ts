@@ -4,6 +4,8 @@ export interface User {
   _id: string;
   fullName: string;
   email?: string;
+  profilePictureUrl?: string;
+  profilePicture?: string;
   phone: string;
   status: "Active" | "Inactive" | "Blocked";
   defaultAddress?: {

@@ -6,9 +6,10 @@ import {
   UserStatsDto,
 } from "../interfaces/dtos/userDtos";
 import { IUser, IUserWithAddress } from "../interfaces/admin/IUserManagements";
+import { IUserAddress } from "@/models/UserAddressSchema";
 
 export class UserMapper {
-  // Map to list DTO
+  // Map to list DTO - ADD PROFILE PICTURE FIELDS
   static toListDto(user: IUserWithAddress): UserListDto {
     return {
       _id: user._id.toString(),
@@ -20,6 +21,10 @@ export class UserMapper {
       isEmailVerified: user.isVerified || false,
       createdAt: user.createdAt || new Date(),
       updatedAt: user.updatedAt || new Date(),
+      profilePicture: user.profilePicture, // ADD THIS
+      profilePictureUrl: user.profilePictureUrl, // ADD THIS
+      dateOfBirth: user.dateOfBirth, // ADD THIS
+      gender: user.gender,
       defaultAddress: user.defaultAddress
         ? this.mapAddress(user.defaultAddress)
         : undefined,
@@ -27,7 +32,8 @@ export class UserMapper {
   }
 
   // Map to detail DTO
-  static toDetailDto(user: IUser): UserDetailDto {
+  static toDetailDto(user: IUser, addresses: IUserAddress[] = []): UserDetailDto {
+    const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0];
     const baseDto: UserListDto = {
       _id: user._id.toString(),
       fullName: user.fullName || "",
@@ -38,10 +44,34 @@ export class UserMapper {
       isEmailVerified: user.isVerified || false,
       createdAt: user.createdAt || new Date(),
       updatedAt: user.updatedAt || new Date(),
-      defaultAddress: user.defaultAddress
-        ? this.mapAddress(user.defaultAddress)
-        : undefined,
+      profilePicture: user.profilePicture, // ADD THIS
+      profilePictureUrl: user.profilePictureUrl, // ADD THIS
+      dateOfBirth: user.dateOfBirth, // ADD THIS
+      gender: user.gender,
+      defaultAddress: defaultAddress ? {
+        city: defaultAddress.city,
+        state: defaultAddress.state,
+        pincode: defaultAddress.pincode,
+        landmark: defaultAddress.landmark,
+        location: defaultAddress.location,
+        street: defaultAddress.street,
+        formattedAddress: defaultAddress.formattedAddress,
+      } : undefined,
+      addresses: addresses.map(addr => ({
+        id: addr._id.toString(),
+        label: addr.label || "Home",
+        street: addr.street,
+        city: addr.city,
+        state: addr.state,
+        pincode: addr.pincode,
+        landmark: addr.landmark,
+        isDefault: addr.isDefault,
+        location: addr.location,
+        formattedAddress: addr.formattedAddress,
+        placeId: addr.placeId,
+      })),
     };
+    
 
     return {
       ...baseDto,

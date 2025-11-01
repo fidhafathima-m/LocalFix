@@ -20,6 +20,9 @@ import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
 import { userService } from "../../../services/user/userService";
 import toast from "react-hot-toast";
+import { AddAddressModal } from "../components/AddAddressModal";
+import Swal from "sweetalert2";
+import type { Address, AddressFormData } from "../../../services/common/userProfileApi";
 
 interface UserData {
   _id: string;
@@ -42,17 +45,8 @@ interface UserData {
   gender?: string;
 }
 
-interface Address {
-  id: number;
-  type: string;
-  address: string;
-  landmark: string;
-  pincode: string;
-}
-
 const UserProfile: React.FC = () => {
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
-  const [isEditingAddress, setIsEditingAddress] = useState<number | null>(null);
   const [showChatSupport, setShowChatSupport] = useState(false);
   const [activeTab, setActiveTab] = useState<"history" | "wallet">("history");
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
@@ -70,9 +64,11 @@ const UserProfile: React.FC = () => {
     dateOfBirth: "",
     gender: "Male",
   });
-  const [addresses, setAddresses] = useState<Address[]>([]);
   const [tempPersonalInfo, setTempPersonalInfo] = useState(personalInfo);
-  const [tempAddress, setTempAddress] = useState<Address | null>(null);
+
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [userAddresses, setUserAddresses] = useState<Address[]>([]);
 
   // Add this state to your UserProfile component
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -114,7 +110,7 @@ const UserProfile: React.FC = () => {
 
       if (response.success) {
         setPasswordSuccess("Password changed successfully!");
-        toast.success("Password updated successfully!")
+        toast.success("Password updated successfully!");
         setPasswordData({
           currentPassword: "",
           newPassword: "",
@@ -200,6 +196,7 @@ const UserProfile: React.FC = () => {
   ];
 
   // In your fetchUserData function - FIXED version
+  // In your fetchUserData function - Update this part
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -218,13 +215,8 @@ const UserProfile: React.FC = () => {
           const user = response.data.user;
 
           console.log("🔍 User data from API - ALL FIELDS:", user);
-          console.log("🔍 Specific fields check:", {
-            dateOfBirth: user.dateOfBirth,
-            gender: user.gender,
-            profilePicture: user.profilePicture,
-          });
+          console.log("🔍 User addresses:", user.addresses); // Check if addresses exist
 
-          // In your fetchUserData - add fallback handling
           setUserData({
             _id: user._id,
             fullName: user.fullName,
@@ -236,8 +228,8 @@ const UserProfile: React.FC = () => {
             createdAt: user.createdAt,
             wallet: user.wallet || { balance: 0 },
             profilePicture: user.profilePicture,
-            dateOfBirth: user.dateOfBirth || "Not set", // Fallback if undefined
-            gender: user.gender || "Not specified", // Fallback if undefined
+            dateOfBirth: user.dateOfBirth || "Not set",
+            gender: user.gender || "Not specified",
             defaultAddress: user.defaultAddress,
           });
 
@@ -245,45 +237,31 @@ const UserProfile: React.FC = () => {
             fullName: user.fullName || "",
             phoneNumber: user.phone || "Not provided",
             email: user.email || "",
-            dateOfBirth: user.dateOfBirth || "Not set", // Fallback if undefined
-            gender: user.gender || "Not specified", // Fallback if undefined
-          });
-
-          console.log("🔍 Personal info set to:", {
-            fullName: user.fullName || "",
-            phoneNumber: user.phone || "Not provided",
-            email: user.email || "",
             dateOfBirth: user.dateOfBirth || "Not set",
             gender: user.gender || "Not specified",
           });
 
-          // Map default address if available
-          if (user.defaultAddress) {
-            setAddresses([
-              {
-                id: 1,
-                type: "Home",
-                address: `${user.defaultAddress.city}, ${user.defaultAddress.state}`,
-                landmark: user.defaultAddress.landmark || "",
-                pincode: user.defaultAddress.pincode,
-              },
-            ]);
+          // Set addresses from user data if available
+          if (user.addresses && Array.isArray(user.addresses)) {
+            setUserAddresses(user.addresses);
           } else {
-            setAddresses([]);
+            setUserAddresses([]);
           }
+
+          console.log("🔍 Addresses set to:", user.addresses);
         } else {
           // Fallback to mock data
           console.log("No user data found, using mock data");
           setUserData(userService.getMockUserData() as any);
           setPersonalInfo(userService.getMockUserData().personalInfo);
-          setAddresses(userService.getMockUserData().addresses);
+          setUserAddresses([]);
         }
       } catch (err) {
         console.error("Error fetching user data:", err);
         setError("Failed to load user data");
         setUserData(userService.getMockUserData() as any);
         setPersonalInfo(userService.getMockUserData().personalInfo);
-        setAddresses(userService.getMockUserData().addresses);
+        setUserAddresses([]);
       } finally {
         setLoading(false);
       }
@@ -363,6 +341,7 @@ const UserProfile: React.FC = () => {
       setError(err.response?.data?.message || "Failed to update profile");
     }
   };
+
   const handleCancelPersonal = () => {
     setTempPersonalInfo(personalInfo);
     setIsEditingPersonal(false);
@@ -425,23 +404,127 @@ const UserProfile: React.FC = () => {
     }
   };
 
-  const handleSaveAddress = (id: number) => {
-    if (tempAddress) {
-      setAddresses(
-        addresses.map((addr) => (addr.id === id ? tempAddress : addr))
+  // Add address handler
+  // In UserProfile.tsx - handleAddAddress function
+  const handleAddAddress = async (addressData: AddressFormData) => {
+    try {
+      console.log(
+        "🔍 [Frontend] Creating address with data:",
+        JSON.stringify(addressData, null, 2)
       );
-      setIsEditingAddress(null);
-      setTempAddress(null);
+
+      setSavingAddress(true);
+      setError(null);
+
+      const response = await userService.createAddress(addressData);
+      console.log("🔍 [Frontend] Address creation response:", response);
+
+      if (response.success && response.data) {
+        console.log(
+          "✅ [Frontend] Address created successfully:",
+          response.data.address
+        );
+
+        // Add new address to the list
+        setUserAddresses((prev) => [...prev, response.data!.address]);
+        setShowAddAddressModal(false);
+        toast.success("Address added successfully!");
+
+        // Force refresh addresses from server
+        const freshResponse = await userService.getUserAddresses();
+        if (freshResponse.success && freshResponse.data) {
+          setUserAddresses(freshResponse.data.addresses);
+          console.log(
+            "🔍 [Frontend] Refreshed addresses:",
+            freshResponse.data.addresses
+          );
+        }
+      } else {
+        console.log("❌ [Frontend] Address creation failed:", response.message);
+        setError(response.message || "Failed to add address");
+      }
+    } catch (err: any) {
+      console.error("❌ [Frontend] Error adding address:", err);
+      setError(err.response?.data?.message || "Failed to add address");
+    } finally {
+      setSavingAddress(false);
     }
   };
 
-  const handleCancelAddress = () => {
-    setIsEditingAddress(null);
-    setTempAddress(null);
-  };
+  // Delete address handler
+  const handleDeleteAddress = async (addressId: string) => {
+  try {
+    const result = await Swal.fire({
+      title: 'Delete Address?',
+      text: "This action cannot be undone.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true,
+    });
 
-  const handleDeleteAddress = (id: number) => {
-    setAddresses(addresses.filter((addr) => addr.id !== id));
+    if (result.isConfirmed) {
+      setError(null);
+
+      // Show loading toast
+      toast.loading('Deleting address...', { id: 'delete-address' });
+
+      const response = await userService.deleteAddress(addressId);
+
+      if (response.success) {
+        // Remove address from the list
+        setUserAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
+        
+        // Update toast to success
+        toast.success('Address deleted successfully!', { 
+          id: 'delete-address',
+          duration: 3000,
+        });
+      } else {
+        // Update toast to error
+        toast.error(response.message || 'Failed to delete address', { 
+          id: 'delete-address',
+          duration: 4000,
+        });
+      }
+    }
+  } catch (err: any) {
+    console.error('Error deleting address:', err);
+    
+    // Update toast to error
+    toast.error(err.response?.data?.message || 'Failed to delete address', { 
+      id: 'delete-address',
+      duration: 4000,
+    });
+  }
+};
+
+  // Set default address handler
+  const handleSetDefaultAddress = async (addressId: string) => {
+    try {
+      setError(null);
+
+      const response = await userService.setDefaultAddress(addressId);
+
+      if (response.success && response.data) {
+        // Update all addresses - set the selected one as default, others as not default
+        setUserAddresses((prev) =>
+          prev.map((addr) => ({
+            ...addr,
+            isDefault: addr.id === addressId,
+          }))
+        );
+        toast.success("Default address updated successfully!");
+      } else {
+        setError(response.message || "Failed to set default address");
+      }
+    } catch (err: any) {
+      console.error("Error setting default address:", err);
+      setError(err.response?.data?.message || "Failed to set default address");
+    }
   };
 
   if (loading) {
@@ -706,132 +789,97 @@ const UserProfile: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Saved Addresses</h2>
-              <button className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 cursor-pointer">
+              <button
+                onClick={() => setShowAddAddressModal(true)}
+                className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 cursor-pointer"
+              >
                 <AddOutlined className="w-4 h-4" />
                 <span className="text-sm">Add New Address</span>
               </button>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {addresses.length > 0 ? (
-                addresses.map((address) => (
+              {userAddresses.length > 0 ? (
+                userAddresses.map((address) => (
                   <div
                     key={address.id}
-                    className="border border-gray-200 rounded-lg p-4"
+                    className={`border rounded-lg p-4 ${
+                      address.isDefault
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200"
+                    }`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center space-x-2">
                         <FmdGoodOutlined className="w-5 h-5 text-blue-600" />
-                        <span className="font-semibold">{address.type}</span>
+                        <div>
+                          <span className="font-semibold">{address.label}</span>
+                          {address.isDefault && (
+                            <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                              Default
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex space-x-2">
-                        <button
-                          onClick={() => {
-                            setIsEditingAddress(address.id);
-                            setTempAddress(address);
-                          }}
-                          className="text-gray-600 hover:text-blue-600"
-                        >
-                          <EditOutlined className="w-4 h-4" />
-                        </button>
+                        {!address.isDefault && (
+                          <button
+                            onClick={() => handleSetDefaultAddress(address.id)}
+                            className="text-gray-600 hover:text-blue-600 text-sm cursor-pointer"
+                            title="Set as default"
+                          >
+                            Set Default
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDeleteAddress(address.id)}
-                          className="text-gray-600 hover:text-red-600"
+                          className="text-gray-600 hover:text-red-600 cursor-pointer"
+                          title="Delete address"
                         >
                           <DeleteOutlineOutlined className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
-                    {isEditingAddress === address.id ? (
-                      <div className="space-y-3">
-                        <input
-                          type="text"
-                          value={tempAddress?.address || ""}
-                          onChange={(e) =>
-                            setTempAddress(
-                              tempAddress
-                                ? {
-                                    ...tempAddress,
-                                    address: e.target.value,
-                                  }
-                                : null
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Address"
-                        />
-                        <input
-                          type="text"
-                          value={tempAddress?.landmark || ""}
-                          onChange={(e) =>
-                            setTempAddress(
-                              tempAddress
-                                ? {
-                                    ...tempAddress,
-                                    landmark: e.target.value,
-                                  }
-                                : null
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Landmark"
-                        />
-                        <input
-                          type="text"
-                          value={tempAddress?.pincode || ""}
-                          onChange={(e) =>
-                            setTempAddress(
-                              tempAddress
-                                ? {
-                                    ...tempAddress,
-                                    pincode: e.target.value,
-                                  }
-                                : null
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Pincode"
-                        />
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={handleCancelAddress}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleSaveAddress(address.id)}
-                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
-                          >
-                            Save
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-sm text-gray-600 mb-1">
-                          {address.address}
-                        </p>
+
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">{address.street}</p>
+                      <p className="text-sm text-gray-600">
+                        {address.city}, {address.state} - {address.pincode}
+                      </p>
+                      {address.landmark && (
                         <p className="text-sm text-gray-500">
-                          Landmark: {address.landmark || "Not specified"}
+                          Landmark: {address.landmark}
                         </p>
-                        <p className="text-sm text-gray-500">
-                          Pincode: {address.pincode}
-                        </p>
-                      </>
-                    )}
+                      )}
+                      <p className="text-xs text-gray-400 mt-2">
+                        Added on{" "}
+                        {new Date(address.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                 ))
               ) : (
                 <div className="col-span-2 text-center py-8">
                   <FmdGoodOutlined className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-500">No addresses saved yet</p>
-                  <button className="mt-2 text-blue-600 hover:text-blue-700 text-sm cursor-pointer">
+                  <button
+                    onClick={() => setShowAddAddressModal(true)}
+                    className="mt-2 text-blue-600 hover:text-blue-700 text-sm cursor-pointer"
+                  >
                     Add your first address
                   </button>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Add Address Modal */}
+          <AddAddressModal
+            isOpen={showAddAddressModal}
+            onClose={() => setShowAddAddressModal(false)}
+            onSave={handleAddAddress}
+            loading={savingAddress}
+          />
 
           {/* Under Development Notice */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
@@ -1142,9 +1190,7 @@ const UserProfile: React.FC = () => {
                     <ShieldOutlined className="w-5 h-5 text-gray-600" />
                     <div>
                       <p className="font-semibold">Password</p>
-                      <p className="text-sm text-gray-600">
-                        **********
-                      </p>
+                      <p className="text-sm text-gray-600">**********</p>
                     </div>
                   </div>
                   {!isChangingPassword && (

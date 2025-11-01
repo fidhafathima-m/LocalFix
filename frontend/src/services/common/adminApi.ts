@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ADMIN_ROUTES } from "../../routes/adminRoutes";
 import api from "../../utils/axiosConfig";
+import type { Address } from "./userProfileApi";
 
 export interface User {
   _id: string;
@@ -22,6 +22,7 @@ export interface User {
   role: string;
   createdAt: string;
   wallet: { balance: number };
+  addresses?: Address[];
 }
 
 export interface Technician {
@@ -243,7 +244,7 @@ export const adminAPI = {
 
     getUserProfile: () => api.get<ApiResponse<UserResponse>>(ADMIN_ROUTES.PUBLIC_USER_PROFILE),
     getPublicUserById: (userId: string) =>
-    api.get<ApiResponse<void>>(ADMIN_ROUTES.PUBLIC_USER_BY_ID(userId)),
+    api.get<ApiResponse<{ user: User }>>(ADMIN_ROUTES.PUBLIC_USER_BY_ID(userId)),
 
   // Technicians
   getTechnicians: (filters: { status?: string } = {}) =>
@@ -430,36 +431,5 @@ getPublicTechnicians: (filters: {
     api.get<ApiResponse<{ items: Item[] }>>(ADMIN_ROUTES.SEARCH_ITEM, {
       params: { q: query, limit },
     }),
-
-    // User profile
-    // In userService.ts - update the updateUserProfile method
-// In userService.ts
-updateUserProfile: (updateData: any) => {
-  // Transform the data to match backend expectations
-  const transformedData = {
-    fullName: updateData.fullName,
-    phone: updateData.phone || updateData.phoneNumber, // Handle both cases
-    email: updateData.email,
-    dateOfBirth: updateData.dateOfBirth,
-    gender: updateData.gender,
-  };
-  
-  console.log("Transformed data for API:", transformedData);
-  return api.put<ApiResponse<any>>(ADMIN_ROUTES.UPDATE_USER_PROFILE, transformedData);
-},
-
-  uploadProfilePicture: (formData: FormData) =>
-    api.post<ApiResponse<any>>(ADMIN_ROUTES.UPDATE_PROFILE_PHOTO, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
-
-    changePassword: (passwordData: {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-  }) =>
-    api.post<ApiResponse<any>>(ADMIN_ROUTES.CHANGE_PASSWORD, passwordData),
 
 };

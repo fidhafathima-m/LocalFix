@@ -25,9 +25,15 @@ import {
   updateUserStatus,
 } from "../../../store/slices/adminSlice";
 import { UserMangementService } from "../../../services/admin/UserManagementService";
+import type { Address } from "../../../services/common/userProfileApi";
 export interface User {
   _id: string;
   fullName: string;
+  dateOfBirth?: string;
+  roles?: string[];
+  profilePicture?: string;
+  profilePictureUrl?: string;
+  gender?: string;
   email?: string;
   phone: string;
   status: "Active" | "Inactive" | "Blocked";
@@ -41,6 +47,8 @@ export interface User {
   role: string;
   createdAt: string;
   wallet: { balance: number };
+  addresses?: Address[];
+  updatedAt?: Date;
 }
 const UserManagement: React.FC = () => {
   const { users, usersLoading } = useAppSelector((state) => state.admin);
@@ -69,7 +77,7 @@ const UserManagement: React.FC = () => {
     ? filteredUsers.filter(
         (u) =>
           u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.email?.toLowerCase().includes(searchQuery.toLowerCase()) 
+          u.email?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : filteredUsers;
 
@@ -321,10 +329,22 @@ const UserManagement: React.FC = () => {
                             {/* User Info */}
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
-                                <div className="h-10 w-10 flex-shrink-0 bg-gray-200 rounded-full flex items-center justify-center">
-                                  <span className="text-gray-600 text-sm font-medium">
-                                    {user.fullName.charAt(0)}
-                                  </span>
+                                <div className="h-10 w-10 flex-shrink-0 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                                  {user.profilePicture ||
+                                  user.profilePictureUrl ? (
+                                    <img
+                                      src={
+                                        user.profilePicture ||
+                                        user.profilePictureUrl
+                                      }
+                                      alt={user.fullName}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="text-gray-600 text-sm font-medium">
+                                      {user.fullName.charAt(0).toUpperCase()}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="ml-4">
                                   <div className="text-sm font-medium text-gray-900">

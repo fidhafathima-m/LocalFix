@@ -3,6 +3,8 @@ import { ResponseHelper } from "../utils/responseHelper";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import { Types } from "mongoose";
 import { UserMapper } from "../mappers/userMapper";
+import { IAddressRepository } from "../interfaces/repository/user/IAddressRepository";
+import { AddressMapper } from "../mappers/addressMapper";
 
 export interface UpdateUserProfileData {
   fullName?: string;
@@ -14,7 +16,10 @@ export interface UpdateUserProfileData {
 }
 
 export class UserProfileService {
-  constructor(private userManagementRepository: IUserManagementRepository) {}
+  constructor(
+    private userManagementRepository: IUserManagementRepository,
+    private addressRepository: IAddressRepository
+  ) {}
 
   // In UserProfileService.ts - FIX the getUserProfile method
   async getUserProfile(userId: string) {
@@ -28,6 +33,9 @@ export class UserProfileService {
       if (user.isDeleted) {
         return ResponseHelper.forbidden("Account has been deleted");
       }
+
+      const addresses = await this.addressRepository.findByUserId(userId);
+      const addressDtos = AddressMapper.toDtoList(addresses);
 
       // FIX: Ensure ALL fields are included in the response
       const userDetailDto = {
@@ -50,6 +58,11 @@ export class UserProfileService {
         defaultAddress: user.defaultAddress,
       };
 
+      const enhancedUserDto = {
+        ...userDetailDto,
+        addresses: addressDtos,
+      };
+
       console.log("🔍 Backend response data:", userDetailDto);
       console.log("🔍 Raw user data from DB:", {
         dateOfBirth: user.dateOfBirth,
@@ -58,7 +71,7 @@ export class UserProfileService {
       });
 
       return ResponseHelper.success("User profile retrieved successfully", {
-        user: userDetailDto,
+        user: enhancedUserDto,
       });
     } catch (error) {
       console.error("Error fetching user profile:", error);

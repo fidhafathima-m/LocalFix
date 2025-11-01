@@ -1,7 +1,9 @@
-import mongoose, { Schema, Document } from "mongoose";
+// models/userAddress.ts
+import mongoose, { Schema, Document, Types } from "mongoose";
 import { IUser } from "../interfaces/user/IUser";
 
 export interface IUserAddress extends Document {
+  _id: Types.ObjectId;
   userId: IUser["_id"];
   label?: string;
   landmark?: string;
@@ -15,23 +17,52 @@ export interface IUserAddress extends Document {
     coordinates: [number, number]; // [lng, lat]
   };
   formattedAddress?: string;
-  placeId?: string; // Google Places ID
+  placeId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const userAddressSchema = new Schema<IUserAddress>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    label: { type: String, default: "Home" },
-    landmark: { type: String },
-    street: { type: String },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
-    pincode: { type: String, required: true },
-    isDefault: { type: Boolean, default: false },
+    userId: { 
+      type: Schema.Types.ObjectId, 
+      ref: "User", 
+      required: true,
+      index: true 
+    },
+    label: { 
+      type: String, 
+      default: "Home" 
+    },
+    landmark: { 
+      type: String 
+    },
+    street: { 
+      type: String, 
+      required: true 
+    },
+    city: { 
+      type: String, 
+      required: true 
+    },
+    state: { 
+      type: String, 
+      required: true 
+    },
+    pincode: { 
+      type: String, 
+      required: true 
+    },
+    isDefault: { 
+      type: Boolean, 
+      default: false 
+    },
     location: {
-      type: { type: String, enum: ["Point"], required: true },
+      type: { 
+        type: String, 
+        enum: ["Point"], 
+        required: true 
+      },
       coordinates: {
         type: [Number],
         required: true,
@@ -49,10 +80,17 @@ const userAddressSchema = new Schema<IUserAddress>(
         },
       },
     },
-    formattedAddress: { type: String },
-    placeId: { type: String },
+    formattedAddress: { 
+      type: String 
+    },
+    placeId: { 
+      type: String 
+    },
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    collection: 'useraddresses' // Explicitly set collection name
+  }
 );
 
 userAddressSchema.index({ location: "2dsphere" });

@@ -377,6 +377,16 @@ const TechnicianManagement: React.FC = () => {
         );
       } else {
         const tech = item as Technician;
+
+        console.log('Technician data:', {
+        id: tech._id,
+        displayName: tech.displayName,
+        phone: tech.phone,
+        userPhone: tech.user?.phone,
+        email: tech.email,
+        userEmail: tech.user?.email,
+        user: tech.user
+      });
         return (
           <tr key={tech._id} className="hover:bg-gray-50">
             <td className="px-6 py-4 whitespace-nowrap">
@@ -398,7 +408,7 @@ const TechnicianManagement: React.FC = () => {
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="text-sm text-gray-900">
-                {tech.user?.phone || "N/A"}
+               {tech.phone || tech.user?.phone || "N/A"}
               </div>
               <div className="text-sm text-gray-500">
                 {tech.user?.email || tech.email}

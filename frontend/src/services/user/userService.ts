@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { adminAPI } from "../common/adminApi";
+import { adminAPI} from "../common/adminApi";
+import { userProfileApi, type Address, type AddressFormData } from "../common/userProfileApi";
+
 
 export const userService = {
   getUserProfile: async () => {
@@ -23,7 +25,7 @@ export const userService = {
 
   updateUserProfile: async (updateData: any) => {
     try {
-      const response = await adminAPI.updateUserProfile(updateData);
+      const response = await userProfileApi.updateUserProfile(updateData);
       return response.data;
     } catch (error) {
       console.error("Error updating user profile:", error);
@@ -36,7 +38,7 @@ export const userService = {
       const formData = new FormData();
       formData.append("profilePicture", file);
 
-      const response = await adminAPI.uploadProfilePicture(formData);
+      const response = await userProfileApi.uploadProfilePicture(formData);
       return response.data;
     } catch (error) {
       console.error("Error uploading profile picture:", error);
@@ -50,7 +52,7 @@ export const userService = {
     confirmPassword: string;
   }) => {
     try {
-      const response = await adminAPI.changePassword(passwordData);
+      const response = await userProfileApi.changePassword(passwordData);
       return response.data;
     } catch (error) {
       console.error("Error changing password:", error);
@@ -81,4 +83,59 @@ export const userService = {
     paymentHistory: [],
     reviews: [],
   }),
+
+   getUserAddresses: async (): Promise<{ success: boolean; data?: { addresses: Address[] }; message?: string }> => {
+    try {
+      // This endpoint needs to be created in your backend
+      const response = await userProfileApi.getUserAddresses();
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching user addresses:", error);
+      throw error;
+    }
+  },
+
+  createAddress: async (addressData: AddressFormData): Promise<{ success: boolean; data?: { address: Address }; message?: string }> => {
+    try {
+      // This endpoint needs to be created in your backend
+      const response = await userProfileApi.createAddress(addressData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating address:", error);
+      throw error;
+    }
+  },
+
+  updateAddress: async (addressId: string, addressData: Partial<AddressFormData>): Promise<{ success: boolean; data?: { address: Address }; message?: string }> => {
+    try {
+      // This endpoint needs to be created in your backend
+      const response = await userProfileApi.updateAddress(addressId, addressData);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating address:", error);
+      throw error;
+    }
+  },
+
+  deleteAddress: async (addressId: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      // This endpoint needs to be created in your backend
+      const response = await userProfileApi.deleteAddress(addressId);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      throw error;
+    }
+  },
+
+  setDefaultAddress: async (addressId: string): Promise<{ success: boolean; data?: { address: Address }; message?: string }> => {
+    try {
+      // This endpoint needs to be created in your backend
+      const response = await userProfileApi.setDefaultAddress(addressId);
+      return response.data;
+    } catch (error) {
+      console.error("Error setting default address:", error);
+      throw error;
+    }
+  },
 };
