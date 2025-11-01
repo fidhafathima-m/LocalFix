@@ -14,11 +14,12 @@ import {
   ExpandMoreOutlined,
   MessageOutlined,
   AddOutlined,
-  CameraAltOutlined
+  CameraAltOutlined,
 } from "@mui/icons-material";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
 import { userService } from "../../../services/user/userService";
+import toast from "react-hot-toast";
 
 interface UserData {
   _id: string;
@@ -73,30 +74,98 @@ const UserProfile: React.FC = () => {
   const [tempPersonalInfo, setTempPersonalInfo] = useState(personalInfo);
   const [tempAddress, setTempAddress] = useState<Address | null>(null);
 
+  // Add this state to your UserProfile component
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
+  // Add this handler function
+  const handleChangePassword = async () => {
+    try {
+      setPasswordError(null);
+      setPasswordSuccess(null);
+
+      // Validate passwords
+      if (
+        !passwordData.currentPassword ||
+        !passwordData.newPassword ||
+        !passwordData.confirmPassword
+      ) {
+        setPasswordError("All fields are required");
+        return;
+      }
+
+      if (passwordData.newPassword.length < 6) {
+        setPasswordError("Password must be at least 6 characters long");
+        return;
+      }
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        setPasswordError("New passwords do not match");
+        return;
+      }
+
+      const response = await userService.changePassword(passwordData);
+
+      if (response.success) {
+        setPasswordSuccess("Password changed successfully!");
+        toast.success("Password updated successfully!")
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        setIsChangingPassword(false);
+      } else {
+        setPasswordError(response.message || "Failed to change password");
+      }
+    } catch (err: any) {
+      console.error("Error changing password:", err);
+      setPasswordError(
+        err.response?.data?.message || "Failed to change password"
+      );
+    }
+  };
+
+  const handleCancelPasswordChange = () => {
+    setIsChangingPassword(false);
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setPasswordError(null);
+    setPasswordSuccess(null);
+  };
+
   const transactions = [
     {
-      id: '#8090',
-      service: 'Refrigerator Repair',
-      amount: '₹1200',
-      date: '15/12/2023',
-      status: 'Paid',
+      id: "#8090",
+      service: "Refrigerator Repair",
+      amount: "₹1200",
+      date: "15/12/2023",
+      status: "Paid",
     },
     {
-      id: '#7899',
-      service: 'TV Repair - Cancelled',
-      amount: '₹800',
-      date: '10/12/2023',
-      status: 'Refund',
+      id: "#7899",
+      service: "TV Repair - Cancelled",
+      amount: "₹800",
+      date: "10/12/2023",
+      status: "Refund",
     },
     {
-      id: '#6789',
-      service: 'AC Service',
-      amount: '₹1500',
-      date: '05/12/2023',
-      status: 'Paid',
+      id: "#6789",
+      service: "AC Service",
+      amount: "₹1500",
+      date: "05/12/2023",
+      status: "Paid",
     },
-  ]
-
+  ];
 
   const reviews: any[] = []; // Empty for now - no reviews yet
 
@@ -130,131 +199,191 @@ const UserProfile: React.FC = () => {
     },
   ];
 
-// In your fetchUserData function
-useEffect(() => {
-  const fetchUserData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // In your fetchUserData function - FIXED version
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const response = await userService.getUserProfile();
-      
-      console.log("🔍 Full API Response:", response); // Debug log
-      
-      if (response.success && response.data) {
-        const user = response.data.user;
-        
-        console.log("🔍 User data from API:", user); // Debug log
-        
-        // Set userData with ALL fields
-        setUserData({
-          _id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          phone: user.phone || "Not provided",
-          status: user.status || "Active",
-          isVerified: user.isVerified,
-          role: user.role || "user",
-          createdAt: user.createdAt,
-          wallet: user.wallet || { balance: 0 },
-          profilePicture: user.profilePictureUrl, // Use the field from API
-          dateOfBirth: user.dateOfBirth, // Use the field from API
-          gender: user.gender, // Use the field from API
-          defaultAddress: user.defaultAddress,
-        });
-        
-        // Map API data to personal info
-        setPersonalInfo({
-          fullName: user.fullName || "",
-          phoneNumber: user.phone || "Not provided",
-          email: user.email || "",
-          dateOfBirth: user.dateOfBirth || "Not set",
-          gender: user.gender || "Not specified",
-        });
+        const response = await userService.getUserProfile();
 
-        console.log("🔍 Personal info set to:", { // Debug log
-          fullName: user.fullName || "",
-          phoneNumber: user.phone || "Not provided",
-          email: user.email || "",
-          dateOfBirth: user.dateOfBirth || "Not set",
-          gender: user.gender || "Not specified",
-        });
+        console.log("🔍 Full API Response:", response);
+        console.log(
+          "🔍 Response data structure:",
+          JSON.stringify(response.data, null, 2)
+        );
 
-        // Map default address if available
-        if (user.defaultAddress) {
-          setAddresses([
-            {
-              id: 1,
-              type: "Home",
-              address: `${user.defaultAddress.city}, ${user.defaultAddress.state}`,
-              landmark: user.defaultAddress.landmark || "",
-              pincode: user.defaultAddress.pincode,
-            },
-          ]);
+        if (response.success && response.data) {
+          const user = response.data.user;
+
+          console.log("🔍 User data from API - ALL FIELDS:", user);
+          console.log("🔍 Specific fields check:", {
+            dateOfBirth: user.dateOfBirth,
+            gender: user.gender,
+            profilePicture: user.profilePicture,
+          });
+
+          // In your fetchUserData - add fallback handling
+          setUserData({
+            _id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            phone: user.phone || "Not provided",
+            status: user.status || "Active",
+            isVerified: user.isVerified,
+            role: user.role || "user",
+            createdAt: user.createdAt,
+            wallet: user.wallet || { balance: 0 },
+            profilePicture: user.profilePicture,
+            dateOfBirth: user.dateOfBirth || "Not set", // Fallback if undefined
+            gender: user.gender || "Not specified", // Fallback if undefined
+            defaultAddress: user.defaultAddress,
+          });
+
+          setPersonalInfo({
+            fullName: user.fullName || "",
+            phoneNumber: user.phone || "Not provided",
+            email: user.email || "",
+            dateOfBirth: user.dateOfBirth || "Not set", // Fallback if undefined
+            gender: user.gender || "Not specified", // Fallback if undefined
+          });
+
+          console.log("🔍 Personal info set to:", {
+            fullName: user.fullName || "",
+            phoneNumber: user.phone || "Not provided",
+            email: user.email || "",
+            dateOfBirth: user.dateOfBirth || "Not set",
+            gender: user.gender || "Not specified",
+          });
+
+          // Map default address if available
+          if (user.defaultAddress) {
+            setAddresses([
+              {
+                id: 1,
+                type: "Home",
+                address: `${user.defaultAddress.city}, ${user.defaultAddress.state}`,
+                landmark: user.defaultAddress.landmark || "",
+                pincode: user.defaultAddress.pincode,
+              },
+            ]);
+          } else {
+            setAddresses([]);
+          }
         } else {
-          setAddresses([]);
+          // Fallback to mock data
+          console.log("No user data found, using mock data");
+          setUserData(userService.getMockUserData() as any);
+          setPersonalInfo(userService.getMockUserData().personalInfo);
+          setAddresses(userService.getMockUserData().addresses);
         }
-      } else {
-        // Fallback to mock data
-        console.log("No user data found, using mock data");
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError("Failed to load user data");
         setUserData(userService.getMockUserData() as any);
         setPersonalInfo(userService.getMockUserData().personalInfo);
         setAddresses(userService.getMockUserData().addresses);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error fetching user data:", err);
-      setError("Failed to load user data");
-      setUserData(userService.getMockUserData() as any);
-      setPersonalInfo(userService.getMockUserData().personalInfo);
-      setAddresses(userService.getMockUserData().addresses);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchUserData();
-}, []);
-
+    fetchUserData();
+  }, []);
 
   const handleSavePersonal = async () => {
     try {
       setError(null);
-      
-      // Prepare update data
+
+      // Validate required fields
+      if (!tempPersonalInfo.fullName.trim()) {
+        setError("Full name is required");
+        return;
+      }
+
+      if (!tempPersonalInfo.phoneNumber.trim()) {
+        setError("Phone number is required");
+        return;
+      }
+
+      // Prepare update data with proper mapping
       const updateData = {
-        fullName: tempPersonalInfo.fullName,
-        phone: tempPersonalInfo.phoneNumber,
-        email: tempPersonalInfo.email,
+        fullName: tempPersonalInfo.fullName.trim(),
+        phone: tempPersonalInfo.phoneNumber.trim(), // Changed to 'phone' to match backend
+        email: tempPersonalInfo.email.trim(),
         dateOfBirth: tempPersonalInfo.dateOfBirth,
         gender: tempPersonalInfo.gender,
       };
 
+      console.log("Sending update data:", updateData);
+
       // Call API to update user
       const response = await userService.updateUserProfile(updateData);
-      
-      if (response.success) {
-        setPersonalInfo(tempPersonalInfo);
-        setUserData(prev => prev ? { ...prev, ...updateData } : null);
+
+      console.log("Update response:", response);
+
+      if (response.success && response.data) {
+        // FIX: Use the actual response structure
+        const updatedUser = response.data.user;
+
+        console.log("Updated user from response:", updatedUser);
+
+        // Update both personalInfo and userData with the response data
+        setPersonalInfo({
+          fullName: updatedUser.fullName || tempPersonalInfo.fullName,
+          phoneNumber: updatedUser.phone || tempPersonalInfo.phoneNumber, // Use 'phone' from response
+          email: updatedUser.email || tempPersonalInfo.email,
+          dateOfBirth: updatedUser.dateOfBirth || tempPersonalInfo.dateOfBirth,
+          gender: updatedUser.gender || tempPersonalInfo.gender,
+        });
+
+        setUserData((prev) =>
+          prev
+            ? {
+                ...prev,
+                fullName: updatedUser.fullName,
+                phone: updatedUser.phone,
+                email: updatedUser.email,
+                dateOfBirth: updatedUser.dateOfBirth,
+                gender: updatedUser.gender,
+              }
+            : null
+        );
+
         setIsEditingPersonal(false);
+
+        // Show success message
+        console.log("Profile updated successfully! Frontend state updated.");
       } else {
         setError(response.message || "Failed to update profile");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error updating profile:", err);
-      setError("Failed to update profile");
+      setError(err.response?.data?.message || "Failed to update profile");
     }
   };
-
   const handleCancelPersonal = () => {
     setTempPersonalInfo(personalInfo);
     setIsEditingPersonal(false);
   };
 
+  // Add this to debug state changes
+  useEffect(() => {
+    console.log("🔄 Current userData:", userData);
+  }, [userData]);
+
+  useEffect(() => {
+    console.log("🔄 Current personalInfo:", personalInfo);
+  }, [personalInfo]);
+
   const handleProfilePictureClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePictureChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -263,13 +392,25 @@ useEffect(() => {
       setError(null);
 
       const response = await userService.uploadProfilePicture(file);
-      
+
       if (response.success && response.data?.profilePictureUrl) {
-        // Update the profile picture in state
-        setUserData(prev => prev ? { 
-          ...prev, 
-          profilePicture: response.data.profilePictureUrl 
-        } : null);
+        // Update the profile picture in state - use profilePicture field
+        setUserData((prev) =>
+          prev
+            ? {
+                ...prev,
+                profilePicture: response.data.profilePictureUrl,
+              }
+            : null
+        );
+
+        // Also update the profile picture immediately in the UI
+        const imgElement = document.querySelector(
+          ".profile-picture"
+        ) as HTMLImageElement;
+        if (imgElement && response.data.profilePictureUrl) {
+          imgElement.src = response.data.profilePictureUrl;
+        }
       } else {
         setError(response.message || "Failed to upload profile picture");
       }
@@ -278,16 +419,17 @@ useEffect(() => {
       setError("Failed to upload profile picture");
     } finally {
       setUploadingPhoto(false);
-      // Reset file input
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
 
   const handleSaveAddress = (id: number) => {
     if (tempAddress) {
-      setAddresses(addresses.map((addr) => (addr.id === id ? tempAddress : addr)));
+      setAddresses(
+        addresses.map((addr) => (addr.id === id ? tempAddress : addr))
+      );
       setIsEditingAddress(null);
       setTempAddress(null);
     }
@@ -322,7 +464,7 @@ useEffect(() => {
         <div className="w-full min-h-screen bg-gray-50 flex justify-center items-center">
           <div className="text-center">
             <p className="text-red-500 mb-4">{error}</p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
@@ -358,15 +500,19 @@ useEffect(() => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="relative">
+                  {/* Add class to profile image */}
                   <img
-                    src={userData?.profilePicture || "https://imgs.search.brave.com/rwE-hC6ESt3hBJZhImPkb-KvU26bLDKVe-OKv1y50-M/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzE0LzQz/LzU1LzE0NDM1NWQ3/YjM2YzVmNjQ2NDM1/NDIzNzk4MjgxY2U5/LmpwZw"}
+                    src={
+                      userData?.profilePicture ||
+                      "https://imgs.search.brave.com/rwE-hC6ESt3hBJZhImPkb-KvU26bLDKVe-OKv1y50-M/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzE0LzQz/LzU1LzE0NDM1NWQ3/YjM2YzVmNjQ2NDM1/NDIzNzk4MjgxY2U5/LmpwZw"
+                    }
                     alt="Profile"
-                    className="w-20 h-20 rounded-full object-cover"
+                    className="w-20 h-20 rounded-full object-cover profile-picture" // Added profile-picture class
                   />
                   <button
                     onClick={handleProfilePictureClick}
                     disabled={uploadingPhoto}
-                    className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors"
+                    className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors cursor-pointer"
                   >
                     {uploadingPhoto ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -394,16 +540,6 @@ useEffect(() => {
                   <p className="text-sm text-gray-600">{personalInfo.email}</p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setIsEditingPersonal(true);
-                  setTempPersonalInfo(personalInfo);
-                }}
-                className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
-              >
-                <EditOutlined className="w-4 h-4" />
-                <span className="text-sm font-medium">Edit Profile</span>
-              </button>
             </div>
           </div>
 
@@ -417,7 +553,7 @@ useEffect(() => {
                     setIsEditingPersonal(true);
                     setTempPersonalInfo(personalInfo);
                   }}
-                  className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                  className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 cursor-pointer"
                 >
                   <EditOutlined className="w-4 h-4" />
                   <span className="text-sm">Edit</span>
@@ -499,14 +635,27 @@ useEffect(() => {
                         dateOfBirth: e.target.value,
                       })
                     }
+                    min={
+                      new Date(new Date().getFullYear() - 100, 0, 1)
+                        .toISOString()
+                        .split("T")[0]
+                    } // 100 years ago
+                    max={
+                      new Date(
+                        new Date().getFullYear() - 15,
+                        new Date().getMonth(),
+                        new Date().getDate()
+                      )
+                        .toISOString()
+                        .split("T")[0]
+                    } // 15 years ago
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 ) : (
                   <p className="font-medium">
-                    {personalInfo.dateOfBirth === "Not set" 
-                      ? "Not set" 
-                      : new Date(personalInfo.dateOfBirth).toLocaleDateString()
-                    }
+                    {personalInfo.dateOfBirth === "Not set"
+                      ? "Not set"
+                      : new Date(personalInfo.dateOfBirth).toLocaleDateString()}
                   </p>
                 )}
               </div>
@@ -539,13 +688,13 @@ useEffect(() => {
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   onClick={handleCancelPersonal}
-                  className="px-6 py-2 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                  className="px-6 py-2 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSavePersonal}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 cursor-pointer"
                 >
                   Save Changes
                 </button>
@@ -557,7 +706,7 @@ useEffect(() => {
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Saved Addresses</h2>
-              <button className="text-blue-600 hover:text-blue-700 flex items-center space-x-1">
+              <button className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 cursor-pointer">
                 <AddOutlined className="w-4 h-4" />
                 <span className="text-sm">Add New Address</span>
               </button>
@@ -598,10 +747,14 @@ useEffect(() => {
                           type="text"
                           value={tempAddress?.address || ""}
                           onChange={(e) =>
-                            setTempAddress(tempAddress ? {
-                              ...tempAddress,
-                              address: e.target.value,
-                            } : null)
+                            setTempAddress(
+                              tempAddress
+                                ? {
+                                    ...tempAddress,
+                                    address: e.target.value,
+                                  }
+                                : null
+                            )
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Address"
@@ -610,10 +763,14 @@ useEffect(() => {
                           type="text"
                           value={tempAddress?.landmark || ""}
                           onChange={(e) =>
-                            setTempAddress(tempAddress ? {
-                              ...tempAddress,
-                              landmark: e.target.value,
-                            } : null)
+                            setTempAddress(
+                              tempAddress
+                                ? {
+                                    ...tempAddress,
+                                    landmark: e.target.value,
+                                  }
+                                : null
+                            )
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Landmark"
@@ -622,10 +779,14 @@ useEffect(() => {
                           type="text"
                           value={tempAddress?.pincode || ""}
                           onChange={(e) =>
-                            setTempAddress(tempAddress ? {
-                              ...tempAddress,
-                              pincode: e.target.value,
-                            } : null)
+                            setTempAddress(
+                              tempAddress
+                                ? {
+                                    ...tempAddress,
+                                    pincode: e.target.value,
+                                  }
+                                : null
+                            )
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Pincode"
@@ -664,7 +825,7 @@ useEffect(() => {
                 <div className="col-span-2 text-center py-8">
                   <FmdGoodOutlined className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-500">No addresses saved yet</p>
-                  <button className="mt-2 text-blue-600 hover:text-blue-700 text-sm">
+                  <button className="mt-2 text-blue-600 hover:text-blue-700 text-sm cursor-pointer">
                     Add your first address
                   </button>
                 </div>
@@ -679,9 +840,12 @@ useEffect(() => {
                 <span className="text-yellow-600 text-sm font-bold">!</span>
               </div>
               <div>
-                <h3 className="font-semibold text-yellow-800">Feature Under Development</h3>
+                <h3 className="font-semibold text-yellow-800">
+                  Feature Under Development
+                </h3>
                 <p className="text-yellow-700 text-sm">
-                  Notifications, Payment History, and Reviews features are currently being developed and will be available soon.
+                  Notifications, Payment History, and Reviews features are
+                  currently being developed and will be available soon.
                 </p>
               </div>
             </div>
@@ -712,7 +876,7 @@ useEffect(() => {
                 Wallet
               </button>
             </div>
-            
+
             {activeTab === "wallet" && (
               <div className="bg-blue-600 rounded-lg p-6 mb-6">
                 <div className="flex items-center justify-between text-white mb-4">
@@ -736,7 +900,7 @@ useEffect(() => {
                 </div>
               </div>
             )}
-            
+
             <div>
               <h3 className="font-semibold mb-3">Transaction History</h3>
               {transactions.length > 0 ? (
@@ -795,7 +959,9 @@ useEffect(() => {
                           Technician: {review.technician}
                         </p>
                       </div>
-                      <span className="text-sm text-gray-500">{review.date}</span>
+                      <span className="text-sm text-gray-500">
+                        {review.date}
+                      </span>
                     </div>
                     <div className="flex items-center space-x-1 mb-2">
                       {[...Array(review.rating)].map((_, i) => (
@@ -977,14 +1143,105 @@ useEffect(() => {
                     <div>
                       <p className="font-semibold">Password</p>
                       <p className="text-sm text-gray-600">
-                        Your password was last changed 3 months ago
+                        **********
                       </p>
                     </div>
                   </div>
+                  {!isChangingPassword && (
+                    <button
+                      onClick={() => setIsChangingPassword(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 cursor-pointer"
+                    >
+                      Change Password
+                    </button>
+                  )}
                 </div>
-                <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
-                  Change Password
-                </button>
+
+                {isChangingPassword && (
+                  <div className="mt-4 space-y-4">
+                    {passwordError && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-red-700 text-sm">{passwordError}</p>
+                      </div>
+                    )}
+                    {passwordSuccess && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p className="text-green-700 text-sm">
+                          {passwordSuccess}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Current Password
+                        </label>
+                        <input
+                          type="password"
+                          value={passwordData.currentPassword}
+                          onChange={(e) =>
+                            setPasswordData({
+                              ...passwordData,
+                              currentPassword: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Enter current password"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={passwordData.newPassword}
+                          onChange={(e) =>
+                            setPasswordData({
+                              ...passwordData,
+                              newPassword: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Enter new password (min 6 characters)"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Confirm New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={passwordData.confirmPassword}
+                          onChange={(e) =>
+                            setPasswordData({
+                              ...passwordData,
+                              confirmPassword: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={handleCancelPasswordChange}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleChangePassword}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 cursor-pointer"
+                      >
+                        Update Password
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

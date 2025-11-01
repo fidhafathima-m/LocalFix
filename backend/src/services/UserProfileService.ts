@@ -16,6 +16,7 @@ export interface UpdateUserProfileData {
 export class UserProfileService {
   constructor(private userManagementRepository: IUserManagementRepository) {}
 
+  // In UserProfileService.ts - FIX the getUserProfile method
   async getUserProfile(userId: string) {
     try {
       const user = await this.userManagementRepository.findById(userId);
@@ -28,6 +29,7 @@ export class UserProfileService {
         return ResponseHelper.forbidden("Account has been deleted");
       }
 
+      // FIX: Ensure ALL fields are included in the response
       const userDetailDto = {
         _id: user._id.toString(),
         fullName: user.fullName,
@@ -35,18 +37,25 @@ export class UserProfileService {
         phone: user.phone,
         status: user.status,
         roles: user.roles,
-        isEmailVerified: user.isVerified,
+        isVerified: user.isVerified,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         applicationStatus: user.applicationStatus,
         lastLogin: user.lastLogin,
         loginCount: user.loginCount,
-        profilePictureUrl: user.profilePictureUrl,
-        dateOfBirth: user.dateOfBirth,
-        gender: user.gender,
+        profilePicture: user.profilePictureUrl, // This maps to profilePictureUrl in database
+        dateOfBirth: user.dateOfBirth, // Make sure this is included
+        gender: user.gender, // Make sure this is included
         wallet: user.wallet,
         defaultAddress: user.defaultAddress,
       };
+
+      console.log("🔍 Backend response data:", userDetailDto);
+      console.log("🔍 Raw user data from DB:", {
+        dateOfBirth: user.dateOfBirth,
+        gender: user.gender,
+        profilePictureUrl: user.profilePictureUrl,
+      });
 
       return ResponseHelper.success("User profile retrieved successfully", {
         user: userDetailDto,
@@ -56,7 +65,7 @@ export class UserProfileService {
       return ResponseHelper.error("Failed to fetch user profile");
     }
   }
-
+  // In UserProfileService.ts - update the updateUserProfile method
   async updateUserProfile(userId: string, updateData: UpdateUserProfileData) {
     try {
       const user = await this.userManagementRepository.findById(userId);
@@ -69,7 +78,7 @@ export class UserProfileService {
         return ResponseHelper.forbidden("Account has been deleted");
       }
 
-      // Build update payload with correct field names
+      // Build update payload with proper field mapping
       const updatePayload: any = {};
 
       if (updateData.fullName !== undefined) {
@@ -91,43 +100,56 @@ export class UserProfileService {
         updatePayload.email = updateData.email;
       }
 
+      // FIX: Ensure dateOfBirth is properly handled
       if (updateData.dateOfBirth !== undefined) {
+        // Handle both string and Date objects
         updatePayload.dateOfBirth = updateData.dateOfBirth;
       }
 
+      // FIX: Ensure gender is properly handled
       if (updateData.gender !== undefined) {
         updatePayload.gender = updateData.gender;
       }
 
-      if (updateData.profilePicture !== undefined) {
-        updatePayload.profilePictureUrl = updateData.profilePicture;
-      }
+      // FIX: Add debug logging
+      console.log("Updating user profile with payload:", updatePayload);
+      console.log("User ID:", userId);
 
+      // FIX: Use findByIdAndUpdate for better reliability
       const updatedUser = await this.userManagementRepository.update(
         userId,
         updatePayload
       );
 
       if (!updatedUser) {
+        console.error("Failed to update user in database");
         return ResponseHelper.error("Failed to update user profile");
       }
 
-      const publicUserDto = {
-        _id: updatedUser._id.toString(),
-        fullName: updatedUser.fullName,
-        email: updatedUser.email,
-        phone: updatedUser.phone || "Not provided",
-        profilePicture: updatedUser.profilePictureUrl,
-        isVerified: updatedUser.isVerified,
-        createdAt: updatedUser.createdAt,
-        defaultAddress: updatedUser.defaultAddress,
-        wallet: updatedUser.wallet || { balance: 0 },
-        status: updatedUser.status || "Active",
-        role: updatedUser.roles?.[0] || "user",
-        dateOfBirth: updatedUser.dateOfBirth || "Not set",
-        gender: updatedUser.gender || "Not specified",
-      };
+      // FIX: Verify the update worked by fetching fresh data
+      const freshUser = await this.userManagementRepository.findById(userId);
 
+      console.log("Fresh user data after update:", {
+        dateOfBirth: freshUser?.dateOfBirth,
+        gender: freshUser?.gender,
+        phone: freshUser?.phone,
+      });
+
+      const publicUserDto = {
+        _id: freshUser!._id.toString(),
+        fullName: freshUser!.fullName,
+        email: freshUser!.email,
+        phone: freshUser!.phone || "Not provided",
+        profilePicture: freshUser!.profilePictureUrl,
+        isVerified: freshUser!.isVerified,
+        createdAt: freshUser!.createdAt,
+        defaultAddress: freshUser!.defaultAddress,
+        wallet: freshUser!.wallet || { balance: 0 },
+        status: freshUser!.status || "Active",
+        role: freshUser!.roles?.[0] || "user",
+        dateOfBirth: freshUser!.dateOfBirth, // FIX: Remove the fallback to see actual data
+        gender: freshUser!.gender, // FIX: Remove the fallback to see actual data
+      };
       return ResponseHelper.success("Profile updated successfully", {
         user: publicUserDto,
       });
@@ -168,6 +190,60 @@ export class UserProfileService {
     } catch (error) {
       console.error("Error uploading profile picture:", error);
       return ResponseHelper.error("Failed to upload profile picture");
+    }
+  }
+  
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string
+  ) {
+    try {
+      const user = await this.userManagementRepository.findById(userId);
+
+      if (!user) {
+        return ResponseHelper.notFound("User not found");
+      }
+
+      if (user.isDeleted) {
+        return ResponseHelper.forbidden("Account has been deleted");
+      }
+
+      // Validate that new password and confirm password match
+      if (newPassword !== confirmPassword) {
+        return ResponseHelper.badRequest("New passwords do not match");
+      }
+
+      // Validate password strength
+      if (newPassword.length < 6) {
+        return ResponseHelper.badRequest("Password must be at least 6 characters long");
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await this.userManagementRepository.verifyPassword(
+        userId,
+        currentPassword
+      );
+
+      if (!isCurrentPasswordValid) {
+        return ResponseHelper.badRequest("Current password is incorrect");
+      }
+
+      // Update password
+      const updatedUser = await this.userManagementRepository.updatePassword(
+        userId,
+        newPassword
+      );
+
+      if (!updatedUser) {
+        return ResponseHelper.error("Failed to update password");
+      }
+
+      return ResponseHelper.success("Password changed successfully");
+    } catch (error) {
+      console.error("Error changing password:", error);
+      return ResponseHelper.error("Failed to change password");
     }
   }
 }

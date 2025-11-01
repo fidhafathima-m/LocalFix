@@ -32,6 +32,7 @@ router.post(
   upload.single("profilePicture"),
   userProfileController.uploadProfilePicture
 );
+router.post("/change-password", protect, userProfileController.changePassword);
 
 // Location routes
 // Location routes - FIXED: Use the controller methods directly

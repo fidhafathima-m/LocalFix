@@ -271,7 +271,7 @@ export class UserManagementService implements IUserManagementService {
       const defaultAddress =
         userAddresses.find((addr) => addr.isDefault) || userAddresses[0];
 
-      // Create complete public user DTO
+      // FIX: Add dateOfBirth and gender to the DTO
       const publicUserDto = {
         _id: user._id.toString(),
         fullName: user.fullName,
@@ -280,6 +280,8 @@ export class UserManagementService implements IUserManagementService {
         profilePicture: user.profilePictureUrl,
         isVerified: user.isVerified,
         createdAt: user.createdAt,
+        dateOfBirth: user.dateOfBirth, // ADD THIS
+        gender: user.gender, // ADD THIS
         defaultAddress: defaultAddress
           ? {
               city: defaultAddress.city,
@@ -293,6 +295,8 @@ export class UserManagementService implements IUserManagementService {
         status: user.status || "Active",
         role: user.roles?.[0] || "user",
       };
+
+      console.log("🔍 Public user DTO:", publicUserDto); // Debug log
 
       return ResponseHelper.success("User retrieved successfully", {
         user: publicUserDto,

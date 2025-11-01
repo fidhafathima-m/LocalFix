@@ -29,4 +29,10 @@ export interface IUserProfileService {
     userId: string,
     file: Express.Multer.File
   ): Promise<UploadProfilePictureResponse>;
+  changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string
+  ): Promise<UserProfileResponse>;
 }

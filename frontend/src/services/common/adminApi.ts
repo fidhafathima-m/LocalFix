@@ -10,7 +10,7 @@ export interface User {
   status: "Active" | "Inactive" | "Blocked";
   dateOfBirth?: string;
   gender?: string;
-  profilePictureUrl?: string;
+  profilePicture?: string;
   defaultAddress?: {
     city: string;
     state: string;
@@ -432,8 +432,21 @@ getPublicTechnicians: (filters: {
     }),
 
     // User profile
-    updateUserProfile: (updateData: any) =>
-    api.put<ApiResponse<any>>(ADMIN_ROUTES.UPDATE_USER_PROFILE, updateData),
+    // In userService.ts - update the updateUserProfile method
+// In userService.ts
+updateUserProfile: (updateData: any) => {
+  // Transform the data to match backend expectations
+  const transformedData = {
+    fullName: updateData.fullName,
+    phone: updateData.phone || updateData.phoneNumber, // Handle both cases
+    email: updateData.email,
+    dateOfBirth: updateData.dateOfBirth,
+    gender: updateData.gender,
+  };
+  
+  console.log("Transformed data for API:", transformedData);
+  return api.put<ApiResponse<any>>(ADMIN_ROUTES.UPDATE_USER_PROFILE, transformedData);
+},
 
   uploadProfilePicture: (formData: FormData) =>
     api.post<ApiResponse<any>>(ADMIN_ROUTES.UPDATE_PROFILE_PHOTO, formData, {
@@ -441,5 +454,12 @@ getPublicTechnicians: (filters: {
         'Content-Type': 'multipart/form-data',
       },
     }),
+
+    changePassword: (passwordData: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) =>
+    api.post<ApiResponse<any>>(ADMIN_ROUTES.CHANGE_PASSWORD, passwordData),
 
 };

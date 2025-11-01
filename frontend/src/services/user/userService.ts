@@ -44,6 +44,20 @@ export const userService = {
     }
   },
 
+  changePassword: async (passwordData: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) => {
+    try {
+      const response = await adminAPI.changePassword(passwordData);
+      return response.data;
+    } catch (error) {
+      console.error("Error changing password:", error);
+      throw error;
+    }
+  },
+
   // Mock data for features under development
   getMockUserData: () => ({
     personalInfo: {

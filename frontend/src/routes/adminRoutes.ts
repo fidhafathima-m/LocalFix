@@ -53,4 +53,5 @@ export const ADMIN_ROUTES = {
   // User profile
   UPDATE_USER_PROFILE: "/user/profile",
   UPDATE_PROFILE_PHOTO: "/user/profile/upload-photo",
+  CHANGE_PASSWORD: "/user/change-password",
 } as const;

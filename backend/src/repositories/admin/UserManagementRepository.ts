@@ -7,6 +7,7 @@ import {
 } from "../../interfaces/admin/IUserManagements";
 import User from "../../models/UserSchema";
 import UserAddress from "../../models/UserAddressSchema";
+import bcrypt from "bcrypt"
 
 export class UserManagementRepository
   extends BaseRepository<IUser>
@@ -108,4 +109,46 @@ export class UserManagementRepository
       return null;
     }
   }
+  async verifyPassword(userId: string, password: string): Promise<boolean> {
+    try {
+      const user = await this.model.findById(userId).select('+passwordHash');
+      
+      if (!user || !user.passwordHash) {
+        return false;
+      }
+
+      // Compare the provided password with the stored hash
+      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      return isPasswordValid;
+    } catch (error) {
+      console.error("Error verifying password:", error);
+      return false;
+    }
+  }
+
+  async updatePassword(userId: string, newPassword: string): Promise<IUser | null> {
+    try {
+      // Hash the new password
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      // Update the user's password
+      const updatedUser = await this.model.findByIdAndUpdate(
+        userId,
+        { 
+          $set: { 
+            passwordHash: hashedPassword,
+            updatedAt: new Date()
+          } 
+        },
+        { new: true }
+      );
+
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating password:", error);
+      return null;
+    }
+  }
+
 }

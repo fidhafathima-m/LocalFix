@@ -96,4 +96,35 @@ export class UserProfileController {
         .json(ResponseHelper.error("Failed to upload profile picture"));
     }
   };
+   changePassword = async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res
+          .status(401)
+          .json(ResponseHelper.error("User not authenticated"));
+      }
+
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+
+      const result = await this.userProfileService.changePassword(
+        userId,
+        currentPassword,
+        newPassword,
+        confirmPassword
+      );
+
+      if (!result.success) {
+        return res.status(result.statusCode || 400).json(result);
+      }
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error("Change password error:", error);
+      return res
+        .status(500)
+        .json(ResponseHelper.error("Failed to change password"));
+    }
+  };
 }

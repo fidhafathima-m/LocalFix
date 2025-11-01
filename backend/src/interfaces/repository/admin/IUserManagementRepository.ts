@@ -16,4 +16,6 @@ export interface IUserManagementRepository extends IBaseRepository<IUser> {
   }>;
   findUserAddresses(userId: string): Promise<any[]>;
   findByEmail(email: string): Promise<IUser | null>;
+  verifyPassword(userId: string, password: string): Promise<boolean>;
+  updatePassword(userId: string, newPassword: string): Promise<IUser | null>;
 }
