@@ -50,4 +50,8 @@ router.post(
   technicianProfileController.uploadDocument
 );
 
+// Add the new routes for slot rules and availability
+router.get("/slot-rules", technicianProfileController.getSlotRules);
+router.get("/technician-availability", technicianProfileController.getTechnicianAvailability);
+
 export default router;

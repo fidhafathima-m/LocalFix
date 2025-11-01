@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useCallback } from "react";
 import {
   ErrorOutlineOutlined,
@@ -40,19 +41,80 @@ interface ApplicationData {
   phone: string;
   status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
   stepsCompleted: string[];
+
+  // Personal Information
   personal: {
     fullName?: string;
     phoneNumber?: string;
     email?: string;
     dateOfBirth?: string;
     gender?: string;
+    languages?: string[];
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      landmark?: string;
+    };
   };
+
+  // Identity & Verification
   identity: {
     idType?: string;
     idNumber?: string;
-    currentAddress?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      landmark?: string;
+    };
+    location?: {
+      coordinates: number[];
+      formattedAddress: string;
+      type?: string;
+    };
+    verified?: boolean;
+    verificationStatus?: "pending" | "approved" | "rejected";
+    verifiedAt?: string;
   };
+
+  // Skills & Services
+  skills: {
+    services?: string[];
+    yearsOfExperience?: number;
+    languages?: string[];
+    bio?: string;
+    serviceAreas?: string[];
+    workRadius?: number;
+  };
+
+  // Availability & Work Preferences
+  availability: {
+    serviceAreas?: string[];
+    workRadius?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    availability?: any; // This will contain the monthly availability data
+  };
+
+  // Banking Details
+  bank: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    upiId?: string;
+    bankName?: string;
+    withdrawalPreference?: string;
+  };
+
+  // Documents
   documents?: Record<string, DocumentInfo>;
+
+  // Agreement
+  agreement?: boolean;
+
+  // Timestamps
   submittedAt?: string;
   reviewNotes?: string;
   rejectionReason?: string;
@@ -930,6 +992,8 @@ const PendingTechnicianApplication: React.FC = () => {
             </div>
           </div>
 
+          <ApplicationDetailsDisplay application={applicationData} />
+
           {applicationData.status === "rejected" && (
             <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-500">
               <div className="flex">
@@ -1067,7 +1131,7 @@ const PendingTechnicianApplication: React.FC = () => {
                   verification
                 </p>
                 <button
-                  onClick={() => (window.location.href = "/technician/apply")}
+                  onClick={() => (window.location.href = "/technicians/apply")}
                   className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
                 >
                   Upload Documents
@@ -1248,3 +1312,452 @@ const PendingTechnicianApplication: React.FC = () => {
 };
 
 export default PendingTechnicianApplication;
+
+// Add this component inside your PendingTechnicianApplication component
+const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
+  application,
+}) => {
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+      <h2 className="text-xl font-semibold border-b pb-3">
+        Application Details
+      </h2>
+
+      {/* Personal Information */}
+      <div className="border rounded-lg p-4">
+        <h3 className="font-medium text-lg mb-3 text-blue-600">
+          Personal Information
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Full Name
+            </label>
+            <p className="text-gray-900">
+              {application.personal?.fullName || "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Phone Number
+            </label>
+            <p className="text-gray-900">
+              {application.personal?.phoneNumber ||
+                application.phone ||
+                "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">Email</label>
+            <p className="text-gray-900">
+              {application.personal?.email || "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Date of Birth
+            </label>
+            <p className="text-gray-900">
+              {application.personal?.dateOfBirth
+                ? new Date(
+                    application.personal.dateOfBirth
+                  ).toLocaleDateString()
+                : "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">Gender</label>
+            <p className="text-gray-900 capitalize">
+              {application.personal?.gender || "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Languages
+            </label>
+            <p className="text-gray-900">
+              {application.personal?.languages?.join(", ") ||
+                application.skills?.languages?.join(", ") ||
+                "Not provided"}
+            </p>
+          </div>
+        </div>
+
+        {/* Address */}
+        {application.personal?.address && (
+          <div className="mt-4 pt-4 border-t">
+            <h4 className="font-medium mb-2">Address</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div>
+                <label className="text-gray-500">Street</label>
+                <p className="text-gray-900">
+                  {application.personal.address.street || "Not provided"}
+                </p>
+              </div>
+              <div>
+                <label className="text-gray-500">City</label>
+                <p className="text-gray-900">
+                  {application.personal.address.city || "Not provided"}
+                </p>
+              </div>
+              <div>
+                <label className="text-gray-500">State</label>
+                <p className="text-gray-900">
+                  {application.personal.address.state || "Not provided"}
+                </p>
+              </div>
+              <div>
+                <label className="text-gray-500">PIN Code</label>
+                <p className="text-gray-900">
+                  {application.personal.address.pincode || "Not provided"}
+                </p>
+              </div>
+              {application.personal.address.landmark && (
+                <div className="md:col-span-2">
+                  <label className="text-gray-500">Landmark</label>
+                  <p className="text-gray-900">
+                    {application.personal.address.landmark}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Identity & Verification */}
+      <div className="border rounded-lg p-4">
+        <h3 className="font-medium text-lg mb-3 text-blue-600">
+          Identity & Verification
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-gray-500">ID Type</label>
+            <p className="text-gray-900 capitalize">
+              {application.identity?.idType
+                ?.replace(/([A-Z])/g, " $1")
+                .trim() || "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              ID Number
+            </label>
+            <p className="text-gray-900 font-mono">
+              {application.identity?.idNumber || "Not provided"}
+            </p>
+          </div>
+          {application.identity?.verificationStatus && (
+            <div>
+              <label className="text-sm font-medium text-gray-500">
+                Verification Status
+              </label>
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  application.identity.verificationStatus === "approved"
+                    ? "bg-green-100 text-green-800"
+                    : application.identity.verificationStatus === "rejected"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }`}
+              >
+                {application.identity.verificationStatus
+                  .charAt(0)
+                  .toUpperCase() +
+                  application.identity.verificationStatus.slice(1)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Identity Address (if different from personal address) */}
+        {application.identity?.address && (
+          <div className="mt-4 pt-4 border-t">
+            <h4 className="font-medium mb-2">Identity Address</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div>
+                <label className="text-gray-500">Street</label>
+                <p className="text-gray-900">
+                  {application.identity.address.street || "Not provided"}
+                </p>
+              </div>
+              <div>
+                <label className="text-gray-500">City</label>
+                <p className="text-gray-900">
+                  {application.identity.address.city || "Not provided"}
+                </p>
+              </div>
+              <div>
+                <label className="text-gray-500">State</label>
+                <p className="text-gray-900">
+                  {application.identity.address.state || "Not provided"}
+                </p>
+              </div>
+              <div>
+                <label className="text-gray-500">PIN Code</label>
+                <p className="text-gray-900">
+                  {application.identity.address.pincode || "Not provided"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Skills & Services */}
+      <div className="border rounded-lg p-4">
+        <h3 className="font-medium text-lg mb-3 text-blue-600">
+          Skills & Services
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium text-gray-500">
+              Services
+            </label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {application.skills?.services &&
+              application.skills.services.length > 0 ? (
+                application.skills.services.map((service, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                  >
+                    {service}
+                  </span>
+                ))
+              ) : (
+                <p className="text-gray-500">No services selected</p>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Years of Experience
+            </label>
+            <p className="text-gray-900">
+              {application.skills?.yearsOfExperience
+                ? `${application.skills.yearsOfExperience} years`
+                : "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Languages
+            </label>
+            <p className="text-gray-900">
+              {application.skills?.languages?.join(", ") || "Not provided"}
+            </p>
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium text-gray-500">
+              Bio/Description
+            </label>
+            <p className="text-gray-900 mt-1 whitespace-pre-wrap">
+              {application.skills?.bio || "Not provided"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Availability & Work Preferences */}
+      <div className="border rounded-lg p-4">
+        <h3 className="font-medium text-lg mb-3 text-blue-600">
+          Availability & Work Preferences
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium text-gray-500">
+              Service Areas
+            </label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {application.availability?.serviceAreas &&
+              application.availability.serviceAreas.length > 0 ? (
+                application.availability.serviceAreas.map((area, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                  >
+                    {area}
+                  </span>
+                ))
+              ) : (
+                <p className="text-gray-500">No service areas selected</p>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Work Radius
+            </label>
+            <p className="text-gray-900">
+              {application.availability?.workRadius
+                ? `${application.availability.workRadius} km`
+                : "Not provided"}
+            </p>
+          </div>
+
+          {/* Monthly Availability Display */}
+          {application.availability?.availability && (
+            <div className="md:col-span-2 mt-4 pt-4 border-t">
+              <h4 className="font-medium mb-3">Monthly Availability</h4>
+              {(() => {
+                try {
+                  const availability =
+                    typeof application.availability.availability === "string"
+                      ? JSON.parse(application.availability.availability)
+                      : application.availability.availability;
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <label className="text-gray-500">Duration</label>
+                          <p className="text-gray-900">
+                            {availability.duration?.months || 3} months
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-gray-500">
+                            Available Weeks
+                          </label>
+                          <p className="text-gray-900">
+                            Weeks{" "}
+                            {availability.availableWeeks?.sort().join(", ") ||
+                              "1, 2, 3, 4"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-gray-500 mb-2 block">
+                          Weekly Schedule
+                        </label>
+                        <div className="space-y-2">
+                          {Object.entries(availability.weeklyPattern || {}).map(
+                            ([day, dayData]: [string, any]) =>
+                              dayData.available && (
+                                <div
+                                  key={day}
+                                  className="flex justify-between items-center py-2 border-b"
+                                >
+                                  <span className="capitalize font-medium">
+                                    {day}
+                                  </span>
+                                  <span className="text-gray-600">
+                                    {dayData.startTime || "09:00"} -{" "}
+                                    {dayData.endTime || "18:00"}
+                                  </span>
+                                </div>
+                              )
+                          )}
+                          {!Object.values(
+                            availability.weeklyPattern || {}
+                          ).some((day: any) => day.available) && (
+                            <p className="text-gray-500 text-center py-4">
+                              No days selected
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } catch (error) {
+                  console.log(error);
+                  return (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                      <p className="text-yellow-700">
+                        Availability data format not recognized
+                      </p>
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Banking Details */}
+      <div className="border rounded-lg p-4">
+        <h3 className="font-medium text-lg mb-3 text-blue-600">
+          Banking Details
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Account Holder Name
+            </label>
+            <p className="text-gray-900">
+              {application.bank?.accountHolderName || "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Bank Name
+            </label>
+            <p className="text-gray-900">
+              {application.bank?.bankName || "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Account Number
+            </label>
+            <p className="text-gray-900 font-mono">
+              {application.bank?.accountNumber
+                ? `•••• ${application.bank.accountNumber.slice(-4)}`
+                : "Not provided"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              IFSC Code
+            </label>
+            <p className="text-gray-900 font-mono">
+              {application.bank?.ifscCode || "Not provided"}
+            </p>
+          </div>
+          {application.bank?.upiId && (
+            <div>
+              <label className="text-sm font-medium text-gray-500">
+                UPI ID
+              </label>
+              <p className="text-gray-900">{application.bank.upiId}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Agreement */}
+      <div className="border rounded-lg p-4">
+        <h3 className="font-medium text-lg mb-3 text-blue-600">
+          Agreement & Consent
+        </h3>
+        <div className="flex items-center">
+          <div
+            className={`h-6 w-6 rounded-full flex items-center justify-center mr-3 ${
+              application.agreement
+                ? "bg-green-100 text-green-600"
+                : "bg-red-100 text-red-600"
+            }`}
+          >
+            {application.agreement ? (
+              <CheckCircleOutlineOutlined className="h-4 w-4" />
+            ) : (
+              <CancelOutlined className="h-4 w-4" />
+            )}
+          </div>
+          <span
+            className={
+              application.agreement ? "text-green-700" : "text-red-700"
+            }
+          >
+            {application.agreement
+              ? "Terms and conditions agreed"
+              : "Terms and conditions not agreed"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};

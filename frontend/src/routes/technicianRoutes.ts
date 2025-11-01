@@ -1,5 +1,4 @@
 export const TECHNICIAN_ROUTES = {
-
   // Profile routes
   PROFILE: {
     BASE: "/technician/profile",
@@ -10,7 +9,10 @@ export const TECHNICIAN_ROUTES = {
     SKILLS_SERVICES: "/technician/profile/skills-services",
     AVAILABILITY: "/technician/profile/availability",
     BANK_PAYMENT: "/technician/profile/bank-payment",
-    UPDATE_PASSWORD: '/technician/profile/password'
+    UPDATE_PASSWORD: '/technician/profile/password',
+    // Add these new routes without technicianId parameter
+    SLOT_RULES: "/technician/profile/slot-rules",
+    TECHNICIAN_AVAILABILITY: "/technician/profile/technician-availability"
   },
   
   // Address routes
@@ -29,7 +31,7 @@ export const TECHNICIAN_ROUTES = {
       `/technician-application/${applicationId}/resubmit`,
     START_NEW_AFTER_REJECTION:
       "/technician-application/start-new-after-rejection",
-      EDIT: (applicationId: string) => 
-        `/technician-application/${applicationId}/edit`
+    EDIT: (applicationId: string) => 
+      `/technician-application/${applicationId}/edit`
   },
 } as const;

@@ -74,36 +74,4 @@ export function validateNestedFields(
   return nestedErrors;
 }
 
-type AvailabilityDay = {
-  available: boolean;
-  startTime?: string;
-  endTime?: string;
-};
 
-type Availability = Record<string, AvailabilityDay>;
-
-export function validateAvailability(
-  availability: Availability
-): Record<string, string> {
-  const errors: Record<string, string> = {};
-
-  Object.entries(availability).forEach(([day, dayData]) => {
-    if (dayData.available) {
-      if (!dayData.startTime) {
-        errors[`startTime-${day}`] = `Start time required for ${day}`;
-      }
-      if (!dayData.endTime) {
-        errors[`endTime-${day}`] = `End time required for ${day}`;
-      }
-      if (
-        dayData.startTime &&
-        dayData.endTime &&
-        dayData.startTime >= dayData.endTime
-      ) {
-        errors[`time-${day}`] = `End time must be after start time for ${day}`;
-      }
-    }
-  });
-
-  return errors;
-}

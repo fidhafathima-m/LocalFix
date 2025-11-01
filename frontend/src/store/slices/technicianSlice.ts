@@ -72,6 +72,9 @@ export interface ApplicationData {
     serviceAreas?: string[];
     workRadius?: string;
     availability?: {
+      weeklyPattern: { [key: string]: { available: boolean; startTime: string; endTime: string; }; };
+      availableWeeks: number[];
+      duration: { months: number; startDate: Date; };
       monday: { available: boolean; startTime: string; endTime: string };
       tuesday: { available: boolean; startTime: string; endTime: string };
       wednesday: { available: boolean; startTime: string; endTime: string };

@@ -102,15 +102,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    console.log("=== AXIOS INTERCEPTOR DEBUG ===");
-    console.log("Error status:", error.response?.status);
-    console.log("Error data:", error.response?.data);
-    console.log("Error code:", error.response?.data?.code);
-    console.log("Error message:", error.response?.data?.message);
-    console.log("URL:", originalRequest?.url);
-    console.log("Is retry:", originalRequest?._retry);
-
-    // Handle token expiration (401 errors) - IMPROVED DETECTION
+    // Handle token expiration (401 errors)
     if (error.response?.status === 401 && !originalRequest?._retry) {
       const errorData = error.response?.data;
       const isTokenExpired = 
@@ -149,7 +141,8 @@ api.interceptors.response.use(
         if (!refreshToken) {
           console.log("No refresh token found, redirecting to login");
           clearTokens();
-          window.location.href = "/login";
+          // Use replace instead of href to avoid beforeunload
+          window.location.replace("/login");
           return Promise.reject(error);
         }
 
@@ -161,7 +154,6 @@ api.interceptors.response.use(
           const newAccessToken = refreshResponse.accessToken || refreshResponse.data?.accessToken;
           const newRefreshToken = refreshResponse.refreshToken || refreshResponse.data?.refreshToken;
 
-          // FIX: Check the response structure properly
           if (refreshResponse.success && refreshResponse.data?.accessToken && newAccessToken && newRefreshToken) {
             console.log("Token refresh successful, updating tokens...");
             
@@ -177,14 +169,14 @@ api.interceptors.response.use(
             return api(originalRequest);
           } else {
             console.log("Token refresh failed - invalid response structure");
-            console.log("Expected accessToken in response.data");
             throw new Error("Token refresh failed");
           }
         } catch (refreshError) {
           console.log("Token refresh error:", refreshError);
           processQueue(refreshError, null);
           clearTokens();
-          window.location.href = "/login?message=session_expired";
+          // Use replace instead of href to avoid beforeunload
+          window.location.replace("/login?message=session_expired");
           return Promise.reject(refreshError);
         } finally {
           isRefreshing = false;
@@ -196,7 +188,6 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       console.log("Unauthorized access, clearing tokens...");
       clearTokens();
-      window.location.href = "/login?message=unauthorized";
       return Promise.reject(error);
     }
 

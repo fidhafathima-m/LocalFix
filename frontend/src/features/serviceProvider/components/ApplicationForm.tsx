@@ -9,7 +9,9 @@ import { ApplicationSubmitted } from "../pages/ApplicationSubmitted";
 import { validateStepSchema } from "../../../validation";
 import {
   stepSchemas,
+  validateMonthlyAvailability,
   type AgreementData,
+  type AvailabilityData,
   type BankingData,
   type DocumentsData,
   type IdentityData,
@@ -27,8 +29,8 @@ import { TechnicianApplicationService } from "../../../services/technician/techn
 import type { ApplicationData } from "../../../store/slices/technicianSlice";
 import Swal from "sweetalert2";
 import {
-  AvailabilitySelector,
-  type AvailabilityDatas,
+  MonthlyAvailabilitySelector,
+  type MonthlyAvailability,
 } from "./AvailabilitySelector";
 
 const STEPS = [
@@ -112,7 +114,7 @@ interface FormDataState {
   // Step 4: Availability & Work Preferences
   serviceAreas: string[];
   workRadius: string;
-  availability: AvailabilityDatas;
+  availability: MonthlyAvailability;
   // Step 5: Banking Details
   accountHolderName: string;
   accountNumber: string;
@@ -140,28 +142,29 @@ interface FileMetadata {
 }
 
 // Helper function to create default availability
-const createDefaultAvailability = (): AvailabilityDatas => {
-  const defaultSlots = [
-    { start: "08:00", end: "09:00", available: false },
-    { start: "09:00", end: "10:00", available: false },
-    { start: "10:00", end: "11:00", available: false },
-    { start: "11:00", end: "12:00", available: false },
-    { start: "12:00", end: "13:00", available: false },
-    { start: "13:00", end: "14:00", available: false },
-    { start: "14:00", end: "15:00", available: false },
-    { start: "15:00", end: "16:00", available: false },
-    { start: "16:00", end: "17:00", available: false },
-    { start: "17:00", end: "18:00", available: false },
+// In ApplicationForm.tsx, update the helper function:
+const createDefaultMonthlyAvailability = (): MonthlyAvailability => {
+  const days = [
+    "monday", "tuesday", "wednesday", "thursday", 
+    "friday", "saturday", "sunday"
   ];
+  const weeklyPattern: any = {};
+
+  days.forEach((day) => {
+    weeklyPattern[day] = {
+      available: false, // Default to false, will be overridden by actual data
+      startTime: "09:00",
+      endTime: "18:00",
+    };
+  });
 
   return {
-    monday: { available: false, slots: [...defaultSlots] },
-    tuesday: { available: false, slots: [...defaultSlots] },
-    wednesday: { available: false, slots: [...defaultSlots] },
-    thursday: { available: false, slots: [...defaultSlots] },
-    friday: { available: false, slots: [...defaultSlots] },
-    saturday: { available: false, slots: [...defaultSlots] },
-    sunday: { available: false, slots: [...defaultSlots] },
+    duration: {
+      months: 3,
+      startDate: new Date(),
+    },
+    availableWeeks: [1, 2, 3, 4], // Default to all weeks
+    weeklyPattern,
   };
 };
 
@@ -219,7 +222,7 @@ export const ApplicationForm: React.FC = () => {
     // Step 4: Availability & Work Preferences
     serviceAreas: [],
     workRadius: "",
-    availability: createDefaultAvailability(),
+    availability: createDefaultMonthlyAvailability(),
     // Step 5: Banking Details
     accountHolderName: "",
     accountNumber: "",
@@ -233,71 +236,6 @@ export const ApplicationForm: React.FC = () => {
     // Step 7: Agreement & Consent
     agreement: false,
   });
-
-  // Convert old availability format to new format
-  const convertOldToNewAvailability = (
-    oldAvailability: any
-  ): AvailabilityDatas => {
-    const defaultAvailability = createDefaultAvailability();
-
-    if (!oldAvailability) return defaultAvailability;
-
-    try {
-      const parsedAvailability =
-        typeof oldAvailability === "string"
-          ? JSON.parse(oldAvailability)
-          : oldAvailability;
-
-      const days = [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday",
-      ] as const;
-      const newAvailability: AvailabilityDatas = { ...defaultAvailability };
-
-      days.forEach((day) => {
-        const oldDayData = parsedAvailability[day];
-        if (oldDayData && typeof oldDayData === "object") {
-          newAvailability[day] = {
-            available: Boolean(oldDayData.available),
-            slots: defaultAvailability[day].slots.map((slot) => ({
-              ...slot,
-              available:
-                Boolean(oldDayData.available) &&
-                slot.start >= (oldDayData.startTime || "08:00") &&
-                slot.end <= (oldDayData.endTime || "18:00"),
-            })),
-          };
-        }
-      });
-
-      return newAvailability;
-    } catch (error) {
-      console.error("Error converting availability format:", error);
-      return defaultAvailability;
-    }
-  };
-
-  // Convert new availability format to old format for backend compatibility
-  const convertNewToOldAvailability = (
-    newAvailability: AvailabilityDatas
-  ): any => {
-    const oldFormat: any = {};
-
-    Object.entries(newAvailability).forEach(([day, dayData]) => {
-      oldFormat[day] = {
-        available: dayData.available,
-        startTime: "08:00",
-        endTime: "18:00",
-      };
-    });
-
-    return oldFormat;
-  };
 
   useEffect(() => {
     // Create a global flag to block redirects
@@ -335,22 +273,6 @@ export const ApplicationForm: React.FC = () => {
     hasRestoredFromLocalStorage,
     user?.applicationStatus,
   ]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if ((window as any).__BLOCK_REDIRECTS__) {
-        event.preventDefault();
-        event.returnValue = "";
-        return "";
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, []);
 
   useEffect(() => {
     console.log("ApplicationForm State:", {
@@ -435,76 +357,107 @@ export const ApplicationForm: React.FC = () => {
   }, []);
 
   const populateFormWithExistingData = (appData: ApplicationData) => {
-    if (!appData) {
-      console.error("No application data provided for population");
-      return;
-    }
+  if (!appData) {
+    console.error("No application data provided for population");
+    return;
+  }
 
-    try {
-      // Convert availability data to new format
-      let availabilityData = createDefaultAvailability();
-      if (appData.availability) {
-        availabilityData = convertOldToNewAvailability(appData.availability);
+  try {
+    // Handle availability data conversion - FIX NESTED ACCESS
+    let availabilityData = createDefaultMonthlyAvailability();
+    
+    // CORRECTED: Access the nested availability object
+    const availabilityFromDB = appData.availability?.availability;
+    
+    if (availabilityFromDB) {
+      try {
+        console.log("Original availability data from DB:", availabilityFromDB);
+
+        const convertedAvailability = {
+          ...availabilityFromDB,
+          duration: availabilityFromDB.duration ? {
+            ...availabilityFromDB.duration,
+            startDate: availabilityFromDB.duration.startDate 
+              ? new Date(availabilityFromDB.duration.startDate)
+              : new Date()
+          } : availabilityData.duration
+        };
+        
+        // Use the nested availability data directly
+        availabilityData = {
+          duration: convertedAvailability.duration || availabilityData.duration,
+          availableWeeks: convertedAvailability.availableWeeks || availabilityData.availableWeeks,
+          weeklyPattern: convertedAvailability.weeklyPattern || availabilityData.weeklyPattern,
+        };
+
+      } catch (error) {
+        console.error("Error converting availability:", error);
+        // Fall back to default availability
+        availabilityData = createDefaultMonthlyAvailability();
       }
-
-      const personalInfo = appData.personal || {};
-
-      setFormData((prev) => ({
-        ...prev,
-        // Personal Information
-        fullName: personalInfo.fullName || user?.fullName || "",
-        phoneNumber: personalInfo.phoneNumber || user?.phone || "",
-        email: personalInfo.email || user?.email || "",
-        dateOfBirth: personalInfo.dateOfBirth || "",
-        gender: personalInfo.gender || "",
-
-        // Identity & Verification
-        idType: appData.identity?.idType || "",
-        idNumber: appData.identity?.idNumber || "",
-        address: {
-          street: appData.identity?.address?.street || "",
-          city: appData.identity?.address?.city || "",
-          state: appData.identity?.address?.state || "",
-          pincode: appData.identity?.address?.pincode || "",
-          landmark: appData.identity?.address?.landmark || "",
-        },
-        location: appData.identity?.location || prev.location,
-
-        // Skills & Services
-        services: appData.skills?.services || [],
-        yearsOfExperience: appData.skills?.yearsOfExperience?.toString() || "",
-        languages: appData.skills?.languages || [],
-        bio: appData.skills?.bio || "",
-
-        // Availability & Work Preferences
-        serviceAreas: appData.availability?.serviceAreas || [],
-        workRadius: appData.availability?.workRadius?.toString() || "",
-        availability: availabilityData,
-
-        // Banking Details
-        accountHolderName: appData.bank?.accountHolderName || "",
-        accountNumber: appData.bank?.accountNumber || "",
-        ifscCode: appData.bank?.ifscCode || "",
-        upiId: appData.bank?.upiId || "",
-        bankName: appData.bank?.bankName || "",
-
-        // Agreement
-        agreement: appData.agreement || false,
-      }));
-
-      // Handle documents separately
-      const documentMetadata = convertDocumentsToFileMetadata(
-        appData.documents
-      );
-      setFormData((prev) => ({
-        ...prev,
-        ...documentMetadata,
-      }));
-    } catch (error) {
-      console.error("Error populating form data:", error);
-      toast.error("Error loading application data");
     }
-  };
+
+    const personalInfo = appData.personal || {};
+
+    setFormData((prev) => ({
+      ...prev,
+      // Personal Information
+      fullName: personalInfo.fullName || user?.fullName || "",
+      phoneNumber: personalInfo.phoneNumber || user?.phone || "",
+      email: personalInfo.email || user?.email || "",
+      dateOfBirth: personalInfo.dateOfBirth || "",
+      gender: personalInfo.gender || "",
+
+      // Identity & Verification
+      idType: appData.identity?.idType || "",
+      idNumber: appData.identity?.idNumber || "",
+      address: {
+        street: appData.identity?.address?.street || "",
+        city: appData.identity?.address?.city || "",
+        state: appData.identity?.address?.state || "",
+        pincode: appData.identity?.address?.pincode || "",
+        landmark: appData.identity?.address?.landmark || "",
+      },
+      location: appData.identity?.location || prev.location,
+
+      // Skills & Services
+      services: appData.skills?.services || [],
+      yearsOfExperience: appData.skills?.yearsOfExperience?.toString() || "",
+      languages: appData.skills?.languages || [],
+      bio: appData.skills?.bio || "",
+
+      // Availability & Work Preferences - USE THE CORRECTLY ACCESSED DATA
+      serviceAreas: appData.availability?.serviceAreas || [],
+      workRadius: appData.availability?.workRadius?.toString() || "",
+      availability: availabilityData,
+
+      // Banking Details
+      accountHolderName: appData.bank?.accountHolderName || "",
+      accountNumber: appData.bank?.accountNumber || "",
+      ifscCode: appData.bank?.ifscCode || "",
+      upiId: appData.bank?.upiId || "",
+      bankName: appData.bank?.bankName || "",
+
+      // Agreement
+      agreement: appData.agreement || false,
+    }));
+
+    // Handle documents separately
+    const documentMetadata = convertDocumentsToFileMetadata(
+      appData.documents
+    );
+    setFormData((prev) => ({
+      ...prev,
+      ...documentMetadata,
+    }));
+
+    console.log("Form data populated successfully");
+    console.log("Final availability data in form:", availabilityData);
+  } catch (error) {
+    console.error("Error populating form data:", error);
+    toast.error("Error loading application data");
+  }
+};
 
   // Helper function to handle document conversion
   const convertDocumentsToFileMetadata = (
@@ -1213,20 +1166,16 @@ export const ApplicationForm: React.FC = () => {
         }
         break;
       }
+      // In the validateStepFields function, update case 4:
       case 4: {
-        // Convert new availability format to compatible format for validation
-        const compatibleAvailability = convertNewToOldAvailability(
-          formData.availability
-        );
-
         const step4Data = {
           serviceAreas: formData.serviceAreas,
           workRadius: formData.workRadius,
-          availability: compatibleAvailability,
+          availability: formData.availability,
         };
 
-        // Use any type for validation since we're converting the format
-        const availabilityValidation = validateStepSchema<any>(
+        // Use the new schema for validation
+        const availabilityValidation = validateStepSchema<AvailabilityData>(
           stepSchemas[4],
           step4Data
         );
@@ -1235,13 +1184,12 @@ export const ApplicationForm: React.FC = () => {
           stepErrors = availabilityValidation.errors;
         }
 
-        // Additional validation for at least one available day
-        const hasAvailableDay = Object.values(formData.availability).some(
-          (day) => day.available
+        // Additional custom validation
+        const customAvailabilityErrors = validateMonthlyAvailability(
+          formData.availability
         );
-        if (!hasAvailableDay) {
-          stepErrors.availability = "Please select at least one available day";
-        }
+        stepErrors = { ...stepErrors, ...customAvailabilityErrors };
+
         break;
       }
       case 5: {
@@ -1386,11 +1334,7 @@ export const ApplicationForm: React.FC = () => {
           if (field === "agreement") {
             stepForm.append(field, value ? "true" : "false");
           } else if (field === "availability") {
-            // Convert new availability format to compatible format for backend
-            const compatibleAvailability = convertNewToOldAvailability(
-              formData.availability
-            );
-            stepForm.append(field, JSON.stringify(compatibleAvailability));
+            stepForm.append(field, JSON.stringify(formData.availability));
           } else if (
             (field === "address" || field === "location") &&
             typeof value === "object"
@@ -2220,6 +2164,7 @@ export const ApplicationForm: React.FC = () => {
             nextButtonText={isLoading ? "Saving..." : undefined}
           >
             <div className="space-y-6">
+              {/* Service Areas */}
               <div>
                 <label className="block mb-2 font-medium text-gray-700">
                   Service Areas <span className="text-red-500">*</span>
@@ -2253,12 +2198,14 @@ export const ApplicationForm: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                {errors.serviceAreas && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.serviceAreas}
+                  </p>
+                )}
               </div>
-              {errors.serviceAreas && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.serviceAreas}
-                </p>
-              )}
+
+              {/* Work Radius */}
               <div>
                 <label className="block mb-1 font-medium text-gray-700">
                   Preferred Work Radius <span className="text-red-500">*</span>
@@ -2283,11 +2230,13 @@ export const ApplicationForm: React.FC = () => {
                   </p>
                 )}
               </div>
+
+              {/* Monthly Availability */}
               <div>
                 <label className="block mb-2 font-medium text-gray-700">
-                  Weekly Availability <span className="text-red-500">*</span>
+                  Monthly Availability <span className="text-red-500">*</span>
                 </label>
-                <AvailabilitySelector
+                <MonthlyAvailabilitySelector
                   value={formData.availability}
                   onChange={(newAvailability) => {
                     setFormData((prev) => ({
@@ -2302,8 +2251,8 @@ export const ApplicationForm: React.FC = () => {
                   </p>
                 )}
                 <p className="text-xs text-gray-500 mt-2">
-                  Select your available days and time slots. Customers will be
-                  able to book appointments during these times.
+                  Set your availability pattern for the coming months. This will
+                  automatically generate your available time slots.
                 </p>
               </div>
             </div>
@@ -2863,13 +2812,26 @@ export const ApplicationForm: React.FC = () => {
                     <div className="md:col-span-2">
                       <span className="text-gray-600">Available Days:</span>
                       <p className="font-medium">
-                        {Object.entries(formData.availability)
-                          .filter(([, day]) => day.available)
+                        {Object.entries(formData.availability.weeklyPattern)
+                          .filter(([, day]: [string, any]) => day.available)
                           .map(
                             ([day]) =>
                               day.charAt(0).toUpperCase() + day.slice(1)
                           )
                           .join(", ") || "No days selected"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Duration:</span>
+                      <p className="font-medium">
+                        {formData.availability.duration.months} months
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Available Weeks:</span>
+                      <p className="font-medium">
+                        Weeks{" "}
+                        {formData.availability.availableWeeks.sort().join(", ")}
                       </p>
                     </div>
                   </div>

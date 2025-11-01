@@ -37,14 +37,18 @@ export interface PersonalInfoDto {
 }
 
 export interface IdentityInfoDto {
-  governmentIdType?: string;
-  governmentIdNumber?: string;
-  idDocument?: string;
+  idType?: string;
+  idNumber?: string;
+  address?: any; // or create a proper AddressDto
+  location?: LocationDto;
   verified?: boolean;
   verificationStatus?: "pending" | "approved" | "rejected";
   verifiedAt?: Date;
-  location?: LocationDto;
-  address?: string | AddressDto;
+  
+  // Remove or keep these as fallbacks
+  governmentIdType?: string;
+  governmentIdNumber?: string;
+  idDocument?: any;
 }
 
 export interface SkillsInfoDto {

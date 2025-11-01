@@ -2,6 +2,43 @@
 import { TECHNICIAN_ROUTES } from "../../routes/technicianRoutes";
 import api from "../../utils/axiosConfig";
 
+export interface SlotRule {
+  _id: string;
+  technicianId: string;
+  name: string;
+  rruleString: string;
+  startTime: string;
+  endTime: string;
+  slotDurationMinutes: number;
+  bookingBufferBeforeMinutes: number;
+  bookingBufferAfterMinutes: number;
+  maxBookingsPerSlot: number;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TimeSlot {
+  start: string;
+  end: string;
+  status: "available" | "booked" | "blocked";
+  maxBookings: number;
+  currentBookings: number;
+}
+
+export interface TechnicianAvailability {
+  _id: string;
+  technicianId: string;
+  date: string;
+  timeSlots: TimeSlot[];
+  isRecurring: boolean;
+  slotRuleId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TechnicianProfile {
   _id: string;
   userId: string;
@@ -30,6 +67,8 @@ export interface TechnicianProfile {
     languages?: string[];
   };
   identityVerification?: {
+    governmentIdType?: string;
+    governmentIdNumber?: string;
     idType?: string;
     idNumber?: string;
     idDocument?: string;
@@ -157,32 +196,80 @@ const normalizeResponse = (response: any) => {
 
 export const technicianAPI = {
   getProfile: async () => {
-  try {
-    // ✅ ADD CACHE BUSTING HERE
-    const timestamp = new Date().getTime();
-    const response = await api.get<{
-      success: boolean;
-      message: string;
-      data: { profile: TechnicianProfile };
-      statusCode: number;
-    }>(`${TECHNICIAN_ROUTES.PROFILE.BASE}?nocache=${timestamp}`); // Add timestamp to URL
-    
-    console.log('🔄 Fresh API call with cache busting, timestamp:', timestamp);
-    return normalizeResponse(response);
-  } catch (error: any) {
-    if (error.response?.data) {
-      return normalizeResponse(error.response.data);
+    try {
+      // ✅ ADD CACHE BUSTING HERE
+      const timestamp = new Date().getTime();
+      const response = await api.get<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>(`${TECHNICIAN_ROUTES.PROFILE.BASE}?nocache=${timestamp}`); // Add timestamp to URL
+      
+      console.log('🔄 Fresh API call with cache busting, timestamp:', timestamp);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to get profile",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
     }
-    return {
-      success: false,
-      message: error.message || "Failed to get profile",
-      error: "Network error",
-      data: null,
-      statusCode: 500,
-    };
-  }
-},
+  },
 
+  // Add the new availability methods
+  getSlotRules: async () => {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        message: string;
+        data: { slotRules: SlotRule[] };
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.PROFILE.SLOT_RULES);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to get slot rules",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
+    }
+  },
+
+  getTechnicianAvailability: async () => {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        message: string;
+        data: { availability: TechnicianAvailability[] };
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.PROFILE.TECHNICIAN_AVAILABILITY);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to get technician availability",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
+    }
+  },
+
+  // Add routes for slot rules and availability in your TECHNICIAN_ROUTES
   updateProfile: async (data: Partial<TechnicianProfile>) => {
     try {
       const response = await api.put<{
@@ -418,49 +505,50 @@ export const technicianAPI = {
     }
   },
 
-getApplicationForEdit: async (applicationId: string) => {
-  try {
-    console.log('🔍 getApplicationForEdit called with ID:', applicationId);
-    console.log('🔍 Route being called:', TECHNICIAN_ROUTES.APPLICATION.EDIT(applicationId));
-    
-    // First try the edit endpoint
+  getApplicationForEdit: async (applicationId: string) => {
     try {
-      const response = await api.get<{
-        success: boolean;
-        message: string;
-        data: { application: ApplicationData };
-        statusCode: number;
-      }>(TECHNICIAN_ROUTES.APPLICATION.EDIT(applicationId)); 
-      console.log('🔍 getApplicationForEdit response:', response.data);
-      return normalizeResponse(response);
-    } catch (editError: any) {
-      console.log('❌ Edit endpoint failed, falling back to regular endpoint:', editError.message);
+      console.log('🔍 getApplicationForEdit called with ID:', applicationId);
+      console.log('🔍 Route being called:', TECHNICIAN_ROUTES.APPLICATION.EDIT(applicationId));
       
-      // Fallback to regular getApplication endpoint
-      const fallbackResponse = await api.get<{
-        success: boolean;
-        message: string;
-        data: { application: ApplicationData };
-        statusCode: number;
-      }>(TECHNICIAN_ROUTES.APPLICATION.BY_ID(applicationId));
-      
-      console.log('🔍 Fallback response:', fallbackResponse.data);
-      return normalizeResponse(fallbackResponse);
+      // First try the edit endpoint
+      try {
+        const response = await api.get<{
+          success: boolean;
+          message: string;
+          data: { application: ApplicationData };
+          statusCode: number;
+        }>(TECHNICIAN_ROUTES.APPLICATION.EDIT(applicationId)); 
+        console.log('🔍 getApplicationForEdit response:', response.data);
+        return normalizeResponse(response);
+      } catch (editError: any) {
+        console.log('❌ Edit endpoint failed, falling back to regular endpoint:', editError.message);
+        
+        // Fallback to regular getApplication endpoint
+        const fallbackResponse = await api.get<{
+          success: boolean;
+          message: string;
+          data: { application: ApplicationData };
+          statusCode: number;
+        }>(TECHNICIAN_ROUTES.APPLICATION.BY_ID(applicationId));
+        
+        console.log('🔍 Fallback response:', fallbackResponse.data);
+        return normalizeResponse(fallbackResponse);
+      }
+    } catch (error: any) {
+      console.error('❌ Both endpoints failed:', error);
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to get application for editing",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
     }
-  } catch (error: any) {
-    console.error('❌ Both endpoints failed:', error);
-    if (error.response?.data) {
-      return normalizeResponse(error.response.data);
-    }
-    return {
-      success: false,
-      message: error.message || "Failed to get application for editing",
-      error: "Network error",
-      data: null,
-      statusCode: 500,
-    };
-  }
-},
+  },
+
   // technician profile
   uploadPhoto: async (formData: FormData) => {
     try {
@@ -533,31 +621,30 @@ getApplicationForEdit: async (applicationId: string) => {
     }
   },
 
-  // Add to your technicianAPI
-uploadDocument: async (formData: FormData) => {
-  try {
-    const response = await api.post<{
-      success: boolean;
-      message: string;
-      data: { document: any };
-      statusCode: number;
-    }>(TECHNICIAN_ROUTES.PROFILE.UPLOAD_DOCUMENT, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return normalizeResponse(response);
-  } catch (error: any) {
-    if (error.response?.data) {
-      return normalizeResponse(error.response.data);
+  uploadDocument: async (formData: FormData) => {
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data: { document: any };
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.PROFILE.UPLOAD_DOCUMENT, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to upload document",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
     }
-    return {
-      success: false,
-      message: error.message || "Failed to upload document",
-      error: "Network error",
-      data: null,
-      statusCode: 500,
-    };
-  }
-},
+  },
 
   updateSkillsServices: async (data: {
     services: string[];
@@ -588,41 +675,50 @@ uploadDocument: async (formData: FormData) => {
   },
 
   updateAvailability: async (data: {
-    availability: {
-      isAvailable: boolean;
-      weeklyAvailability: {
-        [key: string]: {
-          enabled: boolean;
-          startTime: string;
-          endTime: string;
-        };
+  availability: {
+    isAvailable: boolean;
+    weeklyAvailability: {
+      [key: string]: {
+        enabled: boolean;
+        startTime: string;
+        endTime: string;
       };
     };
-    workAreas: string[];
-    serviceRadiusKm: number;
-  }) => {
-    try {
-      const response = await api.put<{
-        success: boolean;
-        message: string;
-        data: { profile: TechnicianProfile };
-        statusCode: number;
-      }>(TECHNICIAN_ROUTES.PROFILE.AVAILABILITY, data);
-      return normalizeResponse(response);
-    } catch (error: any) {
-      if (error.response?.data) {
-        return normalizeResponse(error.response.data);
-      }
-      return {
-        success: false,
-        message: error.message || "Failed to update availability",
-        error: "Network error",
-        data: null,
-        statusCode: 500,
-      };
-    }
-  },
+    availableWeeks?: number[]; // Add this
+  };
+  serviceAreas: string[];
+  workRadius: number;
+}) => {
+  try {
+    // Map frontend field names to backend expected names
+    const backendData = {
+      availability: data.availability,
+      workAreas: data.serviceAreas,        // Map serviceAreas → workAreas
+      serviceRadiusKm: data.workRadius,    // Map workRadius → serviceRadiusKm
+    };
 
+    console.log('🌐 API - Sending to backend:', backendData);
+
+    const response = await api.put<{
+      success: boolean;
+      message: string;
+      data: { profile: TechnicianProfile };
+      statusCode: number;
+    }>(TECHNICIAN_ROUTES.PROFILE.AVAILABILITY, backendData);
+    return normalizeResponse(response);
+  } catch (error: any) {
+    if (error.response?.data) {
+      return normalizeResponse(error.response.data);
+    }
+    return {
+      success: false,
+      message: error.message || "Failed to update availability",
+      error: "Network error",
+      data: null,
+      statusCode: 500,
+    };
+  }
+},
   updateBankPayment: async (data: {
     paymentDetails: {
       bankAccount: {
@@ -656,6 +752,7 @@ uploadDocument: async (formData: FormData) => {
       };
     }
   },
+
   updatePassword: async (data: {
     currentPassword: string;
     newPassword: string;

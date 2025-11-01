@@ -1,3 +1,5 @@
+import { ITimeSlot } from "@/models/technician/SlotRuleSchema";
+
 export interface SetAvailabilityRequest {
   days: string[]; // ['monday', 'tuesday', ...]
   startTime: string;
@@ -8,23 +10,17 @@ export interface SetAvailabilityRequest {
 }
 
 export interface ITechnicianAvailabilityService {
-  setAvailability(
+  createTechnicianAvailabilityFromApplication(
     technicianId: string,
-    data: SetAvailabilityRequest
-  ): Promise<void>;
-  createDefaultSlotRules(technicianId: string): Promise<void>;
-  getAvailability(technicianId: string, date: Date): Promise<any>;
-  getWeeklyAvailability(technicianId: string, startDate: Date): Promise<any[]>;
-  updateTimeSlot(
+    applicationAvailability: any
+  ): Promise<void>
+  getAvailableSlots(
+      technicianId: string,
+      startDate: Date,
+      endDate: Date
+    ): Promise<Array<{ date: Date; slots: ITimeSlot[] }>>
+    updateTechnicianAvailability(
     technicianId: string,
-    date: Date,
-    slotIndex: number,
-    updates: any
-  ): Promise<any>;
-  blockTimeSlot(
-    technicianId: string,
-    date: Date,
-    startTime: string,
-    endTime: string
-  ): Promise<any>;
+    newAvailabilityConfig: any
+  ): Promise<void>
 }

@@ -19,17 +19,23 @@ export interface PersonalInfoUpdateDto {
   profilePicture?: string;
 }
 
+// In your backend DTO interfaces
 export interface IdentityVerificationUpdateDto {
-  idType?: string;
-  idNumber?: string;
-  idDocument?: string;
-
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    pincode?: string;
-    landmark?: string;
+  identityVerification?: {
+    idType?: string;
+    idNumber?: string;
+    idDocument?: string;
+    verificationStatus?: string;
+    verified?: boolean;
+  };
+  personalInfo?: {
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      landmark?: string;
+    };
   };
 }
 
@@ -40,10 +46,21 @@ export interface SkillsServicesUpdateDto {
 }
 
 export interface AvailabilityPreferencesUpdateDto {
-  isAvailable?: boolean;
+  availability?: {
+    isAvailable: boolean;
+    weeklyAvailability?: {
+      [key: string]: {
+        enabled: boolean;
+        startTime: string;
+        endTime: string;
+      };
+    };
+    availableWeeks?: number[]; // Add this line
+  };
+  workAreas?: string[];
   serviceAreas?: string[];
   workRadius?: number;
-  weeklyAvailability?: Record<string, any>;
+  serviceRadiusKm?: number;
 }
 
 export interface BankPaymentUpdateDto {

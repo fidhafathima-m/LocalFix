@@ -30,7 +30,6 @@
   import { ItemRepository } from "../repositories/admin/ItemManagementRepository";
   import { ItemService } from "../services/ItemManagementService";
   import { ItemController } from "../controllers/admin/itemManagementController";
-  import { TechnicianAvailabilityRepository } from "../repositories/technician/TechnicianAvailabilityRepository";
   import { PublicUserController } from "../controllers/admin/publicUserManagement";
   import { UserProfileService } from "../services/UserProfileService";
   import { UserProfileController } from "../controllers/user/userProfileController";
@@ -62,13 +61,11 @@
   const technicianRepository = new TechnicianRepository();
   const technicianDocumentRepository = new TechnicianDocumentRepository();
   const userRepository = new UserRepository();
-  const availabilityRepository = new TechnicianAvailabilityRepository();
   const technicianApplicationService = new TechnicianApplicationService(
     technicianApplicationRepository,
     technicianRepository,
     technicianDocumentRepository,
     userRepository,
-    availabilityRepository
   );
   const technicianApplicationController = new TechnicianApplicationController(
     technicianApplicationService

@@ -48,7 +48,10 @@ export interface TechnicianDetails {
     isAvailable: boolean;
     schedule: Array<{
       day: string;
-      slots: Array<{ start: string; end: string }>;
+      slots: Array<{
+        start: string;
+        end: string;
+      }>;
     }>;
   };
 }

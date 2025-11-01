@@ -80,6 +80,7 @@ export interface AddressDto {
   city: string;
   state: string;
   pincode: string;
+  landmark?: string
 }
 
 export interface DocumentDto {
@@ -126,6 +127,9 @@ export interface ApplicationDetailDto {
   resubmittedCount: number;
   lastSubmittedAt?: Date;
   submittedAt?: Date;
+  agreement?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 export interface ApplicationPersonalDto {
   fullName: string;
@@ -147,11 +151,13 @@ export interface SkillsDto {
 }
 
 export interface IdentityDto {
-  governmentIdType: string;
-  governmentIdNumber: string;
-  idDocument: string;
+  idType?: string;
+  idNumber?: string;
   verified: boolean;
   verificationStatus: string;
+  address?: AddressDto;
+  location?: any;
+  verifiedAt?: Date;
 }
 
 export interface ApplicationAvailabilityDto {

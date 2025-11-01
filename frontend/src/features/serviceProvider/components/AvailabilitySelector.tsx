@@ -1,228 +1,202 @@
+// components/technician/MonthlyAvailabilitySelector.tsx
 import React, { useState } from "react";
 
-export interface TimeSlot {
-  start: string;
-  end: string;
-  available: boolean;
-}
-
-export interface DayAvailability {
-  available: boolean;
-  slots: TimeSlot[];
-}
-
-export interface AvailabilityDatas {
-  monday: DayAvailability;
-  tuesday: DayAvailability;
-  wednesday: DayAvailability;
-  thursday: DayAvailability;
-  friday: DayAvailability;
-  saturday: DayAvailability;
-  sunday: DayAvailability;
-}
-
-interface AvailabilitySelectorProps {
-  value: AvailabilityDatas;
-  onChange: (availability: AvailabilityDatas) => void;
-}
-
-const TIME_SLOTS = [
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-];
-
-export const AvailabilitySelector: React.FC<AvailabilitySelectorProps> = ({
-  value,
-  onChange,
-}) => {
-  const [bulkStartTime, setBulkStartTime] = useState("09:00");
-  const [bulkEndTime, setBulkEndTime] = useState("18:00");
-
-  const toggleDayAvailability = (day: keyof AvailabilityDatas) => {
-    const current = value[day];
-    const newAvailability = {
-      ...value,
-      [day]: {
-        ...current,
-        available: !current.available,
-      },
-    };
-    onChange(newAvailability);
+export interface MonthlyAvailability {
+  duration: {
+    months: number;
+    startDate: Date;
   };
-
-  const toggleTimeSlot = (day: keyof AvailabilityDatas, slotIndex: number) => {
-    const dayAvailability = value[day];
-    const newSlots = [...dayAvailability.slots];
-    newSlots[slotIndex] = {
-      ...newSlots[slotIndex],
-      available: !newSlots[slotIndex].available,
+  availableWeeks: number[]; // Week numbers (1-4) in each month
+  weeklyPattern: {
+    [key: string]: {
+      available: boolean;
+      startTime: string;
+      endTime: string;
     };
-
-    const newAvailability = {
-      ...value,
-      [day]: {
-        ...dayAvailability,
-        slots: newSlots,
-        available: newSlots.some((slot) => slot.available),
-      },
-    };
-    onChange(newAvailability);
   };
+}
 
-  const applyBulkSlots = () => {
-    const newAvailability = { ...value };
+interface MonthlyAvailabilitySelectorProps {
+  value: MonthlyAvailability;
+  onChange: (availability: MonthlyAvailability) => void;
+}
 
-    (Object.keys(newAvailability) as Array<keyof AvailabilityDatas>).forEach(
-      (day) => {
-        const dayAvailability = newAvailability[day];
+export const MonthlyAvailabilitySelector: React.FC<
+  MonthlyAvailabilitySelectorProps
+> = ({ value, onChange }) => {
+  const [duration, setDuration] = useState(value.duration.months || 3);
 
-        if (dayAvailability.available) {
-          const newSlots = dayAvailability.slots.map((slot) => ({
-            ...slot,
-            available: slot.start >= bulkStartTime && slot.end <= bulkEndTime,
-          }));
-
-          newAvailability[day] = {
-            ...dayAvailability,
-            slots: newSlots,
-          };
-        }
-      }
-    );
-
-    onChange(newAvailability);
-  };
-
-  const DAYS = [
-    { key: "monday" as const, label: "Monday" },
-    { key: "tuesday" as const, label: "Tuesday" },
-    { key: "wednesday" as const, label: "Wednesday" },
-    { key: "thursday" as const, label: "Thursday" },
-    { key: "friday" as const, label: "Friday" },
-    { key: "saturday" as const, label: "Saturday" },
-    { key: "sunday" as const, label: "Sunday" },
+  const monthOptions = [1, 2, 3, 6, 12];
+  const weekOptions = [1, 2, 3, 4];
+  const days = [
+    { key: "monday", label: "Monday" },
+    { key: "tuesday", label: "Tuesday" },
+    { key: "wednesday", label: "Wednesday" },
+    { key: "thursday", label: "Thursday" },
+    { key: "friday", label: "Friday" },
+    { key: "saturday", label: "Saturday" },
+    { key: "sunday", label: "Sunday" },
   ];
+
+  const handleDurationChange = (months: number) => {
+    const newValue = {
+      ...value,
+      duration: {
+        months,
+        startDate: new Date(),
+      },
+    };
+    setDuration(months);
+    onChange(newValue);
+  };
+
+  const handleWeekToggle = (week: number) => {
+    const newAvailableWeeks = value.availableWeeks.includes(week)
+      ? value.availableWeeks.filter((w) => w !== week)
+      : [...value.availableWeeks, week];
+
+    onChange({
+      ...value,
+      availableWeeks: newAvailableWeeks,
+    });
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleDayChange = (day: string, field: string, newValue: any) => {
+    onChange({
+      ...value,
+      weeklyPattern: {
+        ...value.weeklyPattern,
+        [day]: {
+          ...value.weeklyPattern[day],
+          [field]: newValue,
+        },
+      },
+    });
+  };
 
   return (
     <div className="space-y-6">
-      {/* Bulk Time Selection */}
+      {/* Duration Selection */}
       <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-medium text-gray-800 mb-3">
-          Quick Set Available Times
-        </h4>
-        <div className="flex flex-wrap gap-4 items-end">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Time
-            </label>
-            <select
-              value={bulkStartTime}
-              onChange={(e) => setBulkStartTime(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+        <h3 className="text-lg font-medium mb-3">Availability Duration</h3>
+        <div className="flex flex-wrap gap-2">
+          {monthOptions.map((months) => (
+            <button
+              key={months}
+              type="button"
+              onClick={() => handleDurationChange(months)}
+              className={`px-4 py-2 rounded-md ${
+                duration === months
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 border border-gray-300"
+              }`}
             >
-              {TIME_SLOTS.map((time) => (
-                <option key={time} value={time}>
-                  {time}
-                </option>
-              ))}
-            </select>
+              {months} {months === 1 ? "Month" : "Months"}
+            </button>
+          ))}
+        </div>
+        <p className="text-sm text-gray-600 mt-2">
+          How long will this availability pattern be effective?
+        </p>
+      </div>
+
+      {/* Weekly Pattern */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h3 className="text-lg font-medium mb-3">
+          Weekly Availability Pattern
+        </h3>
+
+        {/* Week Selection */}
+        <div className="mb-4">
+          <h4 className="font-medium mb-2">Available Weeks in Month</h4>
+          <div className="flex gap-2">
+            {weekOptions.map((week) => (
+              <button
+                key={week}
+                type="button"
+                onClick={() => handleWeekToggle(week)}
+                className={`px-3 py-1 rounded-md text-sm ${
+                  value.availableWeeks.includes(week)
+                    ? "bg-green-600 text-white"
+                    : "bg-white text-gray-700 border border-gray-300"
+                }`}
+              >
+                Week {week}
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Time
-            </label>
-            <select
-              value={bulkEndTime}
-              onChange={(e) => setBulkEndTime(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+        </div>
+
+        {/* Daily Schedule */}
+        <div className="space-y-3">
+          {days.map((day) => (
+            <div
+              key={day.key}
+              className="flex items-center justify-between p-3 bg-white rounded-md border"
             >
-              {TIME_SLOTS.map((time) => (
-                <option key={time} value={time}>
-                  {time}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="button"
-            onClick={applyBulkSlots}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Apply to Selected Days
-          </button>
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  checked={value.weeklyPattern[day.key]?.available || false}
+                  onChange={(e) =>
+                    handleDayChange(day.key, "available", e.target.checked)
+                  }
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="font-medium">{day.label}</span>
+              </div>
+
+              {value.weeklyPattern[day.key]?.available && (
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={value.weeklyPattern[day.key]?.startTime || "09:00"}
+                    onChange={(e) =>
+                      handleDayChange(day.key, "startTime", e.target.value)
+                    }
+                    className="px-2 py-1 border border-gray-300 rounded text-sm"
+                  >
+                    {Array.from({ length: 13 }, (_, i) => {
+                      const hour = i + 8; // 8 AM to 8 PM
+                      return `${hour.toString().padStart(2, "0")}:00`;
+                    }).map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                  <span>to</span>
+                  <select
+                    value={value.weeklyPattern[day.key]?.endTime || "18:00"}
+                    onChange={(e) =>
+                      handleDayChange(day.key, "endTime", e.target.value)
+                    }
+                    className="px-2 py-1 border border-gray-300 rounded text-sm"
+                  >
+                    {Array.from({ length: 13 }, (_, i) => {
+                      const hour = i + 9; // 9 AM to 9 PM
+                      return `${hour.toString().padStart(2, "0")}:00`;
+                    }).map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Days and Time Slots */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Day
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Available
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Time Slots
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {DAYS.map((dayObj) => {
-              const dayAvailability = value[dayObj.key];
-
-              return (
-                <tr key={dayObj.key}>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {dayObj.label}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={dayAvailability.available}
-                      onChange={() => toggleDayAvailability(dayObj.key)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                  </td>
-                  <td className="px-4 py-4">
-                    {dayAvailability.available ? (
-                      <div className="flex flex-wrap gap-2">
-                        {dayAvailability.slots.map((slot, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => toggleTimeSlot(dayObj.key, index)}
-                            className={`px-3 py-1 text-xs rounded-full border ${
-                              slot.available
-                                ? "bg-green-100 text-green-800 border-green-300"
-                                : "bg-gray-100 text-gray-600 border-gray-300"
-                            }`}
-                          >
-                            {slot.start} - {slot.end}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-sm">
-                        Not available
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* Summary */}
+      <div className="bg-blue-50 p-4 rounded-md">
+        <h4 className="font-medium text-blue-800 mb-2">Availability Summary</h4>
+        <p className="text-sm text-blue-700">
+          You'll be available for <strong>{duration} months</strong>, during{" "}
+          <strong>weeks {value.availableWeeks.sort().join(", ")}</strong> of
+          each month, on selected days with your specified timings.
+        </p>
       </div>
     </div>
   );

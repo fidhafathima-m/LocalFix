@@ -10,27 +10,47 @@ export class TechnicianService {
       throw this.handleError(error, "Failed to get technician profile");
     }
   }
-  static async updateAvailability(data: {
-    availability: {
-      isAvailable: boolean;
-      weeklyAvailability: {
-        [key: string]: {
-          enabled: boolean;
-          startTime: string;
-          endTime: string;
-        };
-      };
-    };
-    workAreas: string[];
-    serviceRadiusKm: number;
-  }) {
+  static async getTechnicianAvailability() {
     try {
-      const response = await technicianAPI.updateAvailability(data);
+      const response = await technicianAPI.getTechnicianAvailability();
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error, "Failed to update availability");
+      throw this.handleError(error, "Failed to get technician availability");
     }
   }
+  static async getSlotRules() {
+    try {
+      const response = await technicianAPI.getSlotRules();
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to get technician availability");
+    }
+  }
+ static async updateAvailability(data: {
+  availability: {
+    isAvailable: boolean;
+    weeklyAvailability: {
+      [key: string]: {
+        enabled: boolean;
+        startTime: string;
+        endTime: string;
+      };
+    };
+    availableWeeks?: number[]; // Add this
+  };
+  serviceAreas: string[];
+  workRadius: number;
+}) {
+  try {
+    console.log('🔧 Service - Sending to API:', data);
+    const response = await technicianAPI.updateAvailability(data);
+    console.log('🔧 Service - API response:', response);
+    return this.handleResponse(response);
+  } catch (error) {
+    throw this.handleError(error, "Failed to update availability");
+  }
+}
+
   static async updateBankPayment(data: {
     paymentDetails: {
       bankAccount: {

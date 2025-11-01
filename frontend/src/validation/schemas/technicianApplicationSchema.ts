@@ -119,6 +119,22 @@ export const availabilitySchema = z.object({
   sunday: dayAvailabilitySchema,
 });
 
+export const monthlyAvailabilitySchema = z.object({
+  duration: z.object({
+    months: z.number().min(1).max(12, "Duration must be between 1-12 months"),
+    startDate: z.date().optional(),
+  }),
+  availableWeeks: z.array(z.number().min(1).max(4)).min(1, "Select at least one week"),
+  weeklyPattern: z.record(
+    z.string(),
+    z.object({
+      available: z.boolean(),
+      startTime: z.string().min(1, "Start time is required"),
+      endTime: z.string().min(1, "End time is required"),
+    })
+  ),
+});
+
 // Age validation
 export const validateAge = (
   dateOfBirth: string,
@@ -216,9 +232,14 @@ export const skillsSchema = z.object({
 export const availabilityStepSchema = z.object({
   serviceAreas: z.array(z.string()).min(1, "Select at least one service area"),
   workRadius: requiredString,
-  availability: availabilitySchema.refine(
-    (avail) => Object.values(avail).some((day) => day.available),
-    "Select at least one day of availability"
+  availability: monthlyAvailabilitySchema.refine(
+    (avail) => {
+      // Check if at least one day is available
+      return Object.values(avail.weeklyPattern).some((day) => day.available);
+    },
+    {
+      message: "Select at least one available day",
+    }
   ),
 });
 
@@ -249,31 +270,64 @@ export const agreementSchema = z.object({
     message: "You must agree to the terms and conditions",
   }),
 });
-
-export const validateAvailability = (
+export const validateMonthlyAvailability = (
   availability: any
 ): Record<string, string> => {
   const errors: Record<string, string> = {};
 
-  Object.entries(availability).forEach(([day, dayData]: [string, any]) => {
-    if (dayData.available) {
-      const startTime = new Date(`2000-01-01T${dayData.startTime}`);
-      const endTime = new Date(`2000-01-01T${dayData.endTime}`);
+  if (!availability || typeof availability !== 'object') {
+    return { availability: "Availability configuration is required" };
+  }
 
-      if (startTime >= endTime) {
-        errors[`${day}Time`] = `End time must be after start time for ${day}`;
-      }
-
-      // Validate time format
-      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-      if (
-        !timeRegex.test(dayData.startTime) ||
-        !timeRegex.test(dayData.endTime)
-      ) {
-        errors[`${day}Format`] = `Invalid time format for ${day}`;
-      }
+  // Validate duration
+  if (!availability.duration || typeof availability.duration !== 'object') {
+    errors.duration = "Duration is required";
+  } else {
+    if (!availability.duration.months || availability.duration.months < 1) {
+      errors.duration = "Valid duration in months is required";
     }
-  });
+  }
+
+  // Validate available weeks
+  if (!availability.availableWeeks || !Array.isArray(availability.availableWeeks) || availability.availableWeeks.length === 0) {
+    errors.availableWeeks = "Select at least one available week";
+  }
+
+  // Validate weekly pattern
+  if (!availability.weeklyPattern || typeof availability.weeklyPattern !== 'object') {
+    errors.weeklyPattern = "Weekly pattern is required";
+  } else {
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    days.forEach(day => {
+      const dayData = availability.weeklyPattern[day];
+      if (dayData && dayData.available) {
+        // Validate time format for available days
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        
+        if (!dayData.startTime || !timeRegex.test(dayData.startTime)) {
+          errors[`${day}StartTime`] = `Valid start time required for ${day}`;
+        }
+        
+        if (!dayData.endTime || !timeRegex.test(dayData.endTime)) {
+          errors[`${day}EndTime`] = `Valid end time required for ${day}`;
+        }
+        
+        // Validate start time is before end time
+        if (dayData.startTime && dayData.endTime && dayData.startTime >= dayData.endTime) {
+          errors[`${day}TimeRange`] = `End time must be after start time for ${day}`;
+        }
+      }
+    });
+
+    // Check if at least one day is available
+    const hasAvailableDay = Object.values(availability.weeklyPattern).some(
+      (day: any) => day.available
+    );
+    if (!hasAvailableDay) {
+      errors.availability = "Select at least one available day";
+    }
+  }
 
   return errors;
 };
@@ -292,6 +346,7 @@ export const stepSchemas = {
 export type PersonalInfoData = z.infer<typeof personalInfoSchema>;
 export type IdentityData = z.infer<typeof identityStepSchema>;
 export type SkillsData = z.infer<typeof skillsSchema>;
+export type MonthlyAvailabilityData = z.infer<typeof monthlyAvailabilitySchema>;
 export type AvailabilityData = z.infer<typeof availabilityStepSchema>;
 export type BankingData = z.infer<typeof bankingSchema>;
 export type DocumentsData = z.infer<typeof documentsSchema>;

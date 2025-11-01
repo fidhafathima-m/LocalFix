@@ -37,7 +37,7 @@ import {
 } from "@/interfaces/dtos/technicianApplicationDtos";
 import { TechnicianApplicationMapper } from "../mappers/technicianApplicationMappers";
 import { ITechnicianAvailabilityService } from "@/interfaces/services/technician/ITechnicianAvailabilityService";
-import { ITechnicianAvailabilityRepository } from "@/interfaces/repository/technician/ITechncianAvailabilityRepository";
+import { TechnicianAvailabilityService } from "./AvailabilityService";
 
 // Interface definitions
 interface AddressData {
@@ -88,20 +88,17 @@ export class TechnicianApplicationService
   private technicianRepository: ITechnicianRepository;
   private documentRepository: ITechnicianDocumentRepository;
   private userRepository: IUserRepository;
-  private availabilityRepository: ITechnicianAvailabilityRepository;
 
   constructor(
     applicationRepository: ITechnicianApplicationRepository,
     technicianRepository: ITechnicianRepository,
     documentRepository: ITechnicianDocumentRepository,
     userRepository: IUserRepository,
-    availabilityRepository: ITechnicianAvailabilityRepository
   ) {
     this.applicationRepository = applicationRepository;
     this.technicianRepository = technicianRepository;
     this.documentRepository = documentRepository;
     this.userRepository = userRepository;
-    this.availabilityRepository = availabilityRepository;
   }
 
   async startApplication(
@@ -538,216 +535,35 @@ export class TechnicianApplicationService
     }
   }
 
-  private async handleAvailabilityStep(
-    application: ITechnicianApplication,
-    stepData: StepData
-  ): Promise<void> {
-    if (!application.technicianId) {
-      console.warn("No technician ID found for availability setup");
-      return;
-    }
+  // In your existing TechnicianApplicationService.ts - update the handleAvailabilityStep method:
 
-    const availabilityData = stepData.availability;
-    if (!availabilityData || typeof availabilityData !== "object") {
-      console.warn("No availability data provided");
-      return;
-    }
-
-    try {
-      // Convert the old format to new slot-based system
-      const daysMap: { [key: string]: string } = {
-        monday: "monday",
-        tuesday: "tuesday",
-        wednesday: "wednesday",
-        thursday: "thursday",
-        friday: "friday",
-        saturday: "saturday",
-        sunday: "sunday",
-      };
-
-      const availableDays: string[] = [];
-      const availabilityConfig: {
-        [key: string]: { startTime: string; endTime: string };
-      } = {};
-
-      for (const [day, dayData] of Object.entries(availabilityData)) {
-        if (daysMap[day] && (dayData as any).available === true) {
-          availableDays.push(day);
-          availabilityConfig[day] = {
-            startTime: (dayData as any).startTime || "09:00",
-            endTime: (dayData as any).endTime || "18:00",
-          };
-        }
-      }
-
-      if (availableDays.length > 0) {
-        // Convert day names to numbers (0-6, Sunday-Saturday)
-        const dayNumbers = this.convertDaysToNumbers(availableDays);
-
-        // Generate dates for the specified period (8 weeks ahead)
-        const startDate = new Date();
-        const dates = this.generateDates(startDate, 8, dayNumbers);
-
-        // Generate time slots for each date (using first day's timing)
-        const firstDay = availableDays[0];
-        const timing = availabilityConfig[firstDay];
-
-        for (const date of dates) {
-          const timeSlots = this.generateTimeSlots(
-            timing.startTime,
-            timing.endTime,
-            60
-          );
-
-          // Create or update availability using repository
-          await this.availabilityRepository.upsertAvailability({
-            technicianId: application.technicianId,
-            date: date,
-            timeSlots: timeSlots,
-            isRecurring: false,
-          });
-        }
-      }
-
-      // Create default slot rules using repository
-      await this.createDefaultSlotRules(application.technicianId.toString());
-    } catch (error) {
-      console.error("Error handling availability step:", error);
-    }
-  }
-  private convertDaysToNumbers(days: string[]): number[] {
-    const dayMap: { [key: string]: number } = {
-      sunday: 0,
-      monday: 1,
-      tuesday: 2,
-      wednesday: 3,
-      thursday: 4,
-      friday: 5,
-      saturday: 6,
-    };
-
-    return days
-      .map((day) => dayMap[day.toLowerCase()])
-      .filter((day) => day !== undefined);
+private async handleAvailabilityStep(
+  application: ITechnicianApplication,
+  stepData: StepData
+): Promise<void> {
+  if (!application.technicianId) {
+    console.warn("No technician ID found for availability setup");
+    return;
   }
 
-  private generateDates(
-    startDate: Date,
-    weeksAhead: number,
-    dayNumbers: number[]
-  ): Date[] {
-    const dates: Date[] = [];
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + weeksAhead * 7);
-
-    const currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      if (dayNumbers.includes(currentDate.getDay())) {
-        dates.push(new Date(currentDate));
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return dates;
+  const availabilityData = stepData.availability;
+  if (!availabilityData || typeof availabilityData !== "object") {
+    console.warn("No availability data provided");
+    return;
   }
 
-  private generateTimeSlots(
-    startTime: string,
-    endTime: string,
-    slotDuration: number
-  ): any[] {
-    const slots: any[] = [];
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const [endHour, endMinute] = endTime.split(":").map(Number);
-
-    let currentHour = startHour;
-    let currentMinute = startMinute;
-
-    while (
-      currentHour < endHour ||
-      (currentHour === endHour && currentMinute < endMinute)
-    ) {
-      const slotStart = `${currentHour
-        .toString()
-        .padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
-
-      // Calculate end time
-      let slotEndHour = currentHour;
-      let slotEndMinute = currentMinute + slotDuration;
-
-      while (slotEndMinute >= 60) {
-        slotEndHour++;
-        slotEndMinute -= 60;
-      }
-
-      const slotEnd = `${slotEndHour
-        .toString()
-        .padStart(2, "0")}:${slotEndMinute.toString().padStart(2, "0")}`;
-
-      // Check if slot end exceeds the working end time
-      if (
-        slotEndHour > endHour ||
-        (slotEndHour === endHour && slotEndMinute > endMinute)
-      ) {
-        break;
-      }
-
-      slots.push({
-        start: slotStart,
-        end: slotEnd,
-        status: "available",
-      });
-
-      // Move to next slot
-      currentMinute += slotDuration;
-      while (currentMinute >= 60) {
-        currentHour++;
-        currentMinute -= 60;
-      }
-    }
-
-    return slots;
+  try {
+    // Use the new availability service
+    const availabilityService = new TechnicianAvailabilityService();
+    await availabilityService.createTechnicianAvailabilityFromApplication(
+      application.technicianId.toString(),
+      availabilityData
+    );
+  } catch (error) {
+    console.error("Error handling availability step:", error);
+    throw error;
   }
-
-  private async createDefaultSlotRules(technicianId: string): Promise<void> {
-    try {
-      // Create default slot rule for weekdays (Monday-Friday)
-      const defaultRule = {
-        technicianId: new Types.ObjectId(technicianId),
-        name: "Default Working Hours",
-        daysOfWeek: [1, 2, 3, 4, 5], // Monday to Friday
-        startTime: "09:00",
-        endTime: "18:00",
-        slotDurationMinutes: 60,
-        bookingBufferBeforeMinutes: 0,
-        bookingBufferAfterMinutes: 0,
-        maxBookingsPerSlot: 1,
-        effectiveFrom: new Date(),
-        isActive: true,
-      };
-
-      await this.availabilityRepository.createSlotRule(defaultRule);
-
-      // Create weekend rule (Saturday)
-      const weekendRule = {
-        technicianId: new Types.ObjectId(technicianId),
-        name: "Weekend Hours",
-        daysOfWeek: [6], // Saturday
-        startTime: "10:00",
-        endTime: "16:00",
-        slotDurationMinutes: 60,
-        bookingBufferBeforeMinutes: 0,
-        bookingBufferAfterMinutes: 0,
-        maxBookingsPerSlot: 1,
-        effectiveFrom: new Date(),
-        isActive: true,
-      };
-
-      await this.availabilityRepository.createSlotRule(weekendRule);
-    } catch (error) {
-      console.error("Error creating default slot rules:", error);
-    }
-  }
+}
 
   async getApplication(applicationId: string): Promise<ApplicationResponseDto> {
     try {

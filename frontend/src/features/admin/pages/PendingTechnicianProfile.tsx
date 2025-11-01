@@ -13,6 +13,57 @@ interface DocumentInfo {
   verified?: boolean;
   type?: string;
   uploadedAt?: string;
+  filename?: string;
+  mimetype?: string;
+  size?: number;
+}
+
+interface Address {
+  street?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  landmark?: string;
+}
+
+interface Location {
+  coordinates: number[];
+  formattedAddress: string;
+  type?: string;
+}
+
+interface AvailabilityDuration {
+  months: number;
+  startDate: string;
+}
+
+interface WeeklyPattern {
+  [key: string]: {
+    available: boolean;
+    startTime: string;
+    endTime: string;
+  };
+}
+
+interface AvailabilityData {
+  duration?: AvailabilityDuration;
+  availableWeeks?: number[];
+  weeklyPattern?: WeeklyPattern;
+}
+
+interface Availability {
+  serviceAreas?: string[];
+  workRadius?: string;
+  availability?: AvailabilityData;
+}
+
+interface BankDetails {
+  accountHolderName?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  upiId?: string;
+  bankName?: string;
+  withdrawalPreference?: string;
 }
 
 export interface PendingApplication {
@@ -21,31 +72,59 @@ export interface PendingApplication {
   email: string;
   profilePictureUrl?: string;
   status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
+  stepsCompleted: string[];
+
+  // Personal Information
   personal: {
     fullName?: string;
     phoneNumber?: string;
     email?: string;
-    gender?: string;
     dateOfBirth?: string;
-    address?: {
-      street?: string;
-      city?: string;
-      state?: string;
-      pincode?: string;
-    };
+    gender?: string;
+    languages?: string[];
+    address?: Address;
   };
+
+  // Identity & Verification
+  identity: {
+    idType?: string;
+    idNumber?: string;
+    address?: Address; // Can be string or object
+    location?: Location; // Can be string or object
+    verified?: boolean;
+    verificationStatus?: "pending" | "approved" | "rejected";
+    verifiedAt?: string;
+  };
+
+  // Skills & Services
   skills: {
     services?: string[];
-    yearsOfExperience?: number;
+    yearsOfExperience?: number | string;
+    languages?: string[];
     bio?: string;
-  };
-  availability?: {
     serviceAreas?: string[];
-    workRadius?: string;
+    workRadius?: number | string;
   };
+
+  // Availability & Work Preferences
+  availability?: Availability;
+
+  // Banking Details
+  bank?: BankDetails;
+
+  // Documents
   documents?: Record<string, DocumentInfo>;
+
+  // Agreement
+  agreement?: boolean;
+
+  // Timestamps
   submittedAt?: string;
+  reviewNotes?: string;
+  rejectionReason?: string;
+  rejectedAt?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 interface DocumentDisplay {
@@ -83,6 +162,7 @@ const PendingApplicationProfile: React.FC = () => {
 
         if (response.data.success && response.data.data?.applications?.[0]) {
           const applicationData = response.data.data.applications[0];
+          console.log("📋 Full application data:", applicationData); // Debug log
           setApplication(applicationData);
         } else {
           throw new Error(response.data.message || "Application not found");
@@ -244,6 +324,87 @@ const PendingApplicationProfile: React.FC = () => {
     );
   };
 
+  // Updated formatAddress function
+  const formatAddress = (address?: Address | string): string => {
+    if (!address) return "Not provided";
+
+    let addressObj: Address | null = null;
+
+    if (typeof address === "string") {
+      try {
+        addressObj = JSON.parse(address);
+      } catch (error) {
+        console.error(error);
+        return address;
+      }
+    } else {
+      addressObj = address;
+    }
+
+    if (addressObj && typeof addressObj === "object") {
+      const parts = [
+        addressObj.street,
+        addressObj.city,
+        addressObj.state,
+        addressObj.pincode,
+      ].filter(Boolean);
+
+      return parts.length > 0 ? parts.join(", ") : "Not provided";
+    }
+
+    return "Not provided";
+  };
+
+  // Helper function to format location
+  const formatLocation = (location?: Location | string): string => {
+    if (!location) return "Not provided";
+
+    let locationObj: Location | null = null;
+
+    if (typeof location === "string") {
+      try {
+        locationObj = JSON.parse(location);
+      } catch (error) {
+        console.error("Error parsing location:", error);
+        // If it's a string but not JSON, return it as is
+        return location;
+      }
+    } else {
+      locationObj = location;
+    }
+
+    if (locationObj && typeof locationObj === "object") {
+      return locationObj.formattedAddress || "Not provided";
+    }
+
+    return "Not provided";
+  };
+
+  // Enhanced helper function to display availability with times
+  const formatDetailedAvailability = (): string => {
+    const availabilityData = application?.availability?.availability;
+
+    if (!availabilityData) return "Not provided";
+
+    try {
+      const availableDays = availabilityData.weeklyPattern
+        ? Object.entries(availabilityData.weeklyPattern)
+            .filter(([, day]) => day.available)
+            .map(([day, schedule]) => {
+              const dayName = day.charAt(0).toUpperCase() + day.slice(1);
+              return `${dayName} (${schedule.startTime} - ${schedule.endTime})`;
+            })
+        : [];
+
+      return availableDays.length > 0
+        ? availableDays.join(", ")
+        : "No days selected";
+    } catch (error) {
+      console.error("Error parsing availability:", error);
+      return "Availability data not readable";
+    }
+  };
+
   const availableDocuments = getAvailableDocuments();
   const profilePictureUrl = getProfilePictureUrl();
 
@@ -351,12 +512,14 @@ const PendingApplicationProfile: React.FC = () => {
 
         <div className="p-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-medium mb-6">Application Details</h2>
+            <h2 className="text-lg font-medium mb-6">
+              Complete Application Details
+            </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
               {/* Personal Information */}
               <div>
-                <h3 className="text-base font-medium mb-4">
+                <h3 className="text-base font-medium mb-4 border-b pb-2">
                   Personal Information
                 </h3>
                 <div className="space-y-4">
@@ -378,7 +541,7 @@ const PendingApplicationProfile: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Gender</p>
-                    <p className="font-medium">
+                    <p className="font-medium capitalize">
                       {application.personal?.gender || "Not specified"}
                     </p>
                   </div>
@@ -392,15 +555,82 @@ const PendingApplicationProfile: React.FC = () => {
                         : "Not specified"}
                     </p>
                   </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Languages</p>
+                    <p className="font-medium">
+                      {application.personal?.languages?.join(", ") ||
+                        application.skills?.languages?.join(", ") ||
+                        "Not specified"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Identity & Verification */}
+              <div>
+                <h3 className="text-base font-medium mb-4 border-b pb-2">
+                  Identity & Verification
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500">ID Type</p>
+                    <p className="font-medium capitalize">
+                      {application.identity?.idType
+                        ?.replace(/([A-Z])/g, " $1")
+                        .trim() || "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">ID Number</p>
+                    <p className="font-medium font-mono">
+                      {application.identity?.idNumber || "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Identity Address</p>
+                    <p className="font-medium">
+                      {formatAddress(application.identity?.address)}
+                    </p>
+                  </div>
+                  {application.identity?.location && (
+                    <div>
+                      <p className="text-sm text-gray-500">Location</p>
+                      <p className="font-medium text-sm">
+                        {formatLocation(application.identity.location)}
+                      </p>
+                    </div>
+                  )}
+                  {application.identity?.verificationStatus && (
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Verification Status
+                      </p>
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          application.identity.verificationStatus === "approved"
+                            ? "bg-green-100 text-green-800"
+                            : application.identity.verificationStatus ===
+                              "rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {application.identity.verificationStatus
+                          .charAt(0)
+                          .toUpperCase() +
+                          application.identity.verificationStatus.slice(1)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Skills & Services */}
               <div>
-                <h3 className="text-base font-medium mb-4">
+                <h3 className="text-base font-medium mb-4 border-b pb-2">
                   Skills & Services
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-500">Experience</p>
                     <p className="font-medium">
@@ -421,6 +651,30 @@ const PendingApplicationProfile: React.FC = () => {
                     </div>
                   </div>
                   <div>
+                    <p className="text-sm text-gray-500">Languages</p>
+                    <p className="font-medium">
+                      {application.skills?.languages?.join(", ") ||
+                        "Not specified"}
+                    </p>
+                  </div>
+                  {application.skills?.bio && (
+                    <div>
+                      <p className="text-sm text-gray-500">Bio</p>
+                      <p className="font-medium text-sm mt-1 text-gray-700 bg-gray-50 p-3 rounded-md">
+                        {application.skills.bio}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Availability & Work Preferences */}
+              <div>
+                <h3 className="text-base font-medium mb-4 border-b pb-2">
+                  Availability & Work Preferences
+                </h3>
+                <div className="space-y-4">
+                  <div>
                     <p className="text-sm text-gray-500">Service Areas</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {application.availability?.serviceAreas?.map(
@@ -435,20 +689,99 @@ const PendingApplicationProfile: React.FC = () => {
                       ) || "No areas specified"}
                     </div>
                   </div>
-                  {application.skills?.bio && (
+                  <div>
+                    <p className="text-sm text-gray-500">Work Radius</p>
+                    <p className="font-medium">
+                      {application.availability?.workRadius
+                        ? `${application.availability.workRadius} km`
+                        : "Not specified"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      Available Days & Times
+                    </p>
+                    <p className="font-medium text-sm">
+                      {formatDetailedAvailability()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Banking Details */}
+              <div>
+                <h3 className="text-base font-medium mb-4 border-b pb-2">
+                  Banking Details
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Account Holder Name</p>
+                    <p className="font-medium">
+                      {application.bank?.accountHolderName || "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Bank Name</p>
+                    <p className="font-medium">
+                      {application.bank?.bankName || "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Account Number</p>
+                    <p className="font-medium font-mono">
+                      {application.bank?.accountNumber
+                        ? `•••• ${application.bank.accountNumber.slice(-4)}`
+                        : "Not provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">IFSC Code</p>
+                    <p className="font-medium font-mono">
+                      {application.bank?.ifscCode || "Not provided"}
+                    </p>
+                  </div>
+                  {application.bank?.upiId && (
                     <div>
-                      <p className="text-sm text-gray-500">Bio</p>
-                      <p className="font-medium text-sm mt-1 text-gray-700 bg-gray-50 p-3 rounded-md">
-                        {application.skills.bio}
-                      </p>
+                      <p className="text-sm text-gray-500">UPI ID</p>
+                      <p className="font-medium">{application.bank.upiId}</p>
                     </div>
                   )}
                 </div>
               </div>
 
+              {/* Agreement */}
+              <div>
+                <h3 className="text-base font-medium mb-4 border-b pb-2">
+                  Agreement & Consent
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <div
+                      className={`h-6 w-6 rounded-full flex items-center justify-center mr-3 ${
+                        application.agreement
+                          ? "bg-green-100 text-green-600"
+                          : "bg-red-100 text-red-600"
+                      }`}
+                    >
+                      {application.agreement ? "✓" : "✗"}
+                    </div>
+                    <span
+                      className={
+                        application.agreement
+                          ? "text-green-700"
+                          : "text-red-700"
+                      }
+                    >
+                      Terms & Conditions:{" "}
+                      {application.agreement ? "Agreed" : "Not agreed"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Dynamic Documents Section */}
               <div className="md:col-span-2">
-                <h3 className="text-base font-medium mb-4">
+                <h3 className="text-base font-medium mb-4 border-b pb-2">
                   Documents ({availableDocuments.length} provided)
                 </h3>
 
@@ -518,17 +851,31 @@ const PendingApplicationProfile: React.FC = () => {
 
             {/* Application Meta */}
             <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <p className="text-gray-500">Application ID</p>
-                  <p className="font-medium">{application._id}</p>
+                  <p className="font-medium font-mono text-xs">
+                    {application._id}
+                  </p>
                 </div>
-                <div className="text-end">
+                <div>
                   <p className="text-gray-500">Submitted On</p>
                   <p className="font-medium">
                     {application.submittedAt
                       ? new Date(application.submittedAt).toLocaleDateString()
                       : "Not submitted"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Created On</p>
+                  <p className="font-medium">
+                    {new Date(application.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Steps Completed</p>
+                  <p className="font-medium">
+                    {application.stepsCompleted?.length || 0} of 8
                   </p>
                 </div>
               </div>

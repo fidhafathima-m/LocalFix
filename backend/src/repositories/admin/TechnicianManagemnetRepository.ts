@@ -996,4 +996,63 @@ export class TechnicianManagementRepository
     return null;
   }
 }
+async getTechnicianAvailability(technicianId: string): Promise<any> {
+  try {
+    // Get active slot rules
+    const slotRules = await SlotRuleSchema.find({
+      technicianId: new Types.ObjectId(technicianId),
+      isActive: true
+    });
+
+    // Get upcoming availability
+    const upcomingAvailability = await TechnicianAvailabilitySchema.find({
+      technicianId: new Types.ObjectId(technicianId),
+      date: { $gte: new Date() }
+    }).sort({ date: 1 }).limit(7); // Get next 7 days
+
+    return {
+      slotRules,
+      upcomingAvailability,
+      hasAvailability: slotRules.length > 0
+    };
+  } catch (error) {
+    console.error("Error getting technician availability:", error);
+    return null;
+  }
+}
+async getActiveSlotRules(technicianId: string): Promise<any[]> {
+  try {
+    return await SlotRuleSchema.find({
+      technicianId: new Types.ObjectId(technicianId),
+      isActive: true,
+      effectiveFrom: { $lte: new Date() },
+      $or: [
+        { effectiveTo: { $exists: false } },
+        { effectiveTo: { $gte: new Date() } },
+      ],
+    });
+  } catch (error) {
+    console.error("Error getting active slot rules:", error);
+    return [];
+  }
+}
+
+async getUpcomingAvailability(technicianId: string, days: number = 7): Promise<any[]> {
+  try {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + days);
+
+    return await TechnicianAvailabilitySchema.find({
+      technicianId: new Types.ObjectId(technicianId),
+      date: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    }).sort({ date: 1 });
+  } catch (error) {
+    console.error("Error getting upcoming availability:", error);
+    return [];
+  }
+}
 }

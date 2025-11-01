@@ -49,4 +49,8 @@ export interface ITechnicianProfileService {
     technicianId: string,
     file: Express.Multer.File
   ): Promise<TechnicianProfileResponseDto>;
+  getSlotRules(technicianId: string): Promise<TechnicianProfileResponseDto>;
+  getTechnicianAvailability(
+    technicianId: string
+  ): Promise<TechnicianProfileResponseDto>;
 }

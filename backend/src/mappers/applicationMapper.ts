@@ -40,6 +40,9 @@ export class ApplicationMapper {
       rejectedAt: application.rejectedAt ? new Date(application.rejectedAt) : undefined,
       resubmittedCount: application.resubmittedCount || 0,
       lastSubmittedAt: application.lastSubmittedAt,
+      agreement: application.agreement || false, // Add agreement field
+      createdAt: application.createdAt, // Add createdAt field
+      updatedAt: application.updatedAt, // Add updatedAt field
     };
   }
 
@@ -56,6 +59,7 @@ export class ApplicationMapper {
         city: personal.address.city || '',
         state: personal.address.state || '',
         pincode: personal.address.pincode || '',
+        landmark: personal.address.landmark || '',
       } : undefined,
     };
   }
@@ -72,20 +76,59 @@ export class ApplicationMapper {
   }
 
   private static mapIdentity(identity: any): IdentityDto {
+    // Parse address if it's a JSON string
+    let parsedAddress = undefined;
+    if (identity?.address && typeof identity.address === 'string') {
+      try {
+        parsedAddress = JSON.parse(identity.address);
+      } catch (error) {
+        console.error('Error parsing identity address:', error);
+      }
+    } else {
+      parsedAddress = identity?.address;
+    }
+
+    // Parse location if it's a JSON string
+    let parsedLocation = undefined;
+    if (identity?.location && typeof identity.location === 'string') {
+      try {
+        parsedLocation = JSON.parse(identity.location);
+      } catch (error) {
+        console.error('Error parsing identity location:', error);
+      }
+    } else {
+      parsedLocation = identity?.location;
+    }
+
     return {
-      governmentIdType: identity?.governmentIdType || '',
-      governmentIdNumber: identity?.governmentIdNumber || '',
-      idDocument: identity?.idDocument || '',
+      idType: identity?.idType || identity?.governmentIdType || '', // Map both field names
+      idNumber: identity?.idNumber || identity?.governmentIdNumber || '', // Map both field names
+      address: parsedAddress,
+      location: parsedLocation,
       verified: identity?.verified || false,
       verificationStatus: identity?.verificationStatus || 'pending',
+      verifiedAt: identity?.verifiedAt,
     };
   }
 
   private static mapAvailability(availability: any): ApplicationAvailabilityDto {
+    // Parse availability if it's nested under availability.availability
+    let availabilityData = availability?.availability || availability;
+    
+    // If availability is a string, try to parse it
+    if (typeof availabilityData === 'string') {
+      try {
+        availabilityData = JSON.parse(availabilityData);
+      } catch (error) {
+        console.error('Error parsing availability:', error);
+        availabilityData = {};
+      }
+    }
+
     return {
       serviceAreas: Array.isArray(availability?.serviceAreas) ? availability.serviceAreas : [],
       workRadius: availability?.workRadius?.toString() || '',
-      availability: availability?.availability || {},
+      availability: availabilityData,
     };
   }
 

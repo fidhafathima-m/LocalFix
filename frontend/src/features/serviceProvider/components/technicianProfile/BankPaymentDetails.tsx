@@ -409,7 +409,7 @@ const BankPaymentDetails = () => {
             className={`px-6 py-2 rounded font-medium flex items-center ${
               saving || !isFormValid
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
             }`}
           >
             {saving ? (

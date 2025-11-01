@@ -26,6 +26,7 @@
     "nodemailer": "^7.0.6",
     "passport": "^0.7.0",
     "passport-facebook-token": "^4.0.0",
+    "rrule": "^2.8.1",
     "slugify": "^1.6.6"
   },
   "devDependencies": {

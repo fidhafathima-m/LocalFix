@@ -140,7 +140,10 @@ export interface ITechnicianManagementRepository {
   countPublicTechnicians(filters: TechnicianFilter): Promise<number>;
   findById(id: string): Promise<ITechnician | null>;
   updateTechnicianLocation(
-    technicianId: string, 
+    technicianId: string,
     coordinates: [number, number]
-  ): Promise<ITechnician | null>
+  ): Promise<ITechnician | null>;
+  getTechnicianAvailability(technicianId: string): Promise<any>;
+  getActiveSlotRules(technicianId: string): Promise<any[]>;
+  getUpcomingAvailability(technicianId: string, days?: number): Promise<any[]>;
 }

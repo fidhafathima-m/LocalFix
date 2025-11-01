@@ -64,68 +64,123 @@ const IdentityVerification = () => {
     fetchProfile();
   }, []);
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const response = await TechnicianService.getProfile();
-      if (response.success) {
-        const profileData =
-          response.data?.data?.profile ||
-          response.data?.profile ||
-          response.data?.data;
-        setProfile(profileData);
+ const fetchProfile = async () => {
+  try {
+    setLoading(true);
+    const response = await TechnicianService.getProfile();
+    if (response.success) {
+      const profileData = response.data?.data?.profile || response.data?.profile || response.data?.data;
+      setProfile(profileData);
 
-        // ✅ FIX: Use correct field names when populating form
-        if (profileData.identityVerification) {
-          setFormData({
-            governmentIdType: profileData.identityVerification.idType || "", // ✅ Map from idType
-            governmentIdNumber: profileData.identityVerification.idNumber || "", // ✅ Map from idNumber
-            verificationStatus:
-              profileData.identityVerification.verificationStatus || "pending",
-            verified: profileData.identityVerification.verified || false,
-            verifiedAt: profileData.identityVerification.verifiedAt,
-            address: profileData.personalInfo?.address || {
-              // ✅ Always get address from personalInfo
-              street: "",
-              city: "",
-              state: "",
-              pincode: "",
-              landmark: "",
-            },
-            location: {
-              // Your schema doesn't have this in identityVerification
-              coordinates: [0, 0],
-              formattedAddress: "",
-            },
-          });
-        } else {
-          // Initialize with empty values if no data exists
-          setFormData({
-            governmentIdType: "",
-            governmentIdNumber: "",
+      console.log('🔍 Profile Data:', profileData);
+      console.log('🔍 Identity Verification Data:', profileData.identityVerification);
+
+      // ✅ CORRECTED: Use the actual field names that are coming from backend
+      if (profileData.identityVerification) {
+        setFormData({
+          governmentIdType: profileData.identityVerification.governmentIdType || "", // ✅ Use governmentIdType directly
+          governmentIdNumber: profileData.identityVerification.governmentIdNumber || "", // ✅ Use governmentIdNumber directly
+          verificationStatus: profileData.identityVerification.verificationStatus || "pending",
+          verified: profileData.identityVerification.verified || false,
+          verifiedAt: profileData.identityVerification.verifiedAt,
+          address: profileData.personalInfo?.address || {
+            street: "",
+            city: "",
+            state: "",
+            pincode: "",
+            landmark: "",
+          },
+          location: {
+            coordinates: profileData.currentLocation?.coordinates || [0, 0],
+            formattedAddress: "",
+          },
+        });
+      } else {
+        // Initialize with empty values if no data exists
+        setFormData({
+          governmentIdType: "",
+          governmentIdNumber: "",
+          verificationStatus: "pending",
+          verified: false,
+          address: profileData.personalInfo?.address || {
+            street: "",
+            city: "",
+            state: "",
+            pincode: "",
+            landmark: "",
+          },
+          location: {
+            coordinates: profileData.currentLocation?.coordinates || [0, 0],
+            formattedAddress: "",
+          },
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleSave = async () => {
+  try {
+    setSaving(true);
+
+    // ✅ CORRECTED: Transform field names to match backend expectations
+    const updateData = {
+      identityVerification: {
+        idType: formData.governmentIdType, // ✅ Transform to idType for backend
+        idNumber: formData.governmentIdNumber, // ✅ Transform to idNumber for backend
+        verificationStatus: "pending",
+        verified: false,
+      },
+      personalInfo: {
+        ...profile?.personalInfo,
+        address: formData.address,
+      },
+    };
+
+    console.log('💾 Saving data:', updateData);
+
+    const response = await TechnicianService.updateIdentityVerification(updateData);
+
+    if (response.success) {
+      console.log('✅ Save successful:', response);
+      
+      // Update local profile state with correct field names
+      if (profile) {
+        setProfile({
+          ...profile,
+          identityVerification: {
+            ...profile.identityVerification,
+            idType: formData.governmentIdType, // ✅ Store as idType
+            idNumber: formData.governmentIdNumber, // ✅ Store as idNumber
             verificationStatus: "pending",
             verified: false,
-            address: profileData.personalInfo?.address || {
-              street: "",
-              city: "",
-              state: "",
-              pincode: "",
-              landmark: "",
-            },
-            location: {
-              coordinates: [0, 0],
-              formattedAddress: "",
-            },
-          });
-        }
+          },
+          personalInfo: {
+            ...profile.personalInfo,
+            address: formData.address,
+          },
+        });
       }
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      
+      toast.success("Identity verification details updated successfully! They will be reviewed by our team.");
 
+      // Refresh the data to confirm it's saved
+      await fetchProfile();
+    } else {
+      console.error("❌ Frontend - API returned error:", response);
+      toast.error(`Failed to update: ${response.message}`);
+    }
+  } catch (error) {
+    console.error("❌ Frontend - Error updating identity verification:", error);
+    toast.error("Failed to update identity verification details");
+  } finally {
+    setSaving(false);
+  }
+};
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -197,63 +252,6 @@ const IdentityVerification = () => {
       }));
     }
   };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-
-      const updateData = {
-        identityVerification: {
-          idType: formData.governmentIdType,
-          idNumber: formData.governmentIdNumber,
-          verificationStatus: "pending" as const,
-          verified: false,
-        },
-        personalInfo: {
-          ...profile?.personalInfo,
-          address: formData.address,
-        },
-      };
-
-      const response = await TechnicianService.updateIdentityVerification(
-        updateData
-      );
-
-      if (response.success) {
-        // Update local profile state
-        if (profile) {
-          setProfile({
-            ...profile,
-            identityVerification: {
-              ...profile.identityVerification,
-              idType: formData.governmentIdType,
-              idNumber: formData.governmentIdNumber,
-              verificationStatus: "pending",
-              verified: false,
-            },
-            personalInfo: {
-              ...profile.personalInfo,
-              address: formData.address,
-            },
-          });
-        }
-        toast.success(
-          "Identity verification details updated successfully! They will be reviewed by our team."
-        );
-
-        // Refresh the data to confirm it's saved
-        await fetchProfile();
-      } else {
-        console.error("Frontend - API returned error:", response);
-        toast.error(`Failed to update: ${response.message}`);
-      }
-    } catch (error) {
-      console.error("Frontend - Error updating identity verification:", error);
-      toast.error("Failed to update identity verification details");
-    } finally {
-      setSaving(false);
-    }
-  };
   const getStatusDisplay = () => {
     if (!formData.verificationStatus) return null;
 
@@ -301,6 +299,7 @@ const IdentityVerification = () => {
       </AccordionSection>
     );
   }
+
 
   return (
     <AccordionSection title="Identity & Verification" number={2}>
@@ -506,3 +505,5 @@ const IdentityVerification = () => {
 };
 
 export default IdentityVerification;
+
+

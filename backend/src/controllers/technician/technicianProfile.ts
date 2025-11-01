@@ -359,7 +359,9 @@ export class TechnicianProfileController {
 
       const result: TechnicianProfileResponseDto =
         await this.profileService.updateAvailabilityPreferences(technicianId, {
-          isAvailable: false,
+           availability: {
+      isAvailable: false,
+    },
         });
       this.handleServiceResponse(
         result,
@@ -399,4 +401,43 @@ export class TechnicianProfileController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
+  // In your technicianProfileController
+
+getSlotRules = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const technicianId = req.user?.id;
+    if (!technicianId) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    const result = await this.profileService.getSlotRules(technicianId);
+    res.status(result.statusCode).json(result);
+  } catch (error) {
+    console.error("Get slot rules controller error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+getTechnicianAvailability = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const technicianId = req.user?.id;
+    if (!technicianId) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    const result = await this.profileService.getTechnicianAvailability(technicianId);
+    res.status(result.statusCode).json(result);
+  } catch (error) {
+    console.error("Get technician availability controller error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
 }

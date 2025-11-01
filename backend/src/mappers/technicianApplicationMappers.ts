@@ -62,21 +62,45 @@ export class TechnicianApplicationMapper {
   }
 
   private static mapIdentityInfo(identity: any): IdentityInfoDto {
-    if (!identity) return {};
+  if (!identity) return {};
 
-    return {
-      governmentIdType: identity.governmentIdType,
-      governmentIdNumber: identity.governmentIdNumber,
-      idDocument: identity.idDocument,
-      verified: identity.verified || false,
-      verificationStatus: identity.verificationStatus || "pending",
-      verifiedAt: identity.verifiedAt,
-      location: identity.location
-        ? this.mapLocation(identity.location)
-        : undefined,
-      address: identity.address,
-    };
+  // Parse address if it's a JSON string
+  let parsedAddress = undefined;
+  if (identity.address && typeof identity.address === 'string') {
+    try {
+      parsedAddress = JSON.parse(identity.address);
+    } catch (error) {
+      console.error('Error parsing identity address:', error);
+      // Keep as string if parsing fails
+      parsedAddress = identity.address;
+    }
+  } else {
+    parsedAddress = identity.address;
   }
+
+  // Parse location if it's a JSON string
+  let parsedLocation = undefined;
+  if (identity.location && typeof identity.location === 'string') {
+    try {
+      parsedLocation = JSON.parse(identity.location);
+    } catch (error) {
+      console.error('Error parsing identity location:', error);
+    }
+  } else {
+    parsedLocation = identity.location;
+  }
+
+  return {
+    // Map the correct field names from database
+    idType: identity.idType || identity.governmentIdType,
+    idNumber: identity.idNumber || identity.governmentIdNumber,
+    address: parsedAddress,
+    location: parsedLocation ? this.mapLocation(parsedLocation) : undefined,
+    verified: identity.verified || false,
+    verificationStatus: identity.verificationStatus || "pending",
+    verifiedAt: identity.verifiedAt,
+  };
+}
 
   private static mapSkillsInfo(skills: any): SkillsInfoDto {
     if (!skills) return {};
