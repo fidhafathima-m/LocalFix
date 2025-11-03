@@ -6,6 +6,8 @@ export const DASHBOARD_MESSAGES = {
   TECHNICIAN_PROFILE_RETRIEVED: "Technician profile retrieved successfully",
   PROFILE_UPDATED: "Profile updated successfully",
   STATS_RETRIEVED: "Dashboard statistics retrieved successfully",
+  AVAILABILITY_UPDATED_SUCCESSFULLY: "Availability updated successfully",
+  PERFORMANCE_METRICS_RETRIEVED: "Performance matrics retrieved successfully",
 
   // Error messages
   TECHNICIAN_NOT_FOUND: "Technician not found",
@@ -14,6 +16,8 @@ export const DASHBOARD_MESSAGES = {
   FAILED_FETCH_PROFILE: "Failed to fetch technician profile",
   FAILED_UPDATE_PROFILE: "Failed to update technician profile",
   FAILED_FETCH_STATS: "Failed to fetch dashboard statistics",
+  FAILED_UPDATE_AVAILABILITY: "Failed to update availability",
+  FAILED_FETCH_PERFORMANCE: "Failed to fetch performance",
 
   // Validation messages
   USER_ID_REQUIRED: "User ID is required",

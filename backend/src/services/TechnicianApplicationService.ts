@@ -38,8 +38,9 @@ import {
 import { TechnicianApplicationMapper } from "../mappers/technicianApplicationMappers";
 import { ITechnicianAvailabilityService } from "@/interfaces/services/technician/ITechnicianAvailabilityService";
 import { TechnicianAvailabilityService } from "./AvailabilityService";
+import { LoggerService } from "../services/LoggerService";
 
-// Interface definitions
+// Interface definitions (keep existing interfaces)
 interface AddressData {
   street?: string;
   city?: string;
@@ -61,7 +62,6 @@ interface StepData {
   [key: string]: unknown;
 }
 
-// Update DocumentData to match DocumentFile interface
 interface DocumentData {
   url: string;
   publicId?: string;
@@ -74,7 +74,6 @@ interface DocumentData {
   error?: string;
 }
 
-// Update DocumentsCollection to be compatible with DocumentsInfo
 type DocumentsCollection = {
   [K in keyof DocumentsInfo]?: DocumentData;
 } & {
@@ -88,39 +87,63 @@ export class TechnicianApplicationService
   private technicianRepository: ITechnicianRepository;
   private documentRepository: ITechnicianDocumentRepository;
   private userRepository: IUserRepository;
+  private logger: LoggerService;
 
   constructor(
     applicationRepository: ITechnicianApplicationRepository,
     technicianRepository: ITechnicianRepository,
     documentRepository: ITechnicianDocumentRepository,
-    userRepository: IUserRepository,
+    userRepository: IUserRepository
   ) {
     this.applicationRepository = applicationRepository;
     this.technicianRepository = technicianRepository;
     this.documentRepository = documentRepository;
     this.userRepository = userRepository;
+    this.logger = new LoggerService();
   }
 
   async startApplication(
     data: StartApplicationRequestDto
   ): Promise<ApplicationResponseDto> {
+    const context = {
+      operation: "startApplication",
+      data: {
+        userId: data.userId,
+        email: data.email,
+      },
+    };
+
     try {
+      this.logger.info("Starting technician application process", context);
+
       const { email, userId } = data;
 
       const user = await this.userRepository.findById(userId);
       if (!user) {
+        this.logger.warn("User not found for application start", context);
         return ResponseHelper.notFound("User not found");
       }
 
       // Ensure the provided email matches the user's actual email
       if (user.email !== email) {
+        this.logger.warn("Email mismatch for application start", {
+          ...context,
+          userEmail: user.email,
+          providedEmail: email,
+        });
         return ResponseHelper.badRequest("Email must match your account email");
       }
 
       const currentPath =
         typeof window !== "undefined" ? window.location.pathname : "";
       const isEditPath = currentPath.includes("/technicians/apply");
+
       if (isEditPath) {
+        this.logger.debug(
+          "Edit mode detected, checking for existing application",
+          context
+        );
+
         const existingApplication =
           await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
             APPLICATION_STATUS.DRAFT,
@@ -130,12 +153,19 @@ export class TechnicianApplicationService
           ]);
 
         if (existingApplication) {
+          this.logger.info("Existing application found for editing", {
+            ...context,
+            applicationId: existingApplication._id.toString(),
+            status: existingApplication.status,
+          });
           return ResponseHelper.success("Application loaded for editing", {
             applicationId: existingApplication._id.toString(),
-            redirectTo: null, // No redirect in edit mode
+            redirectTo: null,
           });
         }
       }
+
+      this.logger.debug("Checking for existing user applications", context);
 
       const existingUserApplication =
         await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
@@ -148,8 +178,21 @@ export class TechnicianApplicationService
       if (existingUserApplication) {
         const appStatus = existingUserApplication.status;
 
+        this.logger.info("Existing application found for user", {
+          ...context,
+          applicationId: existingUserApplication._id.toString(),
+          status: appStatus,
+        });
+
         // If application is approved, redirect to technician dashboard
         if (appStatus === APPLICATION_STATUS.APPROVED) {
+          this.logger.info(
+            "Application already approved, redirecting to dashboard",
+            {
+              ...context,
+              applicationId: existingUserApplication._id.toString(),
+            }
+          );
           return ResponseHelper.success(
             TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_APPROVED,
             {
@@ -168,6 +211,11 @@ export class TechnicianApplicationService
         );
       }
 
+      this.logger.debug("Checking for existing applications with same email", {
+        ...context,
+        email: email,
+      });
+
       const existingEmailApplication =
         await this.applicationRepository.findByEmailAndStatus(email, [
           APPLICATION_STATUS.DRAFT,
@@ -182,11 +230,17 @@ export class TechnicianApplicationService
 
         // Email already used by someone else in an active application
         if (existingAppTechnicianId && existingAppTechnicianId !== userId) {
+          this.logger.warn("Email already in use by another technician", {
+            ...context,
+            existingTechnicianId: existingAppTechnicianId,
+          });
           return ResponseHelper.conflict(
             TECH_APPLICATION_MESSAGES.EMAIL_ALREADY_IN_USE
           );
         }
       }
+
+      this.logger.debug("Creating new application", context);
 
       // Create new application with proper typing
       const applicationData: Partial<ITechnicianApplication> = {
@@ -207,6 +261,11 @@ export class TechnicianApplicationService
         applicationData
       );
 
+      this.logger.info("New application created successfully", {
+        ...context,
+        applicationId: application._id.toString(),
+      });
+
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.APPLICATION_STARTED,
         {
@@ -215,22 +274,40 @@ export class TechnicianApplicationService
         }
       );
     } catch (error: unknown) {
-      console.error("Start application error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Start application process failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_START_APPLICATION
       );
     }
   }
+
   async saveStep(
     data: SaveStepRequestDto,
     files?: FilesCollectionDto
   ): Promise<ApplicationResponseDto> {
+    const context = {
+      operation: "saveStep",
+      data: {
+        applicationId: data.applicationId,
+        step: data.step,
+        hasFiles: !!files,
+        fileCount: files ? Object.keys(files).length : 0,
+      },
+    };
+
     try {
+      this.logger.info("Saving application step", context);
+
       const { applicationId, step, ...stepData } = data;
 
       if (!applicationId || !step) {
+        this.logger.warn("Missing required parameters for save step", context);
         return ResponseHelper.badRequest(
           TECH_APPLICATION_MESSAGES.APPLICATION_ID_AND_STEP_REQUIRED
         );
@@ -240,10 +317,17 @@ export class TechnicianApplicationService
         applicationId
       );
       if (!application) {
+        this.logger.warn("Application not found for save step", context);
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
         );
       }
+
+      this.logger.debug("Application found, processing step data", {
+        ...context,
+        currentStatus: application.status,
+        stepsCompleted: application.stepsCompleted,
+      });
 
       const processedStepData: StepData = { ...stepData };
 
@@ -263,31 +347,54 @@ export class TechnicianApplicationService
             processedStepData[field] = JSON.parse(
               processedStepData[field] as string
             );
+            this.logger.debug("Parsed JSON field", {
+              ...context,
+              field: field,
+            });
           } catch (e) {
-            // Keep original value if parsing fails
-            console.warn(`Failed to parse ${field} as JSON`);
+            this.logger.warn("Failed to parse JSON field", {
+              ...context,
+              field: field,
+              error: e instanceof Error ? e.message : "Unknown error",
+            });
           }
         }
       });
 
+      // Handle specific step types
       if (step === APPLICATION_STEPS.IDENTITY_VERIFICATION) {
+        this.logger.debug("Processing identity verification step", context);
         await this.handleIdentityVerificationStep(
           application,
           processedStepData
         );
       } else if (step === APPLICATION_STEPS.DOCUMENTS) {
+        this.logger.debug("Processing documents step", {
+          ...context,
+          fileFields: files ? Object.keys(files) : [],
+        });
         await this.handleDocumentsStep(application, files);
       } else if (step === APPLICATION_STEPS.AGREEMENT_CONSENT) {
+        this.logger.debug("Processing agreement step", context);
         await this.handleAgreementStep(application, processedStepData);
       } else if (step === APPLICATION_STEPS.REVIEW_SUBMIT) {
+        this.logger.debug("Processing review step", context);
         await this.handleReviewStep(application);
       } else {
+        this.logger.debug("Processing generic step", {
+          ...context,
+          step: step,
+        });
         await this.handleGenericStep(application, step, processedStepData);
       }
 
       // Mark step as completed if not already
       if (!application.stepsCompleted.includes(step)) {
         application.stepsCompleted.push(step);
+        this.logger.debug("Step marked as completed", {
+          ...context,
+          step: step,
+        });
       }
 
       await this.applicationRepository.save(application);
@@ -295,152 +402,265 @@ export class TechnicianApplicationService
       const applicationDto =
         TechnicianApplicationMapper.toApplicationDataDto(application);
 
+      this.logger.info("Step saved successfully", {
+        ...context,
+        stepsCompleted: application.stepsCompleted.length,
+      });
+
       return ResponseHelper.success(TECH_APPLICATION_MESSAGES.STEP_SAVED, {
         application: applicationDto,
       });
     } catch (error: unknown) {
-      console.error("Save step error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Save step operation failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_SAVE_STEP
       );
     }
   }
+
   private async handleIdentityVerificationStep(
     application: ITechnicianApplication,
     stepData: StepData
   ): Promise<void> {
-    // Save address to UserAddress collection
-    if (stepData.address || stepData.location) {
-      try {
-        let addressData: string | AddressData | undefined = stepData.address;
-        let locationData = stepData.location;
-
-        if (typeof addressData === "string") {
-          try {
-            addressData = JSON.parse(addressData) as AddressData;
-          } catch (e) {
-            console.error("Could not parse address as JSON");
-          }
-        }
-
-        if (typeof addressData === "object" && addressData.street) {
-          const userAddress = new UserAddressSchema({
-            userId: application.technicianId,
-            label: "Home",
-            street: addressData.street || "",
-            city: addressData.city || "",
-            state: addressData.state || "",
-            pincode: addressData.pincode || "",
-            landmark: addressData.landmark || "",
-            isDefault: true,
-            location: {
-              type: "Point",
-              coordinates: locationData?.coordinates || [0, 0],
-            },
-            formattedAddress: locationData?.formattedAddress || "",
-            placeId: locationData?.placeId || "",
-          });
-
-          await userAddress.save();
-        }
-      } catch (error: unknown) {
-        console.error("Error saving to UserAddress:", error);
-      }
-    }
-
-    // Use type assertion for Mongoose document operations
-    const app = application as any;
-    if (!app.identity) {
-      app.identity = {};
-    }
-
-    // Create update data with proper typing
-    const updateData: Partial<IdentityInfo> = {
-      ...app.identity,
-      ...stepData,
+    const context = {
+      operation: "handleIdentityVerificationStep",
+      data: {
+        applicationId: application._id.toString(),
+        hasAddress: !!stepData.address,
+        hasLocation: !!stepData.location,
+      },
     };
 
-    app.identity = updateData;
+    try {
+      this.logger.debug("Handling identity verification step", context);
+
+      // Save address to UserAddress collection
+      if (stepData.address || stepData.location) {
+        try {
+          let addressData: string | AddressData | undefined = stepData.address;
+          let locationData = stepData.location;
+
+          if (typeof addressData === "string") {
+            try {
+              addressData = JSON.parse(addressData) as AddressData;
+              this.logger.debug("Parsed address string to object", context);
+            } catch (e) {
+              this.logger.warn("Could not parse address as JSON", context);
+            }
+          }
+
+          if (typeof addressData === "object" && addressData.street) {
+            this.logger.debug("Creating user address record", {
+              ...context,
+              addressFields: Object.keys(addressData),
+            });
+
+            const userAddress = new UserAddressSchema({
+              userId: application.technicianId,
+              label: "Home",
+              street: addressData.street || "",
+              city: addressData.city || "",
+              state: addressData.state || "",
+              pincode: addressData.pincode || "",
+              landmark: addressData.landmark || "",
+              isDefault: true,
+              location: {
+                type: "Point",
+                coordinates: locationData?.coordinates || [0, 0],
+              },
+              formattedAddress: locationData?.formattedAddress || "",
+              placeId: locationData?.placeId || "",
+            });
+
+            await userAddress.save();
+            this.logger.debug("User address saved successfully", context);
+          }
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error occurred";
+          this.logger.error("Error saving to UserAddress", {
+            ...context,
+            error: errorMessage,
+          });
+        }
+      }
+
+      // Use type assertion for Mongoose document operations
+      const app = application as any;
+      if (!app.identity) {
+        app.identity = {};
+        this.logger.debug("Initialized identity object", context);
+      }
+
+      // Create update data with proper typing
+      const updateData: Partial<IdentityInfo> = {
+        ...app.identity,
+        ...stepData,
+      };
+
+      app.identity = updateData;
+      this.logger.debug("Identity data updated successfully", {
+        ...context,
+        identityFields: Object.keys(updateData),
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Identity verification step handling failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
   }
 
   private async handleDocumentsStep(
     application: ITechnicianApplication,
     files?: FilesCollectionDto
   ): Promise<void> {
-    const app = application as any;
+    const context = {
+      operation: "handleDocumentsStep",
+      data: {
+        applicationId: application._id.toString(),
+        fileCount: files ? Object.keys(files).length : 0,
+      },
+    };
 
-    if (!app.documents) {
-      app.documents = {};
-    }
+    try {
+      this.logger.info("Handling documents step", context);
 
-    const documents: DocumentsCollection = app.documents;
-    const documentFields = [
-      DOCUMENT_TYPES.ID_PROOF,
-      DOCUMENT_TYPES.ADDRESS_PROOF,
-      DOCUMENT_TYPES.POLICE_VERIFICATION,
-      DOCUMENT_TYPES.PASSPORT_PHOTO,
-      DOCUMENT_TYPES.PROFILE_PHOTO,
-      DOCUMENT_TYPES.TRADE_LICENSE,
-    ];
+      const app = application as any;
 
-    for (const field of documentFields) {
-      if (files && files[field]) {
-        const file = files[field];
+      if (!app.documents) {
+        app.documents = {};
+        this.logger.debug("Initialized documents object", context);
+      }
 
-        try {
-          let fileToUpload: UploadedFileDto;
-          if (Array.isArray(file)) {
-            fileToUpload = file[0];
-          } else {
-            fileToUpload = file;
-          }
+      const documents: DocumentsCollection = app.documents;
+      const documentFields = [
+        DOCUMENT_TYPES.ID_PROOF,
+        DOCUMENT_TYPES.ADDRESS_PROOF,
+        DOCUMENT_TYPES.POLICE_VERIFICATION,
+        DOCUMENT_TYPES.PASSPORT_PHOTO,
+        DOCUMENT_TYPES.PROFILE_PHOTO,
+        DOCUMENT_TYPES.TRADE_LICENSE,
+      ];
 
-          // Convert UploadedFile to Express.Multer.File for uploadToCloudinary
-          const fileForUpload: Express.Multer.File = {
-            fieldname: fileToUpload.fieldname || field,
-            originalname: fileToUpload.originalname,
-            encoding: fileToUpload.encoding,
-            mimetype: fileToUpload.mimetype,
-            size: fileToUpload.size,
-            stream: fileToUpload.stream as any,
-            destination: fileToUpload.destination || "",
-            filename: fileToUpload.filename || fileToUpload.originalname,
-            path: fileToUpload.path || "",
-            buffer: fileToUpload.buffer || Buffer.from(""),
-          };
+      let successfulUploads = 0;
+      let failedUploads = 0;
 
-          const uploadResult = await uploadToCloudinary(fileForUpload);
+      for (const field of documentFields) {
+        if (files && files[field]) {
+          const file = files[field];
 
-          if (uploadResult && uploadResult.secure_url) {
-            documents[field] = {
-              url: uploadResult.secure_url,
-              publicId: uploadResult.public_id,
+          try {
+            let fileToUpload: UploadedFileDto;
+            if (Array.isArray(file)) {
+              fileToUpload = file[0];
+              this.logger.debug("Processing first file from array", {
+                ...context,
+                field: field,
+                arrayLength: file.length,
+              });
+            } else {
+              fileToUpload = file;
+            }
+
+            this.logger.debug("Uploading document to Cloudinary", {
+              ...context,
+              field: field,
               filename: fileToUpload.originalname,
+              size: fileToUpload.size,
+            });
+
+            // Convert UploadedFile to Express.Multer.File for uploadToCloudinary
+            const fileForUpload: Express.Multer.File = {
+              fieldname: fileToUpload.fieldname || field,
+              originalname: fileToUpload.originalname,
+              encoding: fileToUpload.encoding,
               mimetype: fileToUpload.mimetype,
               size: fileToUpload.size,
-              uploadedAt: new Date(),
-              verified: false,
-              uploadFailed: false,
+              stream: fileToUpload.stream as any,
+              destination: fileToUpload.destination || "",
+              filename: fileToUpload.filename || fileToUpload.originalname,
+              path: fileToUpload.path || "",
+              buffer: fileToUpload.buffer || Buffer.from(""),
             };
 
-            await this.documentRepository.create({
-              technicianId: application.technicianId!,
-              applicationId: application._id,
-              type: this.mapDocumentType(field),
-              fileUrl: uploadResult.secure_url,
-              status: "pending",
-              uploadedAt: new Date(),
-              metadata: {
-                originalName: fileToUpload.originalname,
+            const uploadResult = await uploadToCloudinary(fileForUpload);
+
+            if (uploadResult && uploadResult.secure_url) {
+              documents[field] = {
+                url: uploadResult.secure_url,
+                publicId: uploadResult.public_id,
+                filename: fileToUpload.originalname,
                 mimetype: fileToUpload.mimetype,
                 size: fileToUpload.size,
-                fieldName: field,
-              },
+                uploadedAt: new Date(),
+                verified: false,
+                uploadFailed: false,
+              };
+
+              this.logger.debug("Document uploaded successfully", {
+                ...context,
+                field: field,
+                url: uploadResult.secure_url.substring(0, 50) + "...",
+              });
+
+              await this.documentRepository.create({
+                technicianId: application.technicianId!,
+                applicationId: application._id,
+                type: this.mapDocumentType(field),
+                fileUrl: uploadResult.secure_url,
+                status: "pending",
+                uploadedAt: new Date(),
+                metadata: {
+                  originalName: fileToUpload.originalname,
+                  mimetype: fileToUpload.mimetype,
+                  size: fileToUpload.size,
+                  fieldName: field,
+                },
+              });
+
+              successfulUploads++;
+            } else {
+              this.logger.error("Cloudinary upload failed - no secure_url", {
+                ...context,
+                field: field,
+              });
+              documents[field] = {
+                url: "",
+                filename: fileToUpload.originalname,
+                mimetype: fileToUpload.mimetype,
+                size: fileToUpload.size,
+                uploadedAt: new Date(),
+                uploadFailed: true,
+                error: TECH_APPLICATION_MESSAGES.CLOUDINARY_UPLOAD_FAILED,
+                verified: false,
+              };
+              failedUploads++;
+            }
+          } catch (uploadError: unknown) {
+            const errorMessage =
+              uploadError instanceof Error
+                ? uploadError.message
+                : "Unknown upload error";
+            this.logger.error(`Error uploading document ${field}`, {
+              ...context,
+              field: field,
+              error: errorMessage,
             });
-          } else {
-            console.error(`Cloudinary returned no secure_url for ${field}`);
+
+            const fileToUpload: UploadedFileDto = Array.isArray(file)
+              ? file[0]
+              : file;
             documents[field] = {
               url: "",
               filename: fileToUpload.originalname,
@@ -448,39 +668,32 @@ export class TechnicianApplicationService
               size: fileToUpload.size,
               uploadedAt: new Date(),
               uploadFailed: true,
-              error: TECH_APPLICATION_MESSAGES.CLOUDINARY_UPLOAD_FAILED,
+              error: errorMessage,
               verified: false,
             };
+            failedUploads++;
           }
-        } catch (uploadError: unknown) {
-          console.error(`Error uploading ${field}:`, uploadError);
-          let errorMessage = "Unknown upload error";
-          if (uploadError instanceof Error) {
-            errorMessage = uploadError.message;
-          } else if (typeof uploadError === "string") {
-            errorMessage = uploadError;
-          } else if (uploadError && typeof uploadError === "object") {
-            errorMessage = JSON.stringify(uploadError);
-          }
-
-          const fileToUpload: UploadedFileDto = Array.isArray(file)
-            ? file[0]
-            : file;
-          documents[field] = {
-            url: "",
-            filename: fileToUpload.originalname,
-            mimetype: fileToUpload.mimetype,
-            size: fileToUpload.size,
-            uploadedAt: new Date(),
-            uploadFailed: true,
-            error: errorMessage,
-            verified: false,
-          };
         }
       }
-    }
 
-    app.documents = documents;
+      app.documents = documents;
+
+      this.logger.info("Documents step processing completed", {
+        ...context,
+        successfulUploads,
+        failedUploads,
+        totalProcessed: successfulUploads + failedUploads,
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Documents step handling failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
   }
 
   private mapDocumentType(field: string): ITechnicianDocument["type"] {
@@ -499,17 +712,58 @@ export class TechnicianApplicationService
     application: ITechnicianApplication,
     stepData: StepData
   ): Promise<void> {
-    if (stepData.agreement !== undefined) {
-      const agreementValue =
-        stepData.agreement === "true" || stepData.agreement === true;
-      (application as any).agreement = agreementValue;
+    const context = {
+      operation: "handleAgreementStep",
+      data: {
+        applicationId: application._id.toString(),
+        agreementValue: stepData.agreement,
+      },
+    };
+
+    try {
+      this.logger.debug("Handling agreement step", context);
+
+      if (stepData.agreement !== undefined) {
+        const agreementValue =
+          stepData.agreement === "true" || stepData.agreement === true;
+        (application as any).agreement = agreementValue;
+
+        this.logger.debug("Agreement value set", {
+          ...context,
+          agreementValue: agreementValue,
+        });
+      }
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Agreement step handling failed", {
+        ...context,
+        error: errorMessage,
+      });
+      throw error;
     }
   }
 
   private async handleReviewStep(
     application: ITechnicianApplication
   ): Promise<void> {
-    // No specific data processing for review step, just mark as completed
+    const context = {
+      operation: "handleReviewStep",
+      data: { applicationId: application._id.toString() },
+    };
+
+    try {
+      this.logger.debug("Handling review step", context);
+      // No specific data processing for review step, just mark as completed
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Review step handling failed", {
+        ...context,
+        error: errorMessage,
+      });
+      throw error;
+    }
   }
 
   private async handleGenericStep(
@@ -517,65 +771,135 @@ export class TechnicianApplicationService
     step: string,
     stepData: StepData
   ): Promise<void> {
-    const stepMapping: Record<string, string> = STEP_MAPPING;
+    const context = {
+      operation: "handleGenericStep",
+      data: {
+        applicationId: application._id.toString(),
+        step: step,
+        dataFields: Object.keys(stepData),
+      },
+    };
 
-    const applicationField = stepMapping[step];
-    if (applicationField) {
-      const app = application as any;
-      const currentData = app[applicationField] || {};
-      const newData = {
-        ...currentData,
-        ...stepData,
-      };
-      app[applicationField] = newData;
+    try {
+      this.logger.debug("Handling generic step", context);
 
-      if (step === APPLICATION_STEPS.AVAILABILITY_PREFERENCES) {
-        await this.handleAvailabilityStep(application, stepData);
+      const stepMapping: Record<string, string> = STEP_MAPPING;
+
+      const applicationField = stepMapping[step];
+      if (applicationField) {
+        const app = application as any;
+        const currentData = app[applicationField] || {};
+        const newData = {
+          ...currentData,
+          ...stepData,
+        };
+        app[applicationField] = newData;
+
+        this.logger.debug("Step data applied to application", {
+          ...context,
+          applicationField: applicationField,
+          fieldsUpdated: Object.keys(stepData),
+        });
+
+        if (step === APPLICATION_STEPS.AVAILABILITY_PREFERENCES) {
+          this.logger.debug("Processing availability step data", context);
+          await this.handleAvailabilityStep(application, stepData);
+        }
+      } else {
+        this.logger.warn("No mapping found for step", {
+          ...context,
+          step: step,
+        });
       }
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Generic step handling failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
     }
   }
 
-  // In your existing TechnicianApplicationService.ts - update the handleAvailabilityStep method:
+  private async handleAvailabilityStep(
+    application: ITechnicianApplication,
+    stepData: StepData
+  ): Promise<void> {
+    const context = {
+      operation: "handleAvailabilityStep",
+      data: {
+        applicationId: application._id.toString(),
+        technicianId: application.technicianId?.toString(),
+      },
+    };
 
-private async handleAvailabilityStep(
-  application: ITechnicianApplication,
-  stepData: StepData
-): Promise<void> {
-  if (!application.technicianId) {
-    console.warn("No technician ID found for availability setup");
-    return;
-  }
+    try {
+      this.logger.info("Handling availability step", context);
 
-  const availabilityData = stepData.availability;
-  if (!availabilityData || typeof availabilityData !== "object") {
-    console.warn("No availability data provided");
-    return;
-  }
+      if (!application.technicianId) {
+        this.logger.warn(
+          "No technician ID found for availability setup",
+          context
+        );
+        return;
+      }
 
-  try {
-    // Use the new availability service
-    const availabilityService = new TechnicianAvailabilityService();
-    await availabilityService.createTechnicianAvailabilityFromApplication(
-      application.technicianId.toString(),
-      availabilityData
-    );
-  } catch (error) {
-    console.error("Error handling availability step:", error);
-    throw error;
+      const availabilityData = stepData.availability;
+      if (!availabilityData || typeof availabilityData !== "object") {
+        this.logger.warn("No availability data provided", context);
+        return;
+      }
+
+      this.logger.debug("Setting up technician availability", {
+        ...context,
+        availabilityDataKeys: Object.keys(availabilityData),
+      });
+
+      // Use the new availability service
+      const availabilityService = new TechnicianAvailabilityService();
+      await availabilityService.createTechnicianAvailabilityFromApplication(
+        application.technicianId.toString(),
+        availabilityData
+      );
+
+      this.logger.info("Technician availability setup completed", context);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error handling availability step", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
   }
-}
 
   async getApplication(applicationId: string): Promise<ApplicationResponseDto> {
+    const context = {
+      operation: "getApplication",
+      data: { applicationId },
+    };
+
     try {
+      this.logger.info("Fetching application", context);
+
       if (
         !applicationId ||
         applicationId === "undefined" ||
         applicationId === "null"
       ) {
+        this.logger.warn("Invalid application ID provided", context);
         return ResponseHelper.badRequest("Invalid application ID");
       }
 
       if (!Types.ObjectId.isValid(applicationId)) {
+        this.logger.warn("Invalid application ID format", {
+          ...context,
+          applicationId: applicationId,
+        });
         return ResponseHelper.badRequest("Invalid application ID format");
       }
 
@@ -583,6 +907,7 @@ private async handleAvailabilityStep(
         applicationId
       );
       if (!application) {
+        this.logger.warn("Application not found", context);
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
         );
@@ -611,6 +936,12 @@ private async handleAvailabilityStep(
       const applicationDto =
         TechnicianApplicationMapper.toApplicationDataDto(application);
 
+      this.logger.info("Application retrieved successfully", {
+        ...context,
+        status: application.status,
+        stepsCompleted: application.stepsCompleted.length,
+      });
+
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.APPLICATION_RETRIEVED,
         {
@@ -618,9 +949,13 @@ private async handleAvailabilityStep(
         }
       );
     } catch (error: unknown) {
-      console.error("Get application error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Get application operation failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION
       );
@@ -631,18 +966,27 @@ private async handleAvailabilityStep(
     applicationId: string,
     userId: string
   ): Promise<ApplicationResponseDto> {
+    const context = {
+      operation: "submitApplication",
+      data: { applicationId, userId },
+    };
+
     try {
+      this.logger.info("Submitting application", context);
+
       const application = await this.applicationRepository.findById(
         applicationId
       );
       if (!application) {
+        this.logger.warn("Application not found for submission", context);
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
         );
       }
 
-      let languagesArray: string[] = [];
+      this.logger.debug("Processing languages data", context);
 
+      let languagesArray: string[] = [];
       const skillsLanguages = application.skills?.languages as unknown;
 
       if (Array.isArray(skillsLanguages)) {
@@ -670,17 +1014,31 @@ private async handleAvailabilityStep(
         }
       }
 
+      this.logger.debug("Languages processed", {
+        ...context,
+        languagesCount: languagesArray.length,
+      });
+
       // Ownership validation
       if (
         !application.technicianId ||
         application.technicianId.toString() !== userId
       ) {
+        this.logger.warn("Application ownership validation failed", {
+          ...context,
+          applicationTechnicianId: application.technicianId?.toString(),
+          requestingUserId: userId,
+        });
         return ResponseHelper.forbidden(
           TECH_APPLICATION_MESSAGES.ACCESS_DENIED
         );
       }
 
       if (application.status !== APPLICATION_STATUS.DRAFT) {
+        this.logger.warn("Application already submitted", {
+          ...context,
+          currentStatus: application.status,
+        });
         return ResponseHelper.badRequest(
           TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_SUBMITTED
         );
@@ -688,12 +1046,15 @@ private async handleAvailabilityStep(
 
       // Validate all required steps are completed
       const requiredSteps = REQUIRED_STEPS;
-
       const missingSteps = requiredSteps.filter(
         (step) => !application.stepsCompleted.includes(step)
       );
 
       if (missingSteps.length > 0) {
+        this.logger.warn("Required steps not completed", {
+          ...context,
+          missingSteps: missingSteps,
+        });
         return ResponseHelper.unProcessableEntity(
           TECH_APPLICATION_MESSAGES.COMPLETE_ALL_STEPS_REQUIRED,
           {
@@ -701,6 +1062,11 @@ private async handleAvailabilityStep(
           }
         );
       }
+
+      this.logger.debug(
+        "Checking for existing submitted applications",
+        context
+      );
 
       const existingSubmittedApp =
         await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
@@ -712,10 +1078,16 @@ private async handleAvailabilityStep(
         existingSubmittedApp &&
         existingSubmittedApp._id.toString() !== applicationId
       ) {
+        this.logger.warn("User already has application in review", {
+          ...context,
+          existingApplicationId: existingSubmittedApp._id.toString(),
+        });
         return ResponseHelper.badRequest(
           "You already have an application in review. Please wait for it to be processed."
         );
       }
+
+      this.logger.debug("Updating user application status", context);
 
       // Update user
       const user = await this.userRepository.updateApplicationStatus(
@@ -723,6 +1095,7 @@ private async handleAvailabilityStep(
         APPLICATION_STATUS.SUBMITTED
       );
       if (!user) {
+        this.logger.warn("User not found during submission", context);
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.USER_NOT_FOUND
         );
@@ -730,6 +1103,11 @@ private async handleAvailabilityStep(
 
       // Update user email if different
       if (application.email && user.email !== application.email) {
+        this.logger.debug("Updating user email", {
+          ...context,
+          oldEmail: user.email,
+          newEmail: application.email,
+        });
         await this.userRepository.update(userId, { email: application.email });
       }
 
@@ -742,7 +1120,10 @@ private async handleAvailabilityStep(
           try {
             addressData = JSON.parse(application.identity.address);
           } catch (e) {
-            console.error("Error parsing address JSON:", e);
+            this.logger.warn("Error parsing address JSON", {
+              ...context,
+              error: e instanceof Error ? e.message : "Unknown error",
+            });
             addressData = {};
           }
         } else {
@@ -751,6 +1132,7 @@ private async handleAvailabilityStep(
       }
 
       if (!technician) {
+        this.logger.info("Creating new technician record", context);
         // Create new technician
         technician = await this.technicianRepository.create({
           userId: new Types.ObjectId(userId),
@@ -782,7 +1164,15 @@ private async handleAvailabilityStep(
             address: addressData,
           },
         });
+        this.logger.info("New technician created", {
+          ...context,
+          technicianId: technician._id?.toString(),
+        });
       } else {
+        this.logger.info("Updating existing technician record", {
+          ...context,
+          technicianId: technician._id?.toString(),
+        });
         // Update existing technician
         await this.technicianRepository.updateByUserId(userId, {
           displayName:
@@ -831,12 +1221,21 @@ private async handleAvailabilityStep(
       if (!technician) {
         // After creation, fetch the technician to verify
         technician = await this.technicianRepository.findByUserId(userId);
+        this.logger.debug("Fetched technician after creation", {
+          ...context,
+          technicianFound: !!technician,
+        });
       }
 
       // Update application status
       await this.applicationRepository.update(applicationId, {
         status: APPLICATION_STATUS.SUBMITTED,
         submittedAt: new Date(),
+      });
+
+      this.logger.info("Application submitted successfully", {
+        ...context,
+        applicationId: application._id.toString(),
       });
 
       return ResponseHelper.success(
@@ -846,9 +1245,13 @@ private async handleAvailabilityStep(
         }
       );
     } catch (error: unknown) {
-      console.error("Submit application error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Submit application operation failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return ResponseHelper.badRequest(
         TECH_APPLICATION_MESSAGES.FAILED_TO_SUBMIT_APPLICATION
       );
@@ -858,11 +1261,19 @@ private async handleAvailabilityStep(
   async getApplicationStatus(
     applicationId: string
   ): Promise<ApplicationResponseDto> {
+    const context = {
+      operation: "getApplicationStatus",
+      data: { applicationId },
+    };
+
     try {
+      this.logger.info("Fetching application status", context);
+
       const application = await this.applicationRepository.findById(
         applicationId
       );
       if (!application) {
+        this.logger.warn("Application not found for status check", context);
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
         );
@@ -873,6 +1284,11 @@ private async handleAvailabilityStep(
         documents: application.documents || {},
       };
 
+      this.logger.info("Application status retrieved", {
+        ...context,
+        status: application.status,
+      });
+
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.APPLICATION_STATUS_RETRIEVED,
         {
@@ -880,9 +1296,13 @@ private async handleAvailabilityStep(
         }
       );
     } catch (error: unknown) {
-      console.error("Get application status error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Get application status operation failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_GET_STATUS
       );
@@ -892,13 +1312,25 @@ private async handleAvailabilityStep(
   async getUserApplications(
     userId: string
   ): Promise<ApplicationListResponseDto> {
+    const context = {
+      operation: "getUserApplications",
+      data: { userId },
+    };
+
     try {
+      this.logger.info("Fetching user applications", context);
+
       const applications = await this.applicationRepository.findByTechnicianId(
         userId
       );
 
       const applicationDtos =
         TechnicianApplicationMapper.toApplicationListDto(applications);
+
+      this.logger.info("User applications retrieved successfully", {
+        ...context,
+        applicationsCount: applications.length,
+      });
 
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.USER_APPLICATIONS_RETRIEVED,
@@ -907,9 +1339,13 @@ private async handleAvailabilityStep(
         }
       );
     } catch (error: unknown) {
-      console.error("Get user applications error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Get user applications operation failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION
       );
@@ -920,11 +1356,19 @@ private async handleAvailabilityStep(
     applicationId: string,
     userId: string
   ): Promise<ApplicationResponseDto> {
+    const context = {
+      operation: "resubmitApplication",
+      data: { applicationId, userId },
+    };
+
     try {
+      this.logger.info("Resubmitting application", context);
+
       const application = await this.applicationRepository.findById(
         applicationId
       );
       if (!application) {
+        this.logger.warn("Application not found for resubmission", context);
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
         );
@@ -932,12 +1376,21 @@ private async handleAvailabilityStep(
 
       // Ownership validation
       if (!application.technicianId) {
+        this.logger.warn("No technician assigned to application", context);
         return ResponseHelper.badRequest(
           TECH_APPLICATION_MESSAGES.NO_TECHNICIAN_ASSIGNED
         );
       }
 
       if (application.technicianId.toString() !== userId) {
+        this.logger.warn(
+          "Application ownership validation failed for resubmission",
+          {
+            ...context,
+            applicationTechnicianId: application.technicianId.toString(),
+            requestingUserId: userId,
+          }
+        );
         return ResponseHelper.forbidden(
           TECH_APPLICATION_MESSAGES.ACCESS_DENIED
         );
@@ -945,10 +1398,19 @@ private async handleAvailabilityStep(
 
       // Check if application is rejected
       if (application.status !== APPLICATION_STATUS.REJECTED) {
+        this.logger.warn("Application is not rejected, cannot resubmit", {
+          ...context,
+          currentStatus: application.status,
+        });
         return ResponseHelper.badRequest(
           TECH_APPLICATION_MESSAGES.ONLY_REJECTED_CAN_RESUBMIT
         );
       }
+
+      this.logger.debug(
+        "Updating application status for resubmission",
+        context
+      );
 
       // Update application status and clear rejection details
       application.status = APPLICATION_STATUS.SUBMITTED;
@@ -965,7 +1427,16 @@ private async handleAvailabilityStep(
         await this.technicianRepository.updateByUserId(userId, {
           status: APPLICATION_STATUS.SUBMITTED,
         });
+        this.logger.debug("Technician status updated", {
+          ...context,
+          technicianId: technician._id?.toString(),
+        });
       }
+
+      this.logger.info("Application resubmitted successfully", {
+        ...context,
+        resubmittedCount: application.resubmittedCount,
+      });
 
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.APPLICATION_RESUBMITTED,
@@ -974,9 +1445,13 @@ private async handleAvailabilityStep(
         }
       );
     } catch (error: unknown) {
-      console.error("Resubmit application error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Resubmit application operation failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_RESUBMIT_APPLICATION
       );
@@ -987,7 +1462,14 @@ private async handleAvailabilityStep(
     userId: string,
     email: string
   ): Promise<ApplicationResponseDto> {
+    const context = {
+      operation: "startNewApplicationAfterRejection",
+      data: { userId, email },
+    };
+
     try {
+      this.logger.info("Starting new application after rejection", context);
+
       // Find the rejected application
       const rejectedApplication =
         await this.applicationRepository.findByTechnicianIdAndStatus(userId, [
@@ -995,10 +1477,16 @@ private async handleAvailabilityStep(
         ]);
 
       if (!rejectedApplication) {
+        this.logger.warn("No rejected application found", context);
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.NO_REJECTED_APPLICATION_FOUND
         );
       }
+
+      this.logger.debug("Creating new application from rejected one", {
+        ...context,
+        previousApplicationId: rejectedApplication._id.toString(),
+      });
 
       const newApplication = await this.applicationRepository.create({
         email: email.toLowerCase().trim(),
@@ -1021,6 +1509,12 @@ private async handleAvailabilityStep(
         resubmittedCount: (rejectedApplication.resubmittedCount || 0) + 1,
       } as Partial<ITechnicianApplication>);
 
+      this.logger.info("New application created after rejection", {
+        ...context,
+        newApplicationId: newApplication._id.toString(),
+        resubmittedCount: newApplication.resubmittedCount,
+      });
+
       return ResponseHelper.success(
         TECH_APPLICATION_MESSAGES.NEW_APPLICATION_STARTED,
         {
@@ -1030,9 +1524,16 @@ private async handleAvailabilityStep(
         }
       );
     } catch (error: unknown) {
-      console.error("Start new application after rejection error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error(
+        "Start new application after rejection operation failed",
+        {
+          ...context,
+          error: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+        }
+      );
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_START_NEW_APPLICATION
       );
@@ -1043,11 +1544,19 @@ private async handleAvailabilityStep(
     applicationId: string,
     userId?: string
   ): Promise<ApplicationResponseDto> {
+    const context = {
+      operation: "getApplicationForEdit",
+      data: { applicationId, userId },
+    };
+
     try {
+      this.logger.info("Fetching application for editing", context);
+
       const application = await this.applicationRepository.findById(
         applicationId
       );
       if (!application) {
+        this.logger.warn("Application not found for editing", context);
         return ResponseHelper.notFound(
           TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
         );
@@ -1058,6 +1567,14 @@ private async handleAvailabilityStep(
         !application.technicianId ||
         application.technicianId.toString() !== userId
       ) {
+        this.logger.warn(
+          "Application ownership validation failed for editing",
+          {
+            ...context,
+            applicationTechnicianId: application.technicianId?.toString(),
+            requestingUserId: userId,
+          }
+        );
         return ResponseHelper.forbidden(
           TECH_APPLICATION_MESSAGES.ACCESS_DENIED
         );
@@ -1074,13 +1591,23 @@ private async handleAvailabilityStep(
       const applicationDto =
         TechnicianApplicationMapper.toApplicationDataDto(application);
 
+      this.logger.info("Application loaded for editing", {
+        ...context,
+        status: application.status,
+        stepsCompleted: application.stepsCompleted.length,
+      });
+
       return ResponseHelper.success("Application loaded for editing", {
         application: applicationDto,
       });
     } catch (error: unknown) {
-      console.error("Get application for edit error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Get application for edit operation failed", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return ResponseHelper.error("Failed to load application for editing");
     }
   }

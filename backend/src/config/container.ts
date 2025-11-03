@@ -28,7 +28,6 @@
   import { ServiceService } from "../services/ServiceManagementService";
   import { ServiceController } from "../controllers/admin/serviceManagement";
   import { ItemRepository } from "../repositories/admin/ItemManagementRepository";
-  import { ItemService } from "../services/ItemManagementService";
   import { ItemController } from "../controllers/admin/itemManagementController";
   import { PublicUserController } from "../controllers/admin/publicUserManagement";
   import { UserProfileService } from "../services/UserProfileService";
@@ -39,6 +38,7 @@
 import { AddressRepository } from "../repositories/user/AddressRepository";
 import { AddressController } from "../controllers/user/addressController";
 import { AddressService } from "../services/AddressService";
+import { ItemService } from "../services/ItemManagementService";
 
   // User Management Dependencies
   const userManagementRepository = new UserManagementRepository();

@@ -1,8 +1,13 @@
 import express, { Application, Request, Response } from "express";
 import dotenv from "dotenv";
+import morgan from "morgan"
 dotenv.config();
 import cors from "cors";
 import connectDB from "./config/db";
+import { stream } from './utils/logger';
+import { requestLogger } from "./middleware/requestLoger";
+import { errorHandler } from "./middleware/errorHandler";
+
 import userAuth from "./routes/userRoutes";
 import userRoutes from "./routes/admin/userManagementRoutes";
 import adminTechnicianRoutes from "./routes/admin/technicianManagementRoutes";
@@ -18,6 +23,10 @@ import userProfileRoutes from "./routes/user/userProfileRoutes"
 connectDB();
 
 const app: Application = express();
+
+app.use(morgan('combined', { stream }));
+
+app.use(requestLogger);
 
 
 app.use(express.json());
@@ -55,6 +64,8 @@ app.use("/api/user", userProfileRoutes);
 app.get("/", (req: Request, res: Response) => {
   res.send("Localfix API running...");
 });
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
