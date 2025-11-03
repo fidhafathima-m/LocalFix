@@ -431,5 +431,13 @@ getPublicTechnicians: (filters: {
     api.get<ApiResponse<{ items: Item[] }>>(ADMIN_ROUTES.SEARCH_ITEM, {
       params: { q: query, limit },
     }),
+  getTechnicianSlotRules: (technicianId: string) =>
+    api.get<ApiResponse<{technician: Technician}>>(ADMIN_ROUTES.TECHNICIAN_SLOT_RULES(technicianId)),
+  getTechnicianAvailability: (technicianId: string, startDate: string, endDate: string) =>
+    api.get<ApiResponse<{technician: Technician}>>(ADMIN_ROUTES.TECHNICIAN_AVAILABILITY(technicianId), {
+        params: { startDate, endDate }
+      }),
+
+
 
 };

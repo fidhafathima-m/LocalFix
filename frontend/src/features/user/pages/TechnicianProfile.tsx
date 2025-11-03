@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   StarBorderOutlined,
@@ -10,10 +11,13 @@ import {
   InsertDriveFileOutlined,
   CalendarMonthOutlined,
   PersonOutlineOutlined,
+  ScheduleOutlined,
+  ChevronRightOutlined,
 } from "@mui/icons-material";
 import Footer from "../../../components/common/Footer";
 import Header from "../../../components/common/Header";
 import { TechnicianMangementService } from "../../../services/admin/TechnicianManagementService";
+import { RRule } from "rrule";
 
 interface Technician {
   _id: string;
@@ -57,6 +61,39 @@ interface Technician {
     status: string;
     uploadedAt: string;
   }>;
+  slotRules?: Array<{
+    _id: string;
+    name: string;
+    rruleString: string;
+    startTime: string;
+    endTime: string;
+    slotDurationMinutes: number;
+    isActive: boolean;
+    effectiveFrom: string;
+    effectiveTo?: string;
+  }>;
+}
+
+interface SlotRule {
+  _id: string;
+  name: string;
+  rruleString: string;
+  startTime: string;
+  endTime: string;
+  slotDurationMinutes: number;
+  isActive: boolean;
+  effectiveFrom: string;
+  effectiveTo?: string;
+}
+
+interface DailyAvailability {
+  date: Date;
+  dayName: string;
+  slots: Array<{
+    start: string;
+    end: string;
+  }>;
+  isToday: boolean;
 }
 
 interface Review {
@@ -74,14 +111,20 @@ interface Review {
 
 const TechnicianProfile: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const [technician, setTechnician] = useState<Technician | null>(null);
+  const [slotRules, setSlotRules] = useState<SlotRule[]>([]);
+  const [weeklyAvailability, setWeeklyAvailability] = useState<
+    DailyAvailability[]
+  >([]);
   const [reviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch technician data
   useEffect(() => {
+    // In your TechnicianProfile component, update the fetchTechnicianData function
     const fetchTechnicianData = async () => {
       if (!id) {
         setError("Technician not found");
@@ -98,14 +141,43 @@ const TechnicianProfile: React.FC = () => {
           await TechnicianMangementService.getPublicTechnicianById(id);
 
         if (technicianResponse.data?.data?.technician) {
-          setTechnician(technicianResponse.data.data.technician);
+          const techData = technicianResponse.data.data.technician;
+          setTechnician(techData);
+
+          // Fetch slot rules for this technician
+          try {
+            const slotRulesResponse =
+              await TechnicianMangementService.getTechnicianSlotRules(id);
+
+            // Check if the response has the expected structure
+            if (
+              slotRulesResponse.data?.success &&
+              slotRulesResponse.data.data?.slotRules
+            ) {
+              setSlotRules(slotRulesResponse.data.data.slotRules);
+
+              // Generate weekly availability from slot rules
+              const availability = generateWeeklyAvailability(
+                slotRulesResponse.data.data.slotRules
+              );
+              setWeeklyAvailability(availability);
+            } else {
+              console.warn(
+                "No slot rules found or unexpected response structure:",
+                slotRulesResponse.data
+              );
+              setSlotRules([]);
+              setWeeklyAvailability([]);
+            }
+          } catch (slotError) {
+            console.error("Error fetching slot rules:", slotError);
+            // Continue without slot rules - technician data is still available
+            setSlotRules([]);
+            setWeeklyAvailability([]);
+          }
         } else {
           setError("Technician not found");
         }
-
-        // TODO: Fetch reviews for this technician
-        // const reviewsResponse = await ReviewsService.getTechnicianReviews(id)
-        // setReviews(reviewsResponse.data?.reviews || [])
       } catch (err) {
         console.error("Error fetching technician data:", err);
         setError("Failed to load technician profile");
@@ -116,6 +188,149 @@ const TechnicianProfile: React.FC = () => {
 
     fetchTechnicianData();
   }, [id]);
+
+  const generateWeeklyAvailability = (
+    rules: SlotRule[]
+  ): DailyAvailability[] => {
+    const days: DailyAvailability[] = [];
+    const today = new Date();
+
+    // Get next 7 days
+    for (let i = 0; i < 7; i++) {
+      const date = new Date();
+      date.setDate(today.getDate() + i);
+
+      const dayName = date
+        .toLocaleDateString("en-US", { weekday: "long" })
+        .toLowerCase();
+
+      // Find slots for this day from active rules
+      const daySlots = getSlotsForDate(rules, date);
+
+      days.push({
+        date,
+        dayName,
+        slots: daySlots,
+        isToday: i === 0,
+      });
+    }
+
+    return days;
+  };
+
+  const getSlotsForDate = (
+    rules: SlotRule[],
+    date: Date
+  ): Array<{ start: string; end: string }> => {
+    const slots: Array<{ start: string; end: string }> = [];
+    const activeRules = rules.filter((rule) => rule.isActive);
+
+    activeRules.forEach((rule) => {
+      try {
+        // Parse the RRule and check if it occurs on this date
+        const rrule = RRule.fromString(rule.rruleString);
+        const occurrences = rrule.between(
+          new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+          new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
+          true
+        );
+
+        // If this rule applies to the current date, generate slots
+        if (occurrences.length > 0) {
+          const daySlots = generateTimeSlots(
+            rule.startTime,
+            rule.endTime,
+            rule.slotDurationMinutes
+          );
+          slots.push(...daySlots);
+        }
+      } catch (error) {
+        console.error("Error processing slot rule:", error);
+      }
+    });
+
+    return mergeConsecutiveSlots(slots);
+  };
+
+  const generateTimeSlots = (
+    startTime: string,
+    endTime: string,
+    durationMinutes: number
+  ): Array<{ start: string; end: string }> => {
+    const slots: Array<{ start: string; end: string }> = [];
+
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
+
+    let currentHour = startHour;
+    let currentMinute = startMinute;
+
+    while (
+      currentHour < endHour ||
+      (currentHour === endHour && currentMinute < endMinute)
+    ) {
+      const slotStart = `${currentHour
+        .toString()
+        .padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
+
+      // Calculate end time
+      let slotEndHour = currentHour;
+      let slotEndMinute = currentMinute + durationMinutes;
+
+      while (slotEndMinute >= 60) {
+        slotEndHour++;
+        slotEndMinute -= 60;
+      }
+
+      const slotEnd = `${slotEndHour
+        .toString()
+        .padStart(2, "0")}:${slotEndMinute.toString().padStart(2, "0")}`;
+
+      // Check if slot ends before or at the end time
+      if (
+        slotEndHour < endHour ||
+        (slotEndHour === endHour && slotEndMinute <= endMinute)
+      ) {
+        slots.push({ start: slotStart, end: slotEnd });
+      }
+
+      // Move to next slot
+      currentMinute += durationMinutes;
+      while (currentMinute >= 60) {
+        currentHour++;
+        currentMinute -= 60;
+      }
+    }
+
+    return slots;
+  };
+
+  const mergeConsecutiveSlots = (
+    slots: Array<{ start: string; end: string }>
+  ): Array<{ start: string; end: string }> => {
+    if (slots.length === 0) return [];
+
+    const sortedSlots = [...slots].sort((a, b) =>
+      a.start.localeCompare(b.start)
+    );
+    const merged: Array<{ start: string; end: string }> = [];
+
+    let currentRange = { ...sortedSlots[0] };
+
+    for (let i = 1; i < sortedSlots.length; i++) {
+      const slot = sortedSlots[i];
+
+      if (slot.start === currentRange.end) {
+        currentRange.end = slot.end;
+      } else {
+        merged.push(currentRange);
+        currentRange = { ...slot };
+      }
+    }
+
+    merged.push(currentRange);
+    return merged;
+  };
 
   // Get document type display name
   const getDocumentDisplayName = (type: string): string => {
@@ -173,6 +388,147 @@ const TechnicianProfile: React.FC = () => {
     };
   };
 
+  // Format time to 12-hour format with AM/PM
+  const formatTimeTo12Hour = (time: string): string => {
+    const [hours, minutes] = time.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
+
+  // Format time range for display
+  const formatTimeRange = (range: { start: string; end: string }): string => {
+    return `${formatTimeTo12Hour(range.start)} - ${formatTimeTo12Hour(
+      range.end
+    )}`;
+  };
+
+  // Get availability status
+  const getAvailabilityStatus = () => {
+    if (technician?.status === "suspended") {
+      return {
+        status: "Suspended",
+        available: false,
+        message: "Not available due to suspension",
+        color: "bg-red-100 text-red-800 border-red-200",
+        icon: "❌",
+      };
+    }
+
+    const activeRules = slotRules.filter((rule) => rule.isActive);
+    const hasActiveRules = activeRules.length > 0;
+    const todaySlots =
+      weeklyAvailability.find((day) => day.isToday)?.slots || [];
+
+    if (!hasActiveRules || todaySlots.length === 0) {
+      return {
+        status: "Unavailable",
+        available: false,
+        message: "Currently not accepting bookings",
+        color: "bg-red-100 text-red-800 border-red-200",
+        icon: "❌",
+      };
+    }
+
+    return {
+      status: "Available",
+      available: true,
+      message: "Available for bookings",
+      color: "bg-green-100 text-green-800 border-green-200",
+      icon: "✅",
+    };
+  };
+  const hasAvailability = weeklyAvailability.some(
+    (day) => day.slots.length > 0
+  );
+
+  const getAvailableDays = () => {
+    // Defensive checks in case technician or the schedule is missing
+    const schedule = (technician as any)?.availability?.schedule;
+    if (!Array.isArray(schedule) || schedule.length === 0) return [];
+
+    return schedule
+      .filter(
+        (dayObj: any) =>
+          Array.isArray(dayObj.slots) &&
+          dayObj.slots.length > 0 &&
+          dayObj.available
+      )
+      .map((dayObj: any) => {
+        // use either `day` or `dayName`, fallback to empty string
+        const rawDay = dayObj.day ?? dayObj.dayName ?? "";
+        const day = String(rawDay).toLowerCase();
+
+        // Ensure we pass a safe array into your grouping util
+        const slots = Array.isArray(dayObj.slots) ? dayObj.slots : [];
+        const groupedRanges = groupConsecutiveSlots(slots);
+
+        return {
+          day,
+          ranges: groupedRanges,
+        };
+      });
+  };
+
+  // Group consecutive time slots into ranges
+  const groupConsecutiveSlots = (
+    slots: Array<{ start: string; end: string }>
+  ): Array<{ start: string; end: string }> => {
+    if (slots.length === 0) return [];
+
+    const sortedSlots = [...slots].sort((a, b) =>
+      a.start.localeCompare(b.start)
+    );
+    const ranges: Array<{ start: string; end: string }> = [];
+
+    let currentRange = { ...sortedSlots[0] };
+
+    for (let i = 1; i < sortedSlots.length; i++) {
+      const slot = sortedSlots[i];
+
+      // If this slot starts when the current range ends, extend the range
+      if (slot.start === currentRange.end) {
+        currentRange.end = slot.end;
+      } else {
+        // End the current range and start a new one
+        ranges.push(currentRange);
+        currentRange = { ...slot };
+      }
+    }
+
+    ranges.push(currentRange);
+    return ranges;
+  };
+
+  // Get current day name
+  const getCurrentDay = (): string => {
+    const days = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    return days[new Date().getDay()];
+  };
+
+  // Check if today is available
+  const isTodayAvailable = (): boolean => {
+    const today = getCurrentDay();
+    return availableDays.some((day: { day: string }) => day.day === today);
+  };
+
+  const handleBooking = (technicianId: string, technicianName: string): void => {
+  navigate(`/booking?technicianId=${technicianId}`, {
+    state: {
+      technicianName: technicianName,
+      fromProfile: true
+    }
+  });
+};
+
   // Loading state
   if (loading) {
     return (
@@ -219,11 +575,38 @@ const TechnicianProfile: React.FC = () => {
   }
 
   const ratingDistribution = getRatingDistribution();
+  const availabilityStatus = getAvailabilityStatus();
+  const availableDays = getAvailableDays();
+  const isTodayAvail = isTodayAvailable();
 
   return (
     <>
       <Header />
       <div className="w-full min-h-screen bg-gray-50">
+        {/* Breadcrumb */}
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center gap-2 text-sm">
+              <button
+                onClick={() => navigate("/services")}
+                className="text-gray-600 hover:text-blue-600 cursor-pointer"
+              >
+                Services
+              </button>
+              <ChevronRightOutlined className="w-4 h-4 text-gray-400" />
+              <button
+                onClick={() => navigate(-1)} 
+                className="text-gray-600 hover:text-blue-600 cursor-pointer"
+              >
+                {location.state?.serviceName || "Service Details"}
+              </button>
+              <ChevronRightOutlined className="w-4 h-4 text-gray-400" />
+              <span className="text-gray-900 font-medium">
+                {technician.displayName}
+              </span>
+            </div>
+          </div>
+        </div>
         <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Technician Header */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -338,6 +721,190 @@ const TechnicianProfile: React.FC = () => {
             </div>
           </div>
 
+          {/* Availability & Service Area */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-6 flex items-center">
+              <ScheduleOutlined className="w-5 h-5 mr-2 text-blue-600" />
+              Availability & Service Area
+            </h2>
+
+            {/* Current Status Card */}
+            <div
+              className={`border rounded-lg p-4 mb-6 ${availabilityStatus.color}`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-lg">{availabilityStatus.icon}</span>
+                  <div>
+                    <h3 className="font-semibold">
+                      {availabilityStatus.status}
+                    </h3>
+                    <p className="text-sm opacity-90">
+                      {availabilityStatus.message}
+                    </p>
+                  </div>
+                </div>
+                {availabilityStatus.available && (
+                  <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                    Available Today
+                    {isTodayAvail}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Weekly Schedule */}
+              <div>
+                <h3 className="font-semibold mb-4 flex items-center">
+                  <CalendarMonthOutlined className="w-4 h-4 mr-2 text-blue-600" />
+                  Next 7 Days Schedule
+                </h3>
+
+                {hasAvailability ? (
+                  <div className="space-y-3">
+                    {weeklyAvailability
+                      .filter((dayInfo) => dayInfo.slots.length > 0)
+                      .map((dayInfo, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center justify-between p-3 rounded-lg border ${
+                            dayInfo.isToday
+                              ? "bg-blue-50 border-blue-200"
+                              : "bg-gray-50 border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <span
+                              className={`font-medium min-w-24 ${
+                                dayInfo.isToday
+                                  ? "text-blue-700"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              {dayInfo.dayName.charAt(0).toUpperCase() +
+                                dayInfo.dayName.slice(1)}
+                              {dayInfo.isToday && (
+                                <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                  Today
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            {dayInfo.slots.length > 0 ? (
+                              dayInfo.slots.map((range, rangeIndex) => (
+                                <div
+                                  key={rangeIndex}
+                                  className={`text-sm ${
+                                    dayInfo.isToday
+                                      ? "text-blue-600"
+                                      : "text-gray-600"
+                                  } font-medium`}
+                                >
+                                  {formatTimeRange(range)}
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-sm text-gray-400">
+                                Unavailable
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
+                    <ScheduleOutlined className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                    <p>No availability scheduled</p>
+                    <p className="text-sm mt-1">Contact for availability</p>
+                  </div>
+                )}
+
+                {/* Schedule Summary */}
+                {hasAvailability && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-700 text-center">
+                      Available{" "}
+                      <strong>
+                        {
+                          weeklyAvailability.filter(
+                            (day) => day.slots.length > 0
+                          ).length
+                        }{" "}
+                        days
+                      </strong>{" "}
+                      in next week • Based on recurring schedule
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Service Area & Details */}
+              <div>
+                <h3 className="font-semibold mb-4 flex items-center">
+                  <LocationOnOutlined className="w-4 h-4 mr-2 text-blue-600" />
+                  Service Area
+                </h3>
+
+                <div className="space-y-4">
+                  {/* Work Areas */}
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <h4 className="font-medium mb-3 text-gray-700">
+                      Coverage Areas
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {technician.workAreas.length > 0 ? (
+                        technician.workAreas.slice(0, 6).map((area, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-full text-sm text-gray-700"
+                          >
+                            <LocationOnOutlined className="w-3 h-3 mr-1 text-blue-500" />
+                            {area}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-gray-600">
+                          Flexible service area
+                        </span>
+                      )}
+                      {technician.workAreas.length > 6 && (
+                        <span className="text-sm text-gray-500 px-2 py-1">
+                          +{technician.workAreas.length - 6} more areas
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Service Radius */}
+                  {technician.serviceRadiusKm && (
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <h4 className="font-medium mb-2 text-gray-700">
+                        Service Radius
+                      </h4>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <LocationOnOutlined className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700">
+                            {technician.serviceRadiusKm} km radius
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            Travels within {technician.serviceRadiusKm}{" "}
+                            kilometers of location
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Ratings & Reviews */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -437,54 +1004,6 @@ const TechnicianProfile: React.FC = () => {
             )}
           </div>
 
-          {/* Availability & Service Area */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">
-              Availability & Service Area
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full" />
-                  <span className="font-medium">Available</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-1">
-                  <AccessTimeOutlined className="w-4 h-4 inline mr-1" />
-                  9:00 AM - 7:00 PM
-                </div>
-                <div className="text-sm text-gray-600">Monday - Saturday</div>
-                <div className="text-sm text-gray-500 mt-2">
-                  Usually responds within 30 minutes
-                </div>
-              </div>
-              <div>
-                <p className="font-medium mb-3">Service Areas</p>
-                <div className="flex flex-wrap gap-2">
-                  {technician.workAreas.length > 0 ? (
-                    technician.workAreas.slice(0, 4).map((area) => (
-                      <span
-                        key={area}
-                        className="flex items-center text-sm text-gray-600"
-                      >
-                        <LocationOnOutlined className="w-4 h-4 text-blue-600 mr-1" />
-                        {area}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-sm text-gray-600">
-                      Service area: {technician.serviceRadiusKm}km radius
-                    </span>
-                  )}
-                  {technician.workAreas.length > 4 && (
-                    <span className="text-sm text-gray-500">
-                      +{technician.workAreas.length - 4} more areas
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Documents & Certifications */}
           {technician.documents && technician.documents.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -526,8 +1045,8 @@ const TechnicianProfile: React.FC = () => {
 
           {/* Book Technician Button */}
           <button
-            onClick={() => navigate(`/booking?technicianId=${technician._id}`)}
-            className="w-full py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center space-x-2 cursor-pointer"
+            onClick={() => handleBooking(technician._id, technician.displayName)}
+            className="w-full py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center space-x-2 cursor-pointer transition-colors duration-200"
           >
             <CalendarMonthOutlined className="w-5 h-5" />
             <span>Book This Technician</span>

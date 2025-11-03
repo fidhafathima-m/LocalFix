@@ -935,9 +935,14 @@ const fetchTechniciansForService = async (
     };
   };
 
-  const handleViewTechnicianProfile = (technicianId: string): void => {
-    navigate(`/technicians/${technicianId}`);
-  };
+  const handleViewTechnicianProfile = (technicianId: string, serviceName: string): void => {
+  navigate(`/technicians/${technicianId}`, {
+    state: {
+      serviceName: serviceName,
+      fromService: true
+    }
+  });
+};
 
   const showLocationCTA = isLoggedIn && !userLocation;
 
@@ -1555,7 +1560,7 @@ const fetchTechniciansForService = async (
                         )}
                       </div>
                       <button
-                        onClick={() => handleViewTechnicianProfile(tech._id)}
+                        onClick={() => handleViewTechnicianProfile(tech._id, service.name)}
                         className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
                       >
                         View Profile

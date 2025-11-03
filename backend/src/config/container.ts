@@ -39,6 +39,9 @@ import { AddressRepository } from "../repositories/user/AddressRepository";
 import { AddressController } from "../controllers/user/addressController";
 import { AddressService } from "../services/AddressService";
 import { ItemService } from "../services/ItemManagementService";
+import { BookingRepository } from "../repositories/user/BookingRepository";
+import { BookingService } from "../services/BookingService";
+import { BookingController } from "../controllers/user/bookingController";
 
   // User Management Dependencies
   const userManagementRepository = new UserManagementRepository();
@@ -135,10 +138,15 @@ import { ItemService } from "../services/ItemManagementService";
   const userProfileService = new UserProfileService(userManagementRepository, addressRepository);
   const userProfileController = new UserProfileController(userProfileService);
 
-  // User Location - FIXED: Create instance properly
+  // User Location
   const userLocationRepository = new UserLocationRepository
-  const userLocationService = new UserLocationService(userLocationRepository); // This should work now
+  const userLocationService = new UserLocationService(userLocationRepository); 
   const userLocationController = new UserLocationController(userLocationService);
+
+  // Booking dependencies
+  const bookingRepository = new BookingRepository();
+  const bookingService = new BookingService(bookingRepository);
+  const bookingController = new BookingController(bookingService);
 
   export {
     userManagementController,
@@ -175,4 +183,7 @@ import { ItemService } from "../services/ItemManagementService";
     userLocationRepository,
     userLocationService,
     userLocationController,
+    bookingRepository,
+    bookingService,
+    bookingController
   };

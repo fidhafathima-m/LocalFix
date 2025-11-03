@@ -963,7 +963,7 @@ export class TechnicianManagementService
         ApplicationMapper.toListDto(app)
       );
 
-      this.logger.info(`Found ${applications.length} applications out of ${length} total`, {
+      this.logger.info(`Found application`, {
         ...context,
         count: applications.length,
         total
@@ -1925,5 +1925,99 @@ export class TechnicianManagementService
     };
 
     return idTypeMap[governmentIdType] || "national_id";
+  }
+  async getTechnicianSlotRules(technicianId: string): Promise<any> {
+    const context = {
+      operation: 'getPublicTechnicianSlotRules',
+      technicianId,
+      timestamp: new Date().toISOString()
+    };
+    
+    try {
+      this.logger.info('Fetching public technician slot rules', context);
+      
+      // First verify technician exists and is approved
+      const technician = await this.technicianRepository.findTechnicianById(technicianId);
+      
+      if (!technician || technician.status !== 'approved') {
+        this.logger.warn('Technician not found or not approved', context);
+        return ResponseHelper.notFound('Technician not found');
+      }
+      
+      const slotRules = await this.technicianRepository.getActiveSlotRules(technicianId);
+      
+      this.logger.info(`Found ${slotRules.length} public slot rules`, {
+        ...context,
+        slotRulesCount: slotRules.length
+      });
+      
+      return ResponseHelper.success(
+        'Slot rules retrieved successfully',
+        { slotRules }
+      );
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error('Failed to fetch public slot rules', {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      return ResponseHelper.error('Failed to retrieve slot rules');
+    }
+  }
+
+  async getTechnicianAvailability(
+    technicianId: string, 
+    startDate?: string, 
+    endDate?: string
+  ): Promise<any> {
+    const context = {
+      operation: 'getPublicTechnicianAvailability',
+      technicianId,
+      startDate,
+      endDate,
+      timestamp: new Date().toISOString()
+    };
+    
+    try {
+      this.logger.info('Fetching public technician availability', context);
+      
+      // First verify technician exists and is approved
+      const technician = await this.technicianRepository.findTechnicianById(technicianId);
+      
+      if (!technician || technician.status !== 'approved') {
+        this.logger.warn('Technician not found or not approved', context);
+        return ResponseHelper.notFound('Technician not found');
+      }
+      
+      // Default to next 7 days if no dates provided
+      const start = startDate ? new Date(startDate) : new Date();
+      const end = endDate ? new Date(endDate) : new Date();
+      end.setDate(end.getDate() + 7); // Next 7 days
+      
+      const availability = await this.technicianRepository.getUpcomingAvailabilityProfile(
+        technicianId, 
+        start, 
+        end
+      );
+      
+      this.logger.info(`Found public availability for ${availability.length} days`, {
+        ...context,
+        availabilityCount: availability.length
+      });
+      
+      return ResponseHelper.success(
+        'Availability retrieved successfully',
+        { availability }
+      );
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error('Failed to fetch public availability', {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      return ResponseHelper.error('Failed to retrieve availability');
+    }
   }
 }

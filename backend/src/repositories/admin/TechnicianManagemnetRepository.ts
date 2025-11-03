@@ -1020,22 +1020,6 @@ async getTechnicianAvailability(technicianId: string): Promise<any> {
     return null;
   }
 }
-async getActiveSlotRules(technicianId: string): Promise<any[]> {
-  try {
-    return await SlotRuleSchema.find({
-      technicianId: new Types.ObjectId(technicianId),
-      isActive: true,
-      effectiveFrom: { $lte: new Date() },
-      $or: [
-        { effectiveTo: { $exists: false } },
-        { effectiveTo: { $gte: new Date() } },
-      ],
-    });
-  } catch (error) {
-    console.error("Error getting active slot rules:", error);
-    return [];
-  }
-}
 
 async getUpcomingAvailability(technicianId: string, days: number = 7): Promise<any[]> {
   try {
@@ -1055,4 +1039,64 @@ async getUpcomingAvailability(technicianId: string, days: number = 7): Promise<a
     return [];
   }
 }
+async getActiveSlotRules(technicianId: string): Promise<any[]> {
+    try {
+      return await SlotRuleSchema.find({
+        technicianId: new Types.ObjectId(technicianId),
+        isActive: true,
+        $or: [
+          { effectiveTo: { $exists: false } },
+          { effectiveTo: { $gte: new Date() } }
+        ]
+      }).sort({ effectiveFrom: 1 });
+    } catch (error) {
+      console.error('Error fetching active slot rules:', error);
+      throw error;
+    }
+  }
+
+  async getUpcomingAvailabilityProfile(technicianId: string, startDate: Date, endDate: Date): Promise<any[]> {
+    try {
+      return await TechnicianAvailabilitySchema.find({
+        technicianId: new Types.ObjectId(technicianId),
+        date: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      }).sort({ date: 1 });
+    } catch (error) {
+      console.error('Error fetching upcoming availability:', error);
+      throw error;
+    }
+  }
+
+  async findAvailabilityByTechnicianAndDate(technicianId: string, date: Date): Promise<any> {
+    try {
+      return await TechnicianAvailabilitySchema.findOne({
+        technicianId: new Types.ObjectId(technicianId),
+        date: {
+          $gte: new Date(date.setHours(0, 0, 0, 0)),
+          $lte: new Date(date.setHours(23, 59, 59, 999))
+        }
+      });
+    } catch (error) {
+      console.error('Error finding availability by date:', error);
+      throw error;
+    }
+  }
+
+  async findAvailabilityInRange(technicianId: string, startDate: Date, endDate: Date): Promise<any[]> {
+    try {
+      return await TechnicianAvailabilitySchema.find({
+        technicianId: new Types.ObjectId(technicianId),
+        date: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      }).sort({ date: 1 });
+    } catch (error) {
+      console.error('Error finding availability in range:', error);
+      throw error;
+    }
+  }
 }

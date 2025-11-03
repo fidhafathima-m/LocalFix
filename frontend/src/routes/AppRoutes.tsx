@@ -44,6 +44,15 @@ const BookingPage = lazy(
 const UserProfile = lazy(
   () => import("../features/user/pages/UserProfile")
 );
+const Checkout = lazy(
+  () => import("../features/user/pages/Checkout")
+);
+const PaymentSuccess = lazy(
+  () => import("../features/user/pages/PaymentSuccess")
+);
+const PaymentFailed = lazy(
+  () => import("../features/user/pages/PaymentFailed")
+);
 
 // Service Provider Routes imports
 const TechHome = lazy(
@@ -140,7 +149,10 @@ const AppRoutes = () => {
             <Route path="/service/:slug" element={<ServiceDetails />} />
             <Route path="/technicians/:id" element={<UserTechnicianProfile />} />
             <Route path="/booking" element={<BookingPage />} />
-            <Route path="//my-profile" element={<UserProfile />} />
+            <Route path="/my-profile" element={<UserProfile />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-failed" element={<PaymentFailed />} />
 
             {/* technicians routes */}
             <Route path="/technicians" element={<TechHome />} />

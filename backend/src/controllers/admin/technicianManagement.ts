@@ -508,4 +508,49 @@ export class TechnicianManagementController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
+  getTechnicianSlotRules = async(req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const result = await this.technicianService.getTechnicianSlotRules(id);
+      
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+      
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Get technician slot rules error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch slot rules'
+      });
+    }
+  }
+
+  getTechnicianAvailability = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { startDate, endDate } = req.query;
+      
+      const result = await this.technicianService.getTechnicianAvailability(
+        id, 
+        startDate as string, 
+        endDate as string
+      );
+      
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+      
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Get technician availability error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch availability'
+      });
+    }
+  }
 }

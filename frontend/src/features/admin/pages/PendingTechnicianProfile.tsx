@@ -872,12 +872,6 @@ const PendingApplicationProfile: React.FC = () => {
                     {new Date(application.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <div>
-                  <p className="text-gray-500">Steps Completed</p>
-                  <p className="font-medium">
-                    {application.stepsCompleted?.length || 0} of 8
-                  </p>
-                </div>
               </div>
             </div>
 

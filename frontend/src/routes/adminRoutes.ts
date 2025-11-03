@@ -13,6 +13,10 @@ export const ADMIN_ROUTES = {
     `/admin/technicians/${technicianId}`,
   TECHNICIAN_STATUS: (technicianId: string) =>
     `/admin/technicians/${technicianId}/status`,
+  TECHNICIAN_SLOT_RULES: (technicianId: string) =>
+    `/admin/technicians/${technicianId}/slot-rules`,
+  TECHNICIAN_AVAILABILITY: (technicianId: string) =>
+    `/admin/technicians/${technicianId}/availability`,
 
   //  Public technciian
   GET_PUBLIC_TECHNICIAN: "/admin/technicians/public",

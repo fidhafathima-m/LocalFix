@@ -1,3 +1,4 @@
+// routes/admin/technicianRoutes.ts
 import { admin, protect } from "../../middleware/authMiddleware";
 import { Router } from "express";
 import { technicianManagementController } from "../../config/container";
@@ -69,6 +70,17 @@ router.patch(
   protect,
   admin,
   technicianManagementController.rejectApplication
+);
+
+// SLOT RULES & AVAILABILITY ROUTES - Remove protect/admin for public access
+router.get(
+  "/:id/slot-rules",
+  technicianManagementController.getTechnicianSlotRules
+);
+
+router.get(
+  "/:id/availability",
+  technicianManagementController.getTechnicianAvailability
 );
 
 export default router;

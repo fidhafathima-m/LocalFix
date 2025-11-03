@@ -29,6 +29,7 @@
     "react-leaflet": "^5.0.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.1",
+    "rrule": "^2.8.1",
     "sweetalert2": "^11.23.0",
     "tailwindcss": "^4.1.13",
     "zod": "^4.1.12"

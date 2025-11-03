@@ -26,12 +26,28 @@ export class TechnicianMangementService {
       throw this.handleError(error, "Failed to get pending technicians");
     }
   }
+  static async getTechnicianSlotRules(technicianId: string) {
+    try {
+      const response = await adminAPI.getTechnicianSlotRules(technicianId);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to get technician slots");
+    }
+  }
   static async getTechnicianById(technicianId: string) {
     try {
       const response = await adminAPI.getTechnicianById(technicianId);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to get technician by id");
+    }
+  }
+  static async getTechnicianAvailability(technicianId: string, startDate: string, endDate: string) {
+    try {
+      const response = await adminAPI.getTechnicianAvailability(technicianId, startDate, endDate);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to get technician availability");
     }
   }
   static async getPublicTechnicians(filters: {
