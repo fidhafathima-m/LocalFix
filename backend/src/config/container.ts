@@ -50,6 +50,9 @@ import { OrderService } from "../services/OrderService";
 import { OrderController } from "../controllers/user/orderController";
 import TechnicianBookingController from "../controllers/technician/technicianOrderController";
 import TechnicianOrderController from "../controllers/technician/technicianOrderController";
+import { OrderManagementRepository } from "../repositories/admin/OrderManagementRepository";
+import { OrderManagementService } from "../services/OrderManagementService";
+import { OrderManagementController } from "../controllers/admin/orderManagementController";
 
   // User Management Dependencies
   const userManagementRepository = new UserManagementRepository();
@@ -167,6 +170,11 @@ import TechnicianOrderController from "../controllers/technician/technicianOrder
   const orderController = new OrderController(orderService);
   const technicianOrderController = new TechnicianOrderController(orderService)
 
+  // Order managemnet dependencies
+  const orderManagementRepository = new OrderManagementRepository();
+  const orderManagementService = new OrderManagementService(orderManagementRepository);
+  const orderManagementController = new OrderManagementController(orderManagementService);
+
   export {
     userManagementController,
     userManagementService,
@@ -211,5 +219,8 @@ import TechnicianOrderController from "../controllers/technician/technicianOrder
     paymentController,
     orderRepository,
     orderService,
-    orderController
+    orderController,
+    orderManagementRepository,
+    orderManagementService,
+    orderManagementController
   };

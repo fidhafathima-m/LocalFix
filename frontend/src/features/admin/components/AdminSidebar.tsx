@@ -125,10 +125,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
               active={activePage === "Subscription Plans"}
             />
             <SidebarItem
-              to="/admin/bookings-management"
+              to="/admin/order-management"
               icon={<EventAvailableOutlined className="h-5 w-5" />}
-              label="Bookings"
-              active={activePage === "Bookings"}
+              label="Orders"
+              active={activePage === "Orders"}
             />
             <SidebarItem
               to="/admin/payments-management"

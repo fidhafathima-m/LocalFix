@@ -9,14 +9,18 @@ import { requestLogger } from "./middleware/requestLoger";
 import { errorHandler } from "./middleware/errorHandler";
 
 import userAuth from "./routes/userRoutes";
+
 import userRoutes from "./routes/admin/userManagementRoutes";
 import adminTechnicianRoutes from "./routes/admin/technicianManagementRoutes";
 import technicianRoutes from "./routes/technician/technicianRoutes";
 import technicianDashboardRoutes from "./routes/technician/technicianDashboardRoutes";
 import technicianProfileRoutes from "./routes/technician/technicianProfileRoutes";
+
 import categoryManagementRoutes from "./routes/admin/categoryManagementRoutes";
 import serviceMangementRoutes from "./routes/admin/serviceManagementRoutes";
 import itemManagementRoutes from "./routes/admin/itemManagementRoutes";
+import orderManagementRoutes from "./routes/admin/orderManagementRoutes";
+
 import pubicUserRoutes from "./routes/publicUserRoutes";
 import userProfileRoutes from "./routes/user/userProfileRoutes"
 import bookingRoutes from "./routes/user/bookingRoutes";
@@ -54,6 +58,7 @@ app.use("/api/admin/technicians", adminTechnicianRoutes);
 app.use("/api/admin/categories", categoryManagementRoutes);
 app.use("/api/admin/services", serviceMangementRoutes);
 app.use("/api/admin/items", itemManagementRoutes);
+app.use("/api/admin/orders", orderManagementRoutes);
 
 // technciian routes
 app.use("/api/technician-application", technicianRoutes);

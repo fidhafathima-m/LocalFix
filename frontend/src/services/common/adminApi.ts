@@ -224,6 +224,82 @@ export interface ItemsResponse {
   totalPages: number;
 }
 
+// Add these interfaces to your adminApi.ts
+export interface Order {
+  _id: string;
+  orderCode: string;
+  userId: {
+    _id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+  };
+  technicianId: {
+    _id: string;
+    displayName: string;
+    profilePictureUrl?: string;
+  };
+  serviceName: string;
+  problemDescription: string;
+  scheduledAt: string;
+  timeSlot: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    landmark?: string;
+  };
+  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'refunded';
+  payment: {
+    method: 'online' | 'cod';
+    amount: number;
+    status: 'pending' | 'paid' | 'failed' | 'refunded';
+    transactionId?: string;
+    paidAt?: string;
+  };
+  totalAmount: number;
+  orderItems: Array<{
+    _id: string;
+    customName: string;
+    unitPrice: number;
+    quantity: number;
+    totalPrice: number;
+    status: string;
+  }>;
+  history: Array<{
+    status: string;
+    description: string;
+    updatedBy: string;
+    timestamp: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrdersResponse {
+  orders: Order[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface OrderStats {
+  totalOrders: number;
+  pendingOrders: number;
+  confirmedOrders: number;
+  inProgressOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  totalRevenue: number;
+  monthlyRevenue: number;
+}
+
+export interface OrderStatsResponse {
+  stats: OrderStats;
+}
+
 export const adminAPI = {
   // Users
   getUsers: () => api.get<ApiResponse<UsersResponse>>(ADMIN_ROUTES.USERS),
@@ -438,6 +514,22 @@ getPublicTechnicians: (filters: {
         params: { startDate, endDate }
       }),
 
+      getOrders: (page: number = 1, limit: number = 10, search?: string, status?: string) =>
+    api.get<ApiResponse<OrdersResponse>>(ADMIN_ROUTES.ORDERS, {
+      params: { page, limit, search, status },
+    }),
+
+  getOrderById: (orderId: string) =>
+    api.get<ApiResponse<{ order: Order }>>(ADMIN_ROUTES.ORDER_BY_ID(orderId)),
+
+  getOrderStats: () =>
+    api.get<ApiResponse<OrderStatsResponse>>(ADMIN_ROUTES.ORDER_STATS),
+
+  updateOrderStatus: (orderId: string, status: string, reason?: string) =>
+    api.patch<ApiResponse<{ order: Order }>>(
+      ADMIN_ROUTES.ORDER_STATUS(orderId),
+      { status, reason }
+    ),
 
 
 };

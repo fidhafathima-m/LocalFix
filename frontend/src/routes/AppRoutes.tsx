@@ -139,6 +139,12 @@ const ServiceManagement = lazy(
 const ItemManagement = lazy(
   () => import("../features/admin/pages/ItemManagement")
 );
+const OrderManagement = lazy(
+  () => import("../features/admin/pages/OrderManagemnet")
+);
+const ViewOrder = lazy(
+  () => import("../features/admin/components/ViewOrder")
+);
 
 const AppRoutes = () => {
   return (
@@ -295,6 +301,22 @@ const AppRoutes = () => {
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <ItemManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/order-management"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <OrderManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/order-management/:id"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <ViewOrder />
                 </ProtectedRoute>
               }
             />
