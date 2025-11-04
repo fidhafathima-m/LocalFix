@@ -171,7 +171,7 @@ const Header: React.FC<HeaderProps> = ({
             </button>,
             <a
               key="orders"
-              href="/my-orders"
+              href="/orders"
               className="px-3 hover:text-blue-600 transition-colors"
               onClick={closeMobileMenu}
             >

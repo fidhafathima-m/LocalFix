@@ -39,4 +39,28 @@ export interface IOrderService {
       paidAt?: Date;
     }
   ): Promise<ApiResponse<OrderResponseDto>>;
+  getTechnicianOrders(
+    technicianId: string,
+    page?: number,
+    limit?: number
+  ): Promise<ApiResponse<OrderListResponseDto>>;
+  getTechnicianOrderById(
+    technicianId: string,
+    orderId: string
+  ): Promise<ApiResponse<OrderResponseDto>>;
+  updateOrderStatus(
+    orderId: string,
+    status: string,
+    updatedBy: string,
+    reason?: string
+  ): Promise<ApiResponse<OrderResponseDto>>;
+  getTechnicianOrderStats(technicianId: string): Promise<
+    ApiResponse<{
+      totalOrders: number;
+      pendingOrders: number;
+      inProgressOrders: number;
+      completedOrders: number;
+      monthlyEarnings: number;
+    }>
+  >;
 }

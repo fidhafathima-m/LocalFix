@@ -19,4 +19,12 @@ export interface IOrderRepository {
   ): Promise<IOrder | null>;
   addOrderItem(orderId: string, itemData: any): Promise<IOrder | null>;
   createFromBooking(bookingId: string, paymentData: any): Promise<IOrder | null>;
+  findByTechnicianId(technicianId: string, page: number, limit: number): Promise<{ orders: any[]; total: number }>;
+  getTechnicianStats(technicianId: string): Promise<{
+    totalOrders: number;
+    pendingOrders: number;
+    inProgressOrders: number;
+    completedOrders: number;
+    monthlyEarnings: number;
+  }>;
 }

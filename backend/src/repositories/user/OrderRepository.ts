@@ -174,4 +174,89 @@ async createFromBooking(bookingId: string, paymentData: any): Promise<IOrder | n
 
     return await order.save();
   }
+  async findByTechnicianId(technicianId: string, page: number = 1, limit: number = 10): Promise<{ orders: IOrder[]; total: number }> {
+    const skip = (page - 1) * limit;
+    
+    const [orders, total] = await Promise.all([
+      Order.find({ technicianId: new Types.ObjectId(technicianId) })
+        .populate('userId', 'name email phone') // Assuming user has name, email, phone fields
+        .populate('technicianId', 'displayName profilePictureUrl averageRating ratingCount services skills')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      Order.countDocuments({ technicianId: new Types.ObjectId(technicianId) })
+    ]);
+
+    return { orders, total };
+  }
+
+  async getTechnicianStats(technicianId: string): Promise<{
+    totalOrders: number;
+    pendingOrders: number;
+    inProgressOrders: number;
+    completedOrders: number;
+    monthlyEarnings: number;
+  }> {
+    const technicianObjectId = new Types.ObjectId(technicianId);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const [
+      totalOrders,
+      pendingOrders,
+      inProgressOrders,
+      completedOrders,
+      monthlyEarningsResult
+    ] = await Promise.all([
+      // Total orders
+      Order.countDocuments({ technicianId: technicianObjectId }),
+      
+      // Pending orders
+      Order.countDocuments({ 
+        technicianId: technicianObjectId, 
+        status: 'pending' 
+      }),
+      
+      // In progress orders
+      Order.countDocuments({ 
+        technicianId: technicianObjectId, 
+        status: 'in_progress' 
+      }),
+      
+      // Completed orders
+      Order.countDocuments({ 
+        technicianId: technicianObjectId, 
+        status: 'completed' 
+      }),
+      
+      // Monthly earnings (only from completed orders)
+      Order.aggregate([
+        {
+          $match: {
+            technicianId: technicianObjectId,
+            status: 'completed',
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalEarnings: { $sum: '$totalAmount' }
+          }
+        }
+      ])
+    ]);
+
+    const monthlyEarnings = monthlyEarningsResult.length > 0 ? monthlyEarningsResult[0].totalEarnings : 0;
+
+    return {
+      totalOrders,
+      pendingOrders,
+      inProgressOrders,
+      completedOrders,
+      monthlyEarnings
+    };
+  }
 }

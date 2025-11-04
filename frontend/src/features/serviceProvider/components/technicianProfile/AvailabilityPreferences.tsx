@@ -505,13 +505,6 @@ const convertSlotRulesToWeeklyPattern = (slotRules: any[]): any => {
     }));
   };
 
-  const handleAvailabilityToggle = (checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      isAvailable: checked,
-    }));
-  };
-
   const getStatusDisplay = () => {
     if (formData.isAvailable) {
       return (
@@ -642,42 +635,10 @@ const convertSlotRulesToWeeklyPattern = (slotRules: any[]): any => {
   return (
     <AccordionSection title="Availability & Work Preferences" number={4}>
       <div className="space-y-6">
-        {/* Debug info - remove in production */}
-        <div className="bg-gray-100 p-3 rounded text-xs">
-          <strong>Debug Info:</strong>
-          Service Areas: {formData.serviceAreas.length} | Work Radius:{" "}
-          {formData.workRadius}km | Available Days:{" "}
-          {
-            Object.values(formData.availability.weeklyPattern).filter(
-              (day: any) => day.available
-            ).length
-          }
-        </div>
 
         {/* Overall Availability Status */}
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">Overall Availability Status</h3>
-          <label className="relative inline-block w-12 h-6 cursor-pointer">
-            <input
-              type="checkbox"
-              name="isAvailable"
-              className="opacity-0 w-0 h-0"
-              checked={formData.isAvailable}
-              onChange={(e) => handleAvailabilityToggle(e.target.checked)}
-            />
-            <span
-              className={`absolute top-0 left-0 right-0 bottom-0 rounded-full transition-colors ${
-                formData.isAvailable ? "bg-green-500" : "bg-gray-300"
-              }`}
-            ></span>
-            <span
-              className={`absolute left-1 bottom-1 bg-white w-4 h-4 rounded-full transition-transform ${
-                formData.isAvailable
-                  ? "transform translate-x-6"
-                  : "transform translate-x-0"
-              }`}
-            ></span>
-          </label>
         </div>
 
         {getStatusDisplay()}

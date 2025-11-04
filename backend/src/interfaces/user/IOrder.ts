@@ -9,7 +9,7 @@ export interface IOrderItem {
   quantity: number;
   totalPrice: number;
   addedBy: Types.ObjectId;             // technician id
-  status: 'requested' | 'approved' | 'rejected' | 'purchased'; // lifecycle of the item order/quote
+  status: 'requested' | 'accepted' | 'approved' | 'rejected' | 'purchased'; // lifecycle of the item order/quote
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,7 +32,7 @@ export interface IOrder extends Document {
     pincode: string;
     landmark?: string;
   };
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'refunded';
+  status: 'pending' | 'accepted' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'refunded';
   payment: {
     method: 'online' | 'cod';
     amount: number;
@@ -64,7 +64,12 @@ export interface OrderResponseDto {
   _id: string;
   orderCode: string;
   bookingId: string;
-  userId: string;
+  userId: {
+    _id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+  };
   technicianId: {
     _id: string;
     displayName: string;

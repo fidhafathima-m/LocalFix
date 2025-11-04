@@ -308,6 +308,11 @@ const MyOrders: React.FC = () => {
                       
                       {['pending', 'confirmed'].includes(order.status) && (
                         <>
+                          <button 
+                          onClick={() => navigate(`/bookings/${order.bookingId}`)}
+                          className=" bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                            Track Service
+                          </button>
                           <button className="border-2 border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
                             Reschedule
                           </button>

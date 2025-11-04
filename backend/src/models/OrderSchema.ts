@@ -38,7 +38,7 @@ const orderItemSchema = new Schema<IOrderItem>({
   },
   status: {
     type: String,
-    enum: ['requested', 'approved', 'rejected', 'purchased'],
+    enum: ['requested', 'accepted', 'approved', 'rejected', 'purchased'],
     default: 'requested',
   },
 }, {
@@ -109,7 +109,7 @@ const orderSchema = new Schema<IOrder>({
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'refunded'],
+    enum: ['pending', 'accepted', 'confirmed', 'in_progress', 'completed', 'cancelled', 'refunded'],
     default: 'pending',
   },
   payment: {
