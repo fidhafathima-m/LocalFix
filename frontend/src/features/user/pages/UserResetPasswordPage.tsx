@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import UserResetPassword from "../components/UserResetPassword";
+import UserResetPassword from "../components/userAuth/UserResetPassword";
 import toast from "react-hot-toast";
 
 const UserResetPasswordPage: React.FC = () => {

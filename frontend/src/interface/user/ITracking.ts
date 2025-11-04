@@ -1,4 +1,3 @@
-// interfaces/user/ITracking.ts
 export interface ServiceTracking {
   _id: string;
   bookingId: string;

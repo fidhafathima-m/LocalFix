@@ -12,7 +12,7 @@ const LoadingSpinner = () => (
 );
 
 // User Routes imports
-const Home = lazy(() => import("../features/user/pages/Home"));
+const Home = lazy(() => import("../features/user/pages/HomePage"));
 const UserSignupPage = lazy(
   () => import("../features/user/pages/UserSignupPage")
 );
@@ -30,40 +30,40 @@ const ForgertPasswordOTPPage = lazy(
   () => import("../features/user/pages/ForgertPasswordOTPPage")
 );
 const Services = lazy(
-  () => import("../features/user/pages/Services")
+  () => import("../features/user/pages/ServicesPage")
 );
 const ServiceDetails = lazy(
-  () => import("../features/user/pages/ServiceDetails")
+  () => import("../features/user/pages/ServiceDetailsPage")
 );
 const UserTechnicianProfile = lazy(
-  () => import("../features/user/pages/TechnicianProfile")
+  () => import("../features/user/pages/TechnicianProfilePage")
 );
 const BookingPage = lazy(
-  () => import("../features/user/pages/Booking")
+  () => import("../features/user/pages/BookingPage")
 );
 const UserProfile = lazy(
-  () => import("../features/user/pages/UserProfile")
+  () => import("../features/user/pages/UserProfilePage")
 );
 const Checkout = lazy(
-  () => import("../features/user/pages/Checkout")
+  () => import("../features/user/pages/CheckoutPage")
 );
 const PaymentSuccess = lazy(
-  () => import("../features/user/pages/PaymentSuccess")
+  () => import("../features/user/pages/PaymentSuccessPage")
 );
 const PaymentFailed = lazy(
-  () => import("../features/user/pages/PaymentFailed")
+  () => import("../features/user/pages/PaymentFailedPage")
 );
 const ServiceTracking = lazy(
-  () => import("../features/user/pages/ServiceTracking")
+  () => import("../features/user/pages/ServiceTrackingPage")
 );
 const MyOrders = lazy(
-  () => import("../features/user/pages/Orders")
+  () => import("../features/user/pages/OrdersPage")
 );
 const CancelBooking = lazy(
-  () => import("../features/user/pages/CancelBooking")
+  () => import("../features/user/pages/CancelBookingPage")
 );
 const CancelBookingSuccess = lazy(
-  () => import("../features/user/pages/CancelBookingSuccess")
+  () => import("../features/user/pages/CancelBookingSuccessPage")
 );
 
 // Service Provider Routes imports
@@ -92,13 +92,13 @@ const TechnicianResetPasswordPage = lazy(
   () => import("../features/serviceProvider/pages/TechResetPasswordPage")
 );
 const PendingTechnicianApplication = lazy(
-  () => import("../features/serviceProvider/pages/PendingTechnician")
+  () => import("../features/serviceProvider/pages/PendingTechnicianPage")
 );
 const ApprovedTechnicianDashboard = lazy(
-  () => import("../features/serviceProvider/pages/ApprovedTechnician")
+  () => import("../features/serviceProvider/pages/ApprovedTechnicianPage")
 );
 const TechnicianProfileEdit = lazy(
-  () => import("../features/serviceProvider/pages/TechnicianProfileEdit")
+  () => import("../features/serviceProvider/pages/TechnicianProfileEditPage")
 );
 
 // AdminRoutes imports
@@ -106,7 +106,7 @@ const AdminLoginPage = lazy(
   () => import("../features/admin/pages/AdminLoginPage")
 );
 const AdminDashboard = lazy(
-  () => import("../features/admin/pages/AdminDashboard")
+  () => import("../features/admin/pages/AdminDashboardPage")
 );
 const ProtectedRoute = lazy(() => import("../components/ProtectedRoute"));
 const AdminForgotPasswordPage = lazy(
@@ -116,34 +116,34 @@ const AdminForgetOTPPage = lazy(
   () => import("../features/admin/pages/AdminForgetOTPPage")
 );
 const UserManagement = lazy(
-  () => import("../features/admin/pages/UserManagement")
+  () => import("../features/admin/pages/UserManagementPage")
 );
 const AdminResetPasswordPage = lazy(
   () => import("../features/admin/pages/AdminResetPasswordPage")
 );
 const TechnicianManagement = lazy(
-  () => import("../features/admin/pages/TechnicianManagement")
+  () => import("../features/admin/pages/TechnicianManagementPage")
 );
 const TechnicianProfile = lazy(
-  () => import("../features/admin/pages/TechnicianProfile")
+  () => import("../features/admin/pages/TechnicianProfilePage")
 );
 const PendingApplicationProfile = lazy(
-  () => import("../features/admin/pages/PendingTechnicianProfile")
+  () => import("../features/admin/pages/PendingTechnicianProfilePage")
 );
 const CategoryManagement = lazy(
-  () => import("../features/admin/pages/CategoryManagement")
+  () => import("../features/admin/pages/CategoryManagementPage")
 );
 const ServiceManagement = lazy(
-  () => import("../features/admin/pages/ServiceManagement")
+  () => import("../features/admin/pages/ServiceManagementPage")
 );
 const ItemManagement = lazy(
-  () => import("../features/admin/pages/ItemManagement")
+  () => import("../features/admin/pages/ItemManagementPage")
 );
 const OrderManagement = lazy(
-  () => import("../features/admin/pages/OrderManagemnet")
+  () => import("../features/admin/pages/OrderManagemnetPage")
 );
 const ViewOrder = lazy(
-  () => import("../features/admin/components/ViewOrder")
+  () => import("../features/admin/components/orderManagement/ViewOrder")
 );
 
 const AppRoutes = () => {

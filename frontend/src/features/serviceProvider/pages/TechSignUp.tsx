@@ -1,6 +1,6 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import TechnicianSignUp from "../components/TechnicianSignup";
+import TechnicianSignUp from "../components/technicianApplication/techAuth/TechnicianSignup";
 
 const TechSignUp = () => {
   return (

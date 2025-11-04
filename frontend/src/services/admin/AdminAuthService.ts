@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { ForgotPasswordData, LoginCredentials, ResetPasswordData } from "../../interface/user/IAuth";
 import {
   authAPI,
-  type ForgotPasswordData,
-  type LoginCredentials,
-  type ResetPasswordData,
 } from "../common/authApi";
 
 export class AdminAuthService {

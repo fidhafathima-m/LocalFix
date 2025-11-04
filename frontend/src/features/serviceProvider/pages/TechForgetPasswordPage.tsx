@@ -1,6 +1,6 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import TechnicianForgetPassword from "../components/TechForgetPassword";
+import TechnicianForgetPassword from "../components/technicianApplication/techAuth/TechForgetPassword";
 
 const TechForgetPasswordPage = () => {
   return (

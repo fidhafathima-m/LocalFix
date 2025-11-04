@@ -1,6 +1,6 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import AdminForgetPassword from "../components/AdminForgetPassword";
+import AdminForgetPassword from "../components/adminAuth/AdminForgetPassword";
 
 const AdminForgotPasswordPage = () => {
   return (

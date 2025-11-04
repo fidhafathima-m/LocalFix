@@ -1,6 +1,6 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import TechnicianLogin from "../components/TechnicianLogin";
+import TechnicianLogin from "../components/technicianApplication/techAuth/TechnicianLogin";
 
 const TechLoginPage = () => {
   return (

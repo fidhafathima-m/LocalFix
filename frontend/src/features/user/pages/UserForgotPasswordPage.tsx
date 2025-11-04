@@ -1,6 +1,6 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import UserForgetPassword from "../components/UserForgetPassword";
+import UserForgetPassword from "../components/userAuth/UserForgetPassword";
 
 const UserForgotPasswordPage = () => {
   return (

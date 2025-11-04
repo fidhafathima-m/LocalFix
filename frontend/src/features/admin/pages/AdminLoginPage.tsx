@@ -1,6 +1,6 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import AdminLogin from "../components/AdminLogin";
+import AdminLogin from "../components/adminAuth/AdminLogin";
 
 const AdminLoginPage = () => {
   return (

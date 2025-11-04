@@ -1,6 +1,6 @@
 import React from "react";
 import Header from "../../../components/common/Header";
-import { ApplicationForm } from "../components/ApplicationForm";
+import { ApplicationForm } from "../components/technicianApplication/form/ApplicationForm";
 import Footer from "../../../components/common/Footer";
 const TechnicianApplication: React.FC = () => {
   return (

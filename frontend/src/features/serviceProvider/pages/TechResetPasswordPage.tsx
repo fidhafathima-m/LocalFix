@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import TechnicianResetPassword from "../components/TechnicianResetPassword";
+import TechnicianResetPassword from "../components/technicianApplication/techAuth/TechnicianResetPassword";
 import toast from "react-hot-toast";
 
 const TechnicianResetPasswordPage: React.FC = () => {

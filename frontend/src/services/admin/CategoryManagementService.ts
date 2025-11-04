@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { CreateCategoryData, UpdateCategoryData } from "../../interface/admin/IAdminApi";
 import { adminAPI } from "../common/adminApi";
-import type {
-  CreateCategoryData,
-  UpdateCategoryData,
-} from "../common/adminApi";
 
 export class CategoryManagementService {
   static async getCategories(

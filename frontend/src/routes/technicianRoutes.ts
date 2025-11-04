@@ -9,12 +9,12 @@ export const TECHNICIAN_ROUTES = {
     SKILLS_SERVICES: "/technician/profile/skills-services",
     AVAILABILITY: "/technician/profile/availability",
     BANK_PAYMENT: "/technician/profile/bank-payment",
-    UPDATE_PASSWORD: '/technician/profile/password',
+    UPDATE_PASSWORD: "/technician/profile/password",
     // Add these new routes without technicianId parameter
     SLOT_RULES: "/technician/profile/slot-rules",
-    TECHNICIAN_AVAILABILITY: "/technician/profile/technician-availability"
+    TECHNICIAN_AVAILABILITY: "/technician/profile/technician-availability",
   },
-  
+
   // Address routes
   ADDRESS: "/technician/address",
 
@@ -31,7 +31,22 @@ export const TECHNICIAN_ROUTES = {
       `/technician-application/${applicationId}/resubmit`,
     START_NEW_AFTER_REJECTION:
       "/technician-application/start-new-after-rejection",
-    EDIT: (applicationId: string) => 
-      `/technician-application/${applicationId}/edit`
+    EDIT: (applicationId: string) =>
+      `/technician-application/${applicationId}/edit`,
+  },
+
+  ORDER: {
+    GET_TECHNICIAN_ORDERS: (page: number, limit: number) =>
+      `/technician/orders?page=${page}&limit=${limit}`,
+    GET_ORDER_BY_ID: (orderId: string) =>
+      `/technician/orders/${orderId}`,
+    UPDATE_ORDER_STATUS: (orderId: string) =>
+      `/technician/orders/${orderId}/status`,
+    GET_TECHNICIAN_STATS: () =>
+      `/technician/orders/stats`,
+    GET_ORDER_BY_STATUS: (status: string, page: number, limit: number) =>
+      `/technician/orders?status=${status}&page=${page}&limit=${limit}`,
+    GET_UPCOMING_ORDERS: () =>
+      `/technician/orders?status=pending,confirmed,in_progress&limit=10`,
   },
 } as const;

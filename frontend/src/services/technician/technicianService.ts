@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { technicianAPI, type TechnicianProfile } from "../common/technicianApi";
+import type { TechnicianProfile } from "../../store/slices/technicianSlice";
+import { technicianAPI } from "../common/technicianApi";
 
 export class TechnicianService {
   static async getProfile() {

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { CreateServiceData, UpdateServiceData } from "../../interface/admin/IAdminApi";
 import { adminAPI } from "../common/adminApi";
-import type { CreateServiceData, UpdateServiceData } from "../common/adminApi";
 
 export class ServiceManagementService {
   static async getServicesByCategory(

@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import GoogleAuth from "../../features/user/components/GoogleAuth";
+import GoogleAuth from "../../features/user/components/userAuth/GoogleAuth";
 
 interface LoginProps {
   userType: "user" | "serviceProvider" | "admin";

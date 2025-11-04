@@ -1,49 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Address, AddressFormData, ApiResponse } from "../../interface/user/IUserApi";
 import { ADMIN_ROUTES } from "../../routes/adminRoutes";
 import api from "../../utils/axiosConfig";
 
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data?: T;
-  statusCode?: number;
-  error?: string;
-}
 
-export interface AddressFormData {
-  label: string;
-  street: string;
-  city: string;
-  state: string;
-  pincode: string;
-  landmark: string;
-  isDefault: boolean;
-  location: {
-    type: "Point";
-    coordinates: [number, number];
-  };
-  formattedAddress: string;
-  placeId?: string;
-}
-
-export interface Address {
-  id: string;
-  label: string;
-  street: string;
-  city: string;
-  state: string;
-  pincode: string;
-  landmark: string;
-  isDefault: boolean;
-  location: {
-    type: "Point";
-    coordinates: [number, number];
-  };
-  formattedAddress: string;
-  placeId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export const userProfileApi = {
 

@@ -1,6 +1,6 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import ForgotPasswordOTP from "../../user/components/ForgetPasswordOTP";
+import ForgotPasswordOTP from "../../user/components/userAuth/ForgetPasswordOTP";
 
 const AdminForgetOTPPage = () => {
   return (

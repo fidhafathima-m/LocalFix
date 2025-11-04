@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { CreateItemData, UpdateItemData } from "../../interface/admin/IAdminApi";
 import { adminAPI } from "../common/adminApi";
-import type { CreateItemData, UpdateItemData } from "../common/adminApi";
 
 export class ItemManagementService {
   static async getItemsByService(

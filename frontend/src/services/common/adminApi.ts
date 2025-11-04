@@ -1,304 +1,30 @@
+import type {
+  ApiResponse,
+  ApplicationsResponse,
+  CategoriesResponse,
+  Category,
+  CreateCategoryData,
+  CreateItemData,
+  CreateServiceData,
+  Item,
+  ItemsResponse,
+  Order,
+  OrdersResponse,
+  OrderStatsResponse,
+  Service,
+  ServicesResponse,
+  TechnicianResponse,
+  TechniciansResponse,
+  UpdateCategoryData,
+  UpdateItemData,
+  UpdateServiceData,
+  User,
+  UserResponse,
+  UsersResponse,
+} from "../../interface/admin/IAdminApi";
 import { ADMIN_ROUTES } from "../../routes/adminRoutes";
+import type { Technician } from "../../store/slices/adminSlice";
 import api from "../../utils/axiosConfig";
-import type { Address } from "./userProfileApi";
-
-export interface User {
-  _id: string;
-  fullName: string;
-  email?: string;
-  phone: string;
-  status: "Active" | "Inactive" | "Blocked";
-  dateOfBirth?: string;
-  gender?: string;
-  profilePicture?: string;
-  defaultAddress?: {
-    city: string;
-    state: string;
-    pincode: string;
-    landmark: string;
-    location: { type: "Point"; coordinates: [number, number] };
-  };
-  isVerified: boolean;
-  role: string;
-  createdAt: string;
-  wallet: { balance: number };
-  addresses?: Address[];
-}
-
-export interface Technician {
-  _id: string;
-  userId: string;
-  displayName: string;
-  email?: string;
-  phone?: string;
-  services: string[];
-  experienceYears: number;
-  workAreas: string[];
-  serviceRadiusKm: number;
-  status: "pending" | "approved" | "rejected" | "suspended";
-  averageRating: number;
-  ratingCount: number;
-  totalJobs?: number;
-  profilePictureUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-  user?: {
-    email: string;
-    phone: string;
-    fullName: string;
-  };
-}
-
-export interface TechnicianApplication {
-  _id: string;
-  technicianId: string;
-  email: string;
-  status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
-  personal: {
-    fullName?: string;
-    phoneNumber?: string;
-    email?: string;
-  };
-  skills: {
-    services?: string[];
-    yearsOfExperience?: number;
-  };
-  submittedAt?: string;
-  createdAt: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data?: T;
-  statusCode?: number;
-  error?: string;
-}
-
-interface UsersResponse {
-  users: User[];
-}
-
-interface UserResponse {
-  user: User;
-}
-
-interface TechniciansResponse {
-  technicians: Technician[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
-
-interface TechnicianResponse {
-  data: {
-    technician: Technician;
-  };
-}
-
-interface ApplicationsResponse {
-  applications: TechnicianApplication[];
-}
-
-export interface Category {
-  serviceCount: number;
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  iconUrl: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateCategoryData {
-  name: string;
-  description: string;
-  iconUrl?: string;
-}
-
-export interface UpdateCategoryData {
-  name?: string;
-  description?: string;
-  iconUrl?: string;
-}
-
-export interface CategoriesResponse {
-  categories: Category[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface Service {
-  id: string;
-  categoryId: string;
-  slug: string;
-  name: string;
-  description: string;
-  avgBasePrice: number;
-  iconUrl: string;
-  status: "active" | "inactive";
-  createdAt: string;
-  updatedAt: string;
-  itemCount?: number; // Optional field for frontend stats
-  rating?: number;
-  estimatedDuration?: string;
-  features?: string[];
-  popular?: boolean;
-}
-
-export interface CreateServiceData {
-  categoryId?: string;
-  name: string;
-  description: string;
-  avgBasePrice: number;
-  iconUrl?: string;
-  status?: "active" | "inactive";
-  rating?: number;
-  estimatedDuration?: string;
-  features?: string[];
-  popular?: boolean
-}
-
-export interface UpdateServiceData {
-  name?: string;
-  description?: string;
-  avgBasePrice?: number;
-  iconUrl?: string;
-  status?: "active" | "inactive";
-  rating?: number;
-  estimatedDuration?: string;
-  features?: string[];
-  popular?: boolean
-}
-
-export interface ServicesResponse {
-  services: Service[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface Item {
-  id: string;
-  serviceId: string;
-  name: string;
-  description: string;
-  sku: string;
-  price: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateItemData {
-  serviceId?: string;
-  name: string;
-  description: string;
-  price: number;
-  sku?: string;
-  isActive?: boolean;
-}
-
-export interface UpdateItemData {
-  name?: string;
-  description?: string;
-  price?: number;
-  sku?: string;
-  isActive?: boolean;
-}
-
-export interface ItemsResponse {
-  items: Item[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-// Add these interfaces to your adminApi.ts
-export interface Order {
-  _id: string;
-  orderCode: string;
-  userId: {
-    _id: string;
-    fullName: string;
-    email: string;
-    phone: string;
-  };
-  technicianId: {
-    _id: string;
-    displayName: string;
-    profilePictureUrl?: string;
-  };
-  serviceName: string;
-  problemDescription: string;
-  scheduledAt: string;
-  timeSlot: string;
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    pincode: string;
-    landmark?: string;
-  };
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'refunded';
-  payment: {
-    method: 'online' | 'cod';
-    amount: number;
-    status: 'pending' | 'paid' | 'failed' | 'refunded';
-    transactionId?: string;
-    paidAt?: string;
-  };
-  totalAmount: number;
-  orderItems: Array<{
-    _id: string;
-    customName: string;
-    unitPrice: number;
-    quantity: number;
-    totalPrice: number;
-    status: string;
-  }>;
-  history: Array<{
-    status: string;
-    description: string;
-    updatedBy: string;
-    timestamp: string;
-  }>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrdersResponse {
-  orders: Order[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface OrderStats {
-  totalOrders: number;
-  pendingOrders: number;
-  confirmedOrders: number;
-  inProgressOrders: number;
-  completedOrders: number;
-  cancelledOrders: number;
-  totalRevenue: number;
-  monthlyRevenue: number;
-}
-
-export interface OrderStatsResponse {
-  stats: OrderStats;
-}
 
 export const adminAPI = {
   // Users
@@ -318,9 +44,12 @@ export const adminAPI = {
       status,
     }),
 
-    getUserProfile: () => api.get<ApiResponse<UserResponse>>(ADMIN_ROUTES.PUBLIC_USER_PROFILE),
-    getPublicUserById: (userId: string) =>
-    api.get<ApiResponse<{ user: User }>>(ADMIN_ROUTES.PUBLIC_USER_BY_ID(userId)),
+  getUserProfile: () =>
+    api.get<ApiResponse<UserResponse>>(ADMIN_ROUTES.PUBLIC_USER_PROFILE),
+  getPublicUserById: (userId: string) =>
+    api.get<ApiResponse<{ user: User }>>(
+      ADMIN_ROUTES.PUBLIC_USER_BY_ID(userId)
+    ),
 
   // Technicians
   getTechnicians: (filters: { status?: string } = {}) =>
@@ -362,27 +91,32 @@ export const adminAPI = {
       ADMIN_ROUTES.TECHNICIAN_BY_ID(technicianId)
     ),
 
-    // In your adminAPI object, fix the getPublicTechnicians method
-getPublicTechnicians: (filters: {
-  service?: string;
-  page?: number;
-  limit?: number;
-  search?: string;
-  location?: string;
-}) => {
-  const params = new URLSearchParams();
-  if (filters.service) params.append('service', filters.service);
-  if (filters.page) params.append('page', filters.page.toString());
-  if (filters.limit) params.append('limit', filters.limit.toString());
-  if (filters.search) params.append('search', filters.search);
-  if (filters.location) params.append('location', filters.location);
+  // In your adminAPI object, fix the getPublicTechnicians method
+  getPublicTechnicians: (filters: {
+    service?: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+    location?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters.service) params.append("service", filters.service);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+    if (filters.search) params.append("search", filters.search);
+    if (filters.location) params.append("location", filters.location);
 
-  // Add the missing return statement
-  return api.get<ApiResponse<TechniciansResponse>>(ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN, { params });
-},
+    // Add the missing return statement
+    return api.get<ApiResponse<TechniciansResponse>>(
+      ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN,
+      { params }
+    );
+  },
 
   getPublicTechnicianById: (technicianId: string) =>
-    api.get<ApiResponse<TechnicianResponse>>(ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN_BY_ID(technicianId)),
+    api.get<ApiResponse<TechnicianResponse>>(
+      ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN_BY_ID(technicianId)
+    ),
 
   // Categories
   getCategories: (page: number = 1, limit: number = 10, search?: string) =>
@@ -508,13 +242,27 @@ getPublicTechnicians: (filters: {
       params: { q: query, limit },
     }),
   getTechnicianSlotRules: (technicianId: string) =>
-    api.get<ApiResponse<{technician: Technician}>>(ADMIN_ROUTES.TECHNICIAN_SLOT_RULES(technicianId)),
-  getTechnicianAvailability: (technicianId: string, startDate: string, endDate: string) =>
-    api.get<ApiResponse<{technician: Technician}>>(ADMIN_ROUTES.TECHNICIAN_AVAILABILITY(technicianId), {
-        params: { startDate, endDate }
-      }),
+    api.get<ApiResponse<{ technician: Technician }>>(
+      ADMIN_ROUTES.TECHNICIAN_SLOT_RULES(technicianId)
+    ),
+  getTechnicianAvailability: (
+    technicianId: string,
+    startDate: string,
+    endDate: string
+  ) =>
+    api.get<ApiResponse<{ technician: Technician }>>(
+      ADMIN_ROUTES.TECHNICIAN_AVAILABILITY(technicianId),
+      {
+        params: { startDate, endDate },
+      }
+    ),
 
-      getOrders: (page: number = 1, limit: number = 10, search?: string, status?: string) =>
+  getOrders: (
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    status?: string
+  ) =>
     api.get<ApiResponse<OrdersResponse>>(ADMIN_ROUTES.ORDERS, {
       params: { page, limit, search, status },
     }),
@@ -530,6 +278,4 @@ getPublicTechnicians: (filters: {
       ADMIN_ROUTES.ORDER_STATUS(orderId),
       { status, reason }
     ),
-
-
 };
