@@ -20,6 +20,7 @@ import itemManagementRoutes from "./routes/admin/itemManagementRoutes";
 import pubicUserRoutes from "./routes/publicUserRoutes";
 import userProfileRoutes from "./routes/user/userProfileRoutes"
 import bookingRoutes from "./routes/user/bookingRoutes";
+import paymentRoutes from "./routes/user/paymentRoutes";
 
 connectDB();
 
@@ -61,6 +62,7 @@ app.use("/api/public/user", pubicUserRoutes);
 
 app.use("/api/user", userProfileRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRoutes);
 
 
 app.get("/", (req: Request, res: Response) => {

@@ -53,6 +53,9 @@ const PaymentSuccess = lazy(
 const PaymentFailed = lazy(
   () => import("../features/user/pages/PaymentFailed")
 );
+const ServiceTracking = lazy(
+  () => import("../features/user/pages/ServiceTracking")
+);
 
 // Service Provider Routes imports
 const TechHome = lazy(
@@ -153,6 +156,7 @@ const AppRoutes = () => {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-failed" element={<PaymentFailed />} />
+            <Route path="/bookings/:bookingId" element={<ServiceTracking />} />
 
             {/* technicians routes */}
             <Route path="/technicians" element={<TechHome />} />

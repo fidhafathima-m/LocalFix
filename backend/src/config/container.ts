@@ -42,6 +42,9 @@ import { ItemService } from "../services/ItemManagementService";
 import { BookingRepository } from "../repositories/user/BookingRepository";
 import { BookingService } from "../services/BookingService";
 import { BookingController } from "../controllers/user/bookingController";
+import { PaymentRepository } from "../repositories/user/PaymentRepository";
+import { PaymentService } from "../services/PaymentService";
+import { PaymentController } from "../controllers/user/PaymentController";
 
   // User Management Dependencies
   const userManagementRepository = new UserManagementRepository();
@@ -148,6 +151,11 @@ import { BookingController } from "../controllers/user/bookingController";
   const bookingService = new BookingService(bookingRepository);
   const bookingController = new BookingController(bookingService);
 
+  // Payment dependencies
+  const paymentRepository = new PaymentRepository();
+  const paymentService = new PaymentService(paymentRepository);
+  const paymentController = new PaymentController(paymentService);
+
   export {
     userManagementController,
     userManagementService,
@@ -185,5 +193,8 @@ import { BookingController } from "../controllers/user/bookingController";
     userLocationController,
     bookingRepository,
     bookingService,
-    bookingController
+    bookingController,
+    paymentRepository,
+    paymentService,
+    paymentController
   };
