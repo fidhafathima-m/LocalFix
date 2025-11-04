@@ -243,4 +243,83 @@ updateBookingStatus = async (req: AuthRequest, res: Response): Promise<void> => 
     res.status(errorResponse.statusCode).json(errorResponse);
   }
 };
+// Add to BookingController class
+getTrackingDetails = async (req: AuthRequest, res: Response): Promise<void> => {
+  const userId = req.user?.id;
+  const { bookingId } = req.params;
+  
+  const context = {
+    operation: 'getTrackingDetails',
+    userId,
+    bookingId,
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    this.logger.info('Fetching booking tracking details', context);
+
+    if (!userId) {
+      this.logger.warn('Get tracking details failed - authentication required', context);
+      const errorResponse = ResponseHelper.unauthorized("Authentication required");
+      res.status(errorResponse.statusCode).json(errorResponse);
+      return;
+    }
+    
+    const result = await this.bookingService.getTrackingDetails(userId, bookingId);
+    
+    this.logger.info('Tracking details retrieved successfully', {
+      ...context,
+      bookingFound: !!result
+    });
+
+    res.status(result.statusCode).json(result);
+  } catch (error: any) {
+    this.logger.error('Get tracking details controller error', {
+      ...context,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    res.status(errorResponse.statusCode).json(errorResponse);
+  }
+};
+
+getTechnicianLocation = async (req: AuthRequest, res: Response): Promise<void> => {
+  const userId = req.user?.id;
+  const { bookingId } = req.params;
+  
+  const context = {
+    operation: 'getTechnicianLocation',
+    userId,
+    bookingId,
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    this.logger.info('Fetching technician location', context);
+
+    if (!userId) {
+      this.logger.warn('Get technician location failed - authentication required', context);
+      const errorResponse = ResponseHelper.unauthorized("Authentication required");
+      res.status(errorResponse.statusCode).json(errorResponse);
+      return;
+    }
+    
+    const result = await this.bookingService.getTechnicianLocation(bookingId);
+    
+    this.logger.info('Technician location retrieved successfully', context);
+
+    res.status(result.statusCode).json(result);
+  } catch (error: any) {
+    this.logger.error('Get technician location controller error', {
+      ...context,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    res.status(errorResponse.statusCode).json(errorResponse);
+  }
+};
 }

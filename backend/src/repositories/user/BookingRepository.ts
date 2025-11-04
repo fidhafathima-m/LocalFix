@@ -2,7 +2,7 @@
 import TechnicianAvailabilitySchema from "../../models/technician/TechnicianAvailabilitySchema";
 import { IBookingRepository } from "../../interfaces/repository/user/IBookingRepository";
 import Booking, { IBooking } from "../../models/BookingSchema";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 export class BookingRepository implements IBookingRepository {
   async create(bookingData: Partial<IBooking>): Promise<IBooking> {
@@ -191,4 +191,44 @@ export class BookingRepository implements IBookingRepository {
   async getBookingCount(): Promise<number> {
     return await Booking.countDocuments();
   }
+  // Add to BookingRepository class
+async getTechnicianDetails(technicianId: string): Promise<any> {
+  const Technician = mongoose.model('Technician');
+  return await Technician.findById(technicianId)
+    .select('displayName profilePictureUrl averageRating ratingCount services phone')
+    .exec();
+}
+
+async getAddressDetails(addressId: string): Promise<any> {
+  const UserAddress = mongoose.model('UserAddress');
+  return await UserAddress.findById(addressId).exec();
+}
+
+async getTechnicianLocation(technicianId: string): Promise<{
+  latitude: number;
+  longitude: number;
+  lastUpdated: Date;
+} | null> {
+  // In a real app, this would fetch from a real-time location service
+  // For demo purposes, we'll return mock data
+  try {
+    // Check if there's a real location service available
+    // For now, return mock data when technician is active
+    const technician = await this.getTechnicianDetails(technicianId);
+    
+    if (technician && technician.isActive) {
+      // Return mock location data
+      return {
+        latitude: 26.4499 + (Math.random() - 0.5) * 0.1, // Kanpur area coordinates
+        longitude: 80.3319 + (Math.random() - 0.5) * 0.1,
+        lastUpdated: new Date(),
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching technician location:', error);
+    return null;
+  }
+}
 }

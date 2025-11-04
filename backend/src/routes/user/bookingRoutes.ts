@@ -11,4 +11,7 @@ router.get("/:bookingId", protect, bookingController.getBookingById);
 router.post("/:bookingId/cancel", protect, bookingController.cancelBooking);
 router.patch("/:bookingId/status", protect, bookingController.updateBookingStatus);
 
+router.get("/:bookingId/tracking", protect, bookingController.getTrackingDetails);
+router.get("/:bookingId/technician-location", protect, bookingController.getTechnicianLocation);
+
 export default router;

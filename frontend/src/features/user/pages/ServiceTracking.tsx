@@ -42,12 +42,12 @@ const ServiceTracking: React.FC = () => {
         setTrackingData(response.data)
       } else {
         toast.error('Failed to fetch tracking details')
-        navigate('/bookings')
+        navigate('/orders')
       }
     } catch (error) {
       console.error('Error fetching tracking data:', error)
       toast.error('Failed to load tracking information')
-      navigate('/bookings')
+      navigate('/orders')
     } finally {
       setLoading(false)
     }
@@ -364,14 +364,14 @@ const ServiceTracking: React.FC = () => {
         {/* Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
-            onClick={() => navigate('/bookings')}
-            className="border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+            onClick={() => navigate('/orders')}
+            className="border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
           >
             My Orders
           </button>
           <button 
             onClick={handleContactSupport}
-            className="bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            className="bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
           >
             Contact Support
           </button>

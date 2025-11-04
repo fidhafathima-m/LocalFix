@@ -44,3 +44,59 @@ export interface BookingListResponseDto {
     pages: number;
   };
 }
+
+// interfaces/dtos/bookingDtos.ts
+export interface TrackingDetailsDto {
+  _id: string;
+  bookingId: string;
+  userId: string;
+  technicianId: {
+    _id: string;
+    displayName: string;
+    profilePictureUrl?: string;
+    averageRating: number;
+    ratingCount: number;
+    skills: string[];
+    phone: string;
+  };
+  serviceName: string;
+  problemDescription?: string;
+  scheduledAt: string;
+  timeSlot: string;
+  address: {
+    label: string;
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    landmark?: string;
+  };
+  status: 'pending' | 'accepted' | 'assigned' | 'on_the_way' | 'in_progress' | 'completed' | 'cancelled';
+  amount: number;
+  estimatedDuration: string;
+  statusHistory: StatusHistoryDto[];
+  technicianLocation?: {
+    latitude: number;
+    longitude: number;
+    lastUpdated: string;
+  };
+  estimatedArrival?: string;
+  distance?: number;
+}
+
+export interface StatusHistoryDto {
+  status: string;
+  timestamp: string;
+  description: string;
+  updatedBy: 'user' | 'technician' | 'system';
+}
+
+export interface TechnicianLocationDto {
+  latitude: number;
+  longitude: number;
+  lastUpdated: string;
+  estimatedArrival?: string;
+  distance?: number;
+  technicianId: string;
+  bookingId: string;
+}

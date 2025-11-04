@@ -17,6 +17,7 @@ import { selectUser } from "../../../store/slices/authSlice";
 import toast from "react-hot-toast";
 import { bookingService } from "../../../services/user/bookingService";
 import { paymentService } from "../../../services/user/paymentService";
+import { orderService } from "../../../services/user/orderService";
 
 // Declare Razorpay types
 declare global {
@@ -75,8 +76,8 @@ const Checkout: React.FC = () => {
   useEffect(() => {
     const loadRazorpayScript = () => {
       return new Promise((resolve) => {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
         script.onload = () => resolve(true);
         script.onerror = () => resolve(false);
         document.body.appendChild(script);
@@ -185,154 +186,175 @@ const Checkout: React.FC = () => {
   };
 
   // Initialize Razorpay payment
-const initializeRazorpayPayment = async (bookingId: string) => {
-  if (!window.Razorpay) {
-    toast.error("Razorpay SDK failed to load");
-    return;
-  }
-
-  try {
-    // Create payment order
-    const paymentOrderResponse = await paymentService.createPaymentOrder({
-      bookingId,
-      userId: user!._id,
-      amount: pricing.total,
-      currency: "INR",
-      type: "service",
-    });
-
-    if (!paymentOrderResponse.success || !paymentOrderResponse.data) {
-      throw new Error("Failed to create payment order");
+  const initializeRazorpayPayment = async (bookingId: string) => {
+    if (!window.Razorpay) {
+      toast.error("Razorpay SDK failed to load");
+      return;
     }
 
-    const { razorpayOrder } = paymentOrderResponse.data;
+    try {
+      // Create payment order
+      const paymentOrderResponse = await paymentService.createPaymentOrder({
+        bookingId,
+        userId: user!._id,
+        amount: pricing.total,
+        currency: "INR",
+        type: "service",
+      });
 
-    const options = {
-      key: razorpayOrder.key,
-      amount: razorpayOrder.amount.toString(),
-      currency: razorpayOrder.currency,
-      name: "Localfix",
-      description: `Payment for ${bookingData!.service}`,
-      order_id: razorpayOrder.id,
-      handler: async (response: any) => {
-        try {
-          // Verify payment on backend
-          const verificationResponse = await paymentService.verifyPayment(
-            response.razorpay_payment_id,
-            response.razorpay_order_id,
-            response.razorpay_signature
-          );
+      if (!paymentOrderResponse.success || !paymentOrderResponse.data) {
+        throw new Error("Failed to create payment order");
+      }
 
-          if (verificationResponse.success) {
-            // Update booking status to 'accepted'
-            await bookingService.updateBookingStatus(
-              bookingId,
-              "accepted",
-              "user",
-              "Payment completed successfully"
+      const { razorpayOrder } = paymentOrderResponse.data;
+
+      const options = {
+        key: razorpayOrder.key,
+        amount: razorpayOrder.amount.toString(),
+        currency: razorpayOrder.currency,
+        name: "Localfix",
+        description: `Payment for ${bookingData!.service}`,
+        order_id: razorpayOrder.id,
+        handler: async (response: any) => {
+          try {
+            // Verify payment on backend
+            const verificationResponse = await paymentService.verifyPayment(
+              response.razorpay_payment_id,
+              response.razorpay_order_id,
+              response.razorpay_signature
             );
 
-            toast.success("Payment successful! Booking confirmed.");
-            navigate("/payment-success", {
+            if (verificationResponse.success) {
+              // Create order from booking
+              const orderResponse = await orderService.createOrderFromBooking({
+                bookingId,
+                paymentData: {
+                  method: selectedPayment === "cod" ? "cod" : "online",
+                  amount: pricing.total,
+                  status: "paid",
+                  transactionId: response.razorpay_payment_id,
+                  paidAt: new Date(),
+                },
+              });
+
+              if (orderResponse.success) {
+                // Update booking status to 'accepted'
+                await bookingService.updateBookingStatus(
+                  bookingId,
+                  "accepted",
+                  "user",
+                  "Payment completed successfully"
+                );
+
+                toast.success("Payment successful! Booking confirmed.");
+                navigate("/payment-success", {
+                  state: {
+                    bookingId,
+                    technician: bookingData!.technician,
+                    service: bookingData!.service,
+                    date: bookingData!.date,
+                    time: bookingData!.time,
+                    amount: pricing.total,
+                    paymentId: response.razorpay_payment_id,
+                    orderId: orderResponse.data?._id, // Pass order ID to success page
+                  },
+                });
+              } else {
+                // Update booking status to 'cancelled' if payment verification fails
+                await bookingService.updateBookingStatus(
+                  bookingId,
+                  "cancelled",
+                  "system",
+                  "Payment verification failed"
+                );
+                toast.error("Payment verification failed. Please try again.");
+                navigate("/payment-failed", {
+                  state: {
+                    bookingId,
+                    error: "Payment verification failed",
+                    errorCode: "PAYMENT_VERIFICATION_ERROR",
+                  },
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Payment verification error:", error);
+            toast.error("Payment verification failed");
+            navigate("/payment-failed", {
               state: {
                 bookingId,
-                technician: bookingData!.technician,
-                service: bookingData!.service,
-                date: bookingData!.date,
-                time: bookingData!.time,
-                amount: pricing.total,
-                paymentId: response.razorpay_payment_id,
-              },
-            });
-          } else {
-            // Update booking status to 'cancelled' if payment verification fails
-            await bookingService.updateBookingStatus(
-              bookingId,
-              "cancelled",
-              "system",
-              "Payment verification failed"
-            );
-            toast.error("Payment verification failed. Please try again.");
-            navigate("/payment-failed", {
-              state: { 
-                bookingId,
-                error: "Payment verification failed",
-                errorCode: "PAYMENT_VERIFICATION_ERROR"
+                error: "Payment verification error",
+                errorCode: "VERIFICATION_ERROR",
               },
             });
           }
-        } catch (error) {
-          console.error("Payment verification error:", error);
-          toast.error("Payment verification failed");
-          navigate("/payment-failed", {
-            state: { 
-              bookingId,
-              error: "Payment verification error",
-              errorCode: "VERIFICATION_ERROR"
-            },
-          });
-        }
-      },
-      prefill: {
-        name: user!.fullName || "",
-        email: user!.email || "",
-        contact: user!.phone || "",
-      },
-      notes: {
-        bookingId: bookingId,
-        service: bookingData!.service,
-      },
-      theme: {
-        color: "#4F46E5",
-      },
-      modal: {
-        ondismiss: () => {
-          // This is called when user manually closes the modal
-          setProcessingPayment(false);
-          toast.error("Payment cancelled");
-          // Don't navigate to failed page for manual cancellation
         },
-      },
-    };
-
-    const razorpayInstance = new window.Razorpay(options);
-    
-    // Add error handlers - this should trigger for actual payment failures
-    razorpayInstance.on('payment.failed', function (response: any) {
-      console.error("Payment failed:", response.error);
-      
-      // Update booking status to 'cancelled' for payment failure
-      bookingService.updateBookingStatus(
-        bookingId,
-        "cancelled",
-        "system",
-        `Payment failed: ${response.error.description}`
-      ).catch(err => console.error("Failed to update booking status:", err));
-
-      setProcessingPayment(false);
-      
-      // Show specific error message
-      const errorMessage = response.error.description || "Payment failed due to technical issues";
-      toast.error(`Payment Failed: ${errorMessage}`);
-      
-      // Navigate to payment failed page with detailed error info
-      navigate("/payment-failed", {
-        state: { 
-          bookingId,
-          error: errorMessage,
-          errorCode: response.error.code || "PAYMENT_FAILED",
-          razorpayError: response.error
+        prefill: {
+          name: user!.fullName || "",
+          email: user!.email || "",
+          contact: user!.phone || "",
         },
+        notes: {
+          bookingId: bookingId,
+          service: bookingData!.service,
+        },
+        theme: {
+          color: "#4F46E5",
+        },
+        modal: {
+          ondismiss: () => {
+            // This is called when user manually closes the modal
+            setProcessingPayment(false);
+            toast.error("Payment cancelled");
+            // Don't navigate to failed page for manual cancellation
+          },
+        },
+      };
+
+      const razorpayInstance = new window.Razorpay(options);
+
+      // Add error handlers - this should trigger for actual payment failures
+      razorpayInstance.on("payment.failed", function (response: any) {
+        console.error("Payment failed:", response.error);
+
+        // Update booking status to 'cancelled' for payment failure
+        bookingService
+          .updateBookingStatus(
+            bookingId,
+            "cancelled",
+            "system",
+            `Payment failed: ${response.error.description}`
+          )
+          .catch((err) =>
+            console.error("Failed to update booking status:", err)
+          );
+
+        setProcessingPayment(false);
+
+        // Show specific error message
+        const errorMessage =
+          response.error.description ||
+          "Payment failed due to technical issues";
+        toast.error(`Payment Failed: ${errorMessage}`);
+
+        // Navigate to payment failed page with detailed error info
+        navigate("/payment-failed", {
+          state: {
+            bookingId,
+            error: errorMessage,
+            errorCode: response.error.code || "PAYMENT_FAILED",
+            razorpayError: response.error,
+          },
+        });
       });
-    });
 
-    razorpayInstance.open();
-  } catch (error) {
-    console.error("Razorpay initialization error:", error);
-    toast.error("Failed to initialize payment");
-    setProcessingPayment(false);
-  }
-};
+      razorpayInstance.open();
+    } catch (error) {
+      console.error("Razorpay initialization error:", error);
+      toast.error("Failed to initialize payment");
+      setProcessingPayment(false);
+    }
+  };
 
   // Handle Razorpay payment
   const handleRazorpayPayment = async () => {
@@ -352,7 +374,7 @@ const initializeRazorpayPayment = async (bookingId: string) => {
     try {
       setProcessingPayment(true);
       const bookingId = await createBookingRecord();
-      
+
       // For COD, mark as pending and proceed
       await bookingService.updateBookingStatus(
         bookingId,

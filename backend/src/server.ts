@@ -21,6 +21,7 @@ import pubicUserRoutes from "./routes/publicUserRoutes";
 import userProfileRoutes from "./routes/user/userProfileRoutes"
 import bookingRoutes from "./routes/user/bookingRoutes";
 import paymentRoutes from "./routes/user/paymentRoutes";
+import orderRoutes from "./routes/user/orderRoutes"
 
 connectDB();
 
@@ -63,6 +64,7 @@ app.use("/api/public/user", pubicUserRoutes);
 app.use("/api/user", userProfileRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/orders", orderRoutes);
 
 
 app.get("/", (req: Request, res: Response) => {

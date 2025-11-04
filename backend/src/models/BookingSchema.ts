@@ -1,5 +1,6 @@
 // models/BookingSchema.ts
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { IUserAddress } from './UserAddressSchema';
 
 export interface IBooking extends Document {
   bookingCode: string;
@@ -9,7 +10,7 @@ export interface IBooking extends Document {
   categoryId?: Types.ObjectId;
   serviceName: string;
   brand: string;
-  addressId: Types.ObjectId;
+  addressId: Types.ObjectId | IUserAddress;
   scheduledAt: Date;
   timeSlot: string;
   status: 'pending' | 'accepted' | 'in_progress' | 'on_the_way' | 'completed' | 'cancelled' | 'rescheduled';
@@ -187,5 +188,9 @@ bookingSchema.pre('save', async function (next) {
   }
   next();
 });
+
+export function isAddressPopulated(address: Types.ObjectId | IUserAddress): address is IUserAddress {
+  return (address as IUserAddress).label !== undefined;
+}
 
 export default mongoose.model<IBooking>('Booking', bookingSchema);
