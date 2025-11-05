@@ -11,31 +11,29 @@ import { LoggerService } from "../../services/LoggerService";
 
 export class TechnicianDashboardController {
   private dashboardService: ITechnicianDashboardService;
-  private logger: LoggerService
+  private logger: LoggerService;
 
   constructor(dashboardService: ITechnicianDashboardService) {
     this.dashboardService = dashboardService;
-    this.logger = new LoggerService()
+    this.logger = new LoggerService();
   }
 
   getDashboardOverview = async (
     req: AuthRequest,
     res: Response
   ): Promise<void> => {
-    
     const technicianId = req.user?.id;
 
-     const context = {
-    operation: 'getDashboardOverview',
-    technicianId,
-    timestamp: new Date().toISOString()
-  };
+    const context = {
+      operation: "getDashboardOverview",
+      technicianId,
+      timestamp: new Date().toISOString(),
+    };
     try {
-      
-    this.logger.info("Fetchning dashboard overview", context)
+      this.logger.info("Fetchning dashboard overview", context);
 
       if (!technicianId) {
-        this.logger.warn("Authemtication required", context)
+        this.logger.warn("Authemtication required", context);
         const unauthorizedResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -43,18 +41,19 @@ export class TechnicianDashboardController {
         return;
       }
 
-      const result: DashboardOverviewResponseDto = await this.dashboardService.getDashboardOverview(technicianId);
+      const result: DashboardOverviewResponseDto =
+        await this.dashboardService.getDashboardOverview(technicianId);
 
-      this.logger.info('Dashboard retrieved successfully', {
+      this.logger.info("Dashboard retrieved successfully", {
         ...context,
         overview: result?.overview,
       });
-      
+
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get dashboard overview controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
-      this.logger.error('Get technician dashboard error', {
+      this.logger.error("Get technician dashboard error", {
         ...context,
         error: error,
       });
@@ -70,14 +69,13 @@ export class TechnicianDashboardController {
     const context = {
       operation: "getTechnicianProfile",
       technicianId,
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    };
     try {
-
-      this.logger.info("Fetchning technician profile", context)
+      this.logger.info("Fetchning technician profile", context);
 
       if (!technicianId) {
-        this.logger.warn("Authemtication required", context)
+        this.logger.warn("Authemtication required", context);
         const unauthorizedResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -85,18 +83,19 @@ export class TechnicianDashboardController {
         return;
       }
 
-      const result: TechnicianProfileResponseDto = await this.dashboardService.getTechnicianProfile(technicianId);
+      const result: TechnicianProfileResponseDto =
+        await this.dashboardService.getTechnicianProfile(technicianId);
 
-      this.logger.info('Technician profile retrieved successfully', {
+      this.logger.info("Technician profile retrieved successfully", {
         ...context,
         profile: result?.profile,
       });
-      
+
       res.status(result.statusCode).json(result);
     } catch (error) {
       console.error("Get technician profile controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
-      this.logger.error('Get technician profile error', {
+      this.logger.error("Get technician profile error", {
         ...context,
         error: error,
       });

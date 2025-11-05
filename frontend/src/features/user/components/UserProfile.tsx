@@ -22,7 +22,10 @@ import { userService } from "../../../services/user/userService";
 import toast from "react-hot-toast";
 import { AddAddressModal } from "../components/AddAddressModal";
 import Swal from "sweetalert2";
-import type { Address, AddressFormData } from "../../../interface/user/IUserApi";
+import type {
+  Address,
+  AddressFormData,
+} from "../../../interface/user/IUserApi";
 
 interface UserData {
   _id: string;
@@ -80,7 +83,6 @@ const UserProfile: React.FC = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
-  // Add this handler function
   const handleChangePassword = async () => {
     try {
       setPasswordError(null);
@@ -195,8 +197,6 @@ const UserProfile: React.FC = () => {
     },
   ];
 
-  // In your fetchUserData function - FIXED version
-  // In your fetchUserData function - Update this part
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -205,17 +205,8 @@ const UserProfile: React.FC = () => {
 
         const response = await userService.getUserProfile();
 
-        console.log("🔍 Full API Response:", response);
-        console.log(
-          "🔍 Response data structure:",
-          JSON.stringify(response.data, null, 2)
-        );
-
         if (response.success && response.data) {
           const user = response.data.user;
-
-          console.log("🔍 User data from API - ALL FIELDS:", user);
-          console.log("🔍 User addresses:", user.addresses); // Check if addresses exist
 
           setUserData({
             _id: user._id,
@@ -229,7 +220,7 @@ const UserProfile: React.FC = () => {
             wallet: user.wallet || { balance: 0 },
             profilePicture: user.profilePicture,
             dateOfBirth: user.dateOfBirth || "Not set",
-            gender: user.gender || "Not specified",
+            gender: user.gender || "",
             defaultAddress: user.defaultAddress,
           });
 
@@ -247,11 +238,7 @@ const UserProfile: React.FC = () => {
           } else {
             setUserAddresses([]);
           }
-
-          console.log("🔍 Addresses set to:", user.addresses);
         } else {
-          // Fallback to mock data
-          console.log("No user data found, using mock data");
           setUserData(userService.getMockUserData() as any);
           setPersonalInfo(userService.getMockUserData().personalInfo);
           setUserAddresses([]);
@@ -288,29 +275,21 @@ const UserProfile: React.FC = () => {
       // Prepare update data with proper mapping
       const updateData = {
         fullName: tempPersonalInfo.fullName.trim(),
-        phone: tempPersonalInfo.phoneNumber.trim(), // Changed to 'phone' to match backend
+        phone: tempPersonalInfo.phoneNumber.trim(),
         email: tempPersonalInfo.email.trim(),
         dateOfBirth: tempPersonalInfo.dateOfBirth,
         gender: tempPersonalInfo.gender,
       };
 
-      console.log("Sending update data:", updateData);
-
       // Call API to update user
       const response = await userService.updateUserProfile(updateData);
 
-      console.log("Update response:", response);
-
       if (response.success && response.data) {
-        // FIX: Use the actual response structure
         const updatedUser = response.data.user;
 
-        console.log("Updated user from response:", updatedUser);
-
-        // Update both personalInfo and userData with the response data
         setPersonalInfo({
           fullName: updatedUser.fullName || tempPersonalInfo.fullName,
-          phoneNumber: updatedUser.phone || tempPersonalInfo.phoneNumber, // Use 'phone' from response
+          phoneNumber: updatedUser.phone || tempPersonalInfo.phoneNumber,
           email: updatedUser.email || tempPersonalInfo.email,
           dateOfBirth: updatedUser.dateOfBirth || tempPersonalInfo.dateOfBirth,
           gender: updatedUser.gender || tempPersonalInfo.gender,
@@ -333,6 +312,7 @@ const UserProfile: React.FC = () => {
 
         // Show success message
         console.log("Profile updated successfully! Frontend state updated.");
+        toast.success("Profile updated successfully!");
       } else {
         setError(response.message || "Failed to update profile");
       }
@@ -346,15 +326,6 @@ const UserProfile: React.FC = () => {
     setTempPersonalInfo(personalInfo);
     setIsEditingPersonal(false);
   };
-
-  // Add this to debug state changes
-  useEffect(() => {
-    console.log("🔄 Current userData:", userData);
-  }, [userData]);
-
-  useEffect(() => {
-    console.log("🔄 Current personalInfo:", personalInfo);
-  }, [personalInfo]);
 
   const handleProfilePictureClick = () => {
     fileInputRef.current?.click();
@@ -373,7 +344,6 @@ const UserProfile: React.FC = () => {
       const response = await userService.uploadProfilePicture(file);
 
       if (response.success && response.data?.profilePictureUrl) {
-        // Update the profile picture in state - use profilePicture field
         setUserData((prev) =>
           prev
             ? {
@@ -383,7 +353,6 @@ const UserProfile: React.FC = () => {
             : null
         );
 
-        // Also update the profile picture immediately in the UI
         const imgElement = document.querySelector(
           ".profile-picture"
         ) as HTMLImageElement;
@@ -404,27 +373,14 @@ const UserProfile: React.FC = () => {
     }
   };
 
-  // Add address handler
-  // In UserProfile.tsx - handleAddAddress function
   const handleAddAddress = async (addressData: AddressFormData) => {
     try {
-      console.log(
-        "🔍 [Frontend] Creating address with data:",
-        JSON.stringify(addressData, null, 2)
-      );
-
       setSavingAddress(true);
       setError(null);
 
       const response = await userService.createAddress(addressData);
-      console.log("🔍 [Frontend] Address creation response:", response);
 
       if (response.success && response.data) {
-        console.log(
-          "✅ [Frontend] Address created successfully:",
-          response.data.address
-        );
-
         // Add new address to the list
         setUserAddresses((prev) => [...prev, response.data!.address]);
         setShowAddAddressModal(false);
@@ -434,17 +390,12 @@ const UserProfile: React.FC = () => {
         const freshResponse = await userService.getUserAddresses();
         if (freshResponse.success && freshResponse.data) {
           setUserAddresses(freshResponse.data.addresses);
-          console.log(
-            "🔍 [Frontend] Refreshed addresses:",
-            freshResponse.data.addresses
-          );
         }
       } else {
-        console.log("❌ [Frontend] Address creation failed:", response.message);
         setError(response.message || "Failed to add address");
       }
     } catch (err: any) {
-      console.error("❌ [Frontend] Error adding address:", err);
+      console.error("[Frontend] Error adding address:", err);
       setError(err.response?.data?.message || "Failed to add address");
     } finally {
       setSavingAddress(false);
@@ -453,54 +404,56 @@ const UserProfile: React.FC = () => {
 
   // Delete address handler
   const handleDeleteAddress = async (addressId: string) => {
-  try {
-    const result = await Swal.fire({
-      title: 'Delete Address?',
-      text: "This action cannot be undone.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Delete',
-      cancelButtonText: 'Cancel',
-      reverseButtons: true,
-    });
+    try {
+      const result = await Swal.fire({
+        title: "Delete Address?",
+        text: "This action cannot be undone.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#dc2626",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
+        reverseButtons: true,
+      });
 
-    if (result.isConfirmed) {
-      setError(null);
+      if (result.isConfirmed) {
+        setError(null);
 
-      // Show loading toast
-      toast.loading('Deleting address...', { id: 'delete-address' });
+        // Show loading toast
+        toast.loading("Deleting address...", { id: "delete-address" });
 
-      const response = await userService.deleteAddress(addressId);
+        const response = await userService.deleteAddress(addressId);
 
-      if (response.success) {
-        // Remove address from the list
-        setUserAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
-        
-        // Update toast to success
-        toast.success('Address deleted successfully!', { 
-          id: 'delete-address',
-          duration: 3000,
-        });
-      } else {
-        // Update toast to error
-        toast.error(response.message || 'Failed to delete address', { 
-          id: 'delete-address',
-          duration: 4000,
-        });
+        if (response.success) {
+          // Remove address from the list
+          setUserAddresses((prev) =>
+            prev.filter((addr) => addr.id !== addressId)
+          );
+
+          // Update toast to success
+          toast.success("Address deleted successfully!", {
+            id: "delete-address",
+            duration: 3000,
+          });
+        } else {
+          // Update toast to error
+          toast.error(response.message || "Failed to delete address", {
+            id: "delete-address",
+            duration: 4000,
+          });
+        }
       }
+    } catch (err: any) {
+      console.error("Error deleting address:", err);
+
+      // Update toast to error
+      toast.error(err.response?.data?.message || "Failed to delete address", {
+        id: "delete-address",
+        duration: 4000,
+      });
     }
-  } catch (err: any) {
-    console.error('Error deleting address:', err);
-    
-    // Update toast to error
-    toast.error(err.response?.data?.message || 'Failed to delete address', { 
-      id: 'delete-address',
-      duration: 4000,
-    });
-  }
-};
+  };
 
   // Set default address handler
   const handleSetDefaultAddress = async (addressId: string) => {
@@ -590,7 +543,7 @@ const UserProfile: React.FC = () => {
                       "https://imgs.search.brave.com/rwE-hC6ESt3hBJZhImPkb-KvU26bLDKVe-OKv1y50-M/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzE0LzQz/LzU1LzE0NDM1NWQ3/YjM2YzVmNjQ2NDM1/NDIzNzk4MjgxY2U5/LmpwZw"
                     }
                     alt="Profile"
-                    className="w-20 h-20 rounded-full object-cover profile-picture" // Added profile-picture class
+                    className="w-20 h-20 rounded-full object-cover profile-picture"
                   />
                   <button
                     onClick={handleProfilePictureClick}
@@ -757,13 +710,18 @@ const UserProfile: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
+                    <option value="">Select Gender</option>{" "}
+                    {/* Add empty option */}
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
                     <option value="Prefer not to say">Prefer not to say</option>
                   </select>
                 ) : (
-                  <p className="font-medium">{personalInfo.gender}</p>
+                  <p className="font-medium">
+                    {personalInfo.gender || "Not specified"}{" "}
+                    {/* Show "Not specified" only when empty */}
+                  </p>
                 )}
               </div>
             </div>

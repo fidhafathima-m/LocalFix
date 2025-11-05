@@ -145,7 +145,7 @@ export interface Service {
   status: "active" | "inactive";
   createdAt: string;
   updatedAt: string;
-  itemCount?: number; // Optional field for frontend stats
+  itemCount?: number; 
   rating?: number;
   estimatedDuration?: string;
   features?: string[];
@@ -222,7 +222,6 @@ export interface ItemsResponse {
   totalPages: number;
 }
 
-// Add these interfaces to your adminApi.ts
 export interface Order {
   _id: string;
   orderCode: string;

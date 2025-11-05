@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { adminAPI} from "../common/adminApi";
-import { userProfileApi, type Address, type AddressFormData } from "../common/userProfileApi";
-
+import type { Address, AddressFormData } from "../../interface/user/IUserApi";
+import { adminAPI } from "../common/adminApi";
+import { userProfileApi } from "../common/userProfileApi";
 
 export const userService = {
   getUserProfile: async () => {
@@ -84,9 +84,12 @@ export const userService = {
     reviews: [],
   }),
 
-   getUserAddresses: async (): Promise<{ success: boolean; data?: { addresses: Address[] }; message?: string }> => {
+  getUserAddresses: async (): Promise<{
+    success: boolean;
+    data?: { addresses: Address[] };
+    message?: string;
+  }> => {
     try {
-      // This endpoint needs to be created in your backend
       const response = await userProfileApi.getUserAddresses();
       return response.data;
     } catch (error) {
@@ -95,9 +98,14 @@ export const userService = {
     }
   },
 
-  createAddress: async (addressData: AddressFormData): Promise<{ success: boolean; data?: { address: Address }; message?: string }> => {
+  createAddress: async (
+    addressData: AddressFormData
+  ): Promise<{
+    success: boolean;
+    data?: { address: Address };
+    message?: string;
+  }> => {
     try {
-      // This endpoint needs to be created in your backend
       const response = await userProfileApi.createAddress(addressData);
       return response.data;
     } catch (error) {
@@ -106,10 +114,19 @@ export const userService = {
     }
   },
 
-  updateAddress: async (addressId: string, addressData: Partial<AddressFormData>): Promise<{ success: boolean; data?: { address: Address }; message?: string }> => {
+  updateAddress: async (
+    addressId: string,
+    addressData: Partial<AddressFormData>
+  ): Promise<{
+    success: boolean;
+    data?: { address: Address };
+    message?: string;
+  }> => {
     try {
-      // This endpoint needs to be created in your backend
-      const response = await userProfileApi.updateAddress(addressId, addressData);
+      const response = await userProfileApi.updateAddress(
+        addressId,
+        addressData
+      );
       return response.data;
     } catch (error) {
       console.error("Error updating address:", error);
@@ -117,9 +134,10 @@ export const userService = {
     }
   },
 
-  deleteAddress: async (addressId: string): Promise<{ success: boolean; message?: string }> => {
+  deleteAddress: async (
+    addressId: string
+  ): Promise<{ success: boolean; message?: string }> => {
     try {
-      // This endpoint needs to be created in your backend
       const response = await userProfileApi.deleteAddress(addressId);
       return response.data;
     } catch (error) {
@@ -128,9 +146,14 @@ export const userService = {
     }
   },
 
-  setDefaultAddress: async (addressId: string): Promise<{ success: boolean; data?: { address: Address }; message?: string }> => {
+  setDefaultAddress: async (
+    addressId: string
+  ): Promise<{
+    success: boolean;
+    data?: { address: Address };
+    message?: string;
+  }> => {
     try {
-      // This endpoint needs to be created in your backend
       const response = await userProfileApi.setDefaultAddress(addressId);
       return response.data;
     } catch (error) {

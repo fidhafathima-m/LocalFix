@@ -157,7 +157,6 @@ class BookingService {
     }
   }
 
-  // Alternative: Update booking (general update method)
   async updateBooking(
     bookingId: string, 
     updateData: Partial<Booking>

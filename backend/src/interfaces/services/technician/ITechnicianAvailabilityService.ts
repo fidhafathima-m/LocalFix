@@ -13,14 +13,14 @@ export interface ITechnicianAvailabilityService {
   createTechnicianAvailabilityFromApplication(
     technicianId: string,
     applicationAvailability: any
-  ): Promise<void>
+  ): Promise<void>;
   getAvailableSlots(
-      technicianId: string,
-      startDate: Date,
-      endDate: Date
-    ): Promise<Array<{ date: Date; slots: ITimeSlot[] }>>
-    updateTechnicianAvailability(
+    technicianId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<Array<{ date: Date; slots: ITimeSlot[] }>>;
+  updateTechnicianAvailability(
     technicianId: string,
     newAvailabilityConfig: any
-  ): Promise<void>
+  ): Promise<void>;
 }

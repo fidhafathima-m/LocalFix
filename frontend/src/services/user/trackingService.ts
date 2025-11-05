@@ -1,4 +1,3 @@
-// services/user/trackingService.ts
 import api from "../../utils/axiosConfig";
 import { type ServiceTracking } from "../../interface/user/ITracking";
 

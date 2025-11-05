@@ -18,7 +18,7 @@ export interface UserListDto {
   updatedAt: Date;
   defaultAddress?: AddressDto;
   addresses?: AddressDto[];
-  profilePicture?: string; // ADD THIS
+  profilePicture?: string; 
   profilePictureUrl?: string;
   dateOfBirth?: string;
   gender?: string;
@@ -28,7 +28,7 @@ export interface UserDetailDto extends UserListDto {
   applicationStatus?: string;
   lastLogin?: Date;
   loginCount?: number;
-  profilePicture?: string; // ADD THIS
+  profilePicture?: string;
   profilePictureUrl?: string;
   dateOfBirth?: string;
   gender?: string;

@@ -16,7 +16,10 @@ import {
 } from "@mui/icons-material";
 import Footer from "../../../../components/common/Footer";
 import Header from "../../../../components/common/Header";
-import { selectIsLoggedIn, selectUser } from "../../../../store/slices/authSlice";
+import {
+  selectIsLoggedIn,
+  selectUser,
+} from "../../../../store/slices/authSlice";
 import { useAppSelector } from "../../../../hooks/redux";
 import { TechnicianMangementService } from "../../../../services/admin/TechnicianManagementService";
 import { userService } from "../../../../services/user/userService";
@@ -25,7 +28,6 @@ import toast from "react-hot-toast";
 import { RRule } from "rrule";
 import type { AddressFormData } from "../../../../interface/user/IUserApi";
 
-// Add interface for technician data
 interface Technician {
   _id: string;
   displayName: string;
@@ -143,17 +145,10 @@ const BookingPage: React.FC = () => {
 
           // Prefill service if provided
           if (serviceName && technicianData.services?.includes(serviceName)) {
-            console.log("🔧 Setting pre-selected service:", serviceName);
             setSelectedService(serviceName);
           } else if (technicianData.services?.length > 0) {
-            console.log(
-              "🔧 Auto-selecting first available service:",
-              technicianData.services[0]
-            );
             setSelectedService(technicianData.services[0]);
           }
-
-          console.log("🔍 Technician slot rules:", technicianData.slotRules);
 
           // Fetch slot rules separately to get the most up-to-date availability
           try {
@@ -167,11 +162,9 @@ const BookingPage: React.FC = () => {
               slotRulesResponse.data.data?.slotRules
             ) {
               const slotRules = slotRulesResponse.data.data.slotRules;
-              console.log("🔍 Fetched slot rules:", slotRules);
 
-              // Generate weekly availability from slot rules (same as TechnicianProfile)
+              // Generate weekly availability from slot rules
               const availability = generateWeeklyAvailability(slotRules);
-              console.log("🔍 Generated weekly availability:", availability);
               setWeeklyAvailability(availability);
 
               // Prefill first available date and time
@@ -244,7 +237,7 @@ const BookingPage: React.FC = () => {
     return days;
   };
 
-  // Get slots for a specific date from slot rules (same function as TechnicianProfile)
+  // Get slots for a specific date from slot rules
   const getSlotsForDate = (
     rules: any[],
     date: Date
@@ -279,7 +272,7 @@ const BookingPage: React.FC = () => {
     return mergeConsecutiveSlots(slots);
   };
 
-  // Generate time slots from start to end time (same function as TechnicianProfile)
+  // Generate time slots from start to end time
   const generateTimeSlots = (
     startTime: string,
     endTime: string,
@@ -333,7 +326,7 @@ const BookingPage: React.FC = () => {
     return slots;
   };
 
-  // Merge consecutive slots (same function as TechnicianProfile)
+  // Merge consecutive slots
   const mergeConsecutiveSlots = (
     slots: Array<{ start: string; end: string }>
   ): Array<{ start: string; end: string }> => {
@@ -398,10 +391,6 @@ const BookingPage: React.FC = () => {
       (day) => day.formattedDate === date
     );
 
-    console.log("🔍 Selected date:", date);
-    console.log("🔍 Selected day data:", selectedDay);
-    console.log("🔍 Weekly availability:", weeklyAvailability);
-
     // Only show error if the day is NOT available (no slots)
     if (!selectedDay || selectedDay.slots.length === 0) {
       const dayName = new Date(date)
@@ -410,13 +399,11 @@ const BookingPage: React.FC = () => {
         })
         .toLowerCase();
       const availableDays = getAvailableDaysSummary();
-      console.log("❌ Date not available - showing error");
       setDateError(`Technician is unavailable on ${dayName}. ${availableDays}`);
     } else {
-      console.log("✅ Date is available - no error");
+      console.log("Date is available - no error")
     }
   };
-  // Get technician's available days summary
   // Get technician's available days summary
   const getAvailableDaysSummary = () => {
     const availableDays = weeklyAvailability.filter(
@@ -544,7 +531,6 @@ const BookingPage: React.FC = () => {
     }
   };
 
-  // In BookingPage.tsx - Update handleContinueToCheckout function
   const handleContinueToCheckout = () => {
     if (!selectedService) {
       toast.error("Please select a service type");
@@ -596,7 +582,7 @@ const BookingPage: React.FC = () => {
         time: selectedTime,
         address: address,
         usesSavedAddress,
-        problemDescription
+        problemDescription,
       },
     });
   };

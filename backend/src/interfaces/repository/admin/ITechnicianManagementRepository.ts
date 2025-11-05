@@ -146,7 +146,18 @@ export interface ITechnicianManagementRepository {
   getTechnicianAvailability(technicianId: string): Promise<any>;
   getActiveSlotRules(technicianId: string): Promise<any[]>;
   getUpcomingAvailability(technicianId: string, days?: number): Promise<any[]>;
-  findAvailabilityByTechnicianAndDate(technicianId: string, date: Date): Promise<any>
-  findAvailabilityInRange(technicianId: string, startDate: Date, endDate: Date): Promise<any[]>
-  getUpcomingAvailabilityProfile(technicianId: string, startDate: Date, endDate: Date): Promise<any[]>
+  findAvailabilityByTechnicianAndDate(
+    technicianId: string,
+    date: Date
+  ): Promise<any>;
+  findAvailabilityInRange(
+    technicianId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<any[]>;
+  getUpcomingAvailabilityProfile(
+    technicianId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<any[]>;
 }

@@ -40,7 +40,6 @@ import { ITechnicianAvailabilityService } from "@/interfaces/services/technician
 import { TechnicianAvailabilityService } from "./AvailabilityService";
 import { LoggerService } from "../services/LoggerService";
 
-// Interface definitions (keep existing interfaces)
 interface AddressData {
   street?: string;
   city?: string;

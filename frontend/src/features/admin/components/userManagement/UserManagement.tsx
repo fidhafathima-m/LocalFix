@@ -91,7 +91,7 @@ const UserManagement: React.FC = () => {
           );
         }
       } catch (err) {
-        console.error("❌ Error fetching users:", err);
+        console.error("Error fetching users:", err);
         dispatch(fetchUsersFailure("Failed to load users"));
       }
     };

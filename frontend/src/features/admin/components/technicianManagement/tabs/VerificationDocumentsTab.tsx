@@ -18,7 +18,7 @@ const VerificationDocumentsTab: React.FC<VerificationDocumentsTabProps> = ({
   technician,
   isSuspended,
 }) => {
-  // Fix: Handle both array and object formats for documents
+  // Handle both array and object formats for documents
   const getDocuments = (): DocumentData[] => {
     if (!technician.documents) return [];
     

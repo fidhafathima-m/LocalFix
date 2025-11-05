@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// components/UserModal.tsx - Improved Version
 import React, { useState, useEffect } from "react";
-import { 
-  CloseOutlined, 
+import {
+  CloseOutlined,
   CheckCircleOutlineOutlined,
   LocationOnOutlined,
   PersonOutlined,
@@ -11,7 +10,7 @@ import {
   CalendarTodayOutlined,
   AccountBalanceWalletOutlined,
   BadgeOutlined,
-  SecurityOutlined
+  SecurityOutlined,
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
 import { adminAPI } from "../../../../services/common/adminApi";
@@ -71,19 +70,19 @@ export const UserModal: React.FC<UserModalProps> = ({
   const [loadingAddresses, setLoadingAddresses] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
-    fullName: user.fullName,
-    email: user.email ?? "",
-    phone: user.phone,
-    status: user.status,
+    fullName: user.fullName || "",
+    email: user.email || "",
+    phone: user.phone || "",
+    status: user.status || "Active",
   });
 
   useEffect(() => {
     setEditingMode(isEditing);
     setFormData({
-      fullName: user.fullName,
-      email: user.email ?? "",
-      phone: user.phone,
-      status: user.status,
+      fullName: user.fullName || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      status: user.status || "Active",
     });
   }, [isEditing, user]);
 
@@ -114,8 +113,8 @@ export const UserModal: React.FC<UserModalProps> = ({
   const loadUserAddresses = async () => {
     try {
       setLoadingAddresses(true);
-      const response = await adminAPI.getPublicUserById(user._id) as any;
-      
+      const response = (await adminAPI.getPublicUserById(user._id)) as any;
+
       if (response.data.success && response.data.data?.user?.addresses) {
         setAddresses(response.data.data.user.addresses);
       } else {
@@ -133,7 +132,10 @@ export const UserModal: React.FC<UserModalProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value || "",
+    }));
   };
 
   const handleStatusChange = (status: Status) => {
@@ -176,7 +178,7 @@ export const UserModal: React.FC<UserModalProps> = ({
   };
 
   const getFieldValue = (field: keyof FormData): string => {
-    return formData[field];
+    return formData[field] || "";
   };
 
   const getUserFieldValue = (field: StringField): string => {
@@ -196,10 +198,10 @@ export const UserModal: React.FC<UserModalProps> = ({
     if (!user.createdAt) {
       return "—";
     }
-    return new Date(user.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(user.createdAt).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -207,10 +209,10 @@ export const UserModal: React.FC<UserModalProps> = ({
     if (!user.dateOfBirth) {
       return "—";
     }
-    return new Date(user.dateOfBirth).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(user.dateOfBirth).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -218,7 +220,9 @@ export const UserModal: React.FC<UserModalProps> = ({
     if (!user.roles || !Array.isArray(user.roles)) {
       return "user";
     }
-    return user.roles.map(role => role.charAt(0).toUpperCase() + role.slice(1)).join(', ');
+    return user.roles
+      .map((role) => role.charAt(0).toUpperCase() + role.slice(1))
+      .join(", ");
   };
 
   const formatAddress = (address: Address): string => {
@@ -227,10 +231,10 @@ export const UserModal: React.FC<UserModalProps> = ({
       address.landmark,
       address.city,
       address.state,
-      address.pincode
-    ].filter(part => part && part.trim() !== '');
-    
-    return parts.join(', ');
+      address.pincode,
+    ].filter((part) => part && part.trim() !== "");
+
+    return parts.join(", ");
   };
 
   const getCoordinates = (address: Address): string => {
@@ -240,7 +244,7 @@ export const UserModal: React.FC<UserModalProps> = ({
   };
 
   const getProfilePictureUrl = (): string => {
-    return user.profilePicture || user.profilePictureUrl || '';
+    return user.profilePicture || user.profilePictureUrl || "";
   };
 
   return (
@@ -266,7 +270,9 @@ export const UserModal: React.FC<UserModalProps> = ({
                 {editingMode ? "Edit User" : "User Details"}
               </h2>
               <p className="text-gray-600 text-sm mt-1">
-                {editingMode ? "Update user information" : "View and manage user account"}
+                {editingMode
+                  ? "Update user information"
+                  : "View and manage user account"}
               </p>
             </div>
             <button
@@ -301,19 +307,19 @@ export const UserModal: React.FC<UserModalProps> = ({
                     <div className="flex-1">
                       {editingMode ? (
                         <input
-                          type="text"
-                          name="fullName"
-                          value={formData.fullName}
+                          type="email"
+                          name="email"
+                          value={getFieldValue("email")}
                           onChange={handleChange}
-                          className="text-2xl font-bold bg-transparent border-b-2 border-blue-300 focus:outline-none focus:border-blue-500 w-full px-2 py-1 text-gray-900"
-                          placeholder="Full Name"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Email address"
                         />
                       ) : (
-                        <h1 className="text-2xl font-bold text-gray-900 truncate">
-                          {user.fullName || "Unknown User"}
-                        </h1>
+                        <span className="text-gray-900">
+                          {getUserFieldValue("email")}
+                        </span>
                       )}
-                      
+
                       <div className="flex items-center flex-wrap gap-2 mt-3">
                         {editingMode ? (
                           <select
@@ -385,7 +391,9 @@ export const UserModal: React.FC<UserModalProps> = ({
                             placeholder="Email address"
                           />
                         ) : (
-                          <span className="text-gray-900">{getUserFieldValue("email")}</span>
+                          <span className="text-gray-900">
+                            {getUserFieldValue("email")}
+                          </span>
                         )
                       }
                     />
@@ -403,19 +411,29 @@ export const UserModal: React.FC<UserModalProps> = ({
                             placeholder="Phone number"
                           />
                         ) : (
-                          <span className="text-gray-900">{getUserFieldValue("phone")}</span>
+                          <span className="text-gray-900">
+                            {getUserFieldValue("phone")}
+                          </span>
                         )
                       }
                     />
                     <InfoItem
                       icon={<CalendarTodayOutlined className="text-gray-400" />}
                       label="Date of Birth"
-                      value={<span className="text-gray-900">{getDateOfBirth()}</span>}
+                      value={
+                        <span className="text-gray-900">
+                          {getDateOfBirth()}
+                        </span>
+                      }
                     />
                     <InfoItem
                       icon={<BadgeOutlined className="text-gray-400" />}
                       label="Gender"
-                      value={<span className="text-gray-900">{user.gender || "—"}</span>}
+                      value={
+                        <span className="text-gray-900">
+                          {user.gender || "—"}
+                        </span>
+                      }
                     />
                   </div>
                 </div>
@@ -430,17 +448,31 @@ export const UserModal: React.FC<UserModalProps> = ({
                     <InfoItem
                       icon={<CalendarTodayOutlined className="text-gray-400" />}
                       label="Registered On"
-                      value={<span className="text-gray-900">{getRegistrationDate()}</span>}
+                      value={
+                        <span className="text-gray-900">
+                          {getRegistrationDate()}
+                        </span>
+                      }
                     />
                     <InfoItem
-                      icon={<AccountBalanceWalletOutlined className="text-gray-400" />}
+                      icon={
+                        <AccountBalanceWalletOutlined className="text-gray-400" />
+                      }
                       label="Wallet Balance"
-                      value={<span className="text-green-600 font-semibold">{getWalletBalance()}</span>}
+                      value={
+                        <span className="text-green-600 font-semibold">
+                          {getWalletBalance()}
+                        </span>
+                      }
                     />
                     <InfoItem
                       icon={<BadgeOutlined className="text-gray-400" />}
                       label="User ID"
-                      value={<span className="font-mono text-sm text-gray-600">{user._id}</span>}
+                      value={
+                        <span className="font-mono text-sm text-gray-600">
+                          {user._id}
+                        </span>
+                      }
                     />
                   </div>
                 </div>
@@ -454,7 +486,8 @@ export const UserModal: React.FC<UserModalProps> = ({
                     Addresses
                   </h3>
                   <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                    {addresses.length} address{addresses.length !== 1 ? 'es' : ''}
+                    {addresses.length} address
+                    {addresses.length !== 1 ? "es" : ""}
                   </span>
                 </div>
 
@@ -469,9 +502,9 @@ export const UserModal: React.FC<UserModalProps> = ({
                       <div
                         key={address.id}
                         className={`border rounded-xl p-4 transition-all duration-200 hover:shadow-md ${
-                          address.isDefault 
-                            ? 'border-blue-300 bg-blue-50 shadow-sm' 
-                            : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                          address.isDefault
+                            ? "border-blue-300 bg-blue-50 shadow-sm"
+                            : "border-gray-200 bg-gray-50 hover:border-gray-300"
                         }`}
                       >
                         <div className="flex justify-between items-start mb-3">
@@ -486,22 +519,25 @@ export const UserModal: React.FC<UserModalProps> = ({
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2 text-sm">
-                          <p className="text-gray-700 leading-relaxed">{formatAddress(address)}</p>
-                          
+                          <p className="text-gray-700 leading-relaxed">
+                            {formatAddress(address)}
+                          </p>
+
                           {address.formattedAddress && (
                             <p className="text-gray-500 text-xs bg-white p-2 rounded border">
                               {address.formattedAddress}
                             </p>
                           )}
-                          
+
                           <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                             <span className="text-xs text-gray-500 font-mono">
                               {getCoordinates(address)}
                             </span>
                             <span className="text-xs text-gray-400">
-                              Added: {new Date(address.createdAt).toLocaleDateString()}
+                              Added:{" "}
+                              {new Date(address.createdAt).toLocaleDateString()}
                             </span>
                           </div>
                         </div>
@@ -511,8 +547,12 @@ export const UserModal: React.FC<UserModalProps> = ({
                 ) : (
                   <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
                     <LocationOnOutlined className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-                    <p className="text-gray-500 font-medium">No addresses found</p>
-                    <p className="text-gray-400 text-sm mt-1">This user hasn't added any addresses yet.</p>
+                    <p className="text-gray-500 font-medium">
+                      No addresses found
+                    </p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      This user hasn't added any addresses yet.
+                    </p>
                   </div>
                 )}
               </div>
@@ -522,7 +562,8 @@ export const UserModal: React.FC<UserModalProps> = ({
           {/* Footer */}
           <div className="flex justify-between items-center p-6 border-t border-gray-200 bg-gray-50">
             <div className="text-sm text-gray-500">
-              Last updated: {new Date(user.updatedAt || user.createdAt).toLocaleDateString()}
+              Last updated:{" "}
+              {new Date(user.updatedAt || user.createdAt).toLocaleDateString()}
             </div>
             <div className="flex space-x-3">
               <button
@@ -563,8 +604,8 @@ export const UserModal: React.FC<UserModalProps> = ({
                   onClick={handleSave}
                   disabled={isSaving}
                   className={`px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg transition-colors duration-200 cursor-pointer shadow-sm ${
-                    isSaving 
-                      ? "opacity-50 cursor-not-allowed" 
+                    isSaving
+                      ? "opacity-50 cursor-not-allowed"
                       : "hover:bg-blue-700"
                   }`}
                 >

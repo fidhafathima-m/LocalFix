@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
-import { type TechnicianProfile } from "../../../../services/common/technicianApi";
-import { TechnicianService } from "../../../../services/technician/technicianService";
+import { TechnicianService } from "../../../../../services/technician/technicianService";
 import toast from "react-hot-toast";
+import type { TechnicianProfile } from "../../../../../interface/technician/ITechnicianApi";
 
 interface Service {
   id: string;
@@ -113,7 +113,6 @@ const SkillsServices = () => {
 
       const response = await TechnicianService.updateSkillsServices(updateData);
 
-      // ✅ FIXED: Proper response success checking
       const isSuccess = response.success || response.data?.success;
 
       if (isSuccess) {
@@ -128,10 +127,8 @@ const SkillsServices = () => {
           });
         }
 
-        // ✅ FIXED: Proper success toast
         toast.success("Skills and services updated successfully!");
       } else {
-        // ✅ FIXED: Proper error message extraction
         const errorMessage =
           response.message ||
           response.data?.message ||
@@ -142,8 +139,6 @@ const SkillsServices = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("SkillsServices - Error updating:", error);
-
-      // ✅ FIXED: Proper error handling with toast
       const errorMessage =
         error.response?.data?.message ||
         error.message ||

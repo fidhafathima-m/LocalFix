@@ -1,9 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import BaseNewPassword from "../../../../components/reusable/BaseNewPassword";
-import { type ResetPasswordData } from "../../../../services/common/authApi";
 import { validateSchema, newPasswordSchema } from "../../../../validation";
 import { UserAuthService } from "../../../../services/user/userAuthService";
+import type { ResetPasswordData } from "../../../../interface/user/IAuth";
 
 interface UserResetPasswordProps {
   phone?: string;

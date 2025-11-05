@@ -1,33 +1,32 @@
-// models/technician/SlotRuleSchema.ts
 import mongoose, { Schema, Document } from "mongoose";
-import { RRule, RRuleSet, rrulestr } from 'rrule';
+import { RRule, RRuleSet, rrulestr } from "rrule";
 
 export interface ISlotRule extends Document {
   technicianId?: mongoose.Types.ObjectId;
   name: string;
-  
+
   // RRule configuration for recurrence
-  rruleString: string; // Store RRule as string
-  
+  rruleString: string;
+
   // Time slot configuration
   startTime: string; // "09:00"
   endTime: string; // "18:00"
   slotDurationMinutes: number;
-  
+
   // Booking constraints
   bookingBufferBeforeMinutes: number;
   bookingBufferAfterMinutes: number;
   maxBookingsPerSlot: number;
-  
+
   // Effective period
   effectiveFrom: Date;
   effectiveTo?: Date;
   isActive: boolean;
-  
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;
-  
+
   // Helper methods
   generateSlotsForDate(date: Date): ITimeSlot[];
   getOccurrencesBetween(start: Date, end: Date): Date[];
@@ -101,44 +100,50 @@ const SlotRuleSchema = new Schema<ISlotRule>(
 );
 
 // Instance methods
-SlotRuleSchema.methods.generateSlotsForDate = function(date: Date): ITimeSlot[] {
+SlotRuleSchema.methods.generateSlotsForDate = function (
+  date: Date
+): ITimeSlot[] {
   const slots: ITimeSlot[] = [];
-  const [startHour, startMinute] = this.startTime.split(':').map(Number);
-  const [endHour, endMinute] = this.endTime.split(':').map(Number);
-  
+  const [startHour, startMinute] = this.startTime.split(":").map(Number);
+  const [endHour, endMinute] = this.endTime.split(":").map(Number);
+
   const slotStart = new Date(date);
   slotStart.setHours(startHour, startMinute, 0, 0);
-  
+
   const dayEnd = new Date(date);
   dayEnd.setHours(endHour, endMinute, 0, 0);
-  
+
   let currentSlotStart = new Date(slotStart);
-  
+
   while (currentSlotStart < dayEnd) {
     const currentSlotEnd = new Date(currentSlotStart);
-    currentSlotEnd.setMinutes(currentSlotEnd.getMinutes() + this.slotDurationMinutes);
-    
-    // Don't create slots that extend beyond the end time
+    currentSlotEnd.setMinutes(
+      currentSlotEnd.getMinutes() + this.slotDurationMinutes
+    );
+
     if (currentSlotEnd > dayEnd) break;
-    
+
     slots.push({
       start: new Date(currentSlotStart),
       end: new Date(currentSlotEnd),
-      status: 'available',
+      status: "available",
     });
-    
+
     currentSlotStart = currentSlotEnd;
   }
-  
+
   return slots;
 };
 
-SlotRuleSchema.methods.getOccurrencesBetween = function(start: Date, end: Date): Date[] {
+SlotRuleSchema.methods.getOccurrencesBetween = function (
+  start: Date,
+  end: Date
+): Date[] {
   try {
     const rule = rrulestr(this.rruleString);
     return rule.between(start, end, true);
   } catch (error) {
-    console.error('Error parsing RRule:', error);
+    console.error("Error parsing RRule:", error);
     return [];
   }
 };

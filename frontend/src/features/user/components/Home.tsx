@@ -1,6 +1,9 @@
 import Header from "../../../components/common/Header";
 import Footer from "../../../components/common/Footer";
-import fetchServices, { type Service, type ServicesResponse } from "../data/services";
+import fetchServices, {
+  type Service,
+  type ServicesResponse,
+} from "../data/services";
 import workingSteps from "../data/working";
 import speciality from "../data/speciality";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
@@ -17,8 +20,8 @@ const Home = () => {
     const loadServices = async () => {
       try {
         setLoading(true);
-        const servicesResponse: ServicesResponse = await fetchServices(1, 4); // Fetch first page with 4 services
-        setServices(servicesResponse.services); // Extract just the services array
+        const servicesResponse: ServicesResponse = await fetchServices(1, 4);
+        setServices(servicesResponse.services);
       } catch (err) {
         setError("Failed to load services");
         console.error("Error loading services:", err);
@@ -30,7 +33,7 @@ const Home = () => {
     loadServices();
   }, []);
 
-  // Only show first 4 services (already handled by the API call)
+  // Only show first 4 services
   const displayedServices = services;
 
   return (
@@ -55,9 +58,10 @@ const Home = () => {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 mb-8 lg:mb-0">
-                <Link 
-                className="p-3 px-6 outline-1 outline-blue-600 rounded bg-white text-black font-semibold hover:bg-gray-100 transition cursor-pointer"
-                to="/services">
+                <Link
+                  className="p-3 px-6 outline-1 outline-blue-600 rounded bg-white text-black font-semibold hover:bg-gray-100 transition cursor-pointer"
+                  to="/services"
+                >
                   Book a Service
                 </Link>
                 <button className="p-3 px-6 outline-1 outline-white border border-white rounded font-semibold hover:bg-white hover:text-blue-600 transition">
@@ -252,7 +256,7 @@ const Home = () => {
             </div>
             <div className="pb-6 lg:pb-10 px-4">
               <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                <button 
+                <button
                   onClick={() => navigate("/services")}
                   className="bg-white text-black p-3 font-semibold rounded w-full sm:w-auto hover:bg-gray-100 transition cursor-pointer"
                 >

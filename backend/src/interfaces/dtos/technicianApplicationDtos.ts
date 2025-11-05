@@ -39,13 +39,12 @@ export interface PersonalInfoDto {
 export interface IdentityInfoDto {
   idType?: string;
   idNumber?: string;
-  address?: any; // or create a proper AddressDto
+  address?: any;
   location?: LocationDto;
   verified?: boolean;
   verificationStatus?: "pending" | "approved" | "rejected";
   verifiedAt?: Date;
-  
-  // Remove or keep these as fallbacks
+
   governmentIdType?: string;
   governmentIdNumber?: string;
   idDocument?: any;

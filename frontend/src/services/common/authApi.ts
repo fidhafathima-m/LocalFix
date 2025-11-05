@@ -27,9 +27,7 @@ export const authAPI = {
       const response = await api.post<AuthResponse>(AUTH_ROUTES.REFRESH_TOKEN, {
         refreshToken,
       });
-      console.log("🔄 Refresh Token Response:", response.data);
       
-      // Your backend returns { success, message, data: { accessToken, refreshToken } }
       const normalized = {
         ...response.data,
         success: response.data.success,
@@ -42,7 +40,6 @@ export const authAPI = {
         refreshToken: response.data.data?.refreshToken,
       };
       
-      console.log("🔄 Normalized Response:", normalized);
       return normalized;
     } catch (error: any) {
       if (error.response?.data) {

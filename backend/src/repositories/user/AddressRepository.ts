@@ -18,18 +18,14 @@ export class AddressRepository implements IAddressRepository {
 
   async create(addressData: Partial<IUserAddress>): Promise<IUserAddress> {
   try {
-    console.log("🔍 [AddressRepository] Creating address with data:", JSON.stringify(addressData, null, 2));
     
     const address = new UserAddress(addressData);
-    console.log("🔍 [AddressRepository] Address instance created:", address);
     
     const savedAddress = await address.save();
-    console.log("🔍 [AddressRepository] Address saved to database:", savedAddress);
-    console.log("🔍 [AddressRepository] Saved address ID:", savedAddress._id);
     
     return savedAddress;
   } catch (error) {
-    console.error("❌ [AddressRepository] Error saving address:", error);
+    console.error("[AddressRepository] Error saving address:", error);
     throw error;
   }
 }

@@ -1,6 +1,5 @@
-// models/BookingSchema.ts
-import mongoose, { Schema, Document, Types } from 'mongoose';
-import { IUserAddress } from './UserAddressSchema';
+import mongoose, { Schema, Document, Types } from "mongoose";
+import { IUserAddress } from "./UserAddressSchema";
 
 export interface IBooking extends Document {
   bookingCode: string;
@@ -13,7 +12,14 @@ export interface IBooking extends Document {
   addressId: Types.ObjectId | IUserAddress;
   scheduledAt: Date;
   timeSlot: string;
-  status: 'pending' | 'accepted' | 'in_progress' | 'on_the_way' | 'completed' | 'cancelled' | 'rescheduled';
+  status:
+    | "pending"
+    | "accepted"
+    | "in_progress"
+    | "on_the_way"
+    | "completed"
+    | "cancelled"
+    | "rescheduled";
   amount: number;
   itemsAmount: number;
   totalAmount: number;
@@ -27,7 +33,7 @@ export interface IBooking extends Document {
   notes: string;
   cancellation?: {
     reason: string;
-    cancelledBy: 'user' | 'technician' | 'admin';
+    cancelledBy: "user" | "technician" | "admin";
     cancelledAt: Date;
     refundAmount?: number;
   };
@@ -41,144 +47,159 @@ export interface IBooking extends Document {
   updatedAt: Date;
 }
 
-const bookingSchema = new Schema<IBooking>({
-  bookingCode: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  technicianId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Technician',
-    required: true,
-  },
-  serviceId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Service',
-  },
-  categoryId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Category',
-  },
-  serviceName: {
-    type: String,
-    required: true,
-  },
-  brand: {
-    type: String,
-    required: true,
-  },
-  addressId: {
-    type: Schema.Types.ObjectId,
-    ref: 'UserAddress',
-    required: true,
-  },
-  scheduledAt: {
-    type: Date,
-    required: true,
-  },
-  timeSlot: {
-    type: String,
-    required: true,
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'accepted', 'in_progress', 'on_the_way', 'completed', 'cancelled', 'rescheduled'],
-    default: 'pending',
-  },
-  amount: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
-  itemsAmount: {
-    type: Number,
-    default: 0,
-    min: 0,
-  },
-  totalAmount: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
-  items: [{
-    itemId: {
+const bookingSchema = new Schema<IBooking>(
+  {
+    bookingCode: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    userId: {
       type: Schema.Types.ObjectId,
-      ref: 'SparePart',
+      ref: "User",
+      required: true,
     },
-    name: {
+    technicianId: {
+      type: Schema.Types.ObjectId,
+      ref: "Technician",
+      required: true,
+    },
+    serviceId: {
+      type: Schema.Types.ObjectId,
+      ref: "Service",
+    },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+    },
+    serviceName: {
       type: String,
       required: true,
     },
-    quantity: {
-      type: Number,
-      required: true,
-      min: 1,
-    },
-    unitPrice: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    totalPrice: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-  }],
-  notes: {
-    type: String,
-    default: '',
-  },
-  cancellation: {
-    reason: String,
-    cancelledBy: {
+    brand: {
       type: String,
-      enum: ['user', 'technician', 'admin'],
+      required: true,
     },
-    cancelledAt: Date,
-    refundAmount: Number,
-  },
-  history: [{
+    addressId: {
+      type: Schema.Types.ObjectId,
+      ref: "UserAddress",
+      required: true,
+    },
+    scheduledAt: {
+      type: Date,
+      required: true,
+    },
+    timeSlot: {
+      type: String,
+      required: true,
+    },
     status: {
       type: String,
-      required: true,
+      enum: [
+        "pending",
+        "accepted",
+        "in_progress",
+        "on_the_way",
+        "completed",
+        "cancelled",
+        "rescheduled",
+      ],
+      default: "pending",
     },
-    by: {
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    itemsAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    items: [
+      {
+        itemId: {
+          type: Schema.Types.ObjectId,
+          ref: "SparePart",
+        },
+        name: {
+          type: String,
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+        unitPrice: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        totalPrice: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+      },
+    ],
+    notes: {
       type: String,
-      required: true,
+      default: "",
     },
-    reason: String,
-    at: {
-      type: Date,
-      default: Date.now,
+    cancellation: {
+      reason: String,
+      cancelledBy: {
+        type: String,
+        enum: ["user", "technician", "admin"],
+      },
+      cancelledAt: Date,
+      refundAmount: Number,
     },
-  }],
-}, {
-  timestamps: true,
-});
+    history: [
+      {
+        status: {
+          type: String,
+          required: true,
+        },
+        by: {
+          type: String,
+          required: true,
+        },
+        reason: String,
+        at: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
 
-// Fixed pre-save hook for booking code generation
-bookingSchema.pre('save', async function (next) {
+// pre-save hook for booking code generation
+bookingSchema.pre("save", async function (next) {
   if (this.isNew && !this.bookingCode) {
     try {
       // Get the count of existing bookings
-      const BookingModel = mongoose.model<IBooking>('Booking');
+      const BookingModel = mongoose.model<IBooking>("Booking");
       const count = await BookingModel.countDocuments();
-      
+
       // Generate booking code with padding
-      this.bookingCode = `BK${String(count + 1).padStart(6, '0')}`;
-      
+      this.bookingCode = `BK${String(count + 1).padStart(6, "0")}`;
+
       // Add initial history entry
       if (this.history.length === 0) {
         this.history.push({
-          status: 'pending',
-          by: 'system',
+          status: "pending",
+          by: "system",
           at: new Date(),
         });
       }
@@ -189,8 +210,10 @@ bookingSchema.pre('save', async function (next) {
   next();
 });
 
-export function isAddressPopulated(address: Types.ObjectId | IUserAddress): address is IUserAddress {
+export function isAddressPopulated(
+  address: Types.ObjectId | IUserAddress
+): address is IUserAddress {
   return (address as IUserAddress).label !== undefined;
 }
 
-export default mongoose.model<IBooking>('Booking', bookingSchema);
+export default mongoose.model<IBooking>("Booking", bookingSchema);

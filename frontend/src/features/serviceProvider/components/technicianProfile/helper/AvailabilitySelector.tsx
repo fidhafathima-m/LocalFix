@@ -1,4 +1,3 @@
-// components/technician/MonthlyAvailabilitySelector.tsx
 import React, { useState } from "react";
 
 export interface MonthlyAvailability {

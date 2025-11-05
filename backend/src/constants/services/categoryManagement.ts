@@ -1,4 +1,3 @@
-// constants/categoryConstants.ts
 export const CATEGORY_MESSAGES = {
   // Success messages
   CATEGORY_CREATED: "Category created successfully",

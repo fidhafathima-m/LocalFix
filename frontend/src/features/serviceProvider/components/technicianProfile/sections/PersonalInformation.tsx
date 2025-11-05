@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
 import { CalendarTodayOutlined, FileUploadOutlined } from "@mui/icons-material";
-import { type TechnicianProfile } from "../../../../services/common/technicianApi";
-import { TechnicianService } from "../../../../services/technician/technicianService";
+import { TechnicianService } from "../../../../../services/technician/technicianService";
 import toast from "react-hot-toast";
+import type { TechnicianProfile } from "../../../../../interface/technician/ITechnicianApi";
 
 const PersonalInformation = () => {
   const [, setProfile] = useState<TechnicianProfile | null>(null);
@@ -172,7 +172,6 @@ const PersonalInformation = () => {
       const isSuccess = response.success || response.data?.success;
 
       if (isSuccess) {
-        // ✅ Use the returned profile data from backend instead of manually updating
         if (response.data?.profile) {
           setProfile(response.data.profile);
 
@@ -238,12 +237,11 @@ const PersonalInformation = () => {
     }
   };
 
-  // In your PersonalInformation.tsx, update the handlePhotoUpload function
   const handlePhotoUpload = async (file: File) => {
     try {
       setUploadingPhoto(true);
 
-      // Create a FormData object for file upload (same as application form)
+      // Create a FormData object for file upload
       const formData = new FormData();
       formData.append("profilePicture", file);
 
@@ -260,7 +258,6 @@ const PersonalInformation = () => {
             profilePicture: profilePictureUrl,
           }));
 
-          // Also update the profile state
           setProfile((prev) => (prev ? { ...prev, profilePictureUrl } : null));
 
           toast.success("Profile photo updated successfully!");

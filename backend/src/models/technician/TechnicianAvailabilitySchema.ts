@@ -9,7 +9,7 @@ export interface ITimeSlot {
 
 export interface ITechnicianAvailability extends Document {
   technicianId: mongoose.Types.ObjectId;
-  date: Date; // Specific date
+  date: Date;
   timeSlots: ITimeSlot[];
   isRecurring: boolean;
   slotRuleId?: mongoose.Types.ObjectId;

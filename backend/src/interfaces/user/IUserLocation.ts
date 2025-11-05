@@ -40,5 +40,5 @@ export interface TechnicianWithDistance {
   address: Address;
   location: Coordinates;
   distance: number;
-  technicianInfo: any; // You can replace with your Technician type
+  technicianInfo: any;
 }

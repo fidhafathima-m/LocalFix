@@ -1,6 +1,6 @@
-import winston from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
-import path from 'path';
+import winston from "winston";
+import DailyRotateFile from "winston-daily-rotate-file";
+import path from "path";
 
 // Define log levels
 const levels = {
@@ -13,17 +13,17 @@ const levels = {
 
 // Define level based on environment
 const getLogLevel = () => {
-  const env = process.env.NODE_ENV || 'development';
-  return env === 'development' ? 'debug' : 'warn';
+  const env = process.env.NODE_ENV || "development";
+  return env === "development" ? "debug" : "warn";
 };
 
 // Define colors for each level
 const colors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  http: 'magenta',
-  debug: 'white',
+  error: "red",
+  warn: "yellow",
+  info: "green",
+  http: "magenta",
+  debug: "white",
 };
 
 // Add colors to winston
@@ -31,23 +31,23 @@ winston.addColors(colors);
 
 // Define the format for logs
 const format = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
+  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
   winston.format.errors({ stack: true }),
   winston.format.printf((info) => {
     const { timestamp, level, message, stack, ...meta } = info;
-    
+
     let log = `${timestamp} [${level}]: ${message}`;
-    
+
     // Add stack trace for errors
     if (stack) {
       log += `\n${stack}`;
     }
-    
+
     // Add metadata if present
     if (Object.keys(meta).length > 0) {
       log += `\n${JSON.stringify(meta, null, 2)}`;
     }
-    
+
     return log;
   })
 );
@@ -64,33 +64,33 @@ const transports = [
 
   // Daily rotate file for errors
   new DailyRotateFile({
-    filename: path.join('logs', 'error-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
+    filename: path.join("logs", "error-%DATE%.log"),
+    datePattern: "YYYY-MM-DD",
     zippedArchive: true,
-    maxSize: '20m',
-    maxFiles: '14d',
-    level: 'error',
+    maxSize: "20m",
+    maxFiles: "14d",
+    level: "error",
     format: format,
   }),
 
   // Daily rotate file for all logs
   new DailyRotateFile({
-    filename: path.join('logs', 'combined-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
+    filename: path.join("logs", "combined-%DATE%.log"),
+    datePattern: "YYYY-MM-DD",
     zippedArchive: true,
-    maxSize: '20m',
-    maxFiles: '14d',
+    maxSize: "20m",
+    maxFiles: "14d",
     format: format,
   }),
 
   // HTTP specific logs
   new DailyRotateFile({
-    filename: path.join('logs', 'http-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
+    filename: path.join("logs", "http-%DATE%.log"),
+    datePattern: "YYYY-MM-DD",
     zippedArchive: true,
-    maxSize: '20m',
-    maxFiles: '14d',
-    level: 'http',
+    maxSize: "20m",
+    maxFiles: "14d",
+    level: "http",
     format: format,
   }),
 ];

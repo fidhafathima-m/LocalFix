@@ -3,13 +3,13 @@ import { Types } from "mongoose";
 export interface IOrderItem {
   _id: Types.ObjectId;
   bookingId: Types.ObjectId;
-  serviceItemId?: Types.ObjectId;     // item from ServiceItems, nullable if custom
+  serviceItemId?: Types.ObjectId;
   customName: string;
   unitPrice: number;
   quantity: number;
   totalPrice: number;
-  addedBy: Types.ObjectId;             // technician id
-  status: 'requested' | 'accepted' | 'approved' | 'rejected' | 'purchased'; // lifecycle of the item order/quote
+  addedBy: Types.ObjectId;
+  status: "requested" | "accepted" | "approved" | "rejected" | "purchased";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,11 +32,18 @@ export interface IOrder extends Document {
     pincode: string;
     landmark?: string;
   };
-  status: 'pending' | 'accepted' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'refunded';
+  status:
+    | "pending"
+    | "accepted"
+    | "confirmed"
+    | "in_progress"
+    | "completed"
+    | "cancelled"
+    | "refunded";
   payment: {
-    method: 'online' | 'cod';
+    method: "online" | "cod";
     amount: number;
-    status: 'pending' | 'paid' | 'failed' | 'refunded';
+    status: "pending" | "paid" | "failed" | "refunded";
     transactionId?: string;
     paidAt?: Date;
   };
@@ -46,14 +53,14 @@ export interface IOrder extends Document {
   userReview?: string;
   cancellation?: {
     reason: string;
-    cancelledBy: 'user' | 'technician' | 'admin';
+    cancelledBy: "user" | "technician" | "admin";
     cancelledAt: Date;
     refundAmount?: number;
   };
   history: Array<{
     status: string;
     description: string;
-    updatedBy: 'user' | 'technician' | 'system';
+    updatedBy: "user" | "technician" | "system";
     timestamp: Date;
   }>;
   createdAt: Date;

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
-import { type TechnicianProfile } from "../../../../services/common/technicianApi";
-import { TechnicianService } from "../../../../services/technician/technicianService";
+import { TechnicianService } from "../../../../../services/technician/technicianService";
 import toast from "react-hot-toast";
+import type { TechnicianProfile } from "../../../../../interface/technician/ITechnicianApi";
 
 interface BankAccount {
   holderName?: string;
@@ -46,16 +46,13 @@ const BankPaymentDetails = () => {
 
       if (response.success) {
         const profileData =
-          response.data?.data?.profile || // Most common
-          response.data?.profile || // Alternative
-          response.data?.data || // Another alternative
-          response.data || // Fallback
-          response; // Last resort
+          response.data?.data?.profile ||
+          response.data?.profile ||
+          response.data?.data ||
+          response.data ||
+          response;
 
-        // ✅ FIX: Look in the correct locations based on your mapper
-        const paymentDetails = // Primary location
-          profileData.paymentDetails || // Backward compatibility
-          {};
+        const paymentDetails = profileData.paymentDetails || {};
 
         const bankAccount = paymentDetails.bankAccount || {};
 
@@ -153,7 +150,6 @@ const BankPaymentDetails = () => {
 
       const response = await TechnicianService.updateBankPayment(updateData);
 
-      // ✅ FIX: Check the correct response structure
       if (response.success) {
         // Update local state
         setFormData(updateData.paymentDetails);

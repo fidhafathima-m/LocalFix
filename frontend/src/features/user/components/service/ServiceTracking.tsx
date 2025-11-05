@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowBackIosNewOutlined,
   BuildOutlined,
@@ -13,130 +13,168 @@ import {
   NavigationOutlined,
   PersonOutlined,
   RefreshOutlined,
-} from '@mui/icons-material'
-import Header from '../../../../components/common/Header'
-import Footer from '../../../../components/common/Footer'
-import { trackingService } from '../../../../services/user/trackingService'
-import toast from 'react-hot-toast'
-import type { ServiceTracking } from '../../../../interface/user/ITracking'
+} from "@mui/icons-material";
+import Header from "../../../../components/common/Header";
+import Footer from "../../../../components/common/Footer";
+import { trackingService } from "../../../../services/user/trackingService";
+import toast from "react-hot-toast";
+import type { ServiceTracking } from "../../../../interface/user/ITracking";
 
 const ServiceTrackingComponent: React.FC = () => {
-  const navigate = useNavigate()
-  const { bookingId } = useParams<{ bookingId: string }>()
-  const [trackingData, setTrackingData] = useState<ServiceTracking | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+  const navigate = useNavigate();
+  const { bookingId } = useParams<{ bookingId: string }>();
+  const [trackingData, setTrackingData] = useState<ServiceTracking | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (bookingId) {
-      fetchTrackingData()
+      fetchTrackingData();
     }
-  }, [bookingId])
+  }, [bookingId]);
 
   const fetchTrackingData = async () => {
     try {
-      setLoading(true)
-      const response = await trackingService.getTrackingDetails(bookingId!)
-      
+      setLoading(true);
+      const response = await trackingService.getTrackingDetails(bookingId!);
+
       if (response.success && response.data) {
-        setTrackingData(response.data)
+        setTrackingData(response.data);
       } else {
-        toast.error('Failed to fetch tracking details')
-        navigate('/orders')
+        toast.error("Failed to fetch tracking details");
+        navigate("/orders");
       }
     } catch (error) {
-      console.error('Error fetching tracking data:', error)
-      toast.error('Failed to load tracking information')
-      navigate('/orders')
+      console.error("Error fetching tracking data:", error);
+      toast.error("Failed to load tracking information");
+      navigate("/orders");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleRefresh = async () => {
-    setRefreshing(true)
-    await fetchTrackingData()
-    setRefreshing(false)
-  }
+    setRefreshing(true);
+    await fetchTrackingData();
+    setRefreshing(false);
+  };
 
   const handleCallTechnician = () => {
     if (trackingData?.technicianId.phone) {
-      window.open(`tel:${trackingData.technicianId.phone}`, '_self')
+      window.open(`tel:${trackingData.technicianId.phone}`, "_self");
     } else {
-      toast.error('Technician phone number not available')
+      toast.error("Technician phone number not available");
     }
-  }
+  };
 
   const handleMessageTechnician = () => {
-    // In a real app, this would open a chat interface
-    toast.success('Messaging feature coming soon!')
-  }
+    toast.success("Messaging feature coming soon!");
+  };
 
   const handleContactSupport = () => {
-    navigate('/contact')
-  }
+    navigate("/contact");
+  };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-IN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const formatTimeSlot = (timeSlot: string) => {
     return timeSlot
-      .split(' - ')
-      .map(time => time.replace(/(:\d{2})(?::\d{2})? (AM|PM)/, '$1 $2'))
-      .join(' - ')
-  }
+      .split(" - ")
+      .map((time) => time.replace(/(:\d{2})(?::\d{2})? (AM|PM)/, "$1 $2"))
+      .join(" - ");
+  };
 
   const getStatusConfig = (status: string) => {
     const statusConfig = {
-      pending: { color: 'bg-gray-200', icon: CheckCircleOutlineOutlined, textColor: 'text-gray-400' },
-      accepted: { color: 'bg-green-100', icon: CheckCircleOutlineOutlined, textColor: 'text-green-600' },
-      assigned: { color: 'bg-blue-100', icon: LocalShippingOutlined, textColor: 'text-blue-600' },
-      on_the_way: { color: 'bg-blue-100', icon: LocalShippingOutlined, textColor: 'text-blue-600' },
-      in_progress: { color: 'bg-orange-100', icon: BuildOutlined, textColor: 'text-orange-600' },
-      completed: { color: 'bg-green-100', icon: CheckCircleOutlineOutlined, textColor: 'text-green-600' },
-      cancelled: { color: 'bg-red-100', icon: CheckCircleOutlineOutlined, textColor: 'text-red-600' }
-    }
-    return statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
-  }
+      pending: {
+        color: "bg-gray-200",
+        icon: CheckCircleOutlineOutlined,
+        textColor: "text-gray-400",
+      },
+      accepted: {
+        color: "bg-green-100",
+        icon: CheckCircleOutlineOutlined,
+        textColor: "text-green-600",
+      },
+      assigned: {
+        color: "bg-blue-100",
+        icon: LocalShippingOutlined,
+        textColor: "text-blue-600",
+      },
+      on_the_way: {
+        color: "bg-blue-100",
+        icon: LocalShippingOutlined,
+        textColor: "text-blue-600",
+      },
+      in_progress: {
+        color: "bg-orange-100",
+        icon: BuildOutlined,
+        textColor: "text-orange-600",
+      },
+      completed: {
+        color: "bg-green-100",
+        icon: CheckCircleOutlineOutlined,
+        textColor: "text-green-600",
+      },
+      cancelled: {
+        color: "bg-red-100",
+        icon: CheckCircleOutlineOutlined,
+        textColor: "text-red-600",
+      },
+    };
+    return (
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
+    );
+  };
 
   const getStatusDisplayText = (status: string) => {
     const statusText = {
-      pending: 'Booking Confirmed',
-      accepted: 'Booking Accepted',
-      assigned: 'Technician Assigned',
-      on_the_way: 'Technician on the way',
-      in_progress: 'Service in progress',
-      completed: 'Service Completed',
-      cancelled: 'Service Cancelled'
-    }
-    return statusText[status as keyof typeof statusText] || status
-  }
+      pending: "Booking Confirmed",
+      accepted: "Booking Accepted",
+      assigned: "Technician Assigned",
+      on_the_way: "Technician on the way",
+      in_progress: "Service in progress",
+      completed: "Service Completed",
+      cancelled: "Service Cancelled",
+    };
+    return statusText[status as keyof typeof statusText] || status;
+  };
 
   const isStatusCompleted = (status: string, currentStatus: string) => {
-    const statusOrder = ['pending', 'accepted', 'assigned', 'on_the_way', 'in_progress', 'completed']
-    const currentIndex = statusOrder.indexOf(currentStatus)
-    const statusIndex = statusOrder.indexOf(status)
-    return statusIndex <= currentIndex
-  }
+    const statusOrder = [
+      "pending",
+      "accepted",
+      "assigned",
+      "on_the_way",
+      "in_progress",
+      "completed",
+    ];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const statusIndex = statusOrder.indexOf(status);
+    return statusIndex <= currentIndex;
+  };
 
   const isStatusActive = (status: string, currentStatus: string) => {
-    return status === currentStatus
-  }
+    return status === currentStatus;
+  };
 
   if (loading) {
     return (
@@ -150,7 +188,7 @@ const ServiceTrackingComponent: React.FC = () => {
         </main>
         <Footer />
       </div>
-    )
+    );
   }
 
   if (!trackingData) {
@@ -163,9 +201,11 @@ const ServiceTrackingComponent: React.FC = () => {
               <BuildOutlined className="w-10 h-10 text-gray-400" />
             </div>
             <h2 className="text-xl font-semibold mb-2">Tracking Not Found</h2>
-            <p className="text-gray-600 mb-6">Unable to find tracking information for this booking.</p>
+            <p className="text-gray-600 mb-6">
+              Unable to find tracking information for this booking.
+            </p>
             <button
-              onClick={() => navigate('/bookings')}
+              onClick={() => navigate("/bookings")}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
               View My Bookings
@@ -174,7 +214,7 @@ const ServiceTrackingComponent: React.FC = () => {
         </main>
         <Footer />
       </div>
-    )
+    );
   }
 
   return (
@@ -201,7 +241,9 @@ const ServiceTrackingComponent: React.FC = () => {
 
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Tracking Service</h1>
-          <span className="text-sm text-gray-600">Booking ID: {trackingData.bookingId}</span>
+          <span className="text-sm text-gray-600">
+            Booking ID: {trackingData.bookingId}
+          </span>
         </div>
 
         {/* Service Details */}
@@ -212,18 +254,24 @@ const ServiceTrackingComponent: React.FC = () => {
               <div className="flex items-start gap-3">
                 <BuildOutlined className="w-5 h-5 text-gray-600 mt-1" />
                 <div>
-                  <div className="font-semibold text-lg">{trackingData.serviceName}</div>
-                  <div className="text-gray-600">{trackingData.problemDescription || 'Standard service'}</div>
+                  <div className="font-semibold text-lg">
+                    {trackingData.serviceName}
+                  </div>
+                  <div className="text-gray-600">
+                    {trackingData.problemDescription || "Standard service"}
+                  </div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <QueryBuilderOutlined className="w-5 h-5 text-gray-600 mt-1" />
                 <div>
                   <div className="font-semibold">
-                    {formatDate(trackingData.scheduledAt)}, {formatTimeSlot(trackingData.timeSlot)}
+                    {formatDate(trackingData.scheduledAt)},{" "}
+                    {formatTimeSlot(trackingData.timeSlot)}
                   </div>
                   <div className="text-sm text-gray-600">
-                    Estimated service time: {trackingData.estimatedDuration || '1-2 hours'}
+                    Estimated service time:{" "}
+                    {trackingData.estimatedDuration || "1-2 hours"}
                   </div>
                 </div>
               </div>
@@ -233,7 +281,9 @@ const ServiceTrackingComponent: React.FC = () => {
                   <div className="font-semibold">
                     {trackingData.address.street}, {trackingData.address.city}
                   </div>
-                  <div className="text-sm text-gray-600">{trackingData.address.label}</div>
+                  <div className="text-sm text-gray-600">
+                    {trackingData.address.label}
+                  </div>
                 </div>
               </div>
             </div>
@@ -252,24 +302,28 @@ const ServiceTrackingComponent: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <div className="font-semibold">{trackingData.technicianId.displayName}</div>
+                  <div className="font-semibold">
+                    {trackingData.technicianId.displayName}
+                  </div>
                   <div className="flex items-center gap-1 text-sm text-gray-600">
                     <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span>{trackingData.technicianId.averageRating.toFixed(1)}</span>
+                    <span>
+                      {trackingData.technicianId.averageRating.toFixed(1)}
+                    </span>
                     <span>•</span>
                     <span>{trackingData.technicianId.ratingCount} reviews</span>
                   </div>
                 </div>
               </div>
               <div className="space-y-2">
-                <button 
+                <button
                   onClick={handleCallTechnician}
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
                   <LocalPhoneOutlined className="w-4 h-4" />
                   Call Technician
                 </button>
-                <button 
+                <button
                   onClick={handleMessageTechnician}
                   className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
                 >
@@ -285,56 +339,88 @@ const ServiceTrackingComponent: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold mb-6">Service Status</h2>
           <div className="space-y-6">
-            {['pending', 'accepted', 'assigned', 'on_the_way', 'in_progress', 'completed'].map((status, index) => {
-              const isCompleted = isStatusCompleted(status, trackingData.status)
-              const isActive = isStatusActive(status, trackingData.status)
-              const statusConfig = getStatusConfig(status)
-              const StatusIcon = statusConfig.icon
-              const statusHistory = trackingData.statusHistory.find(sh => sh.status === status)
-              
+            {[
+              "pending",
+              "accepted",
+              "assigned",
+              "on_the_way",
+              "in_progress",
+              "completed",
+            ].map((status, index) => {
+              const isCompleted = isStatusCompleted(
+                status,
+                trackingData.status
+              );
+              const isActive = isStatusActive(status, trackingData.status);
+              const statusConfig = getStatusConfig(status);
+              const StatusIcon = statusConfig.icon;
+              const statusHistory = trackingData.statusHistory.find(
+                (sh) => sh.status === status
+              );
+
               return (
                 <div key={status} className="flex gap-4">
                   <div className="flex flex-col items-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      isCompleted ? statusConfig.color : 'bg-gray-200'
-                    }`}>
-                      <StatusIcon className={`w-6 h-6 ${
-                        isCompleted ? statusConfig.textColor : 'text-gray-400'
-                      }`} />
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        isCompleted ? statusConfig.color : "bg-gray-200"
+                      }`}
+                    >
+                      <StatusIcon
+                        className={`w-6 h-6 ${
+                          isCompleted ? statusConfig.textColor : "text-gray-400"
+                        }`}
+                      />
                     </div>
                     {index < 5 && (
-                      <div className={`w-0.5 h-16 my-2 ${
-                        isCompleted ? 'bg-green-200' : 'bg-gray-200'
-                      }`} />
+                      <div
+                        className={`w-0.5 h-16 my-2 ${
+                          isCompleted ? "bg-green-200" : "bg-gray-200"
+                        }`}
+                      />
                     )}
                   </div>
-                  <div className={`flex-1 pb-6 ${isActive ? 'text-current' : 'text-gray-400'}`}>
-                    <h3 className={`font-semibold mb-1 ${isActive ? '' : 'text-gray-400'}`}>
+                  <div
+                    className={`flex-1 pb-6 ${
+                      isActive ? "text-current" : "text-gray-400"
+                    }`}
+                  >
+                    <h3
+                      className={`font-semibold mb-1 ${
+                        isActive ? "" : "text-gray-400"
+                      }`}
+                    >
                       {getStatusDisplayText(status)}
                     </h3>
                     <p className="text-sm mb-1">
-                      {statusHistory?.description || getDefaultStatusDescription(status)}
+                      {statusHistory?.description ||
+                        getDefaultStatusDescription(status)}
                     </p>
                     {statusHistory && (
                       <p className="text-xs text-gray-500">
-                        {formatDate(statusHistory.timestamp)}, {formatTime(statusHistory.timestamp)}
+                        {formatDate(statusHistory.timestamp)},{" "}
+                        {formatTime(statusHistory.timestamp)}
                       </p>
                     )}
-                    {isActive && status === 'on_the_way' && trackingData.estimatedArrival && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
-                        <p className="font-semibold text-blue-900 mb-1">
-                          Estimated arrival in {trackingData.estimatedArrival}
-                        </p>
-                        {trackingData.distance && (
-                          <p className="text-sm text-blue-800">
-                            The technician is {trackingData.distance.toFixed(1)} km away from your location
+                    {isActive &&
+                      status === "on_the_way" &&
+                      trackingData.estimatedArrival && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                          <p className="font-semibold text-blue-900 mb-1">
+                            Estimated arrival in {trackingData.estimatedArrival}
                           </p>
-                        )}
-                      </div>
-                    )}
+                          {trackingData.distance && (
+                            <p className="text-sm text-blue-800">
+                              The technician is{" "}
+                              {trackingData.distance.toFixed(1)} km away from
+                              your location
+                            </p>
+                          )}
+                        </div>
+                      )}
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
@@ -345,7 +431,9 @@ const ServiceTrackingComponent: React.FC = () => {
           <div className="bg-blue-50 rounded-lg h-64 flex flex-col items-center justify-center mb-4">
             <NavigationOutlined className="w-12 h-12 text-blue-600 mb-3" />
             <p className="text-gray-600">
-              {trackingData.status === 'on_the_way' ? 'Live tracking active' : 'Live tracking will start when technician is on the way'}
+              {trackingData.status === "on_the_way"
+                ? "Live tracking active"
+                : "Live tracking will start when technician is on the way"}
             </p>
           </div>
           <div className="flex items-start gap-3 bg-gray-50 rounded-lg p-4">
@@ -356,7 +444,9 @@ const ServiceTrackingComponent: React.FC = () => {
               <div className="font-semibold">
                 {trackingData.address.street}, {trackingData.address.city}
               </div>
-              <div className="text-sm text-gray-600">{trackingData.address.label}</div>
+              <div className="text-sm text-gray-600">
+                {trackingData.address.label}
+              </div>
             </div>
           </div>
         </div>
@@ -364,12 +454,12 @@ const ServiceTrackingComponent: React.FC = () => {
         {/* Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
-            onClick={() => navigate('/orders')}
+            onClick={() => navigate("/orders")}
             className="border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
           >
             My Orders
           </button>
-          <button 
+          <button
             onClick={handleContactSupport}
             className="bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
           >
@@ -379,20 +469,22 @@ const ServiceTrackingComponent: React.FC = () => {
       </main>
       <Footer />
     </div>
-  )
-}
+  );
+};
 
 // Helper function for default status descriptions
 function getDefaultStatusDescription(status: string): string {
   const descriptions = {
-    pending: 'Your booking has been confirmed and is waiting for technician assignment.',
-    accepted: 'Your booking has been accepted and a technician will be assigned soon.',
-    assigned: 'A technician has been assigned to your service request.',
-    on_the_way: 'The technician is on the way to your location.',
-    in_progress: 'The technician is currently working on your service.',
-    completed: 'The service has been completed successfully.'
-  }
-  return descriptions[status as keyof typeof descriptions] || 'Status updated'
+    pending:
+      "Your booking has been confirmed and is waiting for technician assignment.",
+    accepted:
+      "Your booking has been accepted and a technician will be assigned soon.",
+    assigned: "A technician has been assigned to your service request.",
+    on_the_way: "The technician is on the way to your location.",
+    in_progress: "The technician is currently working on your service.",
+    completed: "The service has been completed successfully.",
+  };
+  return descriptions[status as keyof typeof descriptions] || "Status updated";
 }
 
-export default ServiceTrackingComponent
+export default ServiceTrackingComponent;

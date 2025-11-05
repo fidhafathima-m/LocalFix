@@ -1,14 +1,13 @@
 import { Router } from "express";
 import { protect } from "../../middleware/authMiddleware";
 import multer from "multer";
-import { userLocationController, userProfileController, addressController } from "../../config/container";
+import {
+  userLocationController,
+  userProfileController,
+  addressController,
+} from "../../config/container";
 
 const router = Router();
-
-// Debug: Check if userLocationController is properly imported
-console.log('UserLocationController in routes:', userLocationController);
-console.log('Type of userLocationController:', typeof userLocationController);
-console.log('Has updateUserLocation method:', userLocationController?.updateUserLocation);
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -28,7 +27,8 @@ const upload = multer({
 router.get("/profile", protect, userProfileController.getUserProfile);
 router.put("/profile", protect, userProfileController.updateUserProfile);
 router.post(
-  "/profile/upload-photo", protect,
+  "/profile/upload-photo",
+  protect,
   upload.single("profilePicture"),
   userProfileController.uploadProfilePicture
 );
@@ -38,16 +38,31 @@ router.post("/change-password", protect, userProfileController.changePassword);
 router.get("/addresses", protect, addressController.getUserAddresses);
 router.post("/addresses", protect, addressController.createAddress);
 router.put("/addresses/:addressId", protect, addressController.getAddressById);
-router.delete("/addresses/:addressId", protect, addressController.deleteAddress);
-router.patch("/addresses/:addressId/default", protect, addressController.setDefaultAddress);
+router.delete(
+  "/addresses/:addressId",
+  protect,
+  addressController.deleteAddress
+);
+router.patch(
+  "/addresses/:addressId/default",
+  protect,
+  addressController.setDefaultAddress
+);
 
 // Location routes
-// Location routes - FIXED: Use the controller methods directly
-router.put("/location", protect, (req, res) => userLocationController.updateUserLocation(req, res));
-router.get("/location", protect, (req, res) => userLocationController.getUserLocation(req, res));
-router.delete("/location", protect, (req, res) => userLocationController.deleteUserLocation(req, res));
+router.put("/location", protect, (req, res) =>
+  userLocationController.updateUserLocation(req, res)
+);
+router.get("/location", protect, (req, res) =>
+  userLocationController.getUserLocation(req, res)
+);
+router.delete("/location", protect, (req, res) =>
+  userLocationController.deleteUserLocation(req, res)
+);
 
 // Public route for nearby technicians
-router.get("/nearby-technicians", (req, res) => userLocationController.getNearbyTechnicians(req, res));
+router.get("/nearby-technicians", (req, res) =>
+  userLocationController.getNearbyTechnicians(req, res)
+);
 
 export default router;

@@ -32,7 +32,7 @@ const Footer = () => {
           </div>
           <div className="max-w-xs lg:w-50 text-gray-500 py-3">
             <p>
-              Connecting homeowners in Kannur with verified local technicians
+              Connecting homeowners with verified local technicians
               for all your appliance repair needs.
             </p>
           </div>

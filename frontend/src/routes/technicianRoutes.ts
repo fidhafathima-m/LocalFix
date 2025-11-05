@@ -10,7 +10,6 @@ export const TECHNICIAN_ROUTES = {
     AVAILABILITY: "/technician/profile/availability",
     BANK_PAYMENT: "/technician/profile/bank-payment",
     UPDATE_PASSWORD: "/technician/profile/password",
-    // Add these new routes without technicianId parameter
     SLOT_RULES: "/technician/profile/slot-rules",
     TECHNICIAN_AVAILABILITY: "/technician/profile/technician-availability",
   },

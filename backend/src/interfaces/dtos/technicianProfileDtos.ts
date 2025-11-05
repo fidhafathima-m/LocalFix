@@ -19,7 +19,6 @@ export interface PersonalInfoUpdateDto {
   profilePicture?: string;
 }
 
-// In your backend DTO interfaces
 export interface IdentityVerificationUpdateDto {
   identityVerification?: {
     idType?: string;
@@ -55,7 +54,7 @@ export interface AvailabilityPreferencesUpdateDto {
         endTime: string;
       };
     };
-    availableWeeks?: number[]; // Add this line
+    availableWeeks?: number[]; 
   };
   workAreas?: string[];
   serviceAreas?: string[];

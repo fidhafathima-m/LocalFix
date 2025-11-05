@@ -256,7 +256,7 @@ const Checkout: React.FC = () => {
                     time: bookingData!.time,
                     amount: pricing.total,
                     paymentId: response.razorpay_payment_id,
-                    orderId: orderResponse.data?._id, // Pass order ID to success page
+                    orderId: orderResponse.data?._id,
                   },
                 });
               } else {
@@ -313,7 +313,6 @@ const Checkout: React.FC = () => {
 
       const razorpayInstance = new window.Razorpay(options);
 
-      // Add error handlers - this should trigger for actual payment failures
       razorpayInstance.on("payment.failed", function (response: any) {
         console.error("Payment failed:", response.error);
 

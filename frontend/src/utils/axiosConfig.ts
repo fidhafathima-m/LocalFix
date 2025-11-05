@@ -94,7 +94,6 @@ api.interceptors.request.use(
 );
 
 // Response interceptor with token refresh
-// Response interceptor with improved token refresh detection
 api.interceptors.response.use(
   (response) => {
     return response;
@@ -111,23 +110,18 @@ api.interceptors.response.use(
         errorData?.message?.includes('Token expired') ||
         error?.message?.includes('expired');
       
-      console.log("Token expired check:", isTokenExpired);
       
       if (isTokenExpired) {
-        console.log("Token expired, attempting refresh...");
         
         if (isRefreshing) {
-          console.log("Refresh already in progress, queuing request...");
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           })
             .then((token) => {
-              console.log("Queue resolved with token");
               originalRequest.headers.Authorization = `Bearer ${token}`;
               return api(originalRequest);
             })
             .catch((err) => {
-              console.log("Queue rejected:", err);
               return Promise.reject(err);
             });
         }
@@ -136,10 +130,8 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         const { refreshToken } = getTokens();
-        console.log("Refresh token exists:", !!refreshToken);
 
         if (!refreshToken) {
-          console.log("No refresh token found, redirecting to login");
           clearTokens();
           // Use replace instead of href to avoid beforeunload
           window.location.replace("/login");
@@ -147,15 +139,12 @@ api.interceptors.response.use(
         }
 
         try {
-          console.log("Calling refresh token API...");
           const refreshResponse = await authAPI.refreshToken(refreshToken);
-          console.log("Refresh response:", refreshResponse);
 
           const newAccessToken = refreshResponse.accessToken || refreshResponse.data?.accessToken;
           const newRefreshToken = refreshResponse.refreshToken || refreshResponse.data?.refreshToken;
 
           if (refreshResponse.success && refreshResponse.data?.accessToken && newAccessToken && newRefreshToken) {
-            console.log("Token refresh successful, updating tokens...");
             
             setTokens(newAccessToken, newRefreshToken);
 
@@ -165,14 +154,11 @@ api.interceptors.response.use(
 
             processQueue(null, newAccessToken);
             
-            console.log("Retrying original request...");
             return api(originalRequest);
           } else {
-            console.log("Token refresh failed - invalid response structure");
             throw new Error("Token refresh failed");
           }
         } catch (refreshError) {
-          console.log("Token refresh error:", refreshError);
           processQueue(refreshError, null);
           clearTokens();
           // Use replace instead of href to avoid beforeunload
@@ -186,7 +172,6 @@ api.interceptors.response.use(
 
     // Handle other 401 errors (invalid token, etc.)
     if (error.response?.status === 401) {
-      console.log("Unauthorized access, clearing tokens...");
       clearTokens();
       return Promise.reject(error);
     }

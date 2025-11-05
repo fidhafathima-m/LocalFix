@@ -90,7 +90,6 @@ export class ItemManagementService {
   }
 
   private static handleResponse(response: any) {
-    // Check if response has success property (your API structure)
     if (response.success === false) {
       throw new Error(response.message || "Operation failed");
     }

@@ -95,7 +95,7 @@ interface ApplicationData {
     serviceAreas?: string[];
     workRadius?: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    availability?: any; // This will contain the monthly availability data
+    availability?: any;
   };
 
   // Banking Details
@@ -331,7 +331,6 @@ const PendingTechnicianApplication: React.FC = () => {
   }, [accessToken, isLoggedIn, navigate]);
 
   const handleEditApplication = () => {
-    console.log("🔍 handleEditApplication - STARTING");
 
     if (!applicationData?._id) {
       toast.error("Application ID not found");
@@ -1313,7 +1312,6 @@ const PendingTechnicianApplication: React.FC = () => {
 
 export default PendingTechnicianApplication;
 
-// Add this component inside your PendingTechnicianApplication component
 const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
   application,
 }) => {
@@ -1662,7 +1660,7 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
                     </div>
                   );
                 } catch (error) {
-                  console.log(error);
+                  console.error(error);
                   return (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
                       <p className="text-yellow-700">

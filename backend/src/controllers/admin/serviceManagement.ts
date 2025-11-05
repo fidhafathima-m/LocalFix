@@ -19,19 +19,19 @@ export class ServiceController {
 
   createService = async (req: Request, res: Response): Promise<void> => {
     const context = {
-      operation: 'createService',
+      operation: "createService",
       body: req.body,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Creating new service', context);
+      this.logger.info("Creating new service", context);
 
       const createDto: CreateServiceDto = req.body;
 
       // Validation
       if (!createDto.name?.trim()) {
-        this.logger.warn('Service creation failed - name required', context);
+        this.logger.warn("Service creation failed - name required", context);
         const response = ResponseHelper.badRequest(
           SERVICE_MESSAGES.NAME_REQUIRED
         );
@@ -40,7 +40,10 @@ export class ServiceController {
       }
 
       if (!createDto.description?.trim()) {
-        this.logger.warn('Service creation failed - description required', context);
+        this.logger.warn(
+          "Service creation failed - description required",
+          context
+        );
         const response = ResponseHelper.badRequest(
           SERVICE_MESSAGES.DESCRIPTION_REQUIRED
         );
@@ -49,7 +52,10 @@ export class ServiceController {
       }
 
       if (!createDto.categoryId?.trim()) {
-        this.logger.warn('Service creation failed - category ID required', context);
+        this.logger.warn(
+          "Service creation failed - category ID required",
+          context
+        );
         const response = ResponseHelper.badRequest(
           SERVICE_MESSAGES.CATEGORY_ID_REQUIRED
         );
@@ -58,9 +64,9 @@ export class ServiceController {
       }
 
       if (createDto.avgBasePrice === undefined || createDto.avgBasePrice < 0) {
-        this.logger.warn('Service creation failed - invalid base price', {
+        this.logger.warn("Service creation failed - invalid base price", {
           ...context,
-          providedPrice: createDto.avgBasePrice
+          providedPrice: createDto.avgBasePrice,
         });
         const response = ResponseHelper.badRequest(
           SERVICE_MESSAGES.INVALID_BASE_PRICE
@@ -69,20 +75,20 @@ export class ServiceController {
         return;
       }
 
-      this.logger.debug('Calling service service to create service', {
+      this.logger.debug("Calling service service to create service", {
         ...context,
         serviceName: createDto.name,
         categoryId: createDto.categoryId,
-        basePrice: createDto.avgBasePrice
+        basePrice: createDto.avgBasePrice,
       });
 
       const service = await this.serviceService.createService(createDto);
-      
-      this.logger.info('Service created successfully', {
+
+      this.logger.info("Service created successfully", {
         ...context,
         serviceId: service?.id,
         serviceName: service?.name,
-        categoryId: service?.categoryId
+        categoryId: service?.categoryId,
       });
 
       const response = ResponseHelper.success(
@@ -91,13 +97,14 @@ export class ServiceController {
       );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      const errorMessage = error.message || SERVICE_MESSAGES.FAILED_CREATE_SERVICE;
-      this.logger.error('Create service controller error', {
+      const errorMessage =
+        error.message || SERVICE_MESSAGES.FAILED_CREATE_SERVICE;
+      this.logger.error("Create service controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -106,20 +113,20 @@ export class ServiceController {
   getServiceById = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const context = {
-      operation: 'getServiceById',
+      operation: "getServiceById",
       serviceId: id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching service by ID', context);
+      this.logger.info("Fetching service by ID", context);
 
       const service = await this.serviceService.getServiceById(id);
-      
-      this.logger.info('Service retrieved successfully', {
+
+      this.logger.info("Service retrieved successfully", {
         ...context,
         serviceName: service.name,
-        categoryId: service.categoryId
+        categoryId: service.categoryId,
       });
 
       const response = ResponseHelper.success(
@@ -129,12 +136,12 @@ export class ServiceController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || SERVICE_MESSAGES.SERVICE_NOT_FOUND;
-      this.logger.error('Get service by ID controller error', {
+      this.logger.error("Get service by ID controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -143,20 +150,20 @@ export class ServiceController {
   getServiceBySlug = async (req: Request, res: Response): Promise<void> => {
     const { slug } = req.params;
     const context = {
-      operation: 'getServiceBySlug',
+      operation: "getServiceBySlug",
       slug,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching service by slug', context);
+      this.logger.info("Fetching service by slug", context);
 
       const service = await this.serviceService.getServiceBySlug(slug);
-      
-      this.logger.info('Service retrieved by slug successfully', {
+
+      this.logger.info("Service retrieved by slug successfully", {
         ...context,
         serviceId: service.id,
-        serviceName: service.name
+        serviceName: service.name,
       });
 
       const response = ResponseHelper.success(
@@ -166,12 +173,12 @@ export class ServiceController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || SERVICE_MESSAGES.SERVICE_NOT_FOUND;
-      this.logger.error('Get service by slug controller error', {
+      this.logger.error("Get service by slug controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -185,18 +192,18 @@ export class ServiceController {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
-    
+
     const context = {
-      operation: 'getServicesByCategoryId',
+      operation: "getServicesByCategoryId",
       categoryId,
       page,
       limit,
       search,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching services by category ID', context);
+      this.logger.info("Fetching services by category ID", context);
 
       const result = await this.serviceService.getServicesByCategoryId(
         categoryId,
@@ -204,8 +211,8 @@ export class ServiceController {
         limit,
         search
       );
-      
-      this.logger.info('Services by category retrieved successfully', {
+
+      this.logger.info("Services by category retrieved successfully", {
         ...context,
         totalServices: result.total,
       });
@@ -216,13 +223,14 @@ export class ServiceController {
       );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      const errorMessage = error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES;
-      this.logger.error('Get services by category controller error', {
+      const errorMessage =
+        error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES;
+      this.logger.error("Get services by category controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -232,25 +240,25 @@ export class ServiceController {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
-    
+
     const context = {
-      operation: 'getAllServices',
+      operation: "getAllServices",
       page,
       limit,
       search,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching all services', context);
+      this.logger.info("Fetching all services", context);
 
       const result = await this.serviceService.getAllServices(
         page,
         limit,
         search
       );
-      
-      this.logger.info('All services retrieved successfully', {
+
+      this.logger.info("All services retrieved successfully", {
         ...context,
         totalServices: result.total,
       });
@@ -261,13 +269,14 @@ export class ServiceController {
       );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      const errorMessage = error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES;
-      this.logger.error('Get all services controller error', {
+      const errorMessage =
+        error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES;
+      this.logger.error("Get all services controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -276,23 +285,23 @@ export class ServiceController {
   updateService = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const updateDto: UpdateServiceDto = req.body;
-    
+
     const context = {
-      operation: 'updateService',
+      operation: "updateService",
       serviceId: id,
       updateFields: Object.keys(updateDto),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Updating service', context);
+      this.logger.info("Updating service", context);
 
       const service = await this.serviceService.updateService(id, updateDto);
-      
-      this.logger.info('Service updated successfully', {
+
+      this.logger.info("Service updated successfully", {
         ...context,
         serviceName: service.name,
-        updatedFields: Object.keys(updateDto)
+        updatedFields: Object.keys(updateDto),
       });
 
       const response = ResponseHelper.success(
@@ -301,13 +310,14 @@ export class ServiceController {
       );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      const errorMessage = error.message || SERVICE_MESSAGES.FAILED_UPDATE_SERVICE;
-      this.logger.error('Update service controller error', {
+      const errorMessage =
+        error.message || SERVICE_MESSAGES.FAILED_UPDATE_SERVICE;
+      this.logger.error("Update service controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -316,28 +326,29 @@ export class ServiceController {
   deleteService = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const context = {
-      operation: 'deleteService',
+      operation: "deleteService",
       serviceId: id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Deleting service', context);
+      this.logger.info("Deleting service", context);
 
       await this.serviceService.deleteService(id);
-      
-      this.logger.info('Service deleted successfully', context);
+
+      this.logger.info("Service deleted successfully", context);
 
       const response = ResponseHelper.success(SERVICE_MESSAGES.SERVICE_DELETED);
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      const errorMessage = error.message || SERVICE_MESSAGES.FAILED_DELETE_SERVICE;
-      this.logger.error('Delete service controller error', {
+      const errorMessage =
+        error.message || SERVICE_MESSAGES.FAILED_DELETE_SERVICE;
+      this.logger.error("Delete service controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -346,29 +357,29 @@ export class ServiceController {
   searchServices = async (req: Request, res: Response): Promise<void> => {
     const { q } = req.query;
     const limit = parseInt(req.query.limit as string) || 10;
-    
+
     const context = {
-      operation: 'searchServices',
+      operation: "searchServices",
       query: q,
       limit,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Searching services', context);
+      this.logger.info("Searching services", context);
 
       if (!q || typeof q !== "string") {
-        this.logger.warn('Search services failed - query required', context);
+        this.logger.warn("Search services failed - query required", context);
         const response = ResponseHelper.badRequest("Search query is required");
         res.status(response.statusCode).json(response);
         return;
       }
 
       const services = await this.serviceService.searchServices(q, limit);
-      
-      this.logger.info('Services search completed successfully', {
+
+      this.logger.info("Services search completed successfully", {
         ...context,
-        resultsCount: services.length
+        resultsCount: services.length,
       });
 
       const response = ResponseHelper.success("Services search completed", {
@@ -376,12 +387,12 @@ export class ServiceController {
       });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      this.logger.error('Search services controller error', {
+      this.logger.error("Search services controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error("Failed to search services");
       res.status(response.statusCode).json(response);
     }

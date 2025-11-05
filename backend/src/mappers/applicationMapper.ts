@@ -14,10 +14,10 @@ export class ApplicationMapper {
   // Map to list DTO
   static toListDto(application: ITechnicianApplication): ApplicationListDto {
     return {
-      _id: application._id?.toString() || '',
-      technicianId: application.technicianId?.toString() || '',
-      email: application.email || '',
-      status: application.status || '',
+      _id: application._id?.toString() || "",
+      technicianId: application.technicianId?.toString() || "",
+      email: application.email || "",
+      status: application.status || "",
       personal: this.mapPersonalInfo(application.personal),
       skills: this.mapSkills(application.skills),
       submittedAt: application.submittedAt,
@@ -26,9 +26,11 @@ export class ApplicationMapper {
   }
 
   // Map to detail DTO
-  static toDetailDto(application: ITechnicianApplication): ApplicationDetailDto {
+  static toDetailDto(
+    application: ITechnicianApplication
+  ): ApplicationDetailDto {
     const baseDto = this.toListDto(application);
-    
+
     return {
       ...baseDto,
       identity: this.mapIdentity(application.identity),
@@ -37,52 +39,58 @@ export class ApplicationMapper {
       documents: application.documents || {},
       stepsCompleted: application.stepsCompleted || [],
       reviewNotes: application.reviewNotes,
-      rejectedAt: application.rejectedAt ? new Date(application.rejectedAt) : undefined,
+      rejectedAt: application.rejectedAt
+        ? new Date(application.rejectedAt)
+        : undefined,
       resubmittedCount: application.resubmittedCount || 0,
       lastSubmittedAt: application.lastSubmittedAt,
-      agreement: application.agreement || false, // Add agreement field
-      createdAt: application.createdAt, // Add createdAt field
-      updatedAt: application.updatedAt, // Add updatedAt field
+      agreement: application.agreement || false,
+      createdAt: application.createdAt,
+      updatedAt: application.updatedAt,
     };
   }
 
   private static mapPersonalInfo(personal: any): ApplicationPersonalDto {
     return {
-      fullName: personal?.fullName || '',
-      phoneNumber: personal?.phoneNumber || '',
-      email: personal?.email || '',
-      gender: personal?.gender || '',
-      dateOfBirth: personal?.dateOfBirth || '',
+      fullName: personal?.fullName || "",
+      phoneNumber: personal?.phoneNumber || "",
+      email: personal?.email || "",
+      gender: personal?.gender || "",
+      dateOfBirth: personal?.dateOfBirth || "",
       languages: Array.isArray(personal?.languages) ? personal.languages : [],
-      address: personal?.address ? {
-        street: personal.address.street || '',
-        city: personal.address.city || '',
-        state: personal.address.state || '',
-        pincode: personal.address.pincode || '',
-        landmark: personal.address.landmark || '',
-      } : undefined,
+      address: personal?.address
+        ? {
+            street: personal.address.street || "",
+            city: personal.address.city || "",
+            state: personal.address.state || "",
+            pincode: personal.address.pincode || "",
+            landmark: personal.address.landmark || "",
+          }
+        : undefined,
     };
   }
 
   private static mapSkills(skills: any): SkillsDto {
     return {
       services: Array.isArray(skills?.services) ? skills.services : [],
-      yearsOfExperience: skills?.yearsOfExperience?.toString() || '',
+      yearsOfExperience: skills?.yearsOfExperience?.toString() || "",
       languages: Array.isArray(skills?.languages) ? skills.languages : [],
-      bio: skills?.bio || '',
-      serviceAreas: Array.isArray(skills?.serviceAreas) ? skills.serviceAreas : [],
-      workRadius: skills?.workRadius?.toString() || '',
+      bio: skills?.bio || "",
+      serviceAreas: Array.isArray(skills?.serviceAreas)
+        ? skills.serviceAreas
+        : [],
+      workRadius: skills?.workRadius?.toString() || "",
     };
   }
 
   private static mapIdentity(identity: any): IdentityDto {
     // Parse address if it's a JSON string
     let parsedAddress = undefined;
-    if (identity?.address && typeof identity.address === 'string') {
+    if (identity?.address && typeof identity.address === "string") {
       try {
         parsedAddress = JSON.parse(identity.address);
       } catch (error) {
-        console.error('Error parsing identity address:', error);
+        console.error("Error parsing identity address:", error);
       }
     } else {
       parsedAddress = identity?.address;
@@ -90,56 +98,60 @@ export class ApplicationMapper {
 
     // Parse location if it's a JSON string
     let parsedLocation = undefined;
-    if (identity?.location && typeof identity.location === 'string') {
+    if (identity?.location && typeof identity.location === "string") {
       try {
         parsedLocation = JSON.parse(identity.location);
       } catch (error) {
-        console.error('Error parsing identity location:', error);
+        console.error("Error parsing identity location:", error);
       }
     } else {
       parsedLocation = identity?.location;
     }
 
     return {
-      idType: identity?.idType || identity?.governmentIdType || '', // Map both field names
-      idNumber: identity?.idNumber || identity?.governmentIdNumber || '', // Map both field names
+      idType: identity?.idType || identity?.governmentIdType || "",
+      idNumber: identity?.idNumber || identity?.governmentIdNumber || "",
       address: parsedAddress,
       location: parsedLocation,
       verified: identity?.verified || false,
-      verificationStatus: identity?.verificationStatus || 'pending',
+      verificationStatus: identity?.verificationStatus || "pending",
       verifiedAt: identity?.verifiedAt,
     };
   }
 
-  private static mapAvailability(availability: any): ApplicationAvailabilityDto {
+  private static mapAvailability(
+    availability: any
+  ): ApplicationAvailabilityDto {
     // Parse availability if it's nested under availability.availability
     let availabilityData = availability?.availability || availability;
-    
+
     // If availability is a string, try to parse it
-    if (typeof availabilityData === 'string') {
+    if (typeof availabilityData === "string") {
       try {
         availabilityData = JSON.parse(availabilityData);
       } catch (error) {
-        console.error('Error parsing availability:', error);
+        console.error("Error parsing availability:", error);
         availabilityData = {};
       }
     }
 
     return {
-      serviceAreas: Array.isArray(availability?.serviceAreas) ? availability.serviceAreas : [],
-      workRadius: availability?.workRadius?.toString() || '',
+      serviceAreas: Array.isArray(availability?.serviceAreas)
+        ? availability.serviceAreas
+        : [],
+      workRadius: availability?.workRadius?.toString() || "",
       availability: availabilityData,
     };
   }
 
   private static mapBankDetails(bank: any): BankDetailsDto {
     return {
-      accountHolderName: bank?.accountHolderName || '',
-      accountNumber: bank?.accountNumber || '',
-      ifscCode: bank?.ifscCode || '',
-      upiId: bank?.upiId || '',
-      bankName: bank?.bankName || '',
-      withdrawalPreference: bank?.withdrawalPreference || '',
+      accountHolderName: bank?.accountHolderName || "",
+      accountNumber: bank?.accountNumber || "",
+      ifscCode: bank?.ifscCode || "",
+      upiId: bank?.upiId || "",
+      bankName: bank?.bankName || "",
+      withdrawalPreference: bank?.withdrawalPreference || "",
     };
   }
 }

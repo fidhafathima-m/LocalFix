@@ -11,13 +11,12 @@ updateUserProfile: (updateData: any) => {
   // Transform the data to match backend expectations
   const transformedData = {
     fullName: updateData.fullName,
-    phone: updateData.phone || updateData.phoneNumber, // Handle both cases
+    phone: updateData.phone || updateData.phoneNumber, 
     email: updateData.email,
     dateOfBirth: updateData.dateOfBirth,
     gender: updateData.gender,
   };
   
-  console.log("Transformed data for API:", transformedData);
   return api.put<ApiResponse<any>>(ADMIN_ROUTES.UPDATE_USER_PROFILE, transformedData);
 },
 

@@ -114,7 +114,7 @@ const TechnicianProfile: React.FC = () => {
   const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const [technician, setTechnician] = useState<Technician | null>(null);
-  const [slotRules, setSlotRules] = useState<SlotRule[]>([]);
+  const [, setSlotRules] = useState<SlotRule[]>([]);
   const [weeklyAvailability, setWeeklyAvailability] = useState<
     DailyAvailability[]
   >([]);
@@ -124,7 +124,6 @@ const TechnicianProfile: React.FC = () => {
 
   // Fetch technician data
   useEffect(() => {
-    // In your TechnicianProfile component, update the fetchTechnicianData function
     const fetchTechnicianData = async () => {
       if (!id) {
         setError("Technician not found");
@@ -171,7 +170,6 @@ const TechnicianProfile: React.FC = () => {
             }
           } catch (slotError) {
             console.error("Error fetching slot rules:", slotError);
-            // Continue without slot rules - technician data is still available
             setSlotRules([]);
             setWeeklyAvailability([]);
           }
@@ -415,21 +413,6 @@ const TechnicianProfile: React.FC = () => {
       };
     }
 
-    const activeRules = slotRules.filter((rule) => rule.isActive);
-    const hasActiveRules = activeRules.length > 0;
-    const todaySlots =
-      weeklyAvailability.find((day) => day.isToday)?.slots || [];
-
-    if (!hasActiveRules || todaySlots.length === 0) {
-      return {
-        status: "Unavailable",
-        available: false,
-        message: "Currently not accepting bookings",
-        color: "bg-red-100 text-red-800 border-red-200",
-        icon: "❌",
-      };
-    }
-
     return {
       status: "Available",
       available: true,
@@ -442,92 +425,20 @@ const TechnicianProfile: React.FC = () => {
     (day) => day.slots.length > 0
   );
 
-  const getAvailableDays = () => {
-    // Defensive checks in case technician or the schedule is missing
-    const schedule = (technician as any)?.availability?.schedule;
-    if (!Array.isArray(schedule) || schedule.length === 0) return [];
+  
+  
 
-    return schedule
-      .filter(
-        (dayObj: any) =>
-          Array.isArray(dayObj.slots) &&
-          dayObj.slots.length > 0 &&
-          dayObj.available
-      )
-      .map((dayObj: any) => {
-        // use either `day` or `dayName`, fallback to empty string
-        const rawDay = dayObj.day ?? dayObj.dayName ?? "";
-        const day = String(rawDay).toLowerCase();
-
-        // Ensure we pass a safe array into your grouping util
-        const slots = Array.isArray(dayObj.slots) ? dayObj.slots : [];
-        const groupedRanges = groupConsecutiveSlots(slots);
-
-        return {
-          day,
-          ranges: groupedRanges,
-        };
-      });
+  const handleBooking = (
+    technicianId: string,
+    technicianName: string
+  ): void => {
+    navigate(`/booking?technicianId=${technicianId}`, {
+      state: {
+        technicianName: technicianName,
+        fromProfile: true,
+      },
+    });
   };
-
-  // Group consecutive time slots into ranges
-  const groupConsecutiveSlots = (
-    slots: Array<{ start: string; end: string }>
-  ): Array<{ start: string; end: string }> => {
-    if (slots.length === 0) return [];
-
-    const sortedSlots = [...slots].sort((a, b) =>
-      a.start.localeCompare(b.start)
-    );
-    const ranges: Array<{ start: string; end: string }> = [];
-
-    let currentRange = { ...sortedSlots[0] };
-
-    for (let i = 1; i < sortedSlots.length; i++) {
-      const slot = sortedSlots[i];
-
-      // If this slot starts when the current range ends, extend the range
-      if (slot.start === currentRange.end) {
-        currentRange.end = slot.end;
-      } else {
-        // End the current range and start a new one
-        ranges.push(currentRange);
-        currentRange = { ...slot };
-      }
-    }
-
-    ranges.push(currentRange);
-    return ranges;
-  };
-
-  // Get current day name
-  const getCurrentDay = (): string => {
-    const days = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-    return days[new Date().getDay()];
-  };
-
-  // Check if today is available
-  const isTodayAvailable = (): boolean => {
-    const today = getCurrentDay();
-    return availableDays.some((day: { day: string }) => day.day === today);
-  };
-
-  const handleBooking = (technicianId: string, technicianName: string): void => {
-  navigate(`/booking?technicianId=${technicianId}`, {
-    state: {
-      technicianName: technicianName,
-      fromProfile: true
-    }
-  });
-};
 
   // Loading state
   if (loading) {
@@ -576,8 +487,6 @@ const TechnicianProfile: React.FC = () => {
 
   const ratingDistribution = getRatingDistribution();
   const availabilityStatus = getAvailabilityStatus();
-  const availableDays = getAvailableDays();
-  const isTodayAvail = isTodayAvailable();
 
   return (
     <>
@@ -595,7 +504,7 @@ const TechnicianProfile: React.FC = () => {
               </button>
               <ChevronRightOutlined className="w-4 h-4 text-gray-400" />
               <button
-                onClick={() => navigate(-1)} 
+                onClick={() => navigate(-1)}
                 className="text-gray-600 hover:text-blue-600 cursor-pointer"
               >
                 {location.state?.serviceName || "Service Details"}
@@ -709,7 +618,7 @@ const TechnicianProfile: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {technician.services.map((service, index) => (
                 <div
-                  key={index}
+                  key={`service-${index}`}
                   className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
                 >
                   <div className="flex items-center space-x-2">
@@ -744,12 +653,6 @@ const TechnicianProfile: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                {availabilityStatus.available && (
-                  <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                    Available Today
-                    {isTodayAvail}
-                  </span>
-                )}
               </div>
             </div>
 
@@ -767,7 +670,7 @@ const TechnicianProfile: React.FC = () => {
                       .filter((dayInfo) => dayInfo.slots.length > 0)
                       .map((dayInfo, index) => (
                         <div
-                          key={index}
+                          key={`day-${index}-${dayInfo.dayName}`}
                           className={`flex items-center justify-between p-3 rounded-lg border ${
                             dayInfo.isToday
                               ? "bg-blue-50 border-blue-200"
@@ -858,7 +761,7 @@ const TechnicianProfile: React.FC = () => {
                       {technician.workAreas.length > 0 ? (
                         technician.workAreas.slice(0, 6).map((area, index) => (
                           <span
-                            key={index}
+                            key={`area-${index}`}
                             className="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-full text-sm text-gray-700"
                           >
                             <LocationOnOutlined className="w-3 h-3 mr-1 text-blue-500" />
@@ -931,7 +834,7 @@ const TechnicianProfile: React.FC = () => {
                   <div className="flex-1">
                     {[5, 4, 3, 2, 1].map((stars) => (
                       <div
-                        key={stars}
+                        key={`stars-${stars}`}
                         className="flex items-center space-x-2 mb-1"
                       >
                         <span className="text-sm text-gray-600 w-12">
@@ -1045,7 +948,9 @@ const TechnicianProfile: React.FC = () => {
 
           {/* Book Technician Button */}
           <button
-            onClick={() => handleBooking(technician._id, technician.displayName)}
+            onClick={() =>
+              handleBooking(technician._id, technician.displayName)
+            }
             className="w-full py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center space-x-2 cursor-pointer transition-colors duration-200"
           >
             <CalendarMonthOutlined className="w-5 h-5" />

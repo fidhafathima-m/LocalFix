@@ -142,11 +142,15 @@ interface FileMetadata {
 }
 
 // Helper function to create default availability
-// In ApplicationForm.tsx, update the helper function:
 const createDefaultMonthlyAvailability = (): MonthlyAvailability => {
   const days = [
-    "monday", "tuesday", "wednesday", "thursday", 
-    "friday", "saturday", "sunday"
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
   ];
   const weeklyPattern: any = {};
 
@@ -357,107 +361,110 @@ export const ApplicationForm: React.FC = () => {
   }, []);
 
   const populateFormWithExistingData = (appData: ApplicationData) => {
-  if (!appData) {
-    console.error("No application data provided for population");
-    return;
-  }
-
-  try {
-    // Handle availability data conversion - FIX NESTED ACCESS
-    let availabilityData = createDefaultMonthlyAvailability();
-    
-    // CORRECTED: Access the nested availability object
-    const availabilityFromDB = appData.availability?.availability;
-    
-    if (availabilityFromDB) {
-      try {
-        console.log("Original availability data from DB:", availabilityFromDB);
-
-        const convertedAvailability = {
-          ...availabilityFromDB,
-          duration: availabilityFromDB.duration ? {
-            ...availabilityFromDB.duration,
-            startDate: availabilityFromDB.duration.startDate 
-              ? new Date(availabilityFromDB.duration.startDate)
-              : new Date()
-          } : availabilityData.duration
-        };
-        
-        // Use the nested availability data directly
-        availabilityData = {
-          duration: convertedAvailability.duration || availabilityData.duration,
-          availableWeeks: convertedAvailability.availableWeeks || availabilityData.availableWeeks,
-          weeklyPattern: convertedAvailability.weeklyPattern || availabilityData.weeklyPattern,
-        };
-
-      } catch (error) {
-        console.error("Error converting availability:", error);
-        // Fall back to default availability
-        availabilityData = createDefaultMonthlyAvailability();
-      }
+    if (!appData) {
+      console.error("No application data provided for population");
+      return;
     }
 
-    const personalInfo = appData.personal || {};
+    try {
+      // Handle availability data conversion
+      let availabilityData = createDefaultMonthlyAvailability();
 
-    setFormData((prev) => ({
-      ...prev,
-      // Personal Information
-      fullName: personalInfo.fullName || user?.fullName || "",
-      phoneNumber: personalInfo.phoneNumber || user?.phone || "",
-      email: personalInfo.email || user?.email || "",
-      dateOfBirth: personalInfo.dateOfBirth || "",
-      gender: personalInfo.gender || "",
+      // Access the nested availability object
+      const availabilityFromDB = appData.availability?.availability;
 
-      // Identity & Verification
-      idType: appData.identity?.idType || "",
-      idNumber: appData.identity?.idNumber || "",
-      address: {
-        street: appData.identity?.address?.street || "",
-        city: appData.identity?.address?.city || "",
-        state: appData.identity?.address?.state || "",
-        pincode: appData.identity?.address?.pincode || "",
-        landmark: appData.identity?.address?.landmark || "",
-      },
-      location: appData.identity?.location || prev.location,
+      if (availabilityFromDB) {
+        try {
 
-      // Skills & Services
-      services: appData.skills?.services || [],
-      yearsOfExperience: appData.skills?.yearsOfExperience?.toString() || "",
-      languages: appData.skills?.languages || [],
-      bio: appData.skills?.bio || "",
+          const convertedAvailability = {
+            ...availabilityFromDB,
+            duration: availabilityFromDB.duration
+              ? {
+                  ...availabilityFromDB.duration,
+                  startDate: availabilityFromDB.duration.startDate
+                    ? new Date(availabilityFromDB.duration.startDate)
+                    : new Date(),
+                }
+              : availabilityData.duration,
+          };
 
-      // Availability & Work Preferences - USE THE CORRECTLY ACCESSED DATA
-      serviceAreas: appData.availability?.serviceAreas || [],
-      workRadius: appData.availability?.workRadius?.toString() || "",
-      availability: availabilityData,
+          // Use the nested availability data directly
+          availabilityData = {
+            duration:
+              convertedAvailability.duration || availabilityData.duration,
+            availableWeeks:
+              convertedAvailability.availableWeeks ||
+              availabilityData.availableWeeks,
+            weeklyPattern:
+              convertedAvailability.weeklyPattern ||
+              availabilityData.weeklyPattern,
+          };
+        } catch (error) {
+          console.error("Error converting availability:", error);
+          // Fall back to default availability
+          availabilityData = createDefaultMonthlyAvailability();
+        }
+      }
 
-      // Banking Details
-      accountHolderName: appData.bank?.accountHolderName || "",
-      accountNumber: appData.bank?.accountNumber || "",
-      ifscCode: appData.bank?.ifscCode || "",
-      upiId: appData.bank?.upiId || "",
-      bankName: appData.bank?.bankName || "",
+      const personalInfo = appData.personal || {};
 
-      // Agreement
-      agreement: appData.agreement || false,
-    }));
+      setFormData((prev) => ({
+        ...prev,
+        // Personal Information
+        fullName: personalInfo.fullName || user?.fullName || "",
+        phoneNumber: personalInfo.phoneNumber || user?.phone || "",
+        email: personalInfo.email || user?.email || "",
+        dateOfBirth: personalInfo.dateOfBirth || "",
+        gender: personalInfo.gender || "",
 
-    // Handle documents separately
-    const documentMetadata = convertDocumentsToFileMetadata(
-      appData.documents
-    );
-    setFormData((prev) => ({
-      ...prev,
-      ...documentMetadata,
-    }));
+        // Identity & Verification
+        idType: appData.identity?.idType || "",
+        idNumber: appData.identity?.idNumber || "",
+        address: {
+          street: appData.identity?.address?.street || "",
+          city: appData.identity?.address?.city || "",
+          state: appData.identity?.address?.state || "",
+          pincode: appData.identity?.address?.pincode || "",
+          landmark: appData.identity?.address?.landmark || "",
+        },
+        location: appData.identity?.location || prev.location,
 
-    console.log("Form data populated successfully");
-    console.log("Final availability data in form:", availabilityData);
-  } catch (error) {
-    console.error("Error populating form data:", error);
-    toast.error("Error loading application data");
-  }
-};
+        // Skills & Services
+        services: appData.skills?.services || [],
+        yearsOfExperience: appData.skills?.yearsOfExperience?.toString() || "",
+        languages: appData.skills?.languages || [],
+        bio: appData.skills?.bio || "",
+
+        // Availability & Work Preferences - USE THE CORRECTLY ACCESSED DATA
+        serviceAreas: appData.availability?.serviceAreas || [],
+        workRadius: appData.availability?.workRadius?.toString() || "",
+        availability: availabilityData,
+
+        // Banking Details
+        accountHolderName: appData.bank?.accountHolderName || "",
+        accountNumber: appData.bank?.accountNumber || "",
+        ifscCode: appData.bank?.ifscCode || "",
+        upiId: appData.bank?.upiId || "",
+        bankName: appData.bank?.bankName || "",
+
+        // Agreement
+        agreement: appData.agreement || false,
+      }));
+
+      // Handle documents separately
+      const documentMetadata = convertDocumentsToFileMetadata(
+        appData.documents
+      );
+      setFormData((prev) => ({
+        ...prev,
+        ...documentMetadata,
+      }));
+
+    } catch (error) {
+      console.error("Error populating form data:", error);
+      toast.error("Error loading application data");
+    }
+  };
 
   // Helper function to handle document conversion
   const convertDocumentsToFileMetadata = (
@@ -1166,7 +1173,6 @@ export const ApplicationForm: React.FC = () => {
         }
         break;
       }
-      // In the validateStepFields function, update case 4:
       case 4: {
         const step4Data = {
           serviceAreas: formData.serviceAreas,

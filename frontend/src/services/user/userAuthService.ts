@@ -1,15 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import {
-  authAPI,
-  type ForgotPasswordData,
-  type GoogleAuthData,
-  type LoginCredentials,
-  type OTPData,
-  type ResendOTPData,
-  type ResetPasswordData,
-  type SignupData,
-} from "../common/authApi";
+import type { ForgotPasswordData, GoogleAuthData, LoginCredentials, OTPData, ResendOTPData, ResetPasswordData, SignupData } from "../../interface/user/IAuth";
+import { authAPI } from "../common/authApi";
+
 
 export class UserAuthService {
   static async verifyForgotPasswordOTP(otpData: OTPData) {

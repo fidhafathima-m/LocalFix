@@ -1,4 +1,3 @@
-// services/booking/BookingService.ts
 import { IBookingService } from "../interfaces/services/user/IBookingService";
 import { IBookingRepository } from "../interfaces/repository/user/IBookingRepository";
 import { ResponseHelper, ApiResponse } from "../utils/responseHelper";
@@ -19,87 +18,100 @@ export class BookingService implements IBookingService {
     this.logger = new LoggerService();
   }
 
-  // services/booking/BookingService.ts - Update createBooking method
-async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promise<ApiResponse<BookingResponseDto>> {
-  const context = {
-    operation: "createBooking",
-    data: { userId, ...bookingData },
-  };
-
-  try {
-    this.logger.info("Creating new booking", context);
-
-    // Validate required fields
-    if (!bookingData.technicianId || !bookingData.serviceName || !bookingData.addressId || !bookingData.scheduledAt || !bookingData.timeSlot) {
-      this.logger.warn("Missing required booking fields", context);
-      return ResponseHelper.badRequest("Please fill in all required booking fields");
-    }
-
-    // REMOVED: Availability check since it's already done in the frontend
-    // The booking page already validates technician availability using slot rules
-
-    // Generate booking code
-    const bookingCount = await this.bookingRepository.getBookingCount();
-    const bookingCode = `BK${String(bookingCount + 1).padStart(6, '0')}`;
-
-    // Calculate amounts
-    const baseAmount = bookingData.amount || 0;
-    const itemsAmount = 0;
-    const totalAmount = baseAmount + itemsAmount;
-
-    const bookingModel = {
-      bookingCode: bookingCode,
-      userId: new Types.ObjectId(userId),
-      technicianId: new Types.ObjectId(bookingData.technicianId),
-      serviceName: bookingData.serviceName,
-      brand: bookingData.brand,
-      addressId: new Types.ObjectId(bookingData.addressId),
-      scheduledAt: new Date(bookingData.scheduledAt),
-      timeSlot: bookingData.timeSlot,
-      amount: baseAmount,
-      itemsAmount: itemsAmount,
-      totalAmount: totalAmount,
-      notes: bookingData.notes || '', // Make sure notes are included
-      status: 'pending' as const,
-      history: [{
-        status: 'pending',
-        by: 'system',
-        at: new Date(),
-      }],
+  async createBooking(
+    userId: string,
+    bookingData: CreateBookingRequestDto
+  ): Promise<ApiResponse<BookingResponseDto>> {
+    const context = {
+      operation: "createBooking",
+      data: { userId, ...bookingData },
     };
 
-    this.logger.debug("Creating booking in repository", {
-      ...context,
-      bookingModel,
-    });
+    try {
+      this.logger.info("Creating new booking", context);
 
-    const newBooking = await this.bookingRepository.create(bookingModel);
+      // Validate required fields
+      if (
+        !bookingData.technicianId ||
+        !bookingData.serviceName ||
+        !bookingData.addressId ||
+        !bookingData.scheduledAt ||
+        !bookingData.timeSlot
+      ) {
+        this.logger.warn("Missing required booking fields", context);
+        return ResponseHelper.badRequest(
+          "Please fill in all required booking fields"
+        );
+      }
 
-    if (!newBooking) {
-      this.logger.error("Failed to create booking in database", context);
+      // Generate booking code
+      const bookingCount = await this.bookingRepository.getBookingCount();
+      const bookingCode = `BK${String(bookingCount + 1).padStart(6, "0")}`;
+
+      // Calculate amounts
+      const baseAmount = bookingData.amount || 0;
+      const itemsAmount = 0;
+      const totalAmount = baseAmount + itemsAmount;
+
+      const bookingModel = {
+        bookingCode: bookingCode,
+        userId: new Types.ObjectId(userId),
+        technicianId: new Types.ObjectId(bookingData.technicianId),
+        serviceName: bookingData.serviceName,
+        brand: bookingData.brand,
+        addressId: new Types.ObjectId(bookingData.addressId),
+        scheduledAt: new Date(bookingData.scheduledAt),
+        timeSlot: bookingData.timeSlot,
+        amount: baseAmount,
+        itemsAmount: itemsAmount,
+        totalAmount: totalAmount,
+        notes: bookingData.notes || "",
+        status: "pending" as const,
+        history: [
+          {
+            status: "pending",
+            by: "system",
+            at: new Date(),
+          },
+        ],
+      };
+
+      this.logger.debug("Creating booking in repository", {
+        ...context,
+        bookingModel,
+      });
+
+      const newBooking = await this.bookingRepository.create(bookingModel);
+
+      if (!newBooking) {
+        this.logger.error("Failed to create booking in database", context);
+        return ResponseHelper.error("Failed to create booking");
+      }
+
+      this.logger.info("Booking created successfully", {
+        ...context,
+        bookingId: newBooking._id?.toString(),
+        bookingCode: newBooking.bookingCode,
+      });
+
+      const bookingDto = this.mapToDto(newBooking);
+      return ResponseHelper.created("Booking created successfully", bookingDto);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error creating booking", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return ResponseHelper.error("Failed to create booking");
     }
-
-    this.logger.info("Booking created successfully", {
-      ...context,
-      bookingId: newBooking._id?.toString(),
-      bookingCode: newBooking.bookingCode,
-    });
-
-    const bookingDto = this.mapToDto(newBooking);
-    return ResponseHelper.created("Booking created successfully", bookingDto);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    this.logger.error("Error creating booking", {
-      ...context,
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return ResponseHelper.error("Failed to create booking");
   }
-}
 
-  async getBookingById(userId: string, bookingId: string): Promise<ApiResponse<BookingResponseDto>> {
+  async getBookingById(
+    userId: string,
+    bookingId: string
+  ): Promise<ApiResponse<BookingResponseDto>> {
     const context = {
       operation: "getBookingById",
       data: { userId, bookingId },
@@ -115,21 +127,30 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
         return ResponseHelper.notFound("Booking not found");
       }
 
-       const bookingUserId = booking.userId?._id?.toString() || booking.userId?.toString();
-    const bookingTechnicianId = booking.technicianId?._id?.toString() || booking.technicianId?.toString();
+      const bookingUserId =
+        booking.userId?._id?.toString() || booking.userId?.toString();
+      const bookingTechnicianId =
+        booking.technicianId?._id?.toString() ||
+        booking.technicianId?.toString();
 
       // Check if user has access to this booking
       if (bookingUserId !== userId && bookingTechnicianId !== userId) {
         this.logger.warn("User not authorized to access this booking", context);
-        return ResponseHelper.forbidden("Not authorized to access this booking");
+        return ResponseHelper.forbidden(
+          "Not authorized to access this booking"
+        );
       }
 
       this.logger.info("Booking retrieved successfully", context);
 
       const bookingDto = this.mapToDto(booking);
-      return ResponseHelper.success("Booking retrieved successfully", bookingDto);
+      return ResponseHelper.success(
+        "Booking retrieved successfully",
+        bookingDto
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Error fetching booking", {
         ...context,
         error: errorMessage,
@@ -139,7 +160,11 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
     }
   }
 
-  async getUserBookings(userId: string, page: number = 1, limit: number = 10): Promise<ApiResponse<BookingListResponseDto>> {
+  async getUserBookings(
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<BookingListResponseDto>> {
     const context = {
       operation: "getUserBookings",
       data: { userId, page, limit },
@@ -148,7 +173,11 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
     try {
       this.logger.info("Fetching user bookings", context);
 
-      const result = await this.bookingRepository.findByUserId(userId, page, limit);
+      const result = await this.bookingRepository.findByUserId(
+        userId,
+        page,
+        limit
+      );
 
       this.logger.info("User bookings retrieved successfully", {
         ...context,
@@ -156,8 +185,10 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
         total: result.total,
       });
 
-      const bookingDtos = result.bookings.map((booking: any) => this.mapToDto(booking));
-      
+      const bookingDtos = result.bookings.map((booking: any) =>
+        this.mapToDto(booking)
+      );
+
       return ResponseHelper.success("Bookings retrieved successfully", {
         bookings: bookingDtos,
         pagination: {
@@ -168,7 +199,8 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
         },
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Error fetching user bookings", {
         ...context,
         error: errorMessage,
@@ -178,7 +210,11 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
     }
   }
 
-  async getTechnicianBookings(technicianId: string, page: number = 1, limit: number = 10): Promise<ApiResponse<BookingListResponseDto>> {
+  async getTechnicianBookings(
+    technicianId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<BookingListResponseDto>> {
     const context = {
       operation: "getTechnicianBookings",
       data: { technicianId, page, limit },
@@ -187,7 +223,11 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
     try {
       this.logger.info("Fetching technician bookings", context);
 
-      const result = await this.bookingRepository.findByTechnicianId(technicianId, page, limit);
+      const result = await this.bookingRepository.findByTechnicianId(
+        technicianId,
+        page,
+        limit
+      );
 
       this.logger.info("Technician bookings retrieved successfully", {
         ...context,
@@ -195,8 +235,10 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
         total: result.total,
       });
 
-      const bookingDtos = result.bookings.map((booking: any) => this.mapToDto(booking));
-      
+      const bookingDtos = result.bookings.map((booking: any) =>
+        this.mapToDto(booking)
+      );
+
       return ResponseHelper.success("Bookings retrieved successfully", {
         bookings: bookingDtos,
         pagination: {
@@ -207,7 +249,8 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
         },
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Error fetching technician bookings", {
         ...context,
         error: errorMessage,
@@ -217,7 +260,12 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
     }
   }
 
-  async updateBookingStatus(bookingId: string, status: string, updatedBy: string, reason?: string): Promise<ApiResponse<BookingResponseDto>> {
+  async updateBookingStatus(
+    bookingId: string,
+    status: string,
+    updatedBy: string,
+    reason?: string
+  ): Promise<ApiResponse<BookingResponseDto>> {
     const context = {
       operation: "updateBookingStatus",
       data: { bookingId, status, updatedBy, reason },
@@ -226,7 +274,12 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
     try {
       this.logger.info("Updating booking status", context);
 
-      const updatedBooking = await this.bookingRepository.updateStatus(bookingId, status, updatedBy, reason);
+      const updatedBooking = await this.bookingRepository.updateStatus(
+        bookingId,
+        status,
+        updatedBy,
+        reason
+      );
 
       if (!updatedBooking) {
         this.logger.warn("Booking not found for status update", context);
@@ -236,9 +289,13 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
       this.logger.info("Booking status updated successfully", context);
 
       const bookingDto = this.mapToDto(updatedBooking);
-      return ResponseHelper.success("Booking status updated successfully", bookingDto);
+      return ResponseHelper.success(
+        "Booking status updated successfully",
+        bookingDto
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Error updating booking status", {
         ...context,
         error: errorMessage,
@@ -248,7 +305,11 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
     }
   }
 
-  async cancelBooking(userId: string, bookingId: string, reason: string): Promise<ApiResponse<BookingResponseDto>> {
+  async cancelBooking(
+    userId: string,
+    bookingId: string,
+    reason: string
+  ): Promise<ApiResponse<BookingResponseDto>> {
     const context = {
       operation: "cancelBooking",
       data: { userId, bookingId, reason },
@@ -264,27 +325,32 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
         return ResponseHelper.notFound("Booking not found");
       }
 
-      const bookingUserId = booking.userId?._id?.toString() || booking.userId?.toString();
+      const bookingUserId =
+        booking.userId?._id?.toString() || booking.userId?.toString();
 
       // Check if user owns the booking
       if (bookingUserId !== userId) {
         this.logger.warn("User not authorized to cancel this booking", context);
-        return ResponseHelper.forbidden("Not authorized to cancel this booking");
+        return ResponseHelper.forbidden(
+          "Not authorized to cancel this booking"
+        );
       }
 
       // Check if booking can be cancelled
-      if (['cancelled', 'completed'].includes(booking.status)) {
+      if (["cancelled", "completed"].includes(booking.status)) {
         this.logger.warn("Booking cannot be cancelled in current status", {
           ...context,
           currentStatus: booking.status,
         });
-        return ResponseHelper.badRequest(`Booking cannot be cancelled in ${booking.status} status`);
+        return ResponseHelper.badRequest(
+          `Booking cannot be cancelled in ${booking.status} status`
+        );
       }
 
       const updatedBooking = await this.bookingRepository.updateStatus(
         bookingId,
-        'cancelled',
-        'user',
+        "cancelled",
+        "user",
         reason
       );
 
@@ -296,9 +362,13 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
       this.logger.info("Booking cancelled successfully", context);
 
       const bookingDto = this.mapToDto(updatedBooking);
-      return ResponseHelper.success("Booking cancelled successfully", bookingDto);
+      return ResponseHelper.success(
+        "Booking cancelled successfully",
+        bookingDto
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Error cancelling booking", {
         ...context,
         error: errorMessage,
@@ -313,10 +383,13 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
       _id: booking._id.toString(),
       bookingCode: booking.bookingCode,
       userId: booking.userId?._id?.toString() || booking.userId?.toString(),
-      technicianId: booking.technicianId?._id?.toString() || booking.technicianId?.toString(),
+      technicianId:
+        booking.technicianId?._id?.toString() ||
+        booking.technicianId?.toString(),
       serviceName: booking.serviceName,
       brand: booking.brand,
-      addressId: booking.addressId?._id?.toString() || booking.addressId?.toString(),
+      addressId:
+        booking.addressId?._id?.toString() || booking.addressId?.toString(),
       scheduledAt: booking.scheduledAt.toISOString(),
       timeSlot: booking.timeSlot,
       status: booking.status,
@@ -334,206 +407,243 @@ async createBooking(userId: string, bookingData: CreateBookingRequestDto): Promi
       updatedAt: booking.updatedAt.toISOString(),
     };
   }
-  // services/booking/BookingService.ts - Fix getTrackingDetails method
-async getTrackingDetails(userId: string, bookingId: string): Promise<ApiResponse<TrackingDetailsDto>> {
-  const context = {
-    operation: "getTrackingDetails",
-    data: { userId, bookingId },
-  };
+  async getTrackingDetails(
+    userId: string,
+    bookingId: string
+  ): Promise<ApiResponse<TrackingDetailsDto>> {
+    const context = {
+      operation: "getTrackingDetails",
+      data: { userId, bookingId },
+    };
 
-  try {
-    this.logger.info("Fetching tracking details", context);
+    try {
+      this.logger.info("Fetching tracking details", context);
 
-    const booking = await this.bookingRepository.findById(bookingId);
+      const booking = await this.bookingRepository.findById(bookingId);
 
-    if (!booking) {
-      this.logger.warn("Booking not found for tracking", context);
-      return ResponseHelper.notFound("Booking not found");
-    }
+      if (!booking) {
+        this.logger.warn("Booking not found for tracking", context);
+        return ResponseHelper.notFound("Booking not found");
+      }
 
-    // FIX: Extract the actual IDs from the objects
-    const bookingUserId = booking.userId?._id?.toString() || booking.userId?.toString();
-    const bookingTechnicianId = booking.technicianId?._id?.toString() || booking.technicianId?.toString();
+      // Extract the actual IDs from the objects
+      const bookingUserId =
+        booking.userId?._id?.toString() || booking.userId?.toString();
+      const bookingTechnicianId =
+        booking.technicianId?._id?.toString() ||
+        booking.technicianId?.toString();
 
-    // Check if user has access to this booking
-    if (bookingUserId !== userId && bookingTechnicianId !== userId) {
-      this.logger.warn("User not authorized to access tracking for this booking", {
+      // Check if user has access to this booking
+      if (bookingUserId !== userId && bookingTechnicianId !== userId) {
+        this.logger.warn(
+          "User not authorized to access tracking for this booking",
+          {
+            ...context,
+            bookingUserId,
+            bookingTechnicianId,
+            requestingUserId: userId,
+          }
+        );
+        return ResponseHelper.forbidden(
+          "Not authorized to access this booking"
+        );
+      }
+
+      const technician = await this.bookingRepository.getTechnicianDetails(
+        bookingTechnicianId
+      );
+
+      if (!technician) {
+        this.logger.warn("Technician not found for booking", context);
+        return ResponseHelper.notFound("Technician details not found");
+      }
+
+      // Get address details
+      const addressId =
+        booking.addressId?._id?.toString() || booking.addressId?.toString();
+      const address = await this.bookingRepository.getAddressDetails(addressId);
+
+      if (!address) {
+        this.logger.warn("Address not found for booking", context);
+        return ResponseHelper.notFound("Address details not found");
+      }
+
+      // Get technician location if available
+      const technicianLocation =
+        await this.bookingRepository.getTechnicianLocation(bookingTechnicianId);
+
+      // Calculate estimated arrival and distance if technician is on the way
+      let estimatedArrival: string | undefined;
+      let distance: number | undefined;
+
+      if (booking.status === "on_the_way" && technicianLocation) {
+        distance = this.calculateDistance(
+          technicianLocation.latitude,
+          technicianLocation.longitude
+        );
+        estimatedArrival = this.calculateEstimatedArrival(distance);
+      }
+
+      const trackingDetails: TrackingDetailsDto = {
+        _id: booking.id.toString(),
+        bookingId: booking.bookingCode,
+        userId: bookingUserId,
+        technicianId: {
+          _id: technician._id.toString(),
+          displayName: technician.displayName,
+          profilePictureUrl: technician.profilePictureUrl,
+          averageRating: technician.averageRating,
+          ratingCount: technician.ratingCount,
+          skills: technician.services || [],
+          phone: technician.phone || "",
+        },
+        serviceName: booking.serviceName,
+        problemDescription: booking.notes,
+        scheduledAt: booking.scheduledAt.toISOString(),
+        timeSlot: booking.timeSlot,
+        address: {
+          label: address.label,
+          street: address.street,
+          city: address.city,
+          state: address.state,
+          pincode: address.pincode,
+          landmark: address.landmark,
+        },
+        status: booking.status as any,
+        amount: booking.totalAmount,
+        estimatedDuration: "1-2 hours",
+        statusHistory: booking.history.map((h: any) => ({
+          status: h.status,
+          timestamp: h.at.toISOString(),
+          description: this.getStatusDescription(h.status, h.reason),
+          updatedBy: h.by as "user" | "technician" | "system",
+        })),
+        technicianLocation: technicianLocation
+          ? {
+              latitude: technicianLocation.latitude,
+              longitude: technicianLocation.longitude,
+              lastUpdated: technicianLocation.lastUpdated.toISOString(),
+            }
+          : undefined,
+        estimatedArrival,
+        distance,
+      };
+
+      this.logger.info("Tracking details retrieved successfully", context);
+
+      return ResponseHelper.success(
+        "Tracking details retrieved successfully",
+        trackingDetails
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error fetching tracking details", {
         ...context,
-        bookingUserId,
-        bookingTechnicianId,
-        requestingUserId: userId
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.forbidden("Not authorized to access this booking");
+      return ResponseHelper.error("Failed to fetch tracking details");
     }
+  }
+  async getTechnicianLocation(
+    bookingId: string
+  ): Promise<ApiResponse<TechnicianLocationDto>> {
+    const context = {
+      operation: "getTechnicianLocation",
+      data: { bookingId },
+    };
 
-    // Rest of your method remains the same...
-    const technician = await this.bookingRepository.getTechnicianDetails(bookingTechnicianId);
-    
-    if (!technician) {
-      this.logger.warn("Technician not found for booking", context);
-      return ResponseHelper.notFound("Technician details not found");
-    }
+    try {
+      this.logger.info("Fetching technician location", context);
 
-    // Get address details
-    const addressId = booking.addressId?._id?.toString() || booking.addressId?.toString();
-    const address = await this.bookingRepository.getAddressDetails(addressId);
-    
-    if (!address) {
-      this.logger.warn("Address not found for booking", context);
-      return ResponseHelper.notFound("Address details not found");
-    }
+      const booking = await this.bookingRepository.findById(bookingId);
 
-    // Get technician location if available
-    const technicianLocation = await this.bookingRepository.getTechnicianLocation(bookingTechnicianId);
+      if (!booking) {
+        this.logger.warn("Booking not found for location tracking", context);
+        return ResponseHelper.notFound("Booking not found");
+      }
 
-    // Calculate estimated arrival and distance if technician is on the way
-    let estimatedArrival: string | undefined;
-    let distance: number | undefined;
+      // Get technician location
+      const technicianLocation =
+        await this.bookingRepository.getTechnicianLocation(
+          booking.technicianId.toString()
+        );
 
-    if (booking.status === 'on_the_way' && technicianLocation) {
-      distance = this.calculateDistance(technicianLocation.latitude, technicianLocation.longitude);
-      estimatedArrival = this.calculateEstimatedArrival(distance);
-    }
+      if (!technicianLocation) {
+        this.logger.warn("Technician location not available", context);
+        return ResponseHelper.notFound("Technician location not available");
+      }
 
-    const trackingDetails: TrackingDetailsDto = {
-      _id: booking.id.toString(),
-      bookingId: booking.bookingCode,
-      userId: bookingUserId,
-      technicianId: {
-        _id: technician._id.toString(),
-        displayName: technician.displayName,
-        profilePictureUrl: technician.profilePictureUrl,
-        averageRating: technician.averageRating,
-        ratingCount: technician.ratingCount,
-        skills: technician.services || [],
-        phone: technician.phone || '',
-      },
-      serviceName: booking.serviceName,
-      problemDescription: booking.notes,
-      scheduledAt: booking.scheduledAt.toISOString(),
-      timeSlot: booking.timeSlot,
-      address: {
-        label: address.label,
-        street: address.street,
-        city: address.city,
-        state: address.state,
-        pincode: address.pincode,
-        landmark: address.landmark,
-      },
-      status: booking.status as any,
-      amount: booking.totalAmount,
-      estimatedDuration: '1-2 hours',
-      statusHistory: booking.history.map((h: any) => ({
-        status: h.status,
-        timestamp: h.at.toISOString(),
-        description: this.getStatusDescription(h.status, h.reason),
-        updatedBy: h.by as 'user' | 'technician' | 'system',
-      })),
-      technicianLocation: technicianLocation ? {
+      // Calculate estimated arrival and distance
+      let estimatedArrival: string | undefined;
+      let distance: number | undefined;
+
+      if (booking.status === "on_the_way") {
+        distance = this.calculateDistance(
+          technicianLocation.latitude,
+          technicianLocation.longitude
+        );
+        estimatedArrival = this.calculateEstimatedArrival(distance);
+      }
+
+      const locationData: TechnicianLocationDto = {
         latitude: technicianLocation.latitude,
         longitude: technicianLocation.longitude,
         lastUpdated: technicianLocation.lastUpdated.toISOString(),
-      } : undefined,
-      estimatedArrival,
-      distance,
+        estimatedArrival,
+        distance,
+        technicianId: booking.technicianId.toString(),
+        bookingId: booking.bookingCode,
+      };
+
+      this.logger.info("Technician location retrieved successfully", context);
+
+      return ResponseHelper.success(
+        "Technician location retrieved successfully",
+        locationData
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error fetching technician location", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return ResponseHelper.error("Failed to fetch technician location");
+    }
+  }
+
+  // Helper methods for location calculations
+  private calculateDistance(lat: number, lng: number): number {
+    // Mock distance calculation - in real app, use Haversine formula
+    // or Google Maps Distance Matrix API
+    return Math.random() * 10 + 1; // Random distance between 1-11 km
+  }
+
+  private calculateEstimatedArrival(distance: number): string {
+    // Mock ETA calculation - in real app, use traffic data
+    const averageSpeed = 30; // km/h
+    const travelTimeMinutes = Math.round((distance / averageSpeed) * 60);
+    return `${travelTimeMinutes} minutes`;
+  }
+
+  private getStatusDescription(status: string, reason?: string): string {
+    const descriptions: { [key: string]: string } = {
+      pending:
+        "Your booking has been confirmed and is waiting for technician assignment.",
+      accepted:
+        "Your booking has been accepted and a technician will be assigned soon.",
+      assigned: "A technician has been assigned to your service request.",
+      on_the_way: "The technician is on the way to your location.",
+      in_progress: "The technician is currently working on your service.",
+      completed: "The service has been completed successfully.",
+      cancelled: reason
+        ? `Booking cancelled: ${reason}`
+        : "Booking has been cancelled.",
     };
 
-    this.logger.info("Tracking details retrieved successfully", context);
-
-    return ResponseHelper.success("Tracking details retrieved successfully", trackingDetails);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    this.logger.error("Error fetching tracking details", {
-      ...context,
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return ResponseHelper.error("Failed to fetch tracking details");
+    return descriptions[status] || `Status updated to ${status}`;
   }
-}
-async getTechnicianLocation(bookingId: string): Promise<ApiResponse<TechnicianLocationDto>> {
-  const context = {
-    operation: "getTechnicianLocation",
-    data: { bookingId },
-  };
-
-  try {
-    this.logger.info("Fetching technician location", context);
-
-    const booking = await this.bookingRepository.findById(bookingId);
-
-    if (!booking) {
-      this.logger.warn("Booking not found for location tracking", context);
-      return ResponseHelper.notFound("Booking not found");
-    }
-
-    // Get technician location
-    const technicianLocation = await this.bookingRepository.getTechnicianLocation(booking.technicianId.toString());
-
-    if (!technicianLocation) {
-      this.logger.warn("Technician location not available", context);
-      return ResponseHelper.notFound("Technician location not available");
-    }
-
-    // Calculate estimated arrival and distance
-    let estimatedArrival: string | undefined;
-    let distance: number | undefined;
-
-    if (booking.status === 'on_the_way') {
-      // Mock calculation - in real app, use mapping service
-      distance = this.calculateDistance(technicianLocation.latitude, technicianLocation.longitude);
-      estimatedArrival = this.calculateEstimatedArrival(distance);
-    }
-
-    const locationData: TechnicianLocationDto = {
-      latitude: technicianLocation.latitude,
-      longitude: technicianLocation.longitude,
-      lastUpdated: technicianLocation.lastUpdated.toISOString(),
-      estimatedArrival,
-      distance,
-      technicianId: booking.technicianId.toString(),
-      bookingId: booking.bookingCode,
-    };
-
-    this.logger.info("Technician location retrieved successfully", context);
-
-    return ResponseHelper.success("Technician location retrieved successfully", locationData);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    this.logger.error("Error fetching technician location", {
-      ...context,
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return ResponseHelper.error("Failed to fetch technician location");
-  }
-}
-
-// Helper methods for location calculations
-private calculateDistance(lat: number, lng: number): number {
-  // Mock distance calculation - in real app, use Haversine formula
-  // or Google Maps Distance Matrix API
-  return Math.random() * 10 + 1; // Random distance between 1-11 km
-}
-
-private calculateEstimatedArrival(distance: number): string {
-  // Mock ETA calculation - in real app, use traffic data
-  const averageSpeed = 30; // km/h
-  const travelTimeMinutes = Math.round((distance / averageSpeed) * 60);
-  return `${travelTimeMinutes} minutes`;
-}
-
-private getStatusDescription(status: string, reason?: string): string {
-  const descriptions: { [key: string]: string } = {
-    pending: 'Your booking has been confirmed and is waiting for technician assignment.',
-    accepted: 'Your booking has been accepted and a technician will be assigned soon.',
-    assigned: 'A technician has been assigned to your service request.',
-    on_the_way: 'The technician is on the way to your location.',
-    in_progress: 'The technician is currently working on your service.',
-    completed: 'The service has been completed successfully.',
-    cancelled: reason ? `Booking cancelled: ${reason}` : 'Booking has been cancelled.',
-  };
-
-  return descriptions[status] || `Status updated to ${status}`;
-}
 }

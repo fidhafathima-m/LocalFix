@@ -11,7 +11,10 @@ import {
   ChevronLeftOutlined,
   ChevronRightOutlined,
 } from "@mui/icons-material";
-import fetchServices, { type Service, type ServicesResponse } from "../../data/services";
+import fetchServices, {
+  type Service,
+  type ServicesResponse,
+} from "../../data/services";
 import fetchCategories, { type Category } from "../../data/categories";
 import Footer from "../../../../components/common/Footer";
 import Header from "../../../../components/common/Header";
@@ -55,12 +58,12 @@ const Services: React.FC = () => {
     try {
       setLoading(true);
       const response: ServicesResponse = await fetchServices(page, size);
-      
+
       setServices(response.services);
       setTotalItems(response.pagination.totalItems);
       setTotalPages(response.pagination.totalPages);
       setCurrentPage(response.pagination.currentPage);
-      
+
       // Update categories with service counts
       updateCategoriesWithCounts(response.services);
     } catch (err) {
@@ -76,11 +79,13 @@ const Services: React.FC = () => {
     const loadCategories = async () => {
       try {
         const categoriesData = await fetchCategories();
-        
+
         // Calculate service counts for each category
-        const categoriesWithCounts = categoriesData.map(category => ({
+        const categoriesWithCounts = categoriesData.map((category) => ({
           ...category,
-          serviceCount: servicesData.filter(service => service.categoryId === category.id).length
+          serviceCount: servicesData.filter(
+            (service) => service.categoryId === category.id
+          ).length,
         }));
 
         // Add "All Services" category
@@ -124,12 +129,14 @@ const Services: React.FC = () => {
   };
 
   // Get price range limits from actual services
-  const minPrice = services.length > 0
-    ? Math.min(...services.map((s) => s.avgBasePrice || 299))
-    : 0;
-  const maxPrice = services.length > 0
-    ? Math.max(...services.map((s) => s.avgBasePrice || 299))
-    : 5000;
+  const minPrice =
+    services.length > 0
+      ? Math.min(...services.map((s) => s.avgBasePrice || 299))
+      : 0;
+  const maxPrice =
+    services.length > 0
+      ? Math.max(...services.map((s) => s.avgBasePrice || 299))
+      : 5000;
 
   // Apply all filters (client-side filtering for now)
   const filteredServices = services
@@ -187,7 +194,7 @@ const Services: React.FC = () => {
   // Handle page change
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Handle page size change
@@ -200,18 +207,18 @@ const Services: React.FC = () => {
   const getPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
-    
+
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-    
+
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
-    
+
     return pages;
   };
 
@@ -414,12 +421,10 @@ const Services: React.FC = () => {
               Showing {filteredServices.length} of {totalItems} services
               {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
             </div>
-            
+
             {/* Loading State */}
             {loading && (
-              <div className="text-sm text-blue-600">
-                Loading services...
-              </div>
+              <div className="text-sm text-blue-600">Loading services...</div>
             )}
           </div>
 
@@ -467,9 +472,8 @@ const Services: React.FC = () => {
                             alt={service.name}
                             className="w-8 h-8 object-contain"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = getDefaultIcon(
-                                service.name
-                              );
+                              (e.target as HTMLImageElement).src =
+                                getDefaultIcon(service.name);
                             }}
                           />
                         </div>
@@ -545,7 +549,7 @@ const Services: React.FC = () => {
                   <div className="text-sm text-gray-600">
                     Showing page {currentPage} of {totalPages}
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     {/* Previous Button */}
                     <button

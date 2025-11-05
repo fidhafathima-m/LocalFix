@@ -9,7 +9,7 @@ import {
   FileUploadOutlined,
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
-import { TechnicianService } from "../../../../services/technician/technicianService";
+import { TechnicianService } from "../../../../../services/technician/technicianService";
 
 interface DocumentData {
   _id: string;

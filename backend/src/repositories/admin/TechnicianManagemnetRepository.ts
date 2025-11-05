@@ -817,7 +817,7 @@ export class TechnicianManagementRepository
     }
   }
 
-   async findPublicTechnicians(
+  async findPublicTechnicians(
     filters: TechnicianFilter,
     skip: number = 0,
     limit: number = 10
@@ -857,8 +857,8 @@ export class TechnicianManagementRepository
       // Search filter (name, email, etc.)
       if (filters.$or) {
         // For public access, only allow search on safe fields
-        const safeSearchFields = ['displayName', 'services', 'workAreas'];
-        query.$or = filters.$or.filter(condition => {
+        const safeSearchFields = ["displayName", "services", "workAreas"];
+        query.$or = filters.$or.filter((condition) => {
           const field = Object.keys(condition)[0];
           return safeSearchFields.includes(field);
         });
@@ -869,21 +869,12 @@ export class TechnicianManagementRepository
         query.createdAt = filters.createdAt;
       }
 
-      console.log("Public technicians query:", {
-        query,
-        skip,
-        limit,
-        filters
-      });
-
       const technicians = await Technician.find(query)
         .populate("userId", "email phone fullName")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean();
-
-      console.log(`Found ${technicians.length} public technicians`);
 
       // Remove sensitive data before returning
       const publicTechnicians = technicians.map((tech) => ({
@@ -943,8 +934,8 @@ export class TechnicianManagementRepository
 
       // Search filter
       if (filters.$or) {
-        const safeSearchFields = ['displayName', 'services', 'workAreas'];
-        query.$or = filters.$or.filter(condition => {
+        const safeSearchFields = ["displayName", "services", "workAreas"];
+        query.$or = filters.$or.filter((condition) => {
           const field = Object.keys(condition)[0];
           return safeSearchFields.includes(field);
         });
@@ -956,8 +947,7 @@ export class TechnicianManagementRepository
       }
 
       const count = await Technician.countDocuments(query);
-      console.log(`Counted ${count} public technicians matching filters`);
-      
+
       return count;
     } catch (error) {
       console.error("Repository: Error counting public technicians:", error);
@@ -977,125 +967,141 @@ export class TechnicianManagementRepository
     }
   }
   async updateTechnicianLocation(
-  technicianId: string, 
-  coordinates: [number, number]
-): Promise<ITechnician | null> {
-  try {
-    return await Technician.findByIdAndUpdate(
-      technicianId,
-      {
-        $set: {
-          'currentLocation.coordinates': coordinates,
-          'currentLocation.type': 'Point'
-        }
-      },
-      { new: true }
-    );
-  } catch (error) {
-    console.error("Error updating technician location:", error);
-    return null;
+    technicianId: string,
+    coordinates: [number, number]
+  ): Promise<ITechnician | null> {
+    try {
+      return await Technician.findByIdAndUpdate(
+        technicianId,
+        {
+          $set: {
+            "currentLocation.coordinates": coordinates,
+            "currentLocation.type": "Point",
+          },
+        },
+        { new: true }
+      );
+    } catch (error) {
+      console.error("Error updating technician location:", error);
+      return null;
+    }
   }
-}
-async getTechnicianAvailability(technicianId: string): Promise<any> {
-  try {
-    // Get active slot rules
-    const slotRules = await SlotRuleSchema.find({
-      technicianId: new Types.ObjectId(technicianId),
-      isActive: true
-    });
+  async getTechnicianAvailability(technicianId: string): Promise<any> {
+    try {
+      // Get active slot rules
+      const slotRules = await SlotRuleSchema.find({
+        technicianId: new Types.ObjectId(technicianId),
+        isActive: true,
+      });
 
-    // Get upcoming availability
-    const upcomingAvailability = await TechnicianAvailabilitySchema.find({
-      technicianId: new Types.ObjectId(technicianId),
-      date: { $gte: new Date() }
-    }).sort({ date: 1 }).limit(7); // Get next 7 days
+      // Get upcoming availability
+      const upcomingAvailability = await TechnicianAvailabilitySchema.find({
+        technicianId: new Types.ObjectId(technicianId),
+        date: { $gte: new Date() },
+      })
+        .sort({ date: 1 })
+        .limit(7); // Get next 7 days
 
-    return {
-      slotRules,
-      upcomingAvailability,
-      hasAvailability: slotRules.length > 0
-    };
-  } catch (error) {
-    console.error("Error getting technician availability:", error);
-    return null;
+      return {
+        slotRules,
+        upcomingAvailability,
+        hasAvailability: slotRules.length > 0,
+      };
+    } catch (error) {
+      console.error("Error getting technician availability:", error);
+      return null;
+    }
   }
-}
 
-async getUpcomingAvailability(technicianId: string, days: number = 7): Promise<any[]> {
-  try {
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + days);
+  async getUpcomingAvailability(
+    technicianId: string,
+    days: number = 7
+  ): Promise<any[]> {
+    try {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + days);
 
-    return await TechnicianAvailabilitySchema.find({
-      technicianId: new Types.ObjectId(technicianId),
-      date: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    }).sort({ date: 1 });
-  } catch (error) {
-    console.error("Error getting upcoming availability:", error);
-    return [];
+      return await TechnicianAvailabilitySchema.find({
+        technicianId: new Types.ObjectId(technicianId),
+        date: {
+          $gte: startDate,
+          $lte: endDate,
+        },
+      }).sort({ date: 1 });
+    } catch (error) {
+      console.error("Error getting upcoming availability:", error);
+      return [];
+    }
   }
-}
-async getActiveSlotRules(technicianId: string): Promise<any[]> {
+  async getActiveSlotRules(technicianId: string): Promise<any[]> {
     try {
       return await SlotRuleSchema.find({
         technicianId: new Types.ObjectId(technicianId),
         isActive: true,
         $or: [
           { effectiveTo: { $exists: false } },
-          { effectiveTo: { $gte: new Date() } }
-        ]
+          { effectiveTo: { $gte: new Date() } },
+        ],
       }).sort({ effectiveFrom: 1 });
     } catch (error) {
-      console.error('Error fetching active slot rules:', error);
+      console.error("Error fetching active slot rules:", error);
       throw error;
     }
   }
 
-  async getUpcomingAvailabilityProfile(technicianId: string, startDate: Date, endDate: Date): Promise<any[]> {
+  async getUpcomingAvailabilityProfile(
+    technicianId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<any[]> {
     try {
       return await TechnicianAvailabilitySchema.find({
         technicianId: new Types.ObjectId(technicianId),
         date: {
           $gte: startDate,
-          $lte: endDate
-        }
+          $lte: endDate,
+        },
       }).sort({ date: 1 });
     } catch (error) {
-      console.error('Error fetching upcoming availability:', error);
+      console.error("Error fetching upcoming availability:", error);
       throw error;
     }
   }
 
-  async findAvailabilityByTechnicianAndDate(technicianId: string, date: Date): Promise<any> {
+  async findAvailabilityByTechnicianAndDate(
+    technicianId: string,
+    date: Date
+  ): Promise<any> {
     try {
       return await TechnicianAvailabilitySchema.findOne({
         technicianId: new Types.ObjectId(technicianId),
         date: {
           $gte: new Date(date.setHours(0, 0, 0, 0)),
-          $lte: new Date(date.setHours(23, 59, 59, 999))
-        }
+          $lte: new Date(date.setHours(23, 59, 59, 999)),
+        },
       });
     } catch (error) {
-      console.error('Error finding availability by date:', error);
+      console.error("Error finding availability by date:", error);
       throw error;
     }
   }
 
-  async findAvailabilityInRange(technicianId: string, startDate: Date, endDate: Date): Promise<any[]> {
+  async findAvailabilityInRange(
+    technicianId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<any[]> {
     try {
       return await TechnicianAvailabilitySchema.find({
         technicianId: new Types.ObjectId(technicianId),
         date: {
           $gte: startDate,
-          $lte: endDate
-        }
+          $lte: endDate,
+        },
       }).sort({ date: 1 });
     } catch (error) {
-      console.error('Error finding availability in range:', error);
+      console.error("Error finding availability in range:", error);
       throw error;
     }
   }

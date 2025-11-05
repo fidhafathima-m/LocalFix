@@ -28,34 +28,34 @@ export class UserProfileService {
 
   async getUserProfile(userId: string) {
     const context = {
-      operation: 'getUserProfile',
+      operation: "getUserProfile",
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching user profile', context);
+      this.logger.info("Fetching user profile", context);
 
       const user = await this.userManagementRepository.findById(userId);
 
       if (!user) {
-        this.logger.warn('User not found', context);
+        this.logger.warn("User not found", context);
         return ResponseHelper.notFound("User not found");
       }
 
       if (user.isDeleted) {
-        this.logger.warn('Attempt to access deleted account', context);
+        this.logger.warn("Attempt to access deleted account", context);
         return ResponseHelper.forbidden("Account has been deleted");
       }
 
-      this.logger.debug('User found, fetching addresses', context);
+      this.logger.debug("User found, fetching addresses", context);
 
       const addresses = await this.addressRepository.findByUserId(userId);
       const addressDtos = AddressMapper.toDtoList(addresses);
 
       this.logger.debug(`Found ${addresses.length} addresses for user`, {
         ...context,
-        addressCount: addresses.length
+        addressCount: addresses.length,
       });
 
       const userDetailDto = {
@@ -83,21 +83,22 @@ export class UserProfileService {
         addresses: addressDtos,
       };
 
-      this.logger.info('Successfully retrieved user profile', {
+      this.logger.info("Successfully retrieved user profile", {
         ...context,
         userEmail: user.email,
-        hasProfilePicture: !!user.profilePictureUrl
+        hasProfilePicture: !!user.profilePictureUrl,
       });
 
       return ResponseHelper.success("User profile retrieved successfully", {
         user: enhancedUserDto,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Failed to fetch user profile', {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Failed to fetch user profile", {
         ...context,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error("Failed to fetch user profile");
     }
@@ -105,24 +106,24 @@ export class UserProfileService {
 
   async updateUserProfile(userId: string, updateData: UpdateUserProfileData) {
     const context = {
-      operation: 'updateUserProfile',
+      operation: "updateUserProfile",
       userId,
       updateFields: Object.keys(updateData),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Updating user profile', context);
+      this.logger.info("Updating user profile", context);
 
       const user = await this.userManagementRepository.findById(userId);
 
       if (!user) {
-        this.logger.warn('User not found for profile update', context);
+        this.logger.warn("User not found for profile update", context);
         return ResponseHelper.notFound("User not found");
       }
 
       if (user.isDeleted) {
-        this.logger.warn('Attempt to update deleted account', context);
+        this.logger.warn("Attempt to update deleted account", context);
         return ResponseHelper.forbidden("Account has been deleted");
       }
 
@@ -132,27 +133,27 @@ export class UserProfileService {
 
       if (updateData.fullName !== undefined) {
         updatePayload.fullName = updateData.fullName;
-        updatedFields.push('fullName');
-        this.logger.debug('Updating full name', {
+        updatedFields.push("fullName");
+        this.logger.debug("Updating full name", {
           ...context,
-          newFullName: updateData.fullName
+          newFullName: updateData.fullName,
         });
       }
 
       if (updateData.phone !== undefined) {
         updatePayload.phone = updateData.phone;
-        updatedFields.push('phone');
-        this.logger.debug('Updating phone number', {
+        updatedFields.push("phone");
+        this.logger.debug("Updating phone number", {
           ...context,
-          newPhone: updateData.phone
+          newPhone: updateData.phone,
         });
       }
 
       if (updateData.email !== undefined && updateData.email !== user.email) {
-        this.logger.debug('Checking email availability', {
+        this.logger.debug("Checking email availability", {
           ...context,
           newEmail: updateData.email,
-          currentEmail: user.email
+          currentEmail: user.email,
         });
 
         // Check if email already exists
@@ -160,40 +161,45 @@ export class UserProfileService {
           updateData.email
         );
         if (existingUser && existingUser._id.toString() !== userId) {
-          this.logger.warn('Email already exists', {
+          this.logger.warn("Email already exists", {
             ...context,
-            existingUserId: existingUser._id.toString()
+            existingUserId: existingUser._id.toString(),
           });
           return ResponseHelper.error("Email already exists");
         }
         updatePayload.email = updateData.email;
-        updatedFields.push('email');
+        updatedFields.push("email");
       }
 
       if (updateData.dateOfBirth !== undefined) {
         updatePayload.dateOfBirth = updateData.dateOfBirth;
-        updatedFields.push('dateOfBirth');
-        this.logger.debug('Updating date of birth', context);
+        updatedFields.push("dateOfBirth");
+        this.logger.debug("Updating date of birth", context);
       }
 
-      if (updateData.gender !== undefined) {
+     if (updateData.gender !== undefined) {
+      if (updateData.gender.trim() !== "") {
         updatePayload.gender = updateData.gender;
-        updatedFields.push('gender');
-        this.logger.debug('Updating gender', {
+        updatedFields.push("gender");
+        this.logger.debug("Updating gender", {
           ...context,
-          newGender: updateData.gender
+          newGender: updateData.gender,
         });
+      } else {
+        updatePayload.gender = undefined;
+        this.logger.debug("Removing gender field", context);
       }
+    }
 
       if (updatedFields.length === 0) {
-        this.logger.warn('No valid fields to update', context);
+        this.logger.warn("No valid fields to update", context);
         return ResponseHelper.badRequest("No valid fields to update");
       }
 
-      this.logger.debug('Updating user in repository', {
+      this.logger.debug("Updating user in repository", {
         ...context,
         updatePayload,
-        updatedFields
+        updatedFields,
       });
 
       const updatedUser = await this.userManagementRepository.update(
@@ -202,11 +208,11 @@ export class UserProfileService {
       );
 
       if (!updatedUser) {
-        this.logger.error('Failed to update user in database', context);
+        this.logger.error("Failed to update user in database", context);
         return ResponseHelper.error("Failed to update user profile");
       }
 
-      this.logger.debug('Fetching fresh user data after update', context);
+      this.logger.debug("Fetching fresh user data after update", context);
       const freshUser = await this.userManagementRepository.findById(userId);
 
       const publicUserDto = {
@@ -222,24 +228,25 @@ export class UserProfileService {
         status: freshUser!.status || "Active",
         role: freshUser!.roles?.[0] || "user",
         dateOfBirth: freshUser!.dateOfBirth,
-        gender: freshUser!.gender,
+         gender: freshUser!.gender || "",
       };
 
-      this.logger.info('Successfully updated user profile', {
+      this.logger.info("Successfully updated user profile", {
         ...context,
         updatedFields,
-        userEmail: freshUser!.email
+        userEmail: freshUser!.email,
       });
 
       return ResponseHelper.success("Profile updated successfully", {
         user: publicUserDto,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Failed to update user profile', {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Failed to update user profile", {
         ...context,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error("Failed to update user profile");
     }
@@ -247,38 +254,38 @@ export class UserProfileService {
 
   async uploadProfilePicture(userId: string, file: Express.Multer.File) {
     const context = {
-      operation: 'uploadProfilePicture',
+      operation: "uploadProfilePicture",
       userId,
       fileSize: file?.size,
       fileName: file?.originalname,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Uploading profile picture', context);
+      this.logger.info("Uploading profile picture", context);
 
       const user = await this.userManagementRepository.findById(userId);
 
       if (!user) {
-        this.logger.warn('User not found for profile picture upload', context);
+        this.logger.warn("User not found for profile picture upload", context);
         return ResponseHelper.notFound("User not found");
       }
 
-      this.logger.debug('Uploading file to Cloudinary', context);
+      this.logger.debug("Uploading file to Cloudinary", context);
 
       // Upload to Cloudinary
       const uploadResult = await uploadToCloudinary(file);
 
       if (!uploadResult || !uploadResult.secure_url) {
-        this.logger.error('Cloudinary upload failed', context);
+        this.logger.error("Cloudinary upload failed", context);
         return ResponseHelper.error("Failed to upload profile picture");
       }
 
       const profilePictureUrl = uploadResult.secure_url;
 
-      this.logger.debug('Updating user profile picture URL', {
+      this.logger.debug("Updating user profile picture URL", {
         ...context,
-        cloudinaryUrl: profilePictureUrl
+        cloudinaryUrl: profilePictureUrl,
       });
 
       // Update user profile picture
@@ -287,24 +294,28 @@ export class UserProfileService {
       });
 
       if (!updatedUser) {
-        this.logger.error('Failed to update user profile picture in database', context);
+        this.logger.error(
+          "Failed to update user profile picture in database",
+          context
+        );
         return ResponseHelper.error("Failed to update profile picture");
       }
 
-      this.logger.info('Successfully uploaded profile picture', {
+      this.logger.info("Successfully uploaded profile picture", {
         ...context,
-        profilePictureUrl
+        profilePictureUrl,
       });
 
       return ResponseHelper.success("Profile picture uploaded successfully", {
         profilePictureUrl,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Failed to upload profile picture', {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Failed to upload profile picture", {
         ...context,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error("Failed to upload profile picture");
     }
@@ -317,44 +328,47 @@ export class UserProfileService {
     confirmPassword: string
   ) {
     const context = {
-      operation: 'changePassword',
+      operation: "changePassword",
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Changing user password', context);
+      this.logger.info("Changing user password", context);
 
       const user = await this.userManagementRepository.findById(userId);
 
       if (!user) {
-        this.logger.warn('User not found for password change', context);
+        this.logger.warn("User not found for password change", context);
         return ResponseHelper.notFound("User not found");
       }
 
       if (user.isDeleted) {
-        this.logger.warn('Attempt to change password for deleted account', context);
+        this.logger.warn(
+          "Attempt to change password for deleted account",
+          context
+        );
         return ResponseHelper.forbidden("Account has been deleted");
       }
 
       // Validate that new password and confirm password match
       if (newPassword !== confirmPassword) {
-        this.logger.warn('Password confirmation mismatch', context);
+        this.logger.warn("Password confirmation mismatch", context);
         return ResponseHelper.badRequest("New passwords do not match");
       }
 
       // Validate password strength
       if (newPassword.length < 6) {
-        this.logger.warn('Password too short', {
+        this.logger.warn("Password too short", {
           ...context,
-          passwordLength: newPassword.length
+          passwordLength: newPassword.length,
         });
         return ResponseHelper.badRequest(
           "Password must be at least 6 characters long"
         );
       }
 
-      this.logger.debug('Verifying current password', context);
+      this.logger.debug("Verifying current password", context);
 
       // Verify current password
       const isCurrentPasswordValid =
@@ -364,11 +378,11 @@ export class UserProfileService {
         );
 
       if (!isCurrentPasswordValid) {
-        this.logger.warn('Current password verification failed', context);
+        this.logger.warn("Current password verification failed", context);
         return ResponseHelper.badRequest("Current password is incorrect");
       }
 
-      this.logger.debug('Updating password in repository', context);
+      this.logger.debug("Updating password in repository", context);
 
       // Update password
       const updatedUser = await this.userManagementRepository.updatePassword(
@@ -377,19 +391,20 @@ export class UserProfileService {
       );
 
       if (!updatedUser) {
-        this.logger.error('Failed to update password in repository', context);
+        this.logger.error("Failed to update password in repository", context);
         return ResponseHelper.error("Failed to update password");
       }
 
-      this.logger.info('Successfully changed password', context);
+      this.logger.info("Successfully changed password", context);
 
       return ResponseHelper.success("Password changed successfully");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Failed to change password', {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Failed to change password", {
         ...context,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error("Failed to change password");
     }

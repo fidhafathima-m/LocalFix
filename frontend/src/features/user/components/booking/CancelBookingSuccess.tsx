@@ -1,9 +1,9 @@
-import React from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
-import Header from '../../../../components/common/Header';
-import Footer from '../../../../components/common/Footer';
-import { useEffect } from 'react';
+import React from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import Header from "../../../../components/common/Header";
+import Footer from "../../../../components/common/Footer";
+import { useEffect } from "react";
 
 interface CancelBookingSuccessState {
   orderCode?: string;
@@ -19,7 +19,7 @@ const CancelBookingSuccess: React.FC = () => {
   useEffect(() => {
     // If no state data, redirect to orders page
     if (!state?.orderCode) {
-      navigate('/my-orders');
+      navigate("/my-orders");
     }
   }, [state, navigate]);
 
@@ -46,20 +46,21 @@ const CancelBookingSuccess: React.FC = () => {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircleOutlineOutlinedIcon className="w-12 h-12 text-green-600" />
           </div>
-          
+
           <h1 className="text-3xl font-bold mb-4">
             Your booking has been cancelled
           </h1>
-          
+
           <p className="text-gray-600 mb-6">
-            Order ID: <span className="font-mono font-semibold">{state.orderCode}</span>
+            Order ID:{" "}
+            <span className="font-mono font-semibold">{state.orderCode}</span>
           </p>
 
           {state.refundAmount && state.refundAmount > 0 ? (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
               <p className="text-blue-800">
-                <span className="font-semibold">₹{state.refundAmount}</span> will be refunded to
-                your account within 3-5 days.
+                <span className="font-semibold">₹{state.refundAmount}</span>{" "}
+                will be refunded to your account within 3-5 days.
               </p>
               <p className="text-sm text-blue-700 mt-2">
                 The refund will be processed to your original payment method.
@@ -83,7 +84,7 @@ const CancelBookingSuccess: React.FC = () => {
             >
               Book Another Service
             </Link>
-            
+
             <Link
               to="/orders"
               className="block w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
@@ -94,7 +95,9 @@ const CancelBookingSuccess: React.FC = () => {
 
           {/* Additional Information */}
           <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="font-semibold text-gray-700 mb-3">What happens next?</h3>
+            <h3 className="font-semibold text-gray-700 mb-3">
+              What happens next?
+            </h3>
             <div className="text-sm text-gray-600 space-y-2 text-left max-w-md mx-auto">
               {state.refundAmount && state.refundAmount > 0 ? (
                 <>
@@ -115,7 +118,7 @@ const CancelBookingSuccess: React.FC = () => {
       </main>
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default CancelBookingSuccess
+export default CancelBookingSuccess;

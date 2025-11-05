@@ -39,7 +39,6 @@ const PendingApplicationProfile: React.FC = () => {
 
         if (response.data.success && response.data.data?.applications?.[0]) {
           const applicationData = response.data.data.applications[0];
-          console.log("📋 Full application data:", applicationData); // Debug log
           setApplication(applicationData);
         } else {
           throw new Error(response.data.message || "Application not found");

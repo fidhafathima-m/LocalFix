@@ -37,15 +37,13 @@ export class TechnicianService {
         endTime: string;
       };
     };
-    availableWeeks?: number[]; // Add this
+    availableWeeks?: number[]; 
   };
   serviceAreas: string[];
   workRadius: number;
 }) {
   try {
-    console.log('🔧 Service - Sending to API:', data);
     const response = await technicianAPI.updateAvailability(data);
-    console.log('🔧 Service - API response:', response);
     return this.handleResponse(response);
   } catch (error) {
     throw this.handleError(error, "Failed to update availability");

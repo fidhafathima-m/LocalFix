@@ -1,4 +1,3 @@
-// services/user/orderService.ts
 import api from "../../utils/axiosConfig";
 
 interface ApiResponse<T> {

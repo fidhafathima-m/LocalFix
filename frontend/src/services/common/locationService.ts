@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { AddressComponents, GeocodeResult, LocationData, NearbyTechniciansParams, OSMAddressData } from "../../interface/user/ILocationService";
+import type {
+  AddressComponents,
+  GeocodeResult,
+  LocationData,
+  NearbyTechniciansParams,
+  OSMAddressData,
+} from "../../interface/user/ILocationService";
 import api from "../../utils/axiosConfig";
-
-
 
 class LocationService {
   // Update user location
@@ -27,23 +31,21 @@ class LocationService {
     }
   }
 
-  // Get nearby technicians - FIXED API CALL
+  // Get nearby technicians
   async getNearbyTechnicians(params: NearbyTechniciansParams): Promise<any> {
     try {
-      console.log("getNearbyTechnicians called with:", params);
-      
+
       const response = await api.get("/user/nearby-technicians", {
         params: {
-          lat: params.lat,    // Fixed: pass as individual parameters
-          lng: params.lng,    // Fixed: pass as individual parameters
+          lat: params.lat,
+          lng: params.lng,
           radius: params.radius,
           serviceName: params.serviceName,
           page: params.page,
           limit: params.limit,
-        }
+        },
       });
-      
-      console.log("getNearbyTechnicians response:", response.data);
+
       return response.data;
     } catch (error) {
       console.error("Error getting nearby technicians:", error);
@@ -62,7 +64,7 @@ class LocationService {
       const options: PositionOptions = {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 60000
+        maximumAge: 60000,
       };
 
       navigator.geolocation.getCurrentPosition(resolve, reject, options);
@@ -167,105 +169,107 @@ class LocationService {
       addressComponents,
     };
   }
-  // services/common/locationService.ts
 
-// Add this method to your existing LocationService class
-async geocodeAddress(address: string): Promise<{
-  lat: number;
-  lng: number;
-  formattedAddress: string;
-  addressComponents: {
-    street?: string;
-    city?: string;
-    state?: string;
-    pincode?: string;
-    landmark?: string;
-  };
-}> {
-  try {
-    // Add a small delay to respect OSM's usage policy
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
-      {
-        headers: {
-          "Accept-Language": "en",
-          "User-Agent": "LocalFixTechnicianApp/1.0",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data || data.length === 0) {
-      throw new Error("No results found for this address");
-    }
-
-    const result = data[0];
-    
-    // Extract address components from the display_name
-    const addressComponents = this.extractAddressComponentsFromDisplayName(result.display_name);
-
-    return {
-      lat: parseFloat(result.lat),
-      lng: parseFloat(result.lon),
-      formattedAddress: result.display_name,
-      addressComponents,
+  async geocodeAddress(address: string): Promise<{
+    lat: number;
+    lng: number;
+    formattedAddress: string;
+    addressComponents: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      landmark?: string;
     };
-  } catch (error) {
-    console.error("Geocoding error:", error);
-    throw new Error(
-      `Failed to geocode address: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`
-    );
-  }
-}
+  }> {
+    try {
+      // Add a small delay to respect OSM's usage policy
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-// Helper method to extract address components from display_name
-private extractAddressComponentsFromDisplayName(displayName: string): {
-  street?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
-  landmark?: string;
-} {
-  const parts = displayName.split(',').map(part => part.trim());
-  
-  const components: {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          address
+        )}&limit=1`,
+        {
+          headers: {
+            "Accept-Language": "en",
+            "User-Agent": "LocalFixTechnicianApp/1.0",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data || data.length === 0) {
+        throw new Error("No results found for this address");
+      }
+
+      const result = data[0];
+
+      // Extract address components from the display_name
+      const addressComponents = this.extractAddressComponentsFromDisplayName(
+        result.display_name
+      );
+
+      return {
+        lat: parseFloat(result.lat),
+        lng: parseFloat(result.lon),
+        formattedAddress: result.display_name,
+        addressComponents,
+      };
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      throw new Error(
+        `Failed to geocode address: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
+  // Helper method to extract address components from display_name
+  private extractAddressComponentsFromDisplayName(displayName: string): {
     street?: string;
     city?: string;
     state?: string;
     pincode?: string;
     landmark?: string;
-  } = {};
+  } {
+    const parts = displayName.split(",").map((part) => part.trim());
 
-  // Simple extraction logic - you might want to make this more sophisticated
-  if (parts.length > 0) {
-    components.street = parts[0]; // First part is usually the street/house number
-  }
-  
-  if (parts.length > 1) {
-    components.city = parts[parts.length - 3] || parts[parts.length - 2]; // City is usually 2nd or 3rd from end
-  }
-  
-  if (parts.length > 2) {
-    components.state = parts[parts.length - 2]; // State is usually 2nd from end
-  }
+    const components: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+      landmark?: string;
+    } = {};
 
-  // Look for pincode (usually 6-digit number)
-  const pincodeMatch = displayName.match(/\b\d{6}\b/);
-  if (pincodeMatch) {
-    components.pincode = pincodeMatch[0];
-  }
+    // Simple extraction logic - you might want to make this more sophisticated
+    if (parts.length > 0) {
+      components.street = parts[0];
+    }
 
-  return components;
-}
+    if (parts.length > 1) {
+      components.city = parts[parts.length - 3] || parts[parts.length - 2];
+    }
+
+    if (parts.length > 2) {
+      components.state = parts[parts.length - 2];
+    }
+
+    // Look for pincode (usually 6-digit number)
+    const pincodeMatch = displayName.match(/\b\d{6}\b/);
+    if (pincodeMatch) {
+      components.pincode = pincodeMatch[0];
+    }
+
+    return components;
+  }
 }
 
 export default new LocationService();

@@ -1,10 +1,9 @@
-// interfaces/dtos/bookingDtos.ts
 export interface CreateBookingRequestDto {
   technicianId: string;
   serviceName: string;
   brand: string;
   addressId: string;
-  scheduledAt: string; // ISO string
+  scheduledAt: string;
   timeSlot: string;
   amount: number;
   notes?: string;
@@ -45,7 +44,6 @@ export interface BookingListResponseDto {
   };
 }
 
-// interfaces/dtos/bookingDtos.ts
 export interface TrackingDetailsDto {
   _id: string;
   bookingId: string;
@@ -71,7 +69,14 @@ export interface TrackingDetailsDto {
     pincode: string;
     landmark?: string;
   };
-  status: 'pending' | 'accepted' | 'assigned' | 'on_the_way' | 'in_progress' | 'completed' | 'cancelled';
+  status:
+    | "pending"
+    | "accepted"
+    | "assigned"
+    | "on_the_way"
+    | "in_progress"
+    | "completed"
+    | "cancelled";
   amount: number;
   estimatedDuration: string;
   statusHistory: StatusHistoryDto[];
@@ -88,7 +93,7 @@ export interface StatusHistoryDto {
   status: string;
   timestamp: string;
   description: string;
-  updatedBy: 'user' | 'technician' | 'system';
+  updatedBy: "user" | "technician" | "system";
 }
 
 export interface TechnicianLocationDto {

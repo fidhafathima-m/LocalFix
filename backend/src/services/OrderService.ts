@@ -1,4 +1,3 @@
-// services/user/orderService.ts
 import { IOrderRepository } from "../interfaces/repository/user/IOrderRepository";
 import { ResponseHelper, ApiResponse } from "../utils/responseHelper";
 import { LoggerService } from "../services/LoggerService";
@@ -67,7 +66,6 @@ export class OrderService implements IOrderService {
     }
   }
 
-  // In your OrderService - getOrderById method, add debugging
   async getOrderById(
     userId: string,
     orderId: string
@@ -87,7 +85,6 @@ export class OrderService implements IOrderService {
         return ResponseHelper.notFound("Order not found");
       }
 
-      // Add debug logging to see the actual user ID in the order
       this.logger.debug("Order user ID vs requesting user ID", {
         orderUserId: order.userId.toString(),
         requestingUserId: userId,
@@ -240,77 +237,73 @@ export class OrderService implements IOrderService {
   }
 
   private mapToDto(order: any): OrderResponseDto {
-  // Extract user information properly
-  let userInfo: any = {};
-  
-  if (order.userId && typeof order.userId === 'object') {
-    // If userId is a populated object
-    userInfo = {
-      _id: order.userId._id?.toString() || order.userId.toString(),
-      fullName: order.userId.fullName || order.userId.name || 'Customer',
-      email: order.userId.email || '',
-      phone: order.userId.phone || ''
-    };
-  } else {
-    // If userId is just an ID string, we'll need to handle this differently
-    // For now, set basic info
-    userInfo = {
-      _id: order.userId?.toString() || '',
-      fullName: 'Customer',
-      email: '',
-      phone: ''
+    let userInfo: any = {};
+
+    if (order.userId && typeof order.userId === "object") {
+      // If userId is a populated object
+      userInfo = {
+        _id: order.userId._id?.toString() || order.userId.toString(),
+        fullName: order.userId.fullName || order.userId.name || "Customer",
+        email: order.userId.email || "",
+        phone: order.userId.phone || "",
+      };
+    } else {
+      userInfo = {
+        _id: order.userId?.toString() || "",
+        fullName: "Customer",
+        email: "",
+        phone: "",
+      };
+    }
+
+    return {
+      _id: order._id.toString(),
+      orderCode: order.orderCode,
+      bookingId: order.bookingId.toString(),
+      userId: userInfo,
+      technicianId: {
+        _id:
+          order.technicianId._id?.toString() || order.technicianId.toString(),
+        displayName: order.technicianId.displayName,
+        profilePictureUrl: order.technicianId.profilePictureUrl,
+        averageRating: order.technicianId.averageRating,
+        ratingCount: order.technicianId.ratingCount,
+        skills: order.technicianId.skills || order.technicianId.services || [],
+      },
+      serviceName: order.serviceName,
+      problemDescription: order.problemDescription,
+      scheduledAt: order.scheduledAt.toISOString(),
+      timeSlot: order.timeSlot,
+      address: order.address,
+      status: order.status,
+      payment: {
+        method: order.payment.method,
+        amount: order.payment.amount,
+        status: order.payment.status,
+        transactionId: order.payment.transactionId,
+        paidAt: order.payment.paidAt?.toISOString(),
+      },
+      orderItems: order.orderItems.map((item: any) => ({
+        _id: item._id.toString(),
+        customName: item.customName,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        totalPrice: item.totalPrice,
+        status: item.status,
+      })),
+      totalAmount: order.totalAmount,
+      technicianRating: order.technicianRating,
+      userReview: order.userReview,
+      history: order.history.map((h: any) => ({
+        status: h.status,
+        description: h.description,
+        updatedBy: h.updatedBy,
+        timestamp: h.timestamp.toISOString(),
+      })),
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
     };
   }
-
-  return {
-    _id: order._id.toString(),
-    orderCode: order.orderCode,
-    bookingId: order.bookingId.toString(),
-    userId: userInfo, // Pass the object instead of string
-    technicianId: {
-      _id: order.technicianId._id?.toString() || order.technicianId.toString(),
-      displayName: order.technicianId.displayName,
-      profilePictureUrl: order.technicianId.profilePictureUrl,
-      averageRating: order.technicianId.averageRating,
-      ratingCount: order.technicianId.ratingCount,
-      skills: order.technicianId.skills || order.technicianId.services || [],
-    },
-    serviceName: order.serviceName,
-    problemDescription: order.problemDescription,
-    scheduledAt: order.scheduledAt.toISOString(),
-    timeSlot: order.timeSlot,
-    address: order.address,
-    status: order.status,
-    payment: {
-      method: order.payment.method,
-      amount: order.payment.amount,
-      status: order.payment.status,
-      transactionId: order.payment.transactionId,
-      paidAt: order.payment.paidAt?.toISOString(),
-    },
-    orderItems: order.orderItems.map((item: any) => ({
-      _id: item._id.toString(),
-      customName: item.customName,
-      unitPrice: item.unitPrice,
-      quantity: item.quantity,
-      totalPrice: item.totalPrice,
-      status: item.status,
-    })),
-    totalAmount: order.totalAmount,
-    technicianRating: order.technicianRating,
-    userReview: order.userReview,
-    history: order.history.map((h: any) => ({
-      status: h.status,
-      description: h.description,
-      updatedBy: h.updatedBy,
-      timestamp: h.timestamp.toISOString(),
-    })),
-    createdAt: order.createdAt.toISOString(),
-    updatedAt: order.updatedAt.toISOString(),
-  };
-}
-
-  // Add these methods to your OrderService class
 
   async getTechnicianOrders(
     userId: string,
@@ -522,7 +515,6 @@ export class OrderService implements IOrderService {
     try {
       this.logger.debug("Looking up technician ID for user", { userId });
 
-      // This depends on your technician model structure
       const technician = await this.technicianRepository.findByUserId(userId);
 
       if (!technician) {

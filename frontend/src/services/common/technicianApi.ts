@@ -1,10 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { SlotRule, TechnicianAvailability } from "../../interface/technician/ITechnicianApi";
+import type {
+  SlotRule,
+  TechnicianAvailability,
+} from "../../interface/technician/ITechnicianApi";
 import { TECHNICIAN_ROUTES } from "../../routes/technicianRoutes";
-import type { ApplicationData, TechnicianProfile } from "../../store/slices/technicianSlice";
+import type {
+  ApplicationData,
+  TechnicianProfile,
+} from "../../store/slices/technicianSlice";
 import api from "../../utils/axiosConfig";
-
-
 
 const normalizeResponse = (response: any) => {
   const responseData = response.data || response;
@@ -21,16 +25,14 @@ const normalizeResponse = (response: any) => {
 export const technicianAPI = {
   getProfile: async () => {
     try {
-      // ✅ ADD CACHE BUSTING HERE
       const timestamp = new Date().getTime();
       const response = await api.get<{
         success: boolean;
         message: string;
         data: { profile: TechnicianProfile };
         statusCode: number;
-      }>(`${TECHNICIAN_ROUTES.PROFILE.BASE}?nocache=${timestamp}`); // Add timestamp to URL
-      
-      console.log('🔄 Fresh API call with cache busting, timestamp:', timestamp);
+      }>(`${TECHNICIAN_ROUTES.PROFILE.BASE}?nocache=${timestamp}`);
+
       return normalizeResponse(response);
     } catch (error: any) {
       if (error.response?.data) {
@@ -46,7 +48,6 @@ export const technicianAPI = {
     }
   },
 
-  // Add the new availability methods
   getSlotRules: async () => {
     try {
       const response = await api.get<{
@@ -93,7 +94,6 @@ export const technicianAPI = {
     }
   },
 
-  // Add routes for slot rules and availability in your TECHNICIAN_ROUTES
   updateProfile: async (data: Partial<TechnicianProfile>) => {
     try {
       const response = await api.put<{
@@ -331,35 +331,31 @@ export const technicianAPI = {
 
   getApplicationForEdit: async (applicationId: string) => {
     try {
-      console.log('🔍 getApplicationForEdit called with ID:', applicationId);
-      console.log('🔍 Route being called:', TECHNICIAN_ROUTES.APPLICATION.EDIT(applicationId));
-      
-      // First try the edit endpoint
       try {
         const response = await api.get<{
           success: boolean;
           message: string;
           data: { application: ApplicationData };
           statusCode: number;
-        }>(TECHNICIAN_ROUTES.APPLICATION.EDIT(applicationId)); 
-        console.log('🔍 getApplicationForEdit response:', response.data);
+        }>(TECHNICIAN_ROUTES.APPLICATION.EDIT(applicationId));
         return normalizeResponse(response);
       } catch (editError: any) {
-        console.log('❌ Edit endpoint failed, falling back to regular endpoint:', editError.message);
-        
-        // Fallback to regular getApplication endpoint
+        console.log(
+          "Edit endpoint failed, falling back to regular endpoint:",
+          editError.message
+        );
+
         const fallbackResponse = await api.get<{
           success: boolean;
           message: string;
           data: { application: ApplicationData };
           statusCode: number;
         }>(TECHNICIAN_ROUTES.APPLICATION.BY_ID(applicationId));
-        
-        console.log('🔍 Fallback response:', fallbackResponse.data);
+
         return normalizeResponse(fallbackResponse);
       }
     } catch (error: any) {
-      console.error('❌ Both endpoints failed:', error);
+      console.error("Both endpoints failed:", error);
       if (error.response?.data) {
         return normalizeResponse(error.response.data);
       }
@@ -499,50 +495,47 @@ export const technicianAPI = {
   },
 
   updateAvailability: async (data: {
-  availability: {
-    isAvailable: boolean;
-    weeklyAvailability: {
-      [key: string]: {
-        enabled: boolean;
-        startTime: string;
-        endTime: string;
+    availability: {
+      isAvailable: boolean;
+      weeklyAvailability: {
+        [key: string]: {
+          enabled: boolean;
+          startTime: string;
+          endTime: string;
+        };
       };
+      availableWeeks?: number[];
     };
-    availableWeeks?: number[]; // Add this
-  };
-  serviceAreas: string[];
-  workRadius: number;
-}) => {
-  try {
-    // Map frontend field names to backend expected names
-    const backendData = {
-      availability: data.availability,
-      workAreas: data.serviceAreas,        // Map serviceAreas → workAreas
-      serviceRadiusKm: data.workRadius,    // Map workRadius → serviceRadiusKm
-    };
+    serviceAreas: string[];
+    workRadius: number;
+  }) => {
+    try {
+      const backendData = {
+        availability: data.availability,
+        workAreas: data.serviceAreas,
+        serviceRadiusKm: data.workRadius,
+      };
 
-    console.log('🌐 API - Sending to backend:', backendData);
-
-    const response = await api.put<{
-      success: boolean;
-      message: string;
-      data: { profile: TechnicianProfile };
-      statusCode: number;
-    }>(TECHNICIAN_ROUTES.PROFILE.AVAILABILITY, backendData);
-    return normalizeResponse(response);
-  } catch (error: any) {
-    if (error.response?.data) {
-      return normalizeResponse(error.response.data);
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.PROFILE.AVAILABILITY, backendData);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update availability",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
     }
-    return {
-      success: false,
-      message: error.message || "Failed to update availability",
-      error: "Network error",
-      data: null,
-      statusCode: 500,
-    };
-  }
-},
+  },
   updateBankPayment: async (data: {
     paymentDetails: {
       bankAccount: {

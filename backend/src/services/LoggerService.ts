@@ -1,5 +1,5 @@
-import { ILogger } from '../interfaces/utils/ILogger';
-import Logger from '../utils/logger';
+import { ILogger } from "../interfaces/utils/ILogger";
+import Logger from "../utils/logger";
 
 export class LoggerService implements ILogger {
   private logger: typeof Logger;
@@ -37,19 +37,19 @@ export class LoggerService implements ILogger {
     };
 
     switch (level) {
-      case 'error':
+      case "error":
         this.error(message, logData);
         break;
-      case 'warn':
+      case "warn":
         this.warn(message, logData);
         break;
-      case 'info':
+      case "info":
         this.info(message, logData);
         break;
-      case 'http':
+      case "http":
         this.http(message, logData);
         break;
-      case 'debug':
+      case "debug":
         this.debug(message, logData);
         break;
       default:

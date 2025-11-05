@@ -16,16 +16,19 @@ export class UserProfileController {
   getUserProfile = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     const context = {
-      operation: 'getUserProfile',
+      operation: "getUserProfile",
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching user profile', context);
+      this.logger.info("Fetching user profile", context);
 
       if (!userId) {
-        this.logger.warn('Get user profile failed - user not authenticated', context);
+        this.logger.warn(
+          "Get user profile failed - user not authenticated",
+          context
+        );
         return res
           .status(401)
           .json(ResponseHelper.error("User not authenticated"));
@@ -34,28 +37,28 @@ export class UserProfileController {
       const result = await this.userProfileService.getUserProfile(userId);
 
       if (!result.success) {
-        this.logger.warn('Get user profile service returned failure', {
+        this.logger.warn("Get user profile service returned failure", {
           ...context,
           error: result.message,
-          statusCode: result.statusCode
+          statusCode: result.statusCode,
         });
         return res.status(result.statusCode || 404).json(result);
       }
 
-      this.logger.info('User profile retrieved successfully', {
+      this.logger.info("User profile retrieved successfully", {
         ...context,
         userEmail: result.data?.user?.email,
-        hasProfilePicture: !!result.data?.user?.profilePicture
+        hasProfilePicture: !!result.data?.user?.profilePicture,
       });
 
       return res.status(200).json(result);
     } catch (error: any) {
-      this.logger.error('Get user profile error', {
+      this.logger.error("Get user profile error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       return res
         .status(500)
         .json(ResponseHelper.error("Failed to fetch user profile"));
@@ -65,32 +68,40 @@ export class UserProfileController {
   updateUserProfile = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     const updateData: UpdateUserProfileData = req.body;
-    
+
     const context = {
-      operation: 'updateUserProfile',
+      operation: "updateUserProfile",
       userId,
       updateFields: Object.keys(updateData),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Updating user profile', context);
+      this.logger.info("Updating user profile", context);
 
       if (!userId) {
-        this.logger.warn('Update user profile failed - user not authenticated', context);
+        this.logger.warn(
+          "Update user profile failed - user not authenticated",
+          context
+        );
         return res
           .status(401)
           .json(ResponseHelper.error("User not authenticated"));
       }
 
       if (Object.keys(updateData).length === 0) {
-        this.logger.warn('Update user profile failed - no fields to update', context);
-        return res.status(400).json(ResponseHelper.error("No fields to update"));
+        this.logger.warn(
+          "Update user profile failed - no fields to update",
+          context
+        );
+        return res
+          .status(400)
+          .json(ResponseHelper.error("No fields to update"));
       }
 
-      this.logger.debug('Profile update data', {
+      this.logger.debug("Profile update data", {
         ...context,
-        updateFields: updateData
+        updateFields: updateData,
       });
 
       const result = await this.userProfileService.updateUserProfile(
@@ -99,28 +110,28 @@ export class UserProfileController {
       );
 
       if (!result.success) {
-        this.logger.warn('Update user profile service returned failure', {
+        this.logger.warn("Update user profile service returned failure", {
           ...context,
           error: result.message,
-          statusCode: result.statusCode
+          statusCode: result.statusCode,
         });
         return res.status(result.statusCode || 400).json(result);
       }
 
-      this.logger.info('User profile updated successfully', {
+      this.logger.info("User profile updated successfully", {
         ...context,
         updatedFieldCount: Object.keys(updateData).length,
-        userEmail: result.data?.user?.email
+        userEmail: result.data?.user?.email,
       });
 
       return res.status(200).json(result);
     } catch (error: any) {
-      this.logger.error('Update user profile error', {
+      this.logger.error("Update user profile error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       return res
         .status(500)
         .json(ResponseHelper.error("Failed to update user profile"));
@@ -130,33 +141,39 @@ export class UserProfileController {
   uploadProfilePicture = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     const file = req.file;
-    
+
     const context = {
-      operation: 'uploadProfilePicture',
+      operation: "uploadProfilePicture",
       userId,
       fileName: file?.originalname,
       fileSize: file?.size,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Uploading profile picture', context);
+      this.logger.info("Uploading profile picture", context);
 
       if (!userId) {
-        this.logger.warn('Upload profile picture failed - user not authenticated', context);
+        this.logger.warn(
+          "Upload profile picture failed - user not authenticated",
+          context
+        );
         return res
           .status(401)
           .json(ResponseHelper.error("User not authenticated"));
       }
 
       if (!file) {
-        this.logger.warn('Upload profile picture failed - no file uploaded', context);
+        this.logger.warn(
+          "Upload profile picture failed - no file uploaded",
+          context
+        );
         return res.status(400).json(ResponseHelper.error("No file uploaded"));
       }
 
-      this.logger.debug('Processing profile picture upload', {
+      this.logger.debug("Processing profile picture upload", {
         ...context,
-        mimetype: file.mimetype
+        mimetype: file.mimetype,
       });
 
       const result = await this.userProfileService.uploadProfilePicture(
@@ -165,28 +182,28 @@ export class UserProfileController {
       );
 
       if (!result.success) {
-        this.logger.warn('Upload profile picture service returned failure', {
+        this.logger.warn("Upload profile picture service returned failure", {
           ...context,
           error: result.message,
-          statusCode: result.statusCode
+          statusCode: result.statusCode,
         });
         return res.status(result.statusCode || 400).json(result);
       }
 
-      this.logger.info('Profile picture uploaded successfully', {
+      this.logger.info("Profile picture uploaded successfully", {
         ...context,
         uploadSuccess: result.success,
-        profilePictureUrl: result.data?.profilePictureUrl
+        profilePictureUrl: result.data?.profilePictureUrl,
       });
 
       return res.status(200).json(result);
     } catch (error: any) {
-      this.logger.error('Upload profile picture error', {
+      this.logger.error("Upload profile picture error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       return res
         .status(500)
         .json(ResponseHelper.error("Failed to upload profile picture"));
@@ -196,39 +213,49 @@ export class UserProfileController {
   changePassword = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     const { currentPassword, newPassword, confirmPassword } = req.body;
-    
+
     const context = {
-      operation: 'changePassword',
+      operation: "changePassword",
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Changing user password', context);
+      this.logger.info("Changing user password", context);
 
       if (!userId) {
-        this.logger.warn('Change password failed - user not authenticated', context);
+        this.logger.warn(
+          "Change password failed - user not authenticated",
+          context
+        );
         return res
           .status(401)
           .json(ResponseHelper.error("User not authenticated"));
       }
 
       if (!currentPassword || !newPassword || !confirmPassword) {
-        this.logger.warn('Change password failed - missing required fields', {
+        this.logger.warn("Change password failed - missing required fields", {
           ...context,
           hasCurrentPassword: !!currentPassword,
           hasNewPassword: !!newPassword,
-          hasConfirmPassword: !!confirmPassword
+          hasConfirmPassword: !!confirmPassword,
         });
-        return res.status(400).json(ResponseHelper.error("All password fields are required"));
+        return res
+          .status(400)
+          .json(ResponseHelper.error("All password fields are required"));
       }
 
       if (newPassword !== confirmPassword) {
-        this.logger.warn('Change password failed - password confirmation mismatch', context);
-        return res.status(400).json(ResponseHelper.error("New passwords do not match"));
+        this.logger.warn(
+          "Change password failed - password confirmation mismatch",
+          context
+        );
+        return res
+          .status(400)
+          .json(ResponseHelper.error("New passwords do not match"));
       }
 
-      this.logger.debug('Initiating password change process', context);
+      this.logger.debug("Initiating password change process", context);
 
       const result = await this.userProfileService.changePassword(
         userId,
@@ -238,24 +265,24 @@ export class UserProfileController {
       );
 
       if (!result.success) {
-        this.logger.warn('Change password service returned failure', {
+        this.logger.warn("Change password service returned failure", {
           ...context,
           error: result.message,
-          statusCode: result.statusCode
+          statusCode: result.statusCode,
         });
         return res.status(result.statusCode || 400).json(result);
       }
 
-      this.logger.info('Password changed successfully', context);
+      this.logger.info("Password changed successfully", context);
 
       return res.status(200).json(result);
     } catch (error: any) {
-      this.logger.error('Change password error', {
+      this.logger.error("Change password error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       return res
         .status(500)
         .json(ResponseHelper.error("Failed to change password"));

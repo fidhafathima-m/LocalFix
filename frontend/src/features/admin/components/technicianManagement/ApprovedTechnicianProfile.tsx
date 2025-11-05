@@ -23,14 +23,6 @@ export const TechnicianProfile: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { technicians } = useAppSelector((state) => state.admin);
 
-  useEffect(() => {
-    if (technician) {
-      console.log("Technician data:", technician);
-      console.log("Profile picture URL:", technician.profilePictureUrl);
-      console.log("Profile picture exists:", !!technician.profilePictureUrl);
-    }
-  }, [technician]);
-
   const getActiveTab = (): string => {
     const pathSegments = location.pathname.split("/");
     return pathSegments[pathSegments.length - 1] || "personal-info";

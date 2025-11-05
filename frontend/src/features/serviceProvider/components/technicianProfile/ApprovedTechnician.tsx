@@ -183,8 +183,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     loadTechnicianData();
   }, []);
 
-  // Load orders when tab changes
-  // Load orders when tab changes
   useEffect(() => {
     const loadOrders = async () => {
       if (activeTab === "overview" || activeTab === "orders") {
@@ -326,14 +324,12 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     try {
       // Handle both object and string cases
       if (order.userId && typeof order.userId === "object") {
-        console.log("User object:", order.userId); // Debug log
         return {
           name: order.userId.fullName || "Customer",
           phone: order.userId.phone || "Not provided",
           email: order.userId.email || "Not provided",
         };
       } else if (typeof order.userId === "string") {
-        console.log("User string:", order.userId); // Debug log to see if fullName exists
 
         // Check if fullName exists in the string
         const fullNameMatch = order.userId.match(/fullName:\s*'([^']+)'/);
@@ -388,7 +384,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     return [];
   };
 
-  // Order status management
   // Order status management
   const handleUpdateOrderStatus = async (
     orderId: string,
@@ -623,7 +618,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     return "Location not set";
   };
 
-  // Add this function to calculate earnings data
   const calculateEarningsData = (orders: TechnicianOrder[]) => {
     const now = new Date();
     const currentMonth = now.getMonth();

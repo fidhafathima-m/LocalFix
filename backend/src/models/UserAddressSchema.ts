@@ -1,4 +1,3 @@
-// models/userAddress.ts
 import mongoose, { Schema, Document, Types } from "mongoose";
 import { IUser } from "../interfaces/user/IUser";
 
@@ -24,44 +23,44 @@ export interface IUserAddress extends Document {
 
 const userAddressSchema = new Schema<IUserAddress>(
   {
-    userId: { 
-      type: Schema.Types.ObjectId, 
-      ref: "User", 
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
       required: true,
-      index: true 
+      index: true,
     },
-    label: { 
-      type: String, 
-      default: "Home" 
+    label: {
+      type: String,
+      default: "Home",
     },
-    landmark: { 
-      type: String 
+    landmark: {
+      type: String,
     },
-    street: { 
-      type: String, 
-      required: true 
+    street: {
+      type: String,
+      required: true,
     },
-    city: { 
-      type: String, 
-      required: true 
+    city: {
+      type: String,
+      required: true,
     },
-    state: { 
-      type: String, 
-      required: true 
+    state: {
+      type: String,
+      required: true,
     },
-    pincode: { 
-      type: String, 
-      required: true 
+    pincode: {
+      type: String,
+      required: true,
     },
-    isDefault: { 
-      type: Boolean, 
-      default: false 
+    isDefault: {
+      type: Boolean,
+      default: false,
     },
     location: {
-      type: { 
-        type: String, 
-        enum: ["Point"], 
-        required: true 
+      type: {
+        type: String,
+        enum: ["Point"],
+        required: true,
       },
       coordinates: {
         type: [Number],
@@ -80,16 +79,16 @@ const userAddressSchema = new Schema<IUserAddress>(
         },
       },
     },
-    formattedAddress: { 
-      type: String 
+    formattedAddress: {
+      type: String,
     },
-    placeId: { 
-      type: String 
+    placeId: {
+      type: String,
     },
   },
-  { 
+  {
     timestamps: true,
-    collection: 'useraddresses' // Explicitly set collection name
+    collection: "useraddresses",
   }
 );
 

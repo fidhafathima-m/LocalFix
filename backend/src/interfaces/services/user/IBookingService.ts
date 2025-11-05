@@ -1,4 +1,3 @@
-// interfaces/services/booking/IBookingService.ts
 import {
   CreateBookingRequestDto,
   BookingResponseDto,

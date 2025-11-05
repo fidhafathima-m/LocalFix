@@ -26,7 +26,10 @@ import type { Service } from "../../data/services";
 import LocationService from "../../../../services/common/locationService";
 import { OSMLocationPicker } from "../../../../components/common/OSMLocationPicker";
 import { useAppSelector } from "../../../../hooks/redux";
-import { selectIsLoggedIn, selectUser } from "../../../../store/slices/authSlice";
+import {
+  selectIsLoggedIn,
+  selectUser,
+} from "../../../../store/slices/authSlice";
 import toast from "react-hot-toast";
 import type { GeocodeResult } from "../../../../interface/user/ILocationService";
 
@@ -106,7 +109,7 @@ const ServiceDetails: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [service, setService] = useState<Service | null>(null);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
-  const [allTechnicians, ] = useState<Technician[]>([]);
+  const [allTechnicians] = useState<Technician[]>([]);
   const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>(
     []
   );
@@ -147,9 +150,8 @@ const ServiceDetails: React.FC = () => {
     hasPrev: false,
   });
 
-
   // Fetch service details
-   useEffect(() => {
+  useEffect(() => {
     const fetchServiceDetails = async () => {
       if (!slug) {
         setError("Service not found");
@@ -188,7 +190,7 @@ const ServiceDetails: React.FC = () => {
 
       try {
         // Reset pagination when service changes
-        setPagination(prev => ({ ...prev, page: 1 }));
+        setPagination((prev) => ({ ...prev, page: 1 }));
 
         // If user is logged in, try to get their location
         if (isLoggedIn && user) {
@@ -198,7 +200,6 @@ const ServiceDetails: React.FC = () => {
             const locationResponse = await LocationService.getUserLocation();
             if (locationResponse.success && locationResponse.data) {
               const locationData = locationResponse.data;
-              console.log("User location data:", locationData);
 
               const userLocationData: UserLocation = {
                 lat: locationData.location.coordinates[1],
@@ -239,10 +240,9 @@ const ServiceDetails: React.FC = () => {
               return;
             }
           } catch (error) {
-            console.log("No existing user location found", error);
+            console.error("No existing user location found", error);
           }
 
-          // If we reach here, user has no location but might want to set one
           if (requireLocation) {
             setTimeout(() => {
               setShowLocationSetup(true);
@@ -271,23 +271,27 @@ const ServiceDetails: React.FC = () => {
     location.pathname,
     hasFetchedWithLocation,
   ]);
-   // Handle page change
+  // Handle page change
   const handlePageChange = async (newPage: number) => {
     if (!service) return;
 
     try {
       setTechniciansLoading(true);
-      
+
       if (userLocation && sortBy === "nearby") {
-        await fetchTechniciansWithLocationPriority(service.name, userLocation, newPage);
+        await fetchTechniciansWithLocationPriority(
+          service.name,
+          userLocation,
+          newPage
+        );
       } else {
         await fetchTechniciansForService(service.name, newPage);
       }
-      
+
       // Scroll to technicians section
-      const techniciansSection = document.getElementById('technicians-section');
+      const techniciansSection = document.getElementById("technicians-section");
       if (techniciansSection) {
-        techniciansSection.scrollIntoView({ behavior: 'smooth' });
+        techniciansSection.scrollIntoView({ behavior: "smooth" });
       }
     } catch (error) {
       console.error("Error changing page:", error);
@@ -296,7 +300,6 @@ const ServiceDetails: React.FC = () => {
       setTechniciansLoading(false);
     }
   };
-
 
   // Helper function to format address for display
   const getFormattedAddress = (address: any): string => {
@@ -319,10 +322,9 @@ const ServiceDetails: React.FC = () => {
     }));
   };
 
-   const handleSortChange = async (
+  const handleSortChange = async (
     newSort: "default" | "nearby" | "rating" | "experience"
   ) => {
-    console.log("Sort changed to:", newSort);
 
     if (newSort === "default") {
       setSortBy("default");
@@ -374,15 +376,17 @@ const ServiceDetails: React.FC = () => {
 
       if (userLocation && service) {
         setSortBy("nearby");
-        await fetchTechniciansWithLocationPriority(service.name, userLocation, 1);
+        await fetchTechniciansWithLocationPriority(
+          service.name,
+          userLocation,
+          1
+        );
         toast.success("Showing nearby technicians first");
       } else {
         setShowLocationSetup(true);
       }
     } else {
       setSortBy(newSort);
-      // For rating and experience, we'll handle sorting on the frontend for now
-      // In a real app, you might want to implement backend sorting
       toast.success(`Sorted by ${newSort}`);
     }
   };
@@ -412,7 +416,6 @@ const ServiceDetails: React.FC = () => {
     setShowLocationSetup(true);
   };
 
-  // Handle automatic location detection
   // Handle automatic location detection
   const handleAllowLocation = async (): Promise<void> => {
     try {
@@ -450,7 +453,7 @@ const ServiceDetails: React.FC = () => {
         landmark: geocodeResult.addressComponents.landmark || "",
       });
 
-      // Fix: Provide default values for all required address fields
+      // Provide default values for all required address fields
       await LocationService.updateUserLocation({
         coordinates: [longitude, latitude],
         address: {
@@ -541,7 +544,6 @@ const ServiceDetails: React.FC = () => {
       setLocationLoading(true);
       const toastId = toast.loading("Setting your location...");
 
-      // Use a default location (center of the service area) since we don't have coordinates
       const defaultLocation = { lat: 10.8505, lng: 76.2711 }; // Kerala center
 
       const locationData: UserLocation = {
@@ -559,7 +561,6 @@ const ServiceDetails: React.FC = () => {
 
       setUserLocation(locationData);
 
-      // Fix: Use the actual form values which are guaranteed to be strings
       await LocationService.updateUserLocation({
         coordinates: [defaultLocation.lng, defaultLocation.lat],
         address: {
@@ -588,7 +589,6 @@ const ServiceDetails: React.FC = () => {
     }
   };
 
-  // Handle location selection from map
   // Handle location selection from map
   const handleMapLocationSelect = async (locationData: {
     lat: number;
@@ -630,7 +630,7 @@ const ServiceDetails: React.FC = () => {
         landmark: locationData.addressComponents.landmark || "",
       });
 
-      // Fix: Provide default values for all required address fields
+      // Provide default values for all required address fields
       await LocationService.updateUserLocation({
         coordinates: [locationData.lng, locationData.lat],
         address: {
@@ -664,7 +664,7 @@ const ServiceDetails: React.FC = () => {
   };
 
   // Fetch technicians with location priority
-   const fetchTechniciansWithLocationPriority = async (
+  const fetchTechniciansWithLocationPriority = async (
     serviceName: string,
     location: UserLocation,
     page: number = 1
@@ -672,25 +672,14 @@ const ServiceDetails: React.FC = () => {
     try {
       setTechniciansLoading(true);
       const toastId = toast.loading("Finding technicians...");
-
-      console.log("Fetching technicians with location priority:", {
-        serviceName,
-        location: location.addressComponents,
-        coordinates: { lat: location.lat, lng: location.lng },
-        page,
-        limit: pagination.limit
-      });
-
       const response = await LocationService.getNearbyTechnicians({
         lat: location.lat,
         lng: location.lng,
         radius: 50,
         serviceName,
         page,
-        limit: pagination.limit
+        limit: pagination.limit,
       });
-
-      console.log("API Response:", response);
 
       toast.dismiss(toastId);
 
@@ -715,32 +704,27 @@ const ServiceDetails: React.FC = () => {
           currentLocation: item.currentLocation || null,
         }));
 
-        console.log(`Processed ${technicians.length} technicians`);
-        console.log(
-          "Nearby technicians:",
-          technicians.filter((t) => t.isNearby).length
-        );
-
         setTechnicians(technicians);
-        
+
         // Update pagination info
         if (paginationData) {
           setPagination({
             page: paginationData.page || page,
             limit: paginationData.limit || pagination.limit,
             total: paginationData.total || technicians.length,
-            pages: paginationData.pages || Math.ceil((paginationData.total || technicians.length) / (paginationData.limit || pagination.limit)),
+            pages:
+              paginationData.pages ||
+              Math.ceil(
+                (paginationData.total || technicians.length) /
+                  (paginationData.limit || pagination.limit)
+              ),
             hasNext: paginationData.hasNext || false,
             hasPrev: paginationData.hasPrev || page > 1,
           });
         }
-        
+
         setHasFetchedWithLocation(true);
-        
       } else {
-        console.log(
-          "No technicians found with location, falling back to general fetch"
-        );
         await fetchTechniciansForService(serviceName, page);
         toast.success(`Showing all technicians for ${serviceName}`);
       }
@@ -754,114 +738,107 @@ const ServiceDetails: React.FC = () => {
   };
 
   // Original method to fetch technicians
-  // Updated method to fetch technicians with better error handling
-const fetchTechniciansForService = async (
-  serviceName: string,
-  page: number = 1
-): Promise<void> => {
-  try {
-    setTechniciansLoading(true);
+  const fetchTechniciansForService = async (
+    serviceName: string,
+    page: number = 1
+  ): Promise<void> => {
+    try {
+      setTechniciansLoading(true);
 
-    const serviceNameMap: Record<string, string> = {
-      "Refrigerator": "Refrigerator",
-      "AC Repair": "AC Repair",
-      "AC Installation": "AC Installation",
-      "Washing Machine": "Washing Machine",
-      "TV Repair": "TV Repair",
-      "Water Purifier": "Water Purifier",
-      "Geyser/Water Heater": "Geyser/Water Heater",
-      "Fan Repair": "Fan Repair",
-      "Microwave Oven": "Microwave Oven",
-      Plumbing: "Plumbing",
-      Electrical: "Electrical",
-    };
+      const serviceNameMap: Record<string, string> = {
+        Refrigerator: "Refrigerator",
+        "AC Repair": "AC Repair",
+        "AC Installation": "AC Installation",
+        "Washing Machine": "Washing Machine",
+        "TV Repair": "TV Repair",
+        "Water Purifier": "Water Purifier",
+        "Geyser/Water Heater": "Geyser/Water Heater",
+        "Fan Repair": "Fan Repair",
+        "Microwave Oven": "Microwave Oven",
+        Plumbing: "Plumbing",
+        Electrical: "Electrical",
+      };
 
-    const mappedServiceName = serviceNameMap[serviceName] || serviceName;
-    
-    console.log("Fetching technicians for service:", {
-      serviceName,
-      mappedServiceName,
-      page,
-      limit: pagination.limit
-    });
+      const mappedServiceName = serviceNameMap[serviceName] || serviceName;
 
-    const response = await TechnicianMangementService.getPublicTechnicians({
-      service: mappedServiceName,
-      page,
-      limit: pagination.limit,
-      search: locationSearch || undefined,
-      location: locationSearch || undefined,
-    });
+      const response = await TechnicianMangementService.getPublicTechnicians({
+        service: mappedServiceName,
+        page,
+        limit: pagination.limit,
+        search: locationSearch || undefined,
+        location: locationSearch || undefined,
+      });
 
-    console.log("API Response:", response);
 
-    // Handle different response structures
-    if (response && response.data) {
-      // Handle nested data structure (response.data.data)
-      const responseData = response.data.data || response.data;
-      const technicians: Technician[] = responseData?.technicians || [];
-      const paginationData = responseData?.pagination;
+      // Handle different response structures
+      if (response && response.data) {
+        // Handle nested data structure (response.data.data)
+        const responseData = response.data.data || response.data;
+        const technicians: Technician[] = responseData?.technicians || [];
+        const paginationData = responseData?.pagination;
 
-      console.log("Processed technicians:", technicians.length);
-      console.log("Pagination data:", paginationData);
+        setTechnicians(technicians);
 
-      setTechnicians(technicians);
-      
-      // Update pagination info
-      if (paginationData) {
-        setPagination({
-          page: paginationData.page || page,
-          limit: paginationData.limit || pagination.limit,
-          total: paginationData.total || technicians.length,
-          pages: paginationData.pages || Math.ceil((paginationData.total || technicians.length) / (paginationData.limit || pagination.limit)),
-          hasNext: paginationData.hasNext || false,
-          hasPrev: paginationData.hasPrev || page > 1,
-        });
+        // Update pagination info
+        if (paginationData) {
+          setPagination({
+            page: paginationData.page || page,
+            limit: paginationData.limit || pagination.limit,
+            total: paginationData.total || technicians.length,
+            pages:
+              paginationData.pages ||
+              Math.ceil(
+                (paginationData.total || technicians.length) /
+                  (paginationData.limit || pagination.limit)
+              ),
+            hasNext: paginationData.hasNext || false,
+            hasPrev: paginationData.hasPrev || page > 1,
+          });
+        } else {
+          // Default pagination if no pagination data
+          setPagination((prev) => ({
+            ...prev,
+            page,
+            total: technicians.length,
+            pages: Math.ceil(technicians.length / prev.limit),
+            hasNext: page < Math.ceil(technicians.length / prev.limit),
+            hasPrev: page > 1,
+          }));
+        }
       } else {
-        // Default pagination if no pagination data
-        setPagination(prev => ({
+        console.warn("No valid response data structure");
+        setTechnicians([]);
+        setPagination((prev) => ({
           ...prev,
           page,
-          total: technicians.length,
-          pages: Math.ceil(technicians.length / prev.limit),
-          hasNext: page < Math.ceil(technicians.length / prev.limit),
-          hasPrev: page > 1,
+          total: 0,
+          pages: 0,
+          hasNext: false,
+          hasPrev: false,
         }));
       }
-    } else {
-      console.warn("No valid response data structure");
+    } catch (error: any) {
+      console.error("ERROR DETAILS:", error);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+
       setTechnicians([]);
-      setPagination(prev => ({ 
-        ...prev, 
-        page, 
-        total: 0, 
-        pages: 0, 
-        hasNext: false, 
-        hasPrev: false 
+      setPagination((prev) => ({
+        ...prev,
+        page,
+        total: 0,
+        pages: 0,
+        hasNext: false,
+        hasPrev: false,
       }));
+
+      toast.error("Failed to load technicians. Please try again.");
+    } finally {
+      setTechniciansLoading(false);
     }
-  } catch (error: any) {
-    console.error("ERROR DETAILS:", error);
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
-    
-    setTechnicians([]);
-    setPagination(prev => ({ 
-      ...prev, 
-      page, 
-      total: 0, 
-      pages: 0, 
-      hasNext: false, 
-      hasPrev: false 
-    }));
-    
-    toast.error("Failed to load technicians. Please try again.");
-  } finally {
-    setTechniciansLoading(false);
-  }
-};
+  };
   // Sort technicians locally
-   const sortTechnicians = (
+  const sortTechnicians = (
     techs: Technician[],
     sortBy: string
   ): Technician[] => {
@@ -893,13 +870,17 @@ const fetchTechniciansForService = async (
   useEffect(() => {
     if (service && locationSearch.trim() !== "") {
       const searchTechnicians = async () => {
-        setPagination(prev => ({ ...prev, page: 1 }));
+        setPagination((prev) => ({ ...prev, page: 1 }));
         await fetchTechniciansForService(service.name, 1);
       };
-      
+
       const timeoutId = setTimeout(searchTechnicians, 500);
       return () => clearTimeout(timeoutId);
-    } else if (service && locationSearch.trim() === "" && pagination.page === 1) {
+    } else if (
+      service &&
+      locationSearch.trim() === "" &&
+      pagination.page === 1
+    ) {
       // Only refetch if we're on page 1 and search is cleared
       fetchTechniciansForService(service.name, 1);
     }
@@ -934,14 +915,17 @@ const fetchTechniciansForService = async (
     };
   };
 
-  const handleViewTechnicianProfile = (technicianId: string, serviceName: string): void => {
-  navigate(`/technicians/${technicianId}`, {
-    state: {
-      serviceName: serviceName,
-      fromService: true
-    }
-  });
-};
+  const handleViewTechnicianProfile = (
+    technicianId: string,
+    serviceName: string
+  ): void => {
+    navigate(`/technicians/${technicianId}`, {
+      state: {
+        serviceName: serviceName,
+        fromService: true,
+      },
+    });
+  };
 
   const showLocationCTA = isLoggedIn && !userLocation;
 
@@ -960,14 +944,17 @@ const fetchTechniciansForService = async (
 
     const pageNumbers = [];
     const maxVisiblePages = 5;
-    
-    let startPage = Math.max(1, pagination.page - Math.floor(maxVisiblePages / 2));
+
+    let startPage = Math.max(
+      1,
+      pagination.page - Math.floor(maxVisiblePages / 2)
+    );
     const endPage = Math.min(pagination.pages, startPage + maxVisiblePages - 1);
-    
+
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(i);
     }
@@ -976,9 +963,10 @@ const fetchTechniciansForService = async (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
         <div className="text-sm text-gray-600">
           Showing {technicians.length} of {pagination.total} technicians
-          {pagination.pages > 1 && ` (Page ${pagination.page} of ${pagination.pages})`}
+          {pagination.pages > 1 &&
+            ` (Page ${pagination.page} of ${pagination.pages})`}
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Previous Button */}
           <button
@@ -1033,9 +1021,13 @@ const fetchTechniciansForService = async (
             value={pagination.limit}
             onChange={(e) => {
               const newLimit = Number(e.target.value);
-              setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
+              setPagination((prev) => ({ ...prev, limit: newLimit, page: 1 }));
               if (userLocation && sortBy === "nearby") {
-                fetchTechniciansWithLocationPriority(service?.name || "", userLocation, 1);
+                fetchTechniciansWithLocationPriority(
+                  service?.name || "",
+                  userLocation,
+                  1
+                );
               } else {
                 fetchTechniciansForService(service?.name || "", 1);
               }
@@ -1052,7 +1044,6 @@ const fetchTechniciansForService = async (
       </div>
     );
   };
-
 
   // Loading state
   if (loading) {
@@ -1468,108 +1459,110 @@ const fetchTechniciansForService = async (
               </div>
             ) : filteredTechnicians.length > 0 ? (
               <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredTechnicians.map((tech) => {
-                  if (!tech || !tech._id) {
-                    console.warn("Invalid technician data:", tech);
-                    return null;
-                  }
-                  const displayData = getTechnicianDisplayData(tech);
-                  return (
-                    <div
-                      key={tech._id}
-                      className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                          {displayData.profilePhoto ? (
-                            <img
-                              src={displayData.profilePhoto}
-                              alt={displayData.name}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-xl font-semibold text-gray-600">
-                              {displayData.name.charAt(0)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">
-                            {displayData.name}
-                          </h3>
-                          {tech.distance && (
-                            <div className="flex items-center gap-2 text-sm text-green-600">
-                              <GpsFixedOutlined className="w-4 h-4" />
-                              <span className="font-medium">
-                                {tech.distance < 1000
-                                  ? `${Math.round(tech.distance)}m away`
-                                  : `${(tech.distance / 1000).toFixed(
-                                      1
-                                    )}km away`}
-                              </span>
-                            </div>
-                          )}
-                          {tech.isNearby && !tech.distance && (
-                            <div className="flex items-center gap-2 text-sm text-green-600">
-                              <GpsFixedOutlined className="w-4 h-4" />
-                              <span className="font-medium">
-                                Nearby Technician
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1">
-                            <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium text-gray-900">
-                              {displayData.rating.toFixed(1)}
-                            </span>
-                            <span className="text-sm text-gray-500">
-                              ({tech.ratingCount || 0} reviews)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <LocationOnOutlined className="w-4 h-4 text-blue-600" />
-                          <span className="font-medium">
-                            {displayData.shortAddress}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <EmojiEventsOutlined className="w-4 h-4 text-blue-600" />
-                          <span>Experience: {displayData.experience}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <BuildOutlined className="w-4 h-4 text-blue-600" />
-                          <span>
-                            Specialization: {displayData.specialization}
-                          </span>
-                        </div>
-                        {tech.workAreas && tech.workAreas.length > 0 && (
-                          <div className="flex items-start gap-2 text-sm text-gray-600">
-                            <span className="mt-0.5">
-                              <MiscellaneousServicesOutlined className="w-4 h-4 text-blue-600" />
-                            </span>
-                            <span>
-                              Areas: {tech.workAreas.slice(0, 3).join(", ")}
-                              {tech.workAreas.length > 3 && "..."}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleViewTechnicianProfile(tech._id, service.name)}
-                        className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredTechnicians.map((tech) => {
+                    if (!tech || !tech._id) {
+                      console.warn("Invalid technician data:", tech);
+                      return null;
+                    }
+                    const displayData = getTechnicianDisplayData(tech);
+                    return (
+                      <div
+                        key={tech._id}
+                        className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
                       >
-                        View Profile
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-               <PaginationControls />
-               </>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                            {displayData.profilePhoto ? (
+                              <img
+                                src={displayData.profilePhoto}
+                                alt={displayData.name}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-xl font-semibold text-gray-600">
+                                {displayData.name.charAt(0)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">
+                              {displayData.name}
+                            </h3>
+                            {tech.distance && (
+                              <div className="flex items-center gap-2 text-sm text-green-600">
+                                <GpsFixedOutlined className="w-4 h-4" />
+                                <span className="font-medium">
+                                  {tech.distance < 1000
+                                    ? `${Math.round(tech.distance)}m away`
+                                    : `${(tech.distance / 1000).toFixed(
+                                        1
+                                      )}km away`}
+                                </span>
+                              </div>
+                            )}
+                            {tech.isNearby && !tech.distance && (
+                              <div className="flex items-center gap-2 text-sm text-green-600">
+                                <GpsFixedOutlined className="w-4 h-4" />
+                                <span className="font-medium">
+                                  Nearby Technician
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              <span className="text-sm font-medium text-gray-900">
+                                {displayData.rating.toFixed(1)}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                ({tech.ratingCount || 0} reviews)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <LocationOnOutlined className="w-4 h-4 text-blue-600" />
+                            <span className="font-medium">
+                              {displayData.shortAddress}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <EmojiEventsOutlined className="w-4 h-4 text-blue-600" />
+                            <span>Experience: {displayData.experience}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <BuildOutlined className="w-4 h-4 text-blue-600" />
+                            <span>
+                              Specialization: {displayData.specialization}
+                            </span>
+                          </div>
+                          {tech.workAreas && tech.workAreas.length > 0 && (
+                            <div className="flex items-start gap-2 text-sm text-gray-600">
+                              <span className="mt-0.5">
+                                <MiscellaneousServicesOutlined className="w-4 h-4 text-blue-600" />
+                              </span>
+                              <span>
+                                Areas: {tech.workAreas.slice(0, 3).join(", ")}
+                                {tech.workAreas.length > 3 && "..."}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() =>
+                            handleViewTechnicianProfile(tech._id, service.name)
+                          }
+                          className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+                        >
+                          View Profile
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <PaginationControls />
+              </>
             ) : (
               <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
                 <BuildOutlined className="w-12 h-12 text-gray-400 mx-auto mb-4" />

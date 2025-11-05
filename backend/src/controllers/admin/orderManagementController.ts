@@ -19,22 +19,27 @@ export class OrderManagementController {
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
     const status = req.query.status as string;
-    
+
     const context = {
-      operation: 'getOrders',
+      operation: "getOrders",
       page,
       limit,
       search,
       status,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching orders', context);
+      this.logger.info("Fetching orders", context);
 
-      const result = await this.orderService.getOrders(page, limit, search, status);
-      
-      this.logger.info('Orders retrieved successfully', {
+      const result = await this.orderService.getOrders(
+        page,
+        limit,
+        search,
+        status
+      );
+
+      this.logger.info("Orders retrieved successfully", {
         ...context,
         totalOrders: result.total,
       });
@@ -46,12 +51,12 @@ export class OrderManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ORDER_MESSAGES.FAILED_FETCH_ORDERS;
-      this.logger.error('Get orders controller error', {
+      this.logger.error("Get orders controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -60,19 +65,19 @@ export class OrderManagementController {
   getOrderById = async (req: Request, res: Response): Promise<void> => {
     const { orderId } = req.params;
     const context = {
-      operation: 'getOrderById',
+      operation: "getOrderById",
       orderId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching order by ID', context);
+      this.logger.info("Fetching order by ID", context);
 
       const order = await this.orderService.getOrderById(orderId);
-      
-      this.logger.info('Order retrieved successfully', {
+
+      this.logger.info("Order retrieved successfully", {
         ...context,
-        orderCode: order.orderCode
+        orderCode: order.orderCode,
       });
 
       const response = ResponseHelper.success(ORDER_MESSAGES.ORDER_RETRIEVED, {
@@ -81,12 +86,12 @@ export class OrderManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ORDER_MESSAGES.ORDER_NOT_FOUND;
-      this.logger.error('Get order by ID controller error', {
+      this.logger.error("Get order by ID controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -94,30 +99,29 @@ export class OrderManagementController {
 
   getOrderStats = async (req: Request, res: Response): Promise<void> => {
     const context = {
-      operation: 'getOrderStats',
-      timestamp: new Date().toISOString()
+      operation: "getOrderStats",
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching order statistics', context);
+      this.logger.info("Fetching order statistics", context);
 
       const stats = await this.orderService.getOrderStats();
-      
-      this.logger.info('Order statistics retrieved successfully', context);
 
-      const response = ResponseHelper.success(
-        ORDER_MESSAGES.STATS_RETRIEVED,
-        { stats }
-      );
+      this.logger.info("Order statistics retrieved successfully", context);
+
+      const response = ResponseHelper.success(ORDER_MESSAGES.STATS_RETRIEVED, {
+        stats,
+      });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ORDER_MESSAGES.FAILED_FETCH_STATS;
-      this.logger.error('Get order stats controller error', {
+      this.logger.error("Get order stats controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }
@@ -126,41 +130,58 @@ export class OrderManagementController {
   updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
     const { orderId } = req.params;
     const updateDto: UpdateOrderStatusDto = req.body;
-    
+
     const context = {
-      operation: 'updateOrderStatus',
+      operation: "updateOrderStatus",
       orderId,
       newStatus: updateDto.status,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Updating order status', context);
+      this.logger.info("Updating order status", context);
 
       // Validation
       if (!updateDto.status) {
-        this.logger.warn('Order status update failed - status required', context);
-        const response = ResponseHelper.badRequest(ORDER_MESSAGES.STATUS_REQUIRED);
+        this.logger.warn(
+          "Order status update failed - status required",
+          context
+        );
+        const response = ResponseHelper.badRequest(
+          ORDER_MESSAGES.STATUS_REQUIRED
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
-      const validStatuses = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'refunded'];
+      const validStatuses = [
+        "pending",
+        "confirmed",
+        "in_progress",
+        "completed",
+        "cancelled",
+        "refunded",
+      ];
       if (!validStatuses.includes(updateDto.status)) {
-        this.logger.warn('Order status update failed - invalid status', {
+        this.logger.warn("Order status update failed - invalid status", {
           ...context,
-          providedStatus: updateDto.status
+          providedStatus: updateDto.status,
         });
-        const response = ResponseHelper.badRequest(ORDER_MESSAGES.INVALID_STATUS);
+        const response = ResponseHelper.badRequest(
+          ORDER_MESSAGES.INVALID_STATUS
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
-      const order = await this.orderService.updateOrderStatus(orderId, updateDto);
-      
-      this.logger.info('Order status updated successfully', {
+      const order = await this.orderService.updateOrderStatus(
+        orderId,
+        updateDto
+      );
+
+      this.logger.info("Order status updated successfully", {
         ...context,
-        orderCode: order.orderCode
+        orderCode: order.orderCode,
       });
 
       const response = ResponseHelper.success(ORDER_MESSAGES.STATUS_UPDATED, {
@@ -169,12 +190,12 @@ export class OrderManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ORDER_MESSAGES.FAILED_UPDATE_STATUS;
-      this.logger.error('Update order status controller error', {
+      this.logger.error("Update order status controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const response = ResponseHelper.error(errorMessage);
       res.status(response.statusCode).json(response);
     }

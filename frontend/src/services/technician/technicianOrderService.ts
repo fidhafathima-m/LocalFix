@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// services/technician/technicianOrderService.ts
 import type {
   TechnicianOrder,
   TechnicianOrderListResponse,
@@ -11,8 +10,6 @@ import apiClient from "../../utils/axiosConfig";
 import toast from "react-hot-toast";
 
 class TechnicianOrderService {
-  // In technicianOrderService.ts - simpler regex approach
-  // In technicianOrderService.ts - update the parsing to include fullName
   async getTechnicianOrders(
     page: number = 1,
     limit: number = 10
@@ -21,8 +18,6 @@ class TechnicianOrderService {
       const response = await apiClient.get<TechnicianOrderListResponse>(
         TECHNICIAN_ROUTES.ORDER.GET_TECHNICIAN_ORDERS(page, limit)
       );
-
-      console.log("RAW API RESPONSE:", JSON.stringify(response.data, null, 2));
 
       if (response.data.success) {
         // Parse stringified userId in each order
@@ -40,7 +35,7 @@ class TechnicianOrderService {
               if (phoneMatch || emailMatch) {
                 order.userId = {
                   _id: idMatch ? idMatch[1] : "",
-                  fullName: fullNameMatch ? fullNameMatch[1] : "Customer", // Use fullName if available
+                  fullName: fullNameMatch ? fullNameMatch[1] : "Customer",
                   email: emailMatch ? emailMatch[1] : "",
                   phone: phoneMatch ? phoneMatch[1] : "",
                 };
@@ -134,12 +129,11 @@ class TechnicianOrderService {
       console.error("Error fetching technician stats:", error);
       const errorMessage =
         error.response?.data?.message || "Failed to fetch stats";
-      // Don't show toast for stats errors as it might be too frequent
       throw new Error(errorMessage);
     }
   }
 
-  // Optional: Get orders by status
+  // Get orders by status
   async getOrdersByStatus(
     status: string,
     page: number = 1,

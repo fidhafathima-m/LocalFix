@@ -27,30 +27,30 @@ export class TechnicianApplicationController {
   startApplication = async (req: Request, res: Response): Promise<void> => {
     const requestData: StartApplicationRequestDto = req.body;
     const context = {
-      operation: 'startApplication',
+      operation: "startApplication",
       userEmail: requestData.email,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Starting new technician application', context);
+      this.logger.info("Starting new technician application", context);
 
       const result: ApplicationResponseDto =
         await this.applicationService.startApplication(requestData);
-      
-      this.logger.info('Application started successfully', {
+
+      this.logger.info("Application started successfully", {
         ...context,
         applicationId: result.data?.application?._id,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error('Start application controller error', {
+      this.logger.error("Start application controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -60,34 +60,34 @@ export class TechnicianApplicationController {
     const requestData: SaveStepRequestDto = req.body;
     const userId = req.user?.id;
     const files: FilesCollectionDto = this.convertExpressFiles(req.files);
-    
+
     const context = {
-      operation: 'saveStep',
+      operation: "saveStep",
       userId,
       applicationId: requestData.applicationId,
       step: requestData.step,
       fileCount: this.countFiles(files),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Saving application step', context);
+      this.logger.info("Saving application step", context);
 
       const result: ApplicationResponseDto =
         await this.applicationService.saveStep(requestData, files);
-      
-      this.logger.info('Application step saved successfully', {
+
+      this.logger.info("Application step saved successfully", {
         ...context,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error('Save step controller error', {
+      this.logger.error("Save step controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -95,7 +95,7 @@ export class TechnicianApplicationController {
 
   private countFiles(files: FilesCollectionDto): number {
     if (!files) return 0;
-    
+
     let count = 0;
     for (const key in files) {
       if (Array.isArray(files[key])) {
@@ -149,30 +149,30 @@ export class TechnicianApplicationController {
   getApplication = async (req: Request, res: Response): Promise<void> => {
     const { applicationId } = req.params;
     const context = {
-      operation: 'getApplication',
+      operation: "getApplication",
       applicationId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching application', context);
+      this.logger.info("Fetching application", context);
 
       const result: ApplicationResponseDto =
         await this.applicationService.getApplication(applicationId);
-      
-      this.logger.info('Application retrieved successfully', {
+
+      this.logger.info("Application retrieved successfully", {
         ...context,
         status: result.data?.application?.status,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error('Get application controller error', {
+      this.logger.error("Get application controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -184,19 +184,22 @@ export class TechnicianApplicationController {
   ): Promise<void> => {
     const requestData: SubmitApplicationRequestDto = req.body;
     const userId = req.user?.id;
-    
+
     const context = {
-      operation: 'submitApplication',
+      operation: "submitApplication",
       userId,
       applicationId: requestData.applicationId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Submitting application', context);
+      this.logger.info("Submitting application", context);
 
       if (!userId) {
-        this.logger.warn('Submit application failed - authentication required', context);
+        this.logger.warn(
+          "Submit application failed - authentication required",
+          context
+        );
         const unauthorizedResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -209,20 +212,20 @@ export class TechnicianApplicationController {
           requestData.applicationId,
           userId
         );
-      
-      this.logger.info('Application submitted successfully', {
+
+      this.logger.info("Application submitted successfully", {
         ...context,
-        newStatus: result.data?.application?.status
+        newStatus: result.data?.application?.status,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error('Submit application controller error', {
+      this.logger.error("Submit application controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -231,30 +234,30 @@ export class TechnicianApplicationController {
   getApplicationStatus = async (req: Request, res: Response): Promise<void> => {
     const { applicationId } = req.params;
     const context = {
-      operation: 'getApplicationStatus',
+      operation: "getApplicationStatus",
       applicationId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching application status', context);
+      this.logger.info("Fetching application status", context);
 
       const result: ApplicationResponseDto =
         await this.applicationService.getApplicationStatus(applicationId);
-      
-      this.logger.info('Application status retrieved successfully', {
+
+      this.logger.info("Application status retrieved successfully", {
         ...context,
-        status: result.data?.application?.status
+        status: result.data?.application?.status,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error('Get application status controller error', {
+      this.logger.error("Get application status controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -266,16 +269,19 @@ export class TechnicianApplicationController {
   ): Promise<void> => {
     const userId = req.user?.id;
     const context = {
-      operation: 'getUserApplications',
+      operation: "getUserApplications",
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching user applications', context);
+      this.logger.info("Fetching user applications", context);
 
       if (!userId) {
-        this.logger.warn('Get user applications failed - authentication required', context);
+        this.logger.warn(
+          "Get user applications failed - authentication required",
+          context
+        );
         const unauthorizedResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -285,20 +291,20 @@ export class TechnicianApplicationController {
 
       const result: ApplicationListResponseDto =
         await this.applicationService.getUserApplications(userId);
-      
-      this.logger.info('User applications retrieved successfully', {
+
+      this.logger.info("User applications retrieved successfully", {
         ...context,
-        applicationCount: result.data?.applications?.length
+        applicationCount: result.data?.applications?.length,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error('Get user applications controller error', {
+      this.logger.error("Get user applications controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -310,19 +316,22 @@ export class TechnicianApplicationController {
   ): Promise<void> => {
     const { applicationId } = req.params;
     const userId = req.user?.id;
-    
+
     const context = {
-      operation: 'resubmitApplication',
+      operation: "resubmitApplication",
       userId,
       applicationId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Resubmitting application', context);
+      this.logger.info("Resubmitting application", context);
 
       if (!userId) {
-        this.logger.warn('Resubmit application failed - authentication required', context);
+        this.logger.warn(
+          "Resubmit application failed - authentication required",
+          context
+        );
         const unauthorizedResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -335,20 +344,20 @@ export class TechnicianApplicationController {
           applicationId,
           userId
         );
-      
-      this.logger.info('Application resubmitted successfully', {
+
+      this.logger.info("Application resubmitted successfully", {
         ...context,
-        newStatus: result.data?.application?.status
+        newStatus: result.data?.application?.status,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error('Resubmit application controller error', {
+      this.logger.error("Resubmit application controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -360,19 +369,22 @@ export class TechnicianApplicationController {
   ): Promise<void> => {
     const requestData: StartNewAfterRejectionRequestDto = req.body;
     const userId = req.user?.id;
-    
+
     const context = {
-      operation: 'startNewAfterRejection',
+      operation: "startNewAfterRejection",
       userId,
       userEmail: requestData.email,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Starting new application after rejection', context);
+      this.logger.info("Starting new application after rejection", context);
 
       if (!userId || !requestData.email) {
-        this.logger.warn('Start new after rejection failed - missing required fields', context);
+        this.logger.warn(
+          "Start new after rejection failed - missing required fields",
+          context
+        );
         const badRequestResponse = ResponseHelper.badRequest(
           "User ID and email are required"
         );
@@ -385,20 +397,20 @@ export class TechnicianApplicationController {
           userId,
           requestData.email
         );
-      
-      this.logger.info('New application started after rejection successfully', {
+
+      this.logger.info("New application started after rejection successfully", {
         ...context,
-        newApplicationId: result.data?.application?._id
+        newApplicationId: result.data?.application?._id,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error('Start new after rejection controller error', {
+      this.logger.error("Start new after rejection controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -410,19 +422,22 @@ export class TechnicianApplicationController {
   ): Promise<void> => {
     const { applicationId } = req.params;
     const userId = req.user?.id;
-    
+
     const context = {
-      operation: 'getApplicationForEdit',
+      operation: "getApplicationForEdit",
       userId,
       applicationId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
-      this.logger.info('Fetching application for editing', context);
+      this.logger.info("Fetching application for editing", context);
 
       if (!userId) {
-        this.logger.warn('Get application for edit failed - authentication required', context);
+        this.logger.warn(
+          "Get application for edit failed - authentication required",
+          context
+        );
         const unauthorizedResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -435,21 +450,21 @@ export class TechnicianApplicationController {
           applicationId,
           userId
         );
-      
-      this.logger.info('Application for edit retrieved successfully', {
+
+      this.logger.info("Application for edit retrieved successfully", {
         ...context,
         status: result.data?.application?.status,
-        isEditable: result.data?.application?.status === 'draft'
+        isEditable: result.data?.application?.status === "draft",
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error('Get application for edit controller error', {
+      this.logger.error("Get application for edit controller error", {
         ...context,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
-      
+
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }

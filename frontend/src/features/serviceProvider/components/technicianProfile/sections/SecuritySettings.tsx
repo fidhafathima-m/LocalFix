@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
-import { TechnicianService } from "../../../../services/technician/technicianService";
-import { type TechnicianProfile } from "../../../../services/common/technicianApi";
+import { TechnicianService } from "../../../../../services/technician/technicianService";
+import type { TechnicianProfile } from "../../../../../interface/technician/ITechnicianApi";
 
 interface SecuritySettingsData {
   currentPassword: string;

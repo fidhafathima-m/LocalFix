@@ -91,7 +91,6 @@ export const adminAPI = {
       ADMIN_ROUTES.TECHNICIAN_BY_ID(technicianId)
     ),
 
-  // In your adminAPI object, fix the getPublicTechnicians method
   getPublicTechnicians: (filters: {
     service?: string;
     page?: number;
@@ -106,7 +105,6 @@ export const adminAPI = {
     if (filters.search) params.append("search", filters.search);
     if (filters.location) params.append("location", filters.location);
 
-    // Add the missing return statement
     return api.get<ApiResponse<TechniciansResponse>>(
       ADMIN_ROUTES.GET_PUBLIC_TECHNICIAN,
       { params }

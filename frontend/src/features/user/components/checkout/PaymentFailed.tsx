@@ -1,14 +1,14 @@
-import React from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import React from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   HighlightOffOutlined,
   AutorenewOutlined,
   ChatBubbleOutlineOutlined,
   HomeOutlined,
-  ReceiptLongOutlined
-} from '@mui/icons-material'
-import Header from '../../../../components/common/Header'
-import Footer from '../../../../components/common/Footer'
+  ReceiptLongOutlined,
+} from "@mui/icons-material";
+import Header from "../../../../components/common/Header";
+import Footer from "../../../../components/common/Footer";
 
 interface PaymentFailedState {
   bookingId?: string;
@@ -24,23 +24,26 @@ const PaymentFailed: React.FC = () => {
   const handleTryAgain = () => {
     if (state?.bookingId) {
       // Navigate back to checkout with the same booking data
-      navigate('/checkout', { 
-        state: { 
+      navigate("/checkout", {
+        state: {
           retry: true,
-          bookingId: state.bookingId 
-        } 
+          bookingId: state.bookingId,
+        },
       });
     } else {
       // Go back to services page if no specific booking
-      navigate('/services');
+      navigate("/services");
     }
   };
 
   const handleContactSupport = () => {
-    const supportMessage = `Payment Failed - Booking: ${state?.bookingId || 'N/A'} - Error: ${state?.error || 'Unknown error'}`;
-    console.log('Contact support with:', supportMessage);
-    // In a real app, this would open a support chat or form
-    alert('Support team will contact you shortly regarding the payment failure.');
+    const supportMessage = `Payment Failed - Booking: ${
+      state?.bookingId || "N/A"
+    } - Error: ${state?.error || "Unknown error"}`;
+    console.log("Contact support with:", supportMessage);
+    alert(
+      "Support team will contact you shortly regarding the payment failure."
+    );
   };
 
   const getErrorMessage = () => {
@@ -60,9 +63,7 @@ const PaymentFailed: React.FC = () => {
               <HighlightOffOutlined className="w-12 h-12 text-red-600" />
             </div>
             <h1 className="text-3xl font-bold mb-2">Payment Failed</h1>
-            <p className="text-gray-600 mb-2">
-              {getErrorMessage()}
-            </p>
+            <p className="text-gray-600 mb-2">{getErrorMessage()}</p>
             {state?.bookingId && (
               <p className="text-sm text-gray-500">
                 Booking ID: <span className="font-mono">{state.bookingId}</span>
@@ -114,29 +115,30 @@ const PaymentFailed: React.FC = () => {
                 <span className="font-semibold">Your booking is pending</span>
               </div>
               <p className="text-yellow-700 text-sm mt-1">
-                Booking <span className="font-mono">{state.bookingId}</span> was created but payment failed. 
-                Complete the payment to confirm your booking.
+                Booking <span className="font-mono">{state.bookingId}</span> was
+                created but payment failed. Complete the payment to confirm your
+                booking.
               </p>
             </div>
           )}
 
           <div className="space-y-3">
-            <button 
+            <button
               onClick={handleTryAgain}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
             >
               <AutorenewOutlined className="w-5 h-5" />
               Try Again
             </button>
-            
-            <button 
+
+            <button
               onClick={handleContactSupport}
               className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
             >
               <ChatBubbleOutlineOutlined className="w-5 h-5" />
               Contact Support
             </button>
-            
+
             <Link
               to="/"
               className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
@@ -149,7 +151,7 @@ const PaymentFailed: React.FC = () => {
       </main>
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default PaymentFailed
+export default PaymentFailed;

@@ -23,6 +23,6 @@ export interface IUserLocationService {
   findTechniciansNearby(
     userCoordinates: [number, number],
     radiusKm: number,
-    serviceName: string | null,
+    serviceName: string | null
   ): Promise<ServiceResponse<TechnicianWithDistance[]>>;
 }

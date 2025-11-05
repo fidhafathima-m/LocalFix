@@ -1,4 +1,3 @@
-// repositories/booking/BookingRepository.ts
 import TechnicianAvailabilitySchema from "../../models/technician/TechnicianAvailabilitySchema";
 import { IBookingRepository } from "../../interfaces/repository/user/IBookingRepository";
 import Booking, { IBooking } from "../../models/BookingSchema";
@@ -12,45 +11,58 @@ export class BookingRepository implements IBookingRepository {
 
   async findById(bookingId: string): Promise<IBooking | null> {
     return await Booking.findById(bookingId)
-      .populate('userId', 'fullName email phone')
-      .populate('technicianId', 'displayName profilePictureUrl services')
-      .populate('addressId')
+      .populate("userId", "fullName email phone")
+      .populate("technicianId", "displayName profilePictureUrl services")
+      .populate("addressId")
       .exec();
   }
 
-  async findByUserId(userId: string, page: number = 1, limit: number = 10): Promise<{ bookings: IBooking[]; total: number }> {
+  async findByUserId(
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ bookings: IBooking[]; total: number }> {
     const skip = (page - 1) * limit;
-    
+
     const [bookings, total] = await Promise.all([
       Booking.find({ userId: new Types.ObjectId(userId) })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate('technicianId', 'displayName profilePictureUrl')
+        .populate("technicianId", "displayName profilePictureUrl")
         .exec(),
-      Booking.countDocuments({ userId: new Types.ObjectId(userId) })
+      Booking.countDocuments({ userId: new Types.ObjectId(userId) }),
     ]);
 
     return { bookings, total };
   }
 
-  async findByTechnicianId(technicianId: string, page: number = 1, limit: number = 10): Promise<{ bookings: IBooking[]; total: number }> {
+  async findByTechnicianId(
+    technicianId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ bookings: IBooking[]; total: number }> {
     const skip = (page - 1) * limit;
-    
+
     const [bookings, total] = await Promise.all([
       Booking.find({ technicianId: new Types.ObjectId(technicianId) })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate('userId', 'fullName email phone')
+        .populate("userId", "fullName email phone")
         .exec(),
-      Booking.countDocuments({ technicianId: new Types.ObjectId(technicianId) })
+      Booking.countDocuments({
+        technicianId: new Types.ObjectId(technicianId),
+      }),
     ]);
 
     return { bookings, total };
   }
 
-  async update(bookingId: string, updateData: Partial<IBooking>): Promise<IBooking | null> {
+  async update(
+    bookingId: string,
+    updateData: Partial<IBooking>
+  ): Promise<IBooking | null> {
     return await Booking.findByIdAndUpdate(
       new Types.ObjectId(bookingId),
       { $set: updateData },
@@ -58,7 +70,12 @@ export class BookingRepository implements IBookingRepository {
     ).exec();
   }
 
-  async updateStatus(bookingId: string, status: string, updatedBy: string, reason?: string): Promise<IBooking | null> {
+  async updateStatus(
+    bookingId: string,
+    status: string,
+    updatedBy: string,
+    reason?: string
+  ): Promise<IBooking | null> {
     const booking = await Booking.findById(bookingId);
     if (!booking) return null;
 
@@ -76,19 +93,24 @@ export class BookingRepository implements IBookingRepository {
 
   async findByBookingCode(bookingCode: string): Promise<IBooking | null> {
     return await Booking.findOne({ bookingCode })
-      .populate('userId', 'fullName email phone')
-      .populate('technicianId', 'displayName profilePictureUrl services')
-      .populate('addressId')
+      .populate("userId", "fullName email phone")
+      .populate("technicianId", "displayName profilePictureUrl services")
+      .populate("addressId")
       .exec();
   }
 
-  async checkTechnicianAvailability(technicianId: string, date: Date, timeSlot: string): Promise<boolean> {
+  async checkTechnicianAvailability(
+    technicianId: string,
+    date: Date,
+    timeSlot: string
+  ): Promise<boolean> {
     try {
       // Parse the time slot (e.g., "9:00 AM - 6:00 PM")
-      const [requestedStartTime, requestedEndTime] = this.parseTimeSlot(timeSlot);
-      
+      const [requestedStartTime, requestedEndTime] =
+        this.parseTimeSlot(timeSlot);
+
       if (!requestedStartTime || !requestedEndTime) {
-        console.error('Invalid time slot format:', timeSlot);
+        console.error("Invalid time slot format:", timeSlot);
         return false;
       }
 
@@ -97,30 +119,28 @@ export class BookingRepository implements IBookingRepository {
         technicianId: new Types.ObjectId(technicianId),
         date: {
           $gte: new Date(date.setHours(0, 0, 0, 0)),
-          $lte: new Date(date.setHours(23, 59, 59, 999))
-        }
+          $lte: new Date(date.setHours(23, 59, 59, 999)),
+        },
       }).exec();
 
       if (!availability) {
-        console.log('No availability found for technician on this date');
         return false;
       }
 
       // Check if the requested time slot is available
-      const isSlotAvailable = availability.timeSlots.some(slot => {
+      const isSlotAvailable = availability.timeSlots.some((slot) => {
         // Convert slot times to comparable format
         const slotStart = this.parseTimeToMinutes(slot.start);
         const slotEnd = this.parseTimeToMinutes(slot.end);
-        
+
         return (
-          slot.status === 'available' &&
+          slot.status === "available" &&
           requestedStartTime >= slotStart &&
           requestedEndTime <= slotEnd
         );
       });
 
       if (!isSlotAvailable) {
-        console.log('Requested time slot is not available in technician schedule');
         return false;
       }
 
@@ -129,16 +149,15 @@ export class BookingRepository implements IBookingRepository {
         technicianId: new Types.ObjectId(technicianId),
         scheduledAt: {
           $gte: new Date(date.setHours(0, 0, 0, 0)),
-          $lte: new Date(date.setHours(23, 59, 59, 999))
+          $lte: new Date(date.setHours(23, 59, 59, 999)),
         },
         timeSlot: timeSlot,
-        status: { $in: ['pending', 'accepted', 'in_progress', 'on_the_way'] }
+        status: { $in: ["pending", "accepted", "in_progress", "on_the_way"] },
       }).exec();
 
       return !existingBooking;
-
     } catch (error) {
-      console.error('Error checking technician availability:', error);
+      console.error("Error checking technician availability:", error);
       return false;
     }
   }
@@ -146,14 +165,14 @@ export class BookingRepository implements IBookingRepository {
   // Helper method to parse time slot string (e.g., "9:00 AM - 6:00 PM")
   private parseTimeSlot(timeSlot: string): [number, number] | [null, null] {
     try {
-      const [startPart, endPart] = timeSlot.split(' - ');
-      
+      const [startPart, endPart] = timeSlot.split(" - ");
+
       const startMinutes = this.parseTimeStringToMinutes(startPart.trim());
       const endMinutes = this.parseTimeStringToMinutes(endPart.trim());
-      
+
       return [startMinutes, endMinutes];
     } catch (error) {
-      console.error('Error parsing time slot:', error);
+      console.error("Error parsing time slot:", error);
       return [null, null];
     }
   }
@@ -167,68 +186,68 @@ export class BookingRepository implements IBookingRepository {
     }
 
     let [_, hours, minutes, period] = match;
-    
+
     let hourNum = parseInt(hours);
     const minuteNum = parseInt(minutes);
-    
+
     // Convert to 24-hour format
-    if (period.toUpperCase() === 'PM' && hourNum !== 12) {
+    if (period.toUpperCase() === "PM" && hourNum !== 12) {
       hourNum += 12;
-    } else if (period.toUpperCase() === 'AM' && hourNum === 12) {
+    } else if (period.toUpperCase() === "AM" && hourNum === 12) {
       hourNum = 0;
     }
-    
+
     return hourNum * 60 + minuteNum;
   }
 
   // Helper method for simple time format (HH:MM)
   private parseTimeToMinutes(timeStr: string): number {
-    const [hours, minutes] = timeStr.split(':').map(Number);
+    const [hours, minutes] = timeStr.split(":").map(Number);
     return hours * 60 + minutes;
   }
 
-  // Add this method to get booking count for code generation
   async getBookingCount(): Promise<number> {
     return await Booking.countDocuments();
   }
-  // Add to BookingRepository class
-async getTechnicianDetails(technicianId: string): Promise<any> {
-  const Technician = mongoose.model('Technician');
-  return await Technician.findById(technicianId)
-    .select('displayName profilePictureUrl averageRating ratingCount services phone')
-    .exec();
-}
-
-async getAddressDetails(addressId: string): Promise<any> {
-  const UserAddress = mongoose.model('UserAddress');
-  return await UserAddress.findById(addressId).exec();
-}
-
-async getTechnicianLocation(technicianId: string): Promise<{
-  latitude: number;
-  longitude: number;
-  lastUpdated: Date;
-} | null> {
-  // In a real app, this would fetch from a real-time location service
-  // For demo purposes, we'll return mock data
-  try {
-    // Check if there's a real location service available
-    // For now, return mock data when technician is active
-    const technician = await this.getTechnicianDetails(technicianId);
-    
-    if (technician && technician.isActive) {
-      // Return mock location data
-      return {
-        latitude: 26.4499 + (Math.random() - 0.5) * 0.1, // Kanpur area coordinates
-        longitude: 80.3319 + (Math.random() - 0.5) * 0.1,
-        lastUpdated: new Date(),
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error fetching technician location:', error);
-    return null;
+  async getTechnicianDetails(technicianId: string): Promise<any> {
+    const Technician = mongoose.model("Technician");
+    return await Technician.findById(technicianId)
+      .select(
+        "displayName profilePictureUrl averageRating ratingCount services phone"
+      )
+      .exec();
   }
-}
+
+  async getAddressDetails(addressId: string): Promise<any> {
+    const UserAddress = mongoose.model("UserAddress");
+    return await UserAddress.findById(addressId).exec();
+  }
+
+  async getTechnicianLocation(technicianId: string): Promise<{
+    latitude: number;
+    longitude: number;
+    lastUpdated: Date;
+  } | null> {
+    // In a real app, this would fetch from a real-time location service
+    // For demo purposes, return mock data
+    try {
+      // Check if there's a real location service available
+      // For now, return mock data when technician is active
+      const technician = await this.getTechnicianDetails(technicianId);
+
+      if (technician && technician.isActive) {
+        // Return mock location data
+        return {
+          latitude: 26.4499 + (Math.random() - 0.5) * 0.1,
+          longitude: 80.3319 + (Math.random() - 0.5) * 0.1,
+          lastUpdated: new Date(),
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error fetching technician location:", error);
+      return null;
+    }
+  }
 }

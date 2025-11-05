@@ -1,6 +1,5 @@
 import { Types } from "mongoose";
 
-// src/types/technicianTypes.ts
 export type UnifiedTechnician = {
   _id: string | Types.ObjectId;
   userId: string | Types.ObjectId;
@@ -8,8 +7,8 @@ export type UnifiedTechnician = {
   email?: string;
   phone?: string;
   profilePictureUrl?: string;
-  bio: string; // Made required to match both interfaces
-  
+  bio: string;
+
   // Personal Information
   personalInfo?: {
     fullName?: string;
@@ -96,7 +95,14 @@ export type UnifiedTechnician = {
   }>;
 
   // Status & Ratings
-  status: "not-applied" | "draft" | "submitted" | "under_review" | "approved" | "rejected" | "suspended";
+  status:
+    | "not-applied"
+    | "draft"
+    | "submitted"
+    | "under_review"
+    | "approved"
+    | "rejected"
+    | "suspended";
   averageRating?: number;
   ratingCount?: number;
   totalJobs?: number;

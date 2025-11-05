@@ -1,12 +1,18 @@
-import { IUserLocationService, ServiceResponse } from "@/interfaces/services/user/IUserLocationService";
-import { LocationUpdateData, TechnicianWithDistance } from "../interfaces/user/IUserLocation";
+import {
+  IUserLocationService,
+  ServiceResponse,
+} from "@/interfaces/services/user/IUserLocationService";
+import {
+  LocationUpdateData,
+  TechnicianWithDistance,
+} from "../interfaces/user/IUserLocation";
 import { IUserLocation } from "../models/UserLocationSchema";
 import { IUserLocationRepository } from "@/interfaces/repository/user/IUserLocationRepository";
 import { LoggerService } from "./LoggerService";
 
 export class UserLocationService implements IUserLocationService {
   private userLocationRepository: IUserLocationRepository;
-  private logger: LoggerService
+  private logger: LoggerService;
 
   constructor(userLocationRepository: IUserLocationRepository) {
     this.userLocationRepository = userLocationRepository;
@@ -14,83 +20,90 @@ export class UserLocationService implements IUserLocationService {
   }
 
   async updateUserLocation(
-    userId: string, 
+    userId: string,
     locationData: LocationUpdateData
   ): Promise<ServiceResponse<IUserLocation>> {
     const context = {
       operation: "updateUserLocation",
       userId,
       locationData,
-      timestamp: new Date().toString()
-    }
+      timestamp: new Date().toString(),
+    };
     try {
-      this.logger.info("Updating user location", context)
-      const userLocation = await this.userLocationRepository.createOrUpdate(userId, locationData);
+      this.logger.info("Updating user location", context);
+      const userLocation = await this.userLocationRepository.createOrUpdate(
+        userId,
+        locationData
+      );
 
       this.logger.info("Created or updated user location", {
         ...context,
-        data: userLocation
-      })
-      
+        data: userLocation,
+      });
+
       return {
         success: true,
-        data: userLocation
+        data: userLocation,
       };
     } catch (error: any) {
       console.error("Error updating user location:", error);
-      this.logger.error('Failed to update user location', {
+      this.logger.error("Failed to update user location", {
         ...context,
         error: error,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
-  async getUserLocation(userId: string): Promise<ServiceResponse<IUserLocation>> {
+  async getUserLocation(
+    userId: string
+  ): Promise<ServiceResponse<IUserLocation>> {
     const context = {
       operation: "getUserLocation",
       userId,
-      timestamp: new Date().toString()
-    }
+      timestamp: new Date().toString(),
+    };
     try {
-      this.logger.info("Updating user location", context)
+      this.logger.info("Updating user location", context);
 
-      const userLocation = await this.userLocationRepository.findOneByUserId(userId);
-      
+      const userLocation = await this.userLocationRepository.findOneByUserId(
+        userId
+      );
+
       if (!userLocation) {
         this.logger.warn("Location not found", {
           ...context,
-          userLocation
-        })
+          userLocation,
+        });
         return {
           success: false,
-          error: "Location not found"
+          error: "Location not found",
         };
       }
 
       this.logger.info("User location found", {
         ...context,
-        data: userLocation
-      })
+        data: userLocation,
+      });
 
       return {
         success: true,
-        data: userLocation
+        data: userLocation,
       };
     } catch (error: any) {
       console.error("Error getting user location:", error);
-      this.logger.error('Failed to get user location', {
+      this.logger.error("Failed to get user location", {
         ...context,
         error: error,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -99,76 +112,77 @@ export class UserLocationService implements IUserLocationService {
     const context = {
       operation: "deleteUserLocation",
       userId,
-      timestamp: new Date().toString()
-    }
+      timestamp: new Date().toString(),
+    };
     try {
-            this.logger.info("deleting user location", context)
+      this.logger.info("deleting user location", context);
 
       await this.userLocationRepository.deleteByUserId(userId);
 
-      this.logger.info("User location deleted", context)
-      
+      this.logger.info("User location deleted", context);
+
       return {
         success: true,
-        message: "User location deleted successfully"
+        message: "User location deleted successfully",
       };
     } catch (error: any) {
       console.error("Error deleting user location:", error);
-      this.logger.error('Failed to delete user location', {
+      this.logger.error("Failed to delete user location", {
         ...context,
         error: error,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
   async findTechniciansNearby(
-  userCoordinates: [number, number],
-  radiusKm: number = 10,
-  serviceName: string | null = null
-): Promise<ServiceResponse<TechnicianWithDistance[]>> {
-  const context = {
-    operation: "findTechniciansNearby",
-    userCoordinates,
-    radiusKm,
-    serviceName,
-    timestamp: new Date().toString()
-  }
-  try {
-    this.logger.info("Finding technicaians nearby", context)
-    const radiusInMeters = radiusKm * 1000;
-    const nearbyTechnicians = await this.userLocationRepository.findNearbyTechnicians(
+    userCoordinates: [number, number],
+    radiusKm: number = 10,
+    serviceName: string | null = null
+  ): Promise<ServiceResponse<TechnicianWithDistance[]>> {
+    const context = {
+      operation: "findTechniciansNearby",
       userCoordinates,
-      radiusInMeters,
-      serviceName || undefined
-    );
-
-    this.logger.info("Nearby techncins found", {
-      ...context,
-      data: nearbyTechnicians,
-      count: nearbyTechnicians.length
-    })
-
-    return {
-      success: true,
-      data: nearbyTechnicians,
-      count: nearbyTechnicians.length
+      radiusKm,
+      serviceName,
+      timestamp: new Date().toString(),
     };
-  } catch (error: any) {
-    console.error("Error finding nearby technicians:", error);
-    this.logger.error('Failed to find nearby technicins', {
+    try {
+      this.logger.info("Finding technicaians nearby", context);
+      const radiusInMeters = radiusKm * 1000;
+      const nearbyTechnicians =
+        await this.userLocationRepository.findNearbyTechnicians(
+          userCoordinates,
+          radiusInMeters,
+          serviceName || undefined
+        );
+
+      this.logger.info("Nearby techncins found", {
+        ...context,
+        data: nearbyTechnicians,
+        count: nearbyTechnicians.length,
+      });
+
+      return {
+        success: true,
+        data: nearbyTechnicians,
+        count: nearbyTechnicians.length,
+      };
+    } catch (error: any) {
+      console.error("Error finding nearby technicians:", error);
+      this.logger.error("Failed to find nearby technicins", {
         ...context,
         error: error,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
-    return {
-      success: false,
-      error: error.message
-    };
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
-}
 }

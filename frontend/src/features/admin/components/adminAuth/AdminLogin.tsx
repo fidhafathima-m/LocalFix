@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import BaseLogin from "../../../../components/reusable/BaseLogin";
 import { validateSchema, loginSchema } from "../../../../validation";
 import { AdminAuthService } from "../../../../services/admin/AdminAuthService";
-import type { LoginCredentials } from "../../../../services/common/authApi";
+import type { LoginCredentials } from "../../../../interface/user/IAuth";
 
 
 interface LoginResponse {

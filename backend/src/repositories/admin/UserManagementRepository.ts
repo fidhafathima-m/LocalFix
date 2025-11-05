@@ -7,7 +7,7 @@ import {
 } from "../../interfaces/admin/IUserManagements";
 import User from "../../models/UserSchema";
 import UserAddress, { IUserAddress } from "../../models/UserAddressSchema";
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
 
 export class UserManagementRepository
   extends BaseRepository<IUser>
@@ -20,24 +20,19 @@ export class UserManagementRepository
     this.userAddressModel = UserAddress as Model<any>;
   }
 
-  // In your UserManagementRepository
-async findUserAddresses(userId: string): Promise<IUserAddress[]> {
-  try {
-    console.log("🔍 Searching for addresses for user ID:", userId);
-    
-    const addresses = await UserAddress.find({ 
-      userId: new Types.ObjectId(userId) 
-    }).exec();
-    
-    console.log("🔍 Found addresses:", addresses);
-    console.log("🔍 Number of addresses found:", addresses.length);
-    
-    return addresses;
-  } catch (error) {
-    console.error("Error finding user addresses:", error);
-    return [];
+  async findUserAddresses(userId: string): Promise<IUserAddress[]> {
+    try {
+
+      const addresses = await UserAddress.find({
+        userId: new Types.ObjectId(userId),
+      }).exec();
+
+      return addresses;
+    } catch (error) {
+      console.error("Error finding user addresses:", error);
+      return [];
+    }
   }
-}
 
   async findAllUsers(): Promise<IUserWithAddress[]> {
     return this.model.aggregate([
@@ -121,8 +116,8 @@ async findUserAddresses(userId: string): Promise<IUserAddress[]> {
   }
   async verifyPassword(userId: string, password: string): Promise<boolean> {
     try {
-      const user = await this.model.findById(userId).select('+passwordHash');
-      
+      const user = await this.model.findById(userId).select("+passwordHash");
+
       if (!user || !user.passwordHash) {
         return false;
       }
@@ -136,7 +131,10 @@ async findUserAddresses(userId: string): Promise<IUserAddress[]> {
     }
   }
 
-  async updatePassword(userId: string, newPassword: string): Promise<IUser | null> {
+  async updatePassword(
+    userId: string,
+    newPassword: string
+  ): Promise<IUser | null> {
     try {
       // Hash the new password
       const saltRounds = 10;
@@ -145,11 +143,11 @@ async findUserAddresses(userId: string): Promise<IUserAddress[]> {
       // Update the user's password
       const updatedUser = await this.model.findByIdAndUpdate(
         userId,
-        { 
-          $set: { 
+        {
+          $set: {
             passwordHash: hashedPassword,
-            updatedAt: new Date()
-          } 
+            updatedAt: new Date(),
+          },
         },
         { new: true }
       );
@@ -160,5 +158,4 @@ async findUserAddresses(userId: string): Promise<IUserAddress[]> {
       return null;
     }
   }
-
 }

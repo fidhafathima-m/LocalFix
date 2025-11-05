@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
+import {
+  Dialog,
+  DialogBackdrop,
+  DialogPanel,
+  DialogTitle,
+} from "@headlessui/react";
 import { CloseOutlined } from "@mui/icons-material";
 import { OSMLocationPicker } from "../../../components/common/OSMLocationPicker";
 
@@ -62,11 +67,11 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
     };
   }) => {
     setMapSelected(true);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       location: {
         type: "Point",
-        coordinates: [location.lng, location.lat], // Note: MongoDB uses [lng, lat]
+        coordinates: [location.lng, location.lat],
       },
       formattedAddress: location.address,
       street: location.addressComponents.street || prev.street,
@@ -77,8 +82,11 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
     }));
   };
 
-  const handleInputChange = (field: keyof AddressFormData, value: string | boolean) => {
-    setFormData(prev => ({
+  const handleInputChange = (
+    field: keyof AddressFormData,
+    value: string | boolean
+  ) => {
+    setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
@@ -86,9 +94,14 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate required fields
-    if (!formData.street || !formData.city || !formData.state || !formData.pincode) {
+    if (
+      !formData.street ||
+      !formData.city ||
+      !formData.state ||
+      !formData.pincode
+    ) {
       alert("Please fill in all required address fields");
       return;
     }
@@ -127,13 +140,16 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
   return (
     <Dialog open={isOpen} onClose={handleClose} className="relative z-50">
       <DialogBackdrop className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-      
+
       <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
         <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
           <DialogPanel className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl">
             <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
               <div className="flex items-center justify-between mb-4">
-                <DialogTitle as="h3" className="text-lg font-semibold leading-6 text-gray-900">
+                <DialogTitle
+                  as="h3"
+                  className="text-lg font-semibold leading-6 text-gray-900"
+                >
                   Add New Address
                 </DialogTitle>
                 <button
@@ -147,7 +163,6 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Side - Map */}
                 <div className="space-y-4">
-                  
                   <OSMLocationPicker
                     onLocationSelect={handleLocationSelect}
                     className="h-full"
@@ -156,8 +171,12 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                   {/* Address Preview */}
                   {formData.formattedAddress && (
                     <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-gray-700 mb-1">Full Address Preview:</p>
-                      <p className="text-sm text-gray-600">{formData.formattedAddress}</p>
+                      <p className="text-sm font-medium text-gray-700 mb-1">
+                        Full Address Preview:
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {formData.formattedAddress}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -174,7 +193,9 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         </label>
                         <select
                           value={formData.label}
-                          onChange={(e) => handleInputChange("label", e.target.value)}
+                          onChange={(e) =>
+                            handleInputChange("label", e.target.value)
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="Home">Home</option>
@@ -191,7 +212,9 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         <input
                           type="text"
                           value={formData.street}
-                          onChange={(e) => handleInputChange("street", e.target.value)}
+                          onChange={(e) =>
+                            handleInputChange("street", e.target.value)
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Enter street address"
                           required
@@ -207,7 +230,9 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <input
                             type="text"
                             value={formData.city}
-                            onChange={(e) => handleInputChange("city", e.target.value)}
+                            onChange={(e) =>
+                              handleInputChange("city", e.target.value)
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter city"
                             required
@@ -222,7 +247,9 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <input
                             type="text"
                             value={formData.state}
-                            onChange={(e) => handleInputChange("state", e.target.value)}
+                            onChange={(e) =>
+                              handleInputChange("state", e.target.value)
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter state"
                             required
@@ -239,7 +266,9 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <input
                             type="text"
                             value={formData.pincode}
-                            onChange={(e) => handleInputChange("pincode", e.target.value)}
+                            onChange={(e) =>
+                              handleInputChange("pincode", e.target.value)
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter pincode"
                             required
@@ -254,7 +283,9 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           <input
                             type="text"
                             value={formData.landmark}
-                            onChange={(e) => handleInputChange("landmark", e.target.value)}
+                            onChange={(e) =>
+                              handleInputChange("landmark", e.target.value)
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter nearby landmark"
                           />
@@ -267,10 +298,15 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                           type="checkbox"
                           id="defaultAddress"
                           checked={formData.isDefault}
-                          onChange={(e) => handleInputChange("isDefault", e.target.checked)}
+                          onChange={(e) =>
+                            handleInputChange("isDefault", e.target.checked)
+                          }
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
-                        <label htmlFor="defaultAddress" className="ml-2 block text-sm text-gray-700">
+                        <label
+                          htmlFor="defaultAddress"
+                          className="ml-2 block text-sm text-gray-700"
+                        >
                           Set as default address
                         </label>
                       </div>
@@ -280,7 +316,8 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     {!mapSelected && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <p className="text-sm text-yellow-700">
-                          ⚠️ Please select your location on the map to auto-fill address details
+                          ⚠️ Please select your location on the map to auto-fill
+                          address details
                         </p>
                       </div>
                     )}

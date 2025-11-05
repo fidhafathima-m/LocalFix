@@ -80,8 +80,8 @@ export interface PendingApplication {
   identity: {
     idType?: string;
     idNumber?: string;
-    address?: Address; // Can be string or object
-    location?: Location; // Can be string or object
+    address?: Address; 
+    location?: Location; 
     verified?: boolean;
     verificationStatus?: "pending" | "approved" | "rejected";
     verifiedAt?: string;

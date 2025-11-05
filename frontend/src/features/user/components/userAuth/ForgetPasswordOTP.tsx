@@ -1,12 +1,12 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { type OTPData } from "../../../../services/common/authApi";
 import BaseOTP, {
   type OTPFormData,
   type UserType,
   type OTPContext,
 } from "../../../../components/reusable/BaseOTP";
 import { UserAuthService } from "../../../../services/user/userAuthService";
+import type { OTPData } from "../../../../interface/user/IAuth";
 
 interface LocationState {
   phone?: string;
