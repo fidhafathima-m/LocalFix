@@ -188,93 +188,94 @@ const ServiceDetails: React.FC = () => {
   }, [slug]);
 
   // Handle user location and technician fetching
-  useEffect(() => {
-    const initializeLocationAndTechnicians = async () => {
-      if (!service) return;
+  // In ServiceDetails.tsx - update the location initialization logic
+useEffect(() => {
+  const initializeLocationAndTechnicians = async () => {
+    if (!service) return;
 
-      try {
-        // Reset pagination when service changes
-        setPagination((prev) => ({ ...prev, page: 1 }));
+    try {
+      // Reset pagination when service changes
+      setPagination((prev) => ({ ...prev, page: 1 }));
 
-        // If user is logged in, try to get their location
-        if (isLoggedIn && user) {
-          const requireLocation = location.state?.requireLocation;
+      // If user is logged in, try to get their location
+      if (isLoggedIn && user) {
+        const requireLocation = location.state?.requireLocation;
 
-          try {
-            const locationResponse = await LocationService.getUserLocation();
-            if (locationResponse.success && locationResponse.data) {
-              const locationData = locationResponse.data;
+        try {
+          const locationResponse = await LocationService.getUserLocation();
+          
+          // Check if location exists and is valid
+          if (locationResponse.success && locationResponse.data) {
+            const locationData = locationResponse.data;
 
-              const userLocationData: UserLocation = {
-                lat: locationData.location.coordinates[1],
-                lng: locationData.location.coordinates[0],
-                address: getFormattedAddress(locationData.address),
-                addressComponents: {
-                  street: locationData.address.street || "",
-                  city: locationData.address.city || "",
-                  state: locationData.address.state || "",
-                  pincode: locationData.address.pincode || "",
-                  landmark: locationData.address.landmark || "",
-                },
-              };
-
-              setUserLocation(userLocationData);
-
-              // Populate address form with existing location data
-              setAddressForm({
+            const userLocationData: UserLocation = {
+              lat: locationData.location.coordinates[1],
+              lng: locationData.location.coordinates[0],
+              address: getFormattedAddress(locationData.address),
+              addressComponents: {
                 street: locationData.address.street || "",
                 city: locationData.address.city || "",
                 state: locationData.address.state || "",
                 pincode: locationData.address.pincode || "",
                 landmark: locationData.address.landmark || "",
-              });
+              },
+            };
 
-              // Fetch technicians with location priority
-              await fetchTechniciansWithLocationPriority(
-                service.name,
-                userLocationData,
-                1 // Start from page 1
-              );
-              setSortBy("nearby");
-              setHasFetchedWithLocation(true);
+            setUserLocation(userLocationData);
 
-              if (requireLocation) {
-                navigate(location.pathname, { replace: true, state: {} });
-              }
-              return;
+            // Populate address form with existing location data
+            setAddressForm({
+              street: locationData.address.street || "",
+              city: locationData.address.city || "",
+              state: locationData.address.state || "",
+              pincode: locationData.address.pincode || "",
+              landmark: locationData.address.landmark || "",
+            });
+
+            // Fetch technicians with location priority
+            await fetchTechniciansWithLocationPriority(
+              service.name,
+              userLocationData,
+              1
+            );
+            setSortBy("nearby");
+            setHasFetchedWithLocation(true);
+
+            if (requireLocation) {
+              navigate(location.pathname, { replace: true, state: {} });
             }
-          } catch (error) {
-            console.error("No existing user location found", error);
-          }
-
-          if (requireLocation) {
-            setTimeout(() => {
+            return;
+          } else {
+            // Location doesn't exist but API call was successful
+            console.log("No existing location found for user");
+            if (requireLocation) {
               setShowLocationSetup(true);
-            }, 1500);
+              navigate(location.pathname, { replace: true, state: {} });
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user location:", error);
+          // Don't show error toast for 404 - it's expected for new users
+          
+          if (requireLocation) {
+            setShowLocationSetup(true);
             navigate(location.pathname, { replace: true, state: {} });
           }
         }
+      }
 
-        // Fallback: fetch technicians without location
-        if (!hasFetchedWithLocation) {
-          await fetchTechniciansForService(service.name, 1);
-        }
-      } catch (error) {
-        console.error("Error initializing technicians:", error);
+      // Fallback: fetch technicians without location
+      if (!hasFetchedWithLocation) {
         await fetchTechniciansForService(service.name, 1);
       }
-    };
+    } catch (error) {
+      console.error("Error initializing technicians:", error);
+      await fetchTechniciansForService(service.name, 1);
+    }
+  };
 
-    initializeLocationAndTechnicians();
-  }, [
-    service,
-    isLoggedIn,
-    user,
-    location.state,
-    navigate,
-    location.pathname,
-    hasFetchedWithLocation,
-  ]);
+  initializeLocationAndTechnicians();
+}, [service, isLoggedIn, user, location.state, navigate, location.pathname, hasFetchedWithLocation]);
   // Handle page change
   const handlePageChange = async (newPage: number) => {
     if (!service) return;

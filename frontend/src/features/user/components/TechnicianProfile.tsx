@@ -425,20 +425,21 @@ const TechnicianProfile: React.FC = () => {
     (day) => day.slots.length > 0
   );
 
-  
-  
-
   const handleBooking = (
-    technicianId: string,
-    technicianName: string
-  ): void => {
-    navigate(`/booking?technicianId=${technicianId}`, {
-      state: {
-        technicianName: technicianName,
-        fromProfile: true,
-      },
-    });
-  };
+  technicianId: string,
+  technicianName: string
+): void => {
+  // Get the service name from location state or use the first service
+  const serviceName = location.state?.serviceName || technician?.services[0];
+  
+  navigate(`/booking?technicianId=${technicianId}`, {
+    state: {
+      technicianName: technicianName,
+      serviceName: serviceName, // Pass service name
+      fromProfile: true,
+    },
+  });
+};
 
   // Loading state
   if (loading) {
@@ -658,6 +659,7 @@ const TechnicianProfile: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Weekly Schedule */}
+              {/* Weekly Schedule */}
               <div>
                 <h3 className="font-semibold mb-4 flex items-center">
                   <CalendarMonthOutlined className="w-4 h-4 mr-2 text-blue-600" />
@@ -670,7 +672,7 @@ const TechnicianProfile: React.FC = () => {
                       .filter((dayInfo) => dayInfo.slots.length > 0)
                       .map((dayInfo, index) => (
                         <div
-                          key={`day-${index}-${dayInfo.dayName}`}
+                          key={`day-${dayInfo.date.getTime()}-${index}`} // Fixed: Use timestamp for unique key
                           className={`flex items-center justify-between p-3 rounded-lg border ${
                             dayInfo.isToday
                               ? "bg-blue-50 border-blue-200"
@@ -698,7 +700,9 @@ const TechnicianProfile: React.FC = () => {
                             {dayInfo.slots.length > 0 ? (
                               dayInfo.slots.map((range, rangeIndex) => (
                                 <div
-                                  key={rangeIndex}
+                                  key={`slot-${dayInfo.date.getTime()}-${rangeIndex}-${
+                                    range.start
+                                  }-${range.end}`} // Fixed: More specific key
                                   className={`text-sm ${
                                     dayInfo.isToday
                                       ? "text-blue-600"

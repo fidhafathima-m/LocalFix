@@ -1,41 +1,32 @@
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogBackdrop,
   DialogPanel,
   DialogTitle,
 } from "@headlessui/react";
-import { CloseOutlined } from "@mui/icons-material";
-import { OSMLocationPicker } from "../../../components/common/OSMLocationPicker";
+import { CloseOutlined, MyLocationOutlined } from "@mui/icons-material";
+import { OSMLocationPicker } from "../../../../../components/common/OSMLocationPicker";
+import LocationService from "../../../../../services/common/locationService";
+import toast from "react-hot-toast";
+import type { GeocodeResult } from "../../../../../interface/user/ILocationService";
+import type { Address, AddressFormData } from "../../../../../interface/user/IUserApi";
 
-interface AddressFormData {
-  label: string;
-  street: string;
-  city: string;
-  state: string;
-  pincode: string;
-  landmark: string;
-  isDefault: boolean;
-  location: {
-    type: "Point";
-    coordinates: [number, number];
-  };
-  formattedAddress: string;
-  placeId?: string;
-}
-
-interface AddAddressModalProps {
+interface EditAddressModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (addressData: AddressFormData) => void;
+  onSave: (addressId: string, addressData: AddressFormData) => void;
   loading?: boolean;
+  address: Address | null;
 }
 
-export const AddAddressModal: React.FC<AddAddressModalProps> = ({
+export const EditAddressModal: React.FC<EditAddressModalProps> = ({
   isOpen,
   onClose,
   onSave,
   loading = false,
+  address,
 }) => {
   const [formData, setFormData] = useState<AddressFormData>({
     label: "Home",
@@ -53,6 +44,28 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
   });
 
   const [mapSelected, setMapSelected] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+
+  // Initialize form with address data when modal opens or address changes
+  useEffect(() => {
+    if (address) {
+      setFormData({
+        label: address.label || "Home",
+        street: address.street || "",
+        city: address.city || "",
+        state: address.state || "",
+        pincode: address.pincode || "",
+        landmark: address.landmark || "",
+        isDefault: address.isDefault || false,
+        location: address.location || {
+          type: "Point",
+          coordinates: [0, 0],
+        },
+        formattedAddress: address.formattedAddress || "",
+      });
+      setMapSelected(true); // Since we're editing, location is already selected
+    }
+  }, [address]);
 
   const handleLocationSelect = (location: {
     lat: number;
@@ -82,6 +95,81 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
     }));
   };
 
+  const handleAutoDetectLocation = async (): Promise<void> => {
+    try {
+      setDetectingLocation(true);
+      const toastId = toast.loading("Detecting your current location...");
+
+      const position = await LocationService.getCurrentPosition();
+      const { latitude, longitude } = position.coords;
+
+      const geocodeResult: GeocodeResult = await LocationService.reverseGeocode(
+        latitude,
+        longitude
+      );
+
+      setMapSelected(true);
+      setFormData((prev) => ({
+        ...prev,
+        location: {
+          type: "Point",
+          coordinates: [longitude, latitude],
+        },
+        formattedAddress: geocodeResult.formattedAddress,
+        street: geocodeResult.addressComponents.street || "",
+        city: geocodeResult.addressComponents.city || "",
+        state: geocodeResult.addressComponents.state || "",
+        pincode: geocodeResult.addressComponents.pincode || "",
+        landmark: geocodeResult.addressComponents.landmark || "",
+      }));
+
+      toast.success("Location detected successfully!", { id: toastId });
+    } catch (error: any) {
+      console.error("Error getting location:", error);
+      toast.dismiss();
+
+      let errorMessage = "Failed to get your current location";
+      if (error instanceof GeolocationPositionError) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage =
+              "Location access was denied. Please enable location permissions in your browser.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage =
+              "Location information is unavailable. Please try manual location selection.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Location request timed out. Please try again.";
+            break;
+        }
+      }
+
+      toast.error(errorMessage);
+
+      setTimeout(() => {
+        toast(
+          (t) => (
+            <div className="text-center">
+              <p className="text-sm mb-2">Try selecting location on map?</p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          ),
+          { duration: 5000 }
+        );
+      }, 1000);
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
   const handleInputChange = (
     field: keyof AddressFormData,
     value: string | boolean
@@ -95,7 +183,6 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
     if (
       !formData.street ||
       !formData.city ||
@@ -107,11 +194,13 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
     }
 
     if (!mapSelected) {
-      alert("Please select your location on the map");
+      alert("Please select your location on the map or use auto-detect");
       return;
     }
 
-    onSave(formData);
+    if (address) {
+      onSave(address.id, formData);
+    }
   };
 
   const resetForm = () => {
@@ -130,6 +219,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
       formattedAddress: "",
     });
     setMapSelected(false);
+    setDetectingLocation(false);
   };
 
   const handleClose = () => {
@@ -150,7 +240,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                   as="h3"
                   className="text-lg font-semibold leading-6 text-gray-900"
                 >
-                  Add New Address
+                  Edit Address
                 </DialogTitle>
                 <button
                   onClick={handleClose}
@@ -160,23 +250,65 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                 </button>
               </div>
 
+              {/* Auto Detect Location Button */}
+              <div className="mb-4">
+                <button
+                  onClick={handleAutoDetectLocation}
+                  disabled={detectingLocation}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <MyLocationOutlined className="w-5 h-5" />
+                  {detectingLocation ? "Detecting Location..." : "Auto Detect My Location"}
+                </button>
+                <p className="text-sm text-gray-600 mt-1">
+                  Click to automatically detect your current location using your device's GPS
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Side - Map */}
                 <div className="space-y-4">
-                  <OSMLocationPicker
-                    onLocationSelect={handleLocationSelect}
-                    className="h-full"
-                  />
+                  <div className="border rounded-lg overflow-hidden">
+                    <OSMLocationPicker
+                      onLocationSelect={handleLocationSelect}
+                      initialPosition={
+                        address?.location?.coordinates
+                          ? {
+                              lat: address.location.coordinates[1],
+                              lng: address.location.coordinates[0],
+                            }
+                          : undefined
+                      }
+                      className="h-full"
+                    />
+                  </div>
 
                   {/* Address Preview */}
                   {formData.formattedAddress && (
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-sm font-medium text-gray-700 mb-1">
-                        Full Address Preview:
+                    <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
+                      <p className="text-sm font-medium text-green-800 mb-1">
+                        📍 Address Detected:
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-green-700">
                         {formData.formattedAddress}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Detection Status */}
+                  {detectingLocation && (
+                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                        <div>
+                          <p className="text-sm font-medium text-blue-800">
+                            Detecting Your Location
+                          </p>
+                          <p className="text-xs text-blue-700">
+                            Please allow location access in your browser
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -315,10 +447,34 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     {/* Status Message */}
                     {!mapSelected && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                        <p className="text-sm text-yellow-700">
-                          ⚠️ Please select your location on the map to auto-fill
-                          address details
-                        </p>
+                        <div className="flex items-start space-x-2">
+                          <span className="text-yellow-600 text-lg">📍</span>
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800">
+                              Location Required
+                            </p>
+                            <p className="text-sm text-yellow-700">
+                              Please select your location on the map or use "Auto Detect" to fill address details automatically
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Success Message */}
+                    {mapSelected && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex items-start space-x-2">
+                          <span className="text-green-600 text-lg">✅</span>
+                          <div>
+                            <p className="text-sm font-medium text-green-800">
+                              Location Selected
+                            </p>
+                            <p className="text-sm text-green-700">
+                              Address fields have been auto-filled. You can edit them if needed.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -336,7 +492,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                         disabled={loading || !mapSelected}
                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {loading ? "Saving..." : "Save Address"}
+                        {loading ? "Updating..." : "Update Address"}
                       </button>
                     </div>
                   </form>

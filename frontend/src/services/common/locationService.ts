@@ -25,7 +25,15 @@ class LocationService {
     try {
       const response = await api.get("/user/location");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // If it's a 404, return success: false instead of throwing
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          message: "Location not found",
+          data: null,
+        };
+      }
       console.error("Error getting user location:", error);
       throw error;
     }
@@ -34,7 +42,6 @@ class LocationService {
   // Get nearby technicians
   async getNearbyTechnicians(params: NearbyTechniciansParams): Promise<any> {
     try {
-
       const response = await api.get("/user/nearby-technicians", {
         params: {
           lat: params.lat,

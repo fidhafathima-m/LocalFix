@@ -23,10 +23,11 @@ import {
 import { useAppSelector } from "../../../../hooks/redux";
 import { TechnicianMangementService } from "../../../../services/admin/TechnicianManagementService";
 import { userService } from "../../../../services/user/userService";
-import { AddAddressModal } from "../../components/AddAddressModal";
+import { AddAddressModal } from "../userProfile/modals/AddAddressModal";
 import toast from "react-hot-toast";
 import { RRule } from "rrule";
 import type { AddressFormData } from "../../../../interface/user/IUserApi";
+import { useBreadcrumb } from "../../../../hooks/useBreadcrumb";
 
 interface Technician {
   _id: string;
@@ -82,6 +83,7 @@ const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [usesSavedAddress, setUsesSavedAddress] = useState(true);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [technician, setTechnician] = useState<Technician | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +97,7 @@ const BookingPage: React.FC = () => {
   const [weeklyAvailability, setWeeklyAvailability] = useState<
     DailyAvailability[]
   >([]);
+  
   const [problemDescription, setProblemDescription] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
 
@@ -108,6 +111,33 @@ const BookingPage: React.FC = () => {
     searchParams.get("technicianId") || location.state?.technicianId;
   const serviceName =
     searchParams.get("service") || location.state?.service || "";
+
+    const [technicianName,] = useState(
+  location.state?.technicianName || ""
+);
+    
+    const { breadcrumb, updateBreadcrumb } = useBreadcrumb();
+
+    useEffect(() => {
+    if (technician && !breadcrumb.technicianName) {
+      updateBreadcrumb({
+        technicianName: technician.displayName
+      });
+    }
+  }, [technician, breadcrumb.technicianName, updateBreadcrumb]);
+
+  // Update breadcrumb when service is selected
+  useEffect(() => {
+    if (selectedService && !breadcrumb.serviceName) {
+      updateBreadcrumb({
+        serviceName: selectedService
+      });
+    }
+  }, [selectedService, breadcrumb.serviceName, updateBreadcrumb]);
+
+  // Update the breadcrumb display
+  const displayServiceName = breadcrumb.serviceName || serviceName;
+  const displayTechnicianName = breadcrumb.technicianName || technicianName;
 
   // Fetch technician data with slot rules
   useEffect(() => {
@@ -401,7 +431,7 @@ const BookingPage: React.FC = () => {
       const availableDays = getAvailableDaysSummary();
       setDateError(`Technician is unavailable on ${dayName}. ${availableDays}`);
     } else {
-      console.log("Date is available - no error")
+      console.log("Date is available - no error");
     }
   };
   // Get technician's available days summary
@@ -462,32 +492,54 @@ const BookingPage: React.FC = () => {
     );
   };
 
-  // Fetch user addresses
-  useEffect(() => {
-    const fetchUserAddresses = async () => {
-      if (!isLoggedIn) return;
 
+// Update the phone number population logic
+useEffect(() => {
+  const fetchUserAddresses = async () => {
+    if (!isLoggedIn) return;
+
+    try {
+      const response = await userService.getUserAddresses();
+      if (response.success && response.data) {
+        setUserAddresses(response.data.addresses || []);
+
+        // Prefill default address if available
+        const defaultAddress = response.data.addresses?.find(
+          (addr) => addr.isDefault
+        );
+        if (defaultAddress) {
+          setSelectedAddress(defaultAddress.id);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching user addresses:", err);
+      toast.error("Failed to load saved addresses");
+    }
+  };
+
+  // Set phone number from Redux user data with better handling
+  if (user?.phone) {
+    // Remove any non-digit characters and take only the last 10 digits
+    const cleanPhone = user.phone.replace(/\D/g, "").slice(-10);
+    setPhoneNumber(cleanPhone);
+  } else {
+    // If no phone in Redux, try to fetch fresh user data
+    const fetchUserProfile = async () => {
       try {
-        const response = await userService.getUserAddresses();
-        if (response.success && response.data) {
-          setUserAddresses(response.data.addresses || []);
-
-          // Prefill default address if available
-          const defaultAddress = response.data.addresses?.find(
-            (addr) => addr.isDefault
-          );
-          if (defaultAddress) {
-            setSelectedAddress(defaultAddress.id);
-          }
+        const profileResponse = await userService.getUserProfile();
+        if (profileResponse.success && profileResponse.data?.user?.phone) {
+          const cleanPhone = profileResponse.data.user.phone.replace(/\D/g, "").slice(-10);
+          setPhoneNumber(cleanPhone);
         }
       } catch (err) {
-        console.error("Error fetching user addresses:", err);
-        toast.error("Failed to load saved addresses");
+        console.error("Error fetching user profile:", err);
       }
     };
+    fetchUserProfile();
+  }
 
-    fetchUserAddresses();
-  }, [isLoggedIn]);
+  fetchUserAddresses();
+}, [isLoggedIn, user]);
 
   // Handle navigation to login
   const handleLoginRedirect = () => {
@@ -770,14 +822,14 @@ const BookingPage: React.FC = () => {
                 onClick={() => navigate(-1)}
                 className="text-gray-600 hover:text-blue-600 cursor-pointer"
               >
-                {location.state?.serviceName || "Service Details"}
+                {displayServiceName || "Service Details"}
               </button>
               <ChevronRightOutlined className="w-4 h-4 text-gray-400" />
               <button
                 onClick={() => navigate(-1)}
                 className="text-gray-600 hover:text-blue-600 cursor-pointer"
               >
-                {location.state?.technicianName || "Technician details"}
+                {displayTechnicianName || "Technician details"}
               </button>
               <ChevronRightOutlined className="w-4 h-4 text-gray-400" />
               <span className="text-gray-900 font-medium">Booking</span>
@@ -858,10 +910,22 @@ const BookingPage: React.FC = () => {
                   <input
                     type="tel"
                     placeholder="10-digit mobile number"
-                    defaultValue={user?.phone || ""}
+                    value={phoneNumber}
+                    onChange={(e) => {
+                      // Allow only numbers and limit to 10 digits
+                      const value = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 10);
+                      setPhoneNumber(value);
+                    }}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+                {phoneNumber.length !== 10 && phoneNumber.length > 0 && (
+                  <p className="text-red-500 text-xs mt-1">
+                    Please enter a valid 10-digit phone number
+                  </p>
+                )}
               </div>
             </div>
             <div>

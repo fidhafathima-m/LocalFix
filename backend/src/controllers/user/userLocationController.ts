@@ -108,6 +108,7 @@ export class UserLocationController {
   }
 
   // Get user location
+  // In UserLocationController - update getUserLocation method
   async getUserLocation(req: AuthRequest, res: Response): Promise<void> {
     const userId = req.user?.id;
     const context = {
@@ -117,13 +118,18 @@ export class UserLocationController {
     };
 
     try {
-      this.logger.info("Fetching user location", context);
+      this.logger.info("Fetching user location - START", {
+        ...context,
+        headers: req.headers,
+        method: req.method,
+        url: req.url,
+      });
 
       if (!userId) {
-        this.logger.warn(
-          "Get location failed - user not authenticated",
-          context
-        );
+        this.logger.warn("Get location failed - user not authenticated", {
+          ...context,
+          user: req.user,
+        });
         res.status(401).json({
           success: false,
           message: "User not authenticated",
@@ -131,20 +137,33 @@ export class UserLocationController {
         return;
       }
 
+      this.logger.info("Calling service to get user location", {
+        ...context,
+        userId,
+      });
+
       const result = await this.userLocationService.getUserLocation(userId);
 
       if (!result.success) {
         this.logger.warn("Get location service returned failure", {
           ...context,
           error: result.message,
+          serviceResult: result,
         });
-        res.status(404).json(result);
+
+        // Return 200 with success: false instead of 404
+        res.status(200).json({
+          success: false,
+          message: result.message || "Location not found",
+          data: null,
+        });
         return;
       }
 
       this.logger.info("User location retrieved successfully", {
         ...context,
         hasLocation: !!result.data,
+        locationData: result.data,
       });
 
       res.status(200).json({

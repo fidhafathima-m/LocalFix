@@ -37,7 +37,7 @@ router.post("/change-password", protect, userProfileController.changePassword);
 // addresses
 router.get("/addresses", protect, addressController.getUserAddresses);
 router.post("/addresses", protect, addressController.createAddress);
-router.put("/addresses/:addressId", protect, addressController.getAddressById);
+router.put("/addresses/:addressId", protect, addressController.updateAddress);
 router.delete(
   "/addresses/:addressId",
   protect,

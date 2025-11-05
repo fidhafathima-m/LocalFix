@@ -16,17 +16,18 @@ import {
   AddOutlined,
   CameraAltOutlined,
 } from "@mui/icons-material";
-import Header from "../../../components/common/Header";
-import Footer from "../../../components/common/Footer";
-import { userService } from "../../../services/user/userService";
+import Header from "../../../../components/common/Header";
+import Footer from "../../../../components/common/Footer";
+import { userService } from "../../../../services/user/userService";
 import toast from "react-hot-toast";
-import { AddAddressModal } from "../components/AddAddressModal";
+import { AddAddressModal } from "./modals/AddAddressModal";
 import Swal from "sweetalert2";
 import type {
   Address,
   AddressFormData,
-} from "../../../interface/user/IUserApi";
+} from "../../../../interface/user/IUserApi";
 import { useNavigate } from "react-router-dom";
+import { EditAddressModal } from "./modals/EditAddressModal";
 
 interface UserData {
   _id: string;
@@ -74,6 +75,10 @@ const UserProfile: React.FC = () => {
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [userAddresses, setUserAddresses] = useState<Address[]>([]);
+
+  const [showEditAddressModal, setShowEditAddressModal] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [updatingAddress, setUpdatingAddress] = useState(false);
 
   // Add this state to your UserProfile component
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -266,12 +271,75 @@ const UserProfile: React.FC = () => {
       // Validate required fields
       if (!tempPersonalInfo.fullName.trim()) {
         setError("Full name is required");
+        toast.error("Full name is required");
         return;
       }
 
       if (!tempPersonalInfo.phoneNumber.trim()) {
         setError("Phone number is required");
+        toast.error("Phone number is required");
         return;
+      }
+
+      // Validate phone number format (basic validation)
+      const phoneRegex = /^[0-9]{10}$/;
+      if (!phoneRegex.test(tempPersonalInfo.phoneNumber.replace(/\D/g, ""))) {
+        setError("Please enter a valid 10-digit phone number");
+        toast.error("Please enter a valid 10-digit phone number");
+        return;
+      }
+
+      // Validate email format if provided
+      if (
+        tempPersonalInfo.email &&
+        !/\S+@\S+\.\S+/.test(tempPersonalInfo.email)
+      ) {
+        setError("Please enter a valid email address");
+        toast.error("Please enter a valid email address");
+        return;
+      }
+
+      // Validate gender if provided
+      if (
+        tempPersonalInfo.gender &&
+        !["Male", "Female", "Other", "Prefer not to say"].includes(
+          tempPersonalInfo.gender
+        )
+      ) {
+        setError("Please select a valid gender");
+        toast.error("Please select a valid gender");
+        return;
+      }
+
+      // Validate date of birth if provided
+      if (
+        tempPersonalInfo.dateOfBirth &&
+        tempPersonalInfo.dateOfBirth !== "Not set"
+      ) {
+        const dob = new Date(tempPersonalInfo.dateOfBirth);
+        const today = new Date();
+        const minDate = new Date(
+          today.getFullYear() - 100,
+          today.getMonth(),
+          today.getDate()
+        );
+        const maxDate = new Date(
+          today.getFullYear() - 15,
+          today.getMonth(),
+          today.getDate()
+        );
+
+        if (dob < minDate) {
+          setError("Please enter a valid date of birth");
+          toast.error("Age cannot be more than 100 years");
+          return;
+        }
+
+        if (dob > maxDate) {
+          setError("You must be at least 15 years old");
+          toast.error("You must be at least 15 years old");
+          return;
+        }
       }
 
       // Prepare update data with proper mapping
@@ -279,7 +347,10 @@ const UserProfile: React.FC = () => {
         fullName: tempPersonalInfo.fullName.trim(),
         phone: tempPersonalInfo.phoneNumber.trim(),
         email: tempPersonalInfo.email.trim(),
-        dateOfBirth: tempPersonalInfo.dateOfBirth,
+        dateOfBirth:
+          tempPersonalInfo.dateOfBirth === "Not set"
+            ? ""
+            : tempPersonalInfo.dateOfBirth,
         gender: tempPersonalInfo.gender,
       };
 
@@ -317,10 +388,14 @@ const UserProfile: React.FC = () => {
         toast.success("Profile updated successfully!");
       } else {
         setError(response.message || "Failed to update profile");
+        toast.error(response.message || "Failed to update profile");
       }
     } catch (err: any) {
       console.error("Error updating profile:", err);
-      setError(err.response?.data?.message || "Failed to update profile");
+      const errorMessage =
+        err.response?.data?.message || "Failed to update profile";
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -402,6 +477,49 @@ const UserProfile: React.FC = () => {
     } finally {
       setSavingAddress(false);
     }
+  };
+
+  const handleEditAddress = async (
+    addressId: string,
+    addressData: AddressFormData
+  ) => {
+    try {
+      setUpdatingAddress(true);
+      setError(null);
+
+      const response = await userService.updateAddress(addressId, addressData);
+
+      if (response.success && response.data) {
+        // Update the address in the list
+        setUserAddresses((prev) =>
+          prev.map((addr) =>
+            addr.id === addressId ? response.data!.address : addr
+          )
+        );
+        setShowEditAddressModal(false);
+        setEditingAddress(null);
+        toast.success("Address updated successfully!");
+
+        // Refresh addresses from server
+        const freshResponse = await userService.getUserAddresses();
+        if (freshResponse.success && freshResponse.data) {
+          setUserAddresses(freshResponse.data.addresses);
+        }
+      } else {
+        setError(response.message || "Failed to update address");
+      }
+    } catch (err: any) {
+      console.error("Error updating address:", err);
+      setError(err.response?.data?.message || "Failed to update address");
+    } finally {
+      setUpdatingAddress(false);
+    }
+  };
+
+  // Add this function to open edit modal
+  const handleOpenEditAddress = (address: Address) => {
+    setEditingAddress(address);
+    setShowEditAddressModal(true);
   };
 
   // Delete address handler
@@ -528,9 +646,10 @@ const UserProfile: React.FC = () => {
 
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">My Profile</h1>
-            <button 
-            onClick={() => navigate("/services")}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 cursor-pointer">
+            <button
+              onClick={() => navigate("/services")}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 cursor-pointer"
+            >
               Book a Service
             </button>
           </div>
@@ -629,13 +748,20 @@ const UserProfile: React.FC = () => {
                   <input
                     type="tel"
                     value={tempPersonalInfo.phoneNumber}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      // Allow only numbers and limit to 10 digits
+                      const value = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 10);
                       setTempPersonalInfo({
                         ...tempPersonalInfo,
-                        phoneNumber: e.target.value,
-                      })
-                    }
+                        phoneNumber: value,
+                      });
+                    }}
+                    pattern="[0-9]{10}"
+                    maxLength={10}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter 10-digit phone number"
                   />
                 ) : (
                   <p className="font-medium">{personalInfo.phoneNumber}</p>
@@ -656,6 +782,7 @@ const UserProfile: React.FC = () => {
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter email address"
                   />
                 ) : (
                   <p className="font-medium">{personalInfo.email}</p>
@@ -714,8 +841,7 @@ const UserProfile: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">Select Gender</option>{" "}
-                    {/* Add empty option */}
+                    <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
@@ -723,8 +849,7 @@ const UserProfile: React.FC = () => {
                   </select>
                 ) : (
                   <p className="font-medium">
-                    {personalInfo.gender || "Not specified"}{" "}
-                    {/* Show "Not specified" only when empty */}
+                    {personalInfo.gender || "Not specified"}
                   </p>
                 )}
               </div>
@@ -773,8 +898,8 @@ const UserProfile: React.FC = () => {
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center space-x-2">
-                        <FmdGoodOutlined className="w-5 h-5 text-blue-600" />
                         <div>
+                        <FmdGoodOutlined className="w-5 h-5 text-blue-600" />
                           <span className="font-semibold">{address.label}</span>
                           {address.isDefault && (
                             <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
@@ -793,6 +918,13 @@ const UserProfile: React.FC = () => {
                             Set Default
                           </button>
                         )}
+                        <button
+                          onClick={() => handleOpenEditAddress(address)}
+                          className="text-gray-600 hover:text-blue-600 cursor-pointer"
+                          title="Edit address"
+                        >
+                          <EditOutlined className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleDeleteAddress(address.id)}
                           className="text-gray-600 hover:text-red-600 cursor-pointer"
@@ -841,6 +973,18 @@ const UserProfile: React.FC = () => {
             onClose={() => setShowAddAddressModal(false)}
             onSave={handleAddAddress}
             loading={savingAddress}
+          />
+
+          {/* Edit Address Modal */}
+          <EditAddressModal
+            isOpen={showEditAddressModal}
+            onClose={() => {
+              setShowEditAddressModal(false);
+              setEditingAddress(null);
+            }}
+            onSave={handleEditAddress}
+            loading={updatingAddress}
+            address={editingAddress}
           />
 
           {/* Under Development Notice */}
