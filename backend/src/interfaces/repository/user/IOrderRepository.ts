@@ -27,4 +27,16 @@ export interface IOrderRepository {
     completedOrders: number;
     monthlyEarnings: number;
   }>;
+  rescheduleOrder(
+    orderId: string,
+    newDate: string,
+    newTimeSlot: string,
+    updatedBy: string
+  ): Promise<IOrder | null>
+   findConflictingOrders(
+    technicianId: string,
+    date: string,
+    timeSlot: string,
+    excludeOrderId?: string
+  ): Promise<IOrder[]>
 }

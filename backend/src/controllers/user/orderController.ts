@@ -162,6 +162,99 @@ export class OrderController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
+  // In your OrderController.ts file
+rescheduleOrder = async (req: AuthRequest, res: Response): Promise<void> => {
+  const userId = req.user?.id;
+  const { orderId } = req.params;
+  const { newDate, newTimeSlot } = req.body;
+
+  const context = {
+    operation: "rescheduleOrder",
+    userId,
+    orderId,
+    newDate,
+    newTimeSlot,
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    this.logger.info("Rescheduling order", context);
+
+    if (!userId) {
+      this.logger.warn(
+        "Reschedule order failed - authentication required",
+        context
+      );
+      const errorResponse = ResponseHelper.unauthorized(
+        "Authentication required"
+      );
+      res.status(errorResponse.statusCode).json(errorResponse);
+      return;
+    }
+
+    if (!newDate || !newTimeSlot) {
+      this.logger.warn("Reschedule order failed - missing required fields", {
+        ...context,
+        hasNewDate: !!newDate,
+        hasNewTimeSlot: !!newTimeSlot,
+      });
+      const badRequestResponse = ResponseHelper.badRequest(
+        "New date and time slot are required"
+      );
+      res.status(badRequestResponse.statusCode).json(badRequestResponse);
+      return;
+    }
+
+    // Validate date format
+    const scheduledAt = new Date(newDate);
+    if (isNaN(scheduledAt.getTime())) {
+      this.logger.warn("Reschedule order failed - invalid date format", context);
+      const badRequestResponse = ResponseHelper.badRequest(
+        "Invalid date format"
+      );
+      res.status(badRequestResponse.statusCode).json(badRequestResponse);
+      return;
+    }
+
+    // Check if the new date is in the future
+    if (scheduledAt <= new Date()) {
+      this.logger.warn("Reschedule order failed - date must be in future", context);
+      const badRequestResponse = ResponseHelper.badRequest(
+        "New date must be in the future"
+      );
+      res.status(badRequestResponse.statusCode).json(badRequestResponse);
+      return;
+    }
+
+    const result = await this.orderService.rescheduleOrder(
+      userId,
+      orderId,
+      newDate,
+      newTimeSlot
+    );
+
+    if (!result.success) {
+      this.logger.warn("Reschedule order service returned failure", {
+        ...context,
+        error: result.message,
+        statusCode: result.statusCode,
+      });
+    } else {
+      this.logger.info("Order rescheduled successfully", context);
+    }
+
+    res.status(result.statusCode).json(result);
+  } catch (error: any) {
+    this.logger.error("Reschedule order controller error", {
+      ...context,
+      error: error.message,
+      stack: error.stack,
+    });
+
+    const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    res.status(errorResponse.statusCode).json(errorResponse);
+  }
+};
   createOrderFromBooking = async (
     req: AuthRequest,
     res: Response

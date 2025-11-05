@@ -169,6 +169,14 @@ const orderSchema = new Schema<IOrder>(
       cancelledAt: Date,
       refundAmount: Number,
     },
+    rescheduleInfo: {
+      rescheduledAt: Date,
+      rescheduledBy: String,
+      previousScheduledAt: Date,
+      previousTimeSlot: String,
+      rescheduleCount: { type: Number, default: 0 },
+      reason: String,
+    },
     history: [
       {
         status: {

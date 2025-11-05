@@ -65,6 +65,12 @@ const CancelBooking = lazy(
 const CancelBookingSuccess = lazy(
   () => import("../features/user/pages/CancelBookingSuccessPage")
 );
+const RescheduleService = lazy(
+  () => import("../features/user/pages/RescheduleServicePage")
+);
+const RescheduleSuccess = lazy(
+  () => import("../features/user/pages/RescheduleSuccessPage")
+);
 
 // Service Provider Routes imports
 const TechHome = lazy(
@@ -175,6 +181,8 @@ const AppRoutes = () => {
             <Route path="/orders" element={<MyOrders />} />
             <Route path="/cancel-order/:orderId" element={<CancelBooking />} />
             <Route path="/cancel-booking-success" element={<CancelBookingSuccess />} />
+            <Route path="/reschedule-service" element={<RescheduleService />} />
+            <Route path="/reschedule-success" element={<RescheduleSuccess />} />
 
             {/* technicians routes */}
             <Route path="/technicians" element={<TechHome />} />

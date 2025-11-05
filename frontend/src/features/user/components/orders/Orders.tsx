@@ -111,9 +111,13 @@ const MyOrders: React.FC = () => {
 
   const getActiveOrders = () => {
     return orders.filter((order) =>
-      ["pending", "accepted", "confirmed", "in_progress", "on_the_way"].includes(
-        order.status
-      )
+      [
+        "pending",
+        "accepted",
+        "confirmed",
+        "in_progress",
+        "on_the_way",
+      ].includes(order.status)
     );
   };
 
@@ -125,6 +129,22 @@ const MyOrders: React.FC = () => {
 
   const handleCancelOrder = async (orderId: string) => {
     navigate(`/cancel-order/${orderId}`);
+  };
+
+  const handleRescheduleOrder = (order: OrderResponse) => {
+    navigate("/reschedule-service", {
+      state: {
+        orderId: order._id,
+        bookingId: order.bookingId,
+        orderCode: order.orderCode,
+        serviceName: order.serviceName,
+        problemDescription: order.problemDescription,
+        currentDate: order.scheduledAt,
+        currentTimeSlot: order.timeSlot,
+        address: order.address,
+        technician: order.technicianId,
+      },
+    });
   };
 
   const handleDownloadInvoice = async (orderId: string) => {
@@ -370,7 +390,7 @@ const MyOrders: React.FC = () => {
                       {order.status === "on_the_way" && (
                         <Link
                           to={`/service-tracking/${order.bookingId}`}
-                          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
                         >
                           Track Service
                         </Link>
@@ -382,16 +402,19 @@ const MyOrders: React.FC = () => {
                             onClick={() =>
                               navigate(`/bookings/${order.bookingId}`)
                             }
-                            className=" bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                            className=" bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
                           >
                             Track Service
                           </button>
-                          <button className="border-2 border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                          <button
+                            onClick={() => handleRescheduleOrder(order)}
+                            className="border-2 border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                          >
                             Reschedule
                           </button>
                           <button
                             onClick={() => handleCancelOrder(order._id)}
-                            className="text-red-600 px-6 py-2 rounded-lg font-semibold hover:bg-red-50 transition-colors"
+                            className="text-red-600 px-6 py-2 rounded-lg font-semibold hover:bg-red-50 transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>

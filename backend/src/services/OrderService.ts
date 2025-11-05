@@ -508,6 +508,144 @@ export class OrderService implements IOrderService {
       return ResponseHelper.error("Failed to fetch order stats");
     }
   }
+// In your OrderService.ts file
+private async checkTechnicianAvailability(
+  technicianId: string,
+  date: string,
+  timeSlot: string,
+  excludeOrderId?: string // Add this parameter
+): Promise<boolean> {
+  try {
+    // Check if there are any conflicting orders for the same technician at the same time
+    const conflictingOrders = await this.orderRepository.findConflictingOrders(
+      technicianId,
+      date,
+      timeSlot,
+      excludeOrderId // Pass the order ID to exclude
+    );
+
+    return conflictingOrders.length === 0;
+  } catch (error) {
+    this.logger.error("Error checking technician availability", {
+      technicianId,
+      date,
+      timeSlot,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    return false;
+  }
+}
+
+async rescheduleOrder(
+  userId: string,
+  orderId: string,
+  newDate: string,
+  newTimeSlot: string
+): Promise<ApiResponse<OrderResponseDto>> {
+  const context = {
+    operation: "rescheduleOrder",
+    data: { userId, orderId, newDate, newTimeSlot },
+  };
+
+  try {
+    this.logger.info("Rescheduling order", context);
+
+    const order = await this.orderRepository.findById(orderId);
+
+    if (!order) {
+      this.logger.warn("Order not found for rescheduling", context);
+      return ResponseHelper.notFound("Order not found");
+    }
+
+    const realOrderId =
+      order.userId?._id?.toString() || order.userId?.toString();
+
+    // Check if user owns the order
+    if (realOrderId !== userId) {
+      this.logger.warn("User not authorized to reschedule this order", context);
+      return ResponseHelper.forbidden("Not authorized to reschedule this order");
+    }
+
+    // Check if order can be rescheduled
+    if (!this.canOrderBeRescheduled(order.status)) {
+      this.logger.warn("Order cannot be rescheduled in current status", {
+        ...context,
+        currentStatus: order.status,
+      });
+      return ResponseHelper.badRequest(
+        `Order cannot be rescheduled in ${order.status} status`
+      );
+    }
+
+    // Validate new date is at least 4 hours in the future
+    const scheduledAt = new Date(newDate);
+    const now = new Date();
+    const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+
+    if (scheduledAt < fourHoursFromNow) {
+      this.logger.warn("Reschedule date must be at least 4 hours in advance", {
+        ...context,
+        scheduledAt,
+        fourHoursFromNow,
+      });
+      return ResponseHelper.badRequest(
+        "New date must be at least 4 hours from now"
+      );
+    }
+
+    // Check technician availability - FIX: Pass the orderId to exclude
+    const isAvailable = await this.checkTechnicianAvailability(
+      order.technicianId.toString(),
+      newDate,
+      newTimeSlot,
+      orderId // Pass the current order ID to exclude it from conflict check
+    );
+
+    if (!isAvailable) {
+      this.logger.warn("Technician not available for the selected slot", context);
+      return ResponseHelper.badRequest(
+        "Technician is not available for the selected date and time"
+      );
+    }
+
+    // FIX: Pass "user" as the enum value, not the user ID
+    const updatedOrder = await this.orderRepository.rescheduleOrder(
+      orderId,
+      newDate,
+      newTimeSlot,
+      "user" // Use enum value, not user ID
+    );
+
+    if (!updatedOrder) {
+      this.logger.error("Failed to reschedule order in repository", context);
+      return ResponseHelper.error("Failed to reschedule order");
+    }
+
+    this.logger.info("Order rescheduled successfully", {
+      ...context,
+      oldDate: order.scheduledAt,
+      oldTimeSlot: order.timeSlot,
+    });
+
+    const orderDto = this.mapToDto(updatedOrder);
+    return ResponseHelper.success("Order rescheduled successfully", orderDto);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    this.logger.error("Error rescheduling order", {
+      ...context,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return ResponseHelper.error("Failed to reschedule order");
+  }
+}
+
+private canOrderBeRescheduled(status: string): boolean {
+  const reschedulableStatuses = ["pending", "confirmed", "accepted"];
+  return reschedulableStatuses.includes(status);
+}
+
 
   private async getTechnicianIdByUserId(
     userId: string

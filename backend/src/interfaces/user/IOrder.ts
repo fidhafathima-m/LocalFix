@@ -57,6 +57,14 @@ export interface IOrder extends Document {
     cancelledAt: Date;
     refundAmount?: number;
   };
+  rescheduleInfo?: {
+    rescheduledAt: Date;
+    rescheduledBy: string;
+    previousScheduledAt: Date;
+    previousTimeSlot: string;
+    rescheduleCount: number;
+    reason?: string;
+  };
   history: Array<{
     status: string;
     description: string;

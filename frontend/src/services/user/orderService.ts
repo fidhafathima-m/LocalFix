@@ -121,6 +121,18 @@ export const orderService = {
     return response.data;
   },
 
+  getAvailableTimeSlots: async (technicianId: string, date: string) => {
+    try {
+      const response = await api.get(`/orders/available-slots`, {
+        params: { technicianId, date }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching time slots:', error);
+      throw error;
+    }
+  },
+
   async rescheduleOrder(orderId: string, newDate: string, newTimeSlot: string): Promise<ApiResponse<OrderResponse>> {
     const response = await api.post<ApiResponse<OrderResponse>>(`/orders/${orderId}/reschedule`, {
       newDate,

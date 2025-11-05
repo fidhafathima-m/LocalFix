@@ -63,4 +63,10 @@ export interface IOrderService {
       monthlyEarnings: number;
     }>
   >;
+  rescheduleOrder(
+  userId: string,
+  orderId: string,
+  newDate: string,
+  newTimeSlot: string
+): Promise<ApiResponse<OrderResponseDto>>
 }

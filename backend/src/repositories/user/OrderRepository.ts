@@ -278,4 +278,102 @@ export class OrderRepository implements IOrderRepository {
       monthlyEarnings,
     };
   }
+  // In your OrderRepository.ts file
+// In your OrderRepository.ts file
+async rescheduleOrder(
+  orderId: string,
+  newDate: string,
+  newTimeSlot: string,
+  updatedBy: string // This should be "user", "technician", or "system"
+): Promise<IOrder | null> {
+  try {
+    const order = await Order.findById(orderId);
+    if (!order) return null;
+
+    // Store old values for history
+    const oldScheduledAt = order.scheduledAt;
+    const oldTimeSlot = order.timeSlot;
+
+    // Update order with new schedule
+    order.scheduledAt = new Date(newDate);
+    order.timeSlot = newTimeSlot;
+
+    // Add to history - FIX: Use proper enum value
+    order.history.push({
+      status: order.status,
+      description: `Order rescheduled from ${oldScheduledAt.toLocaleDateString()} ${oldTimeSlot} to ${new Date(newDate).toLocaleDateString()} ${newTimeSlot}`,
+      updatedBy: "user" as "user" | "technician" | "system", // FIX: Use enum value, not user ID
+      timestamp: new Date(),
+    });
+
+    // Update reschedule info - store the actual user ID here
+    order.rescheduleInfo = {
+      rescheduledAt: new Date(),
+      rescheduledBy: updatedBy, // This can store the user ID
+      previousScheduledAt: oldScheduledAt,
+      previousTimeSlot: oldTimeSlot,
+      rescheduleCount: (order.rescheduleInfo?.rescheduleCount || 0) + 1,
+    };
+
+    const savedOrder = await order.save();
+
+    // Update the associated booking if it exists
+    await this.updateBookingSchedule(order.bookingId.toString(), newDate, newTimeSlot);
+
+    return savedOrder;
+  } catch (error) {
+    console.error("Error rescheduling order:", error);
+    return null;
+  }
+}
+
+private async updateBookingSchedule(
+  bookingId: string,
+  newDate: string,
+  newTimeSlot: string
+): Promise<void> {
+  try {
+    await Booking.findByIdAndUpdate(bookingId, {
+      scheduledAt: new Date(newDate),
+      timeSlot: newTimeSlot,
+      updatedAt: new Date(),
+    });
+  } catch (error) {
+    console.error("Error updating booking schedule:", error);
+    // Don't throw error here as order reschedule should still succeed
+  }
+}
+
+// In your OrderRepository.ts file
+async findConflictingOrders(
+  technicianId: string,
+  date: string,
+  timeSlot: string,
+  excludeOrderId?: string // Add this parameter to exclude current order
+): Promise<IOrder[]> {
+  try {
+    const scheduledAt = new Date(date);
+    
+    // Build query
+    const query: any = {
+      technicianId: new Types.ObjectId(technicianId),
+      scheduledAt: {
+        $gte: new Date(scheduledAt.setHours(0, 0, 0, 0)),
+        $lt: new Date(scheduledAt.setHours(23, 59, 59, 999)),
+      },
+      timeSlot: timeSlot,
+      status: { $in: ["pending", "confirmed", "accepted", "in_progress"] },
+    };
+
+    // Exclude current order if provided
+    if (excludeOrderId) {
+      query._id = { $ne: new Types.ObjectId(excludeOrderId) };
+    }
+
+    return await Order.find(query).exec();
+  } catch (error) {
+    console.error("Error finding conflicting orders:", error);
+    return [];
+  }
+}
 }
