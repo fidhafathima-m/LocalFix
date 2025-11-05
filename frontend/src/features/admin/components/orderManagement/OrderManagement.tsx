@@ -14,20 +14,33 @@ import Search from "../adminDashboard/actions/Search";
 import type { Order, OrderStats } from "../../../../interface/admin/IAdminApi";
 import { OrderManagementService } from "../../../../services/admin/OrderManagementService";
 import { AdminSidebar } from "../adminDashboard/actions/AdminSidebar";
+import { useDebounce } from "../../../../hooks/useDebounce";
 
 const OrderManagement: React.FC = () => {
   const navigate = useNavigate();
-  
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const [stats, setStats] = useState<OrderStats | null>(null);
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 10;
+
+  useEffect(() => {
+    if (searchQuery !== debouncedSearchQuery) {
+      setSearchLoading(true);
+    } else {
+      setSearchLoading(false);
+    }
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Load orders from backend
   const loadOrders = async () => {
@@ -37,11 +50,16 @@ const OrderManagement: React.FC = () => {
 
       if (response && typeof response === "object") {
         // Handle both nested and direct response structures
-        const ordersData = response.orders || response.data?.orders || response.data || response;
-        
+        const ordersData =
+          response.orders || response.data?.orders || response.data || response;
+
         if (Array.isArray(ordersData)) {
           setOrders(ordersData);
-        } else if (ordersData && typeof ordersData === 'object' && Array.isArray(ordersData.orders)) {
+        } else if (
+          ordersData &&
+          typeof ordersData === "object" &&
+          Array.isArray(ordersData.orders)
+        ) {
           setOrders(ordersData.orders);
         } else {
           console.error("Invalid orders data structure:", ordersData);
@@ -79,30 +97,42 @@ const OrderManagement: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, debouncedSearchQuery]);
 
   // Filter orders based on statusFilter
-  const filteredOrders = statusFilter === "all" 
-    ? orders 
-    : orders.filter(order => order.status === statusFilter);
+  const filteredOrders =
+    statusFilter === "all"
+      ? orders
+      : orders.filter((order) => order.status === statusFilter);
 
   // Apply search filter
-  const searchedOrders = searchQuery
-    ? filteredOrders.filter(order =>
-        order.orderCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.userId.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.technicianId.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+  const searchedOrders = debouncedSearchQuery
+    ? filteredOrders.filter(
+        (order) =>
+          order.orderCode
+            .toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase()) ||
+          order.serviceName
+            .toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase()) ||
+          order.userId.fullName
+            .toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase()) ||
+          order.technicianId.displayName
+            .toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase())
       )
     : filteredOrders;
 
   // Pagination calculations
   const indexOfLastOrder = currentPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
-  const currentOrders = searchedOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const currentOrders = searchedOrders.slice(
+    indexOfFirstOrder,
+    indexOfLastOrder
+  );
   const totalPages = Math.ceil(searchedOrders.length / ordersPerPage);
 
-  
   const handleSearch = (query: string) => {
     setSearchQuery(query);
   };
@@ -180,7 +210,8 @@ const OrderManagement: React.FC = () => {
               <div>
                 <h1 className="text-2xl font-bold mb-1">Order Management</h1>
                 <p className="text-gray-600">
-                  Manage service orders, track their status, and view order details.
+                  Manage service orders, track their status, and view order
+                  details.
                 </p>
               </div>
             </div>
@@ -225,6 +256,11 @@ const OrderManagement: React.FC = () => {
               <div className="w-full md:w-auto flex-1">
                 <div className="relative">
                   <Search value={searchQuery} onChange={handleSearch} />
+                  {searchLoading && (
+                    <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="w-full md:w-auto flex gap-4">
@@ -355,7 +391,8 @@ const OrderManagement: React.FC = () => {
                             {formatCurrency(order.totalAmount)}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {order.payment.method.toUpperCase()} • {order.payment.status}
+                            {order.payment.method.toUpperCase()} •{" "}
+                            {order.payment.status}
                           </div>
                         </td>
 
@@ -366,7 +403,7 @@ const OrderManagement: React.FC = () => {
                               order.status
                             )}`}
                           >
-                            {order.status.replace('_', ' ')}
+                            {order.status.replace("_", " ")}
                           </span>
                         </td>
 
@@ -375,7 +412,9 @@ const OrderManagement: React.FC = () => {
                           <div className="flex justify-end space-x-2">
                             <button
                               className="p-1 rounded-full text-blue-600 hover:bg-blue-100 cursor-pointer"
-                              onClick={() => navigate(`/admin/order-management/${order._id}`)}
+                              onClick={() =>
+                                navigate(`/admin/order-management/${order._id}`)
+                              }
                               title="View Order Details"
                             >
                               <VisibilityOutlined className="h-5 w-5" />
@@ -414,7 +453,8 @@ const OrderManagement: React.FC = () => {
             {totalPages > 1 && (
               <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
                 <span className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages} • Showing {currentOrders.length} of {searchedOrders.length} orders
+                  Page {currentPage} of {totalPages} • Showing{" "}
+                  {currentOrders.length} of {searchedOrders.length} orders
                 </span>
 
                 <div className="flex space-x-2">

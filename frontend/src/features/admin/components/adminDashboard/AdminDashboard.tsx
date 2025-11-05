@@ -12,15 +12,12 @@ import {
   CheckCircleOutlined,
   QueryBuilderOutlined,
 } from "@mui/icons-material";
-import Search from "./actions/Search";
 const AdminDashboard: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar activePage="Dashboard" />
       {/* Main content  */}
       <div className="flex-1 overflow-y-auto ml-[240px]">
-        {/* Header with search */}
-        <Search />
 
         {/* Dashboard content */}
         <div className="p-6">

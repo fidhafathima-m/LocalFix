@@ -32,6 +32,7 @@ import {
 } from "../../../../store/slices/authSlice";
 import toast from "react-hot-toast";
 import type { GeocodeResult } from "../../../../interface/user/ILocationService";
+import { useDebounce } from "../../../../hooks/useDebounce";
 
 interface Technician {
   _id: string;
@@ -118,6 +119,9 @@ const ServiceDetails: React.FC = () => {
   const [techniciansLoading, setTechniciansLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locationSearch, setLocationSearch] = useState("");
+
+  const debouncedLocationSearch = useDebounce(locationSearch, 500);
+
   const user = useAppSelector(selectUser);
   const isLoggedIn = useAppSelector(selectIsLoggedIn);
 
@@ -325,7 +329,6 @@ const ServiceDetails: React.FC = () => {
   const handleSortChange = async (
     newSort: "default" | "nearby" | "rating" | "experience"
   ) => {
-
     if (newSort === "default") {
       setSortBy("default");
       await fetchTechniciansForService(service?.name || "", 1);
@@ -765,10 +768,9 @@ const ServiceDetails: React.FC = () => {
         service: mappedServiceName,
         page,
         limit: pagination.limit,
-        search: locationSearch || undefined,
-        location: locationSearch || undefined,
+        search: debouncedLocationSearch || undefined,
+        location: debouncedLocationSearch || undefined,
       });
-
 
       // Handle different response structures
       if (response && response.data) {
@@ -868,23 +870,22 @@ const ServiceDetails: React.FC = () => {
 
   // Filter technicians based on location search
   useEffect(() => {
-    if (service && locationSearch.trim() !== "") {
+    if (service && debouncedLocationSearch.trim() !== "") {
       const searchTechnicians = async () => {
         setPagination((prev) => ({ ...prev, page: 1 }));
         await fetchTechniciansForService(service.name, 1);
       };
 
-      const timeoutId = setTimeout(searchTechnicians, 500);
-      return () => clearTimeout(timeoutId);
+      searchTechnicians();
     } else if (
       service &&
-      locationSearch.trim() === "" &&
+      debouncedLocationSearch.trim() === "" &&
       pagination.page === 1
     ) {
       // Only refetch if we're on page 1 and search is cleared
       fetchTechniciansForService(service.name, 1);
     }
-  }, [locationSearch, service]);
+  }, [debouncedLocationSearch, service]);
 
   const getTechnicianDisplayData = (tech: Technician) => {
     const city = tech.personalInfo?.address?.city || "";
@@ -1433,6 +1434,12 @@ const ServiceDetails: React.FC = () => {
                   onChange={(e) => setLocationSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                {/* Show loading indicator when searching */}
+                {locationSearch !== debouncedLocationSearch && (
+                  <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  </div>
+                )}
                 {locationSearch && (
                   <button
                     onClick={() => setLocationSearch("")}
@@ -1444,8 +1451,14 @@ const ServiceDetails: React.FC = () => {
               </div>
               {locationSearch && (
                 <p className="text-sm text-gray-500 mt-2">
-                  Showing {filteredTechnicians.length} technicians matching "
-                  {locationSearch}"
+                  {locationSearch !== debouncedLocationSearch ? (
+                    "Searching..."
+                  ) : (
+                    <>
+                      Showing {filteredTechnicians.length} technicians matching
+                      "{locationSearch}"
+                    </>
+                  )}
                 </p>
               )}
             </div>

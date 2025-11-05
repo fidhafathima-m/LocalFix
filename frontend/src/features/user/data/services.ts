@@ -33,10 +33,11 @@ export interface ServicesResponse {
 // Service to fetch services from backend with pagination
 export const fetchServices = async (
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  search?: string
 ): Promise<ServicesResponse> => {
   try {
-    const response = await ServiceManagementService.getAllServices(page, pageSize);
+    const response = await ServiceManagementService.getAllServices(page, pageSize, search);
 
     // Transform the API response to match your frontend needs
     if (response && response.services) {

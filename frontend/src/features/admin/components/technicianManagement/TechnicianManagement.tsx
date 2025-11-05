@@ -22,6 +22,7 @@ import {
 } from "../../components/technicianManagement/actions/ActionButtons";
 import { useAppDispatch, useAppSelector } from "../../../../hooks/redux";
 import { AdminSidebar } from "../adminDashboard/actions/AdminSidebar";
+import { useDebounce } from "../../../../hooks/useDebounce";
 
 interface Technician {
   _id: string;
@@ -76,7 +77,10 @@ const TechnicianManagement: React.FC = () => {
   const [ratingFilter, setRatingFilter] = useState("All Ratings");
   const [activeTab, setActiveTab] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchLoading, setSearchLoading] = useState(false);
   const itemsPerPage = 5;
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
   const {
     actionInProgress,
@@ -89,6 +93,14 @@ const TechnicianManagement: React.FC = () => {
     },
     redirectOnSuccess: false,
   });
+
+  useEffect(() => {
+      if (searchQuery !== debouncedSearchQuery) {
+        setSearchLoading(true);
+      } else {
+        setSearchLoading(false);
+      }
+    }, [searchQuery, debouncedSearchQuery]);
 
   // Fetch technicians and applications
   const fetchData = async () => {
@@ -134,9 +146,9 @@ const TechnicianManagement: React.FC = () => {
         const matchesSearch =
           app.personal?.fullName
             ?.toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          app.personal?.phoneNumber?.includes(searchQuery);
+            .includes(debouncedSearchQuery.toLowerCase()) ||
+          app.email.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          app.personal?.phoneNumber?.includes(debouncedSearchQuery);
 
         const matchesService =
           serviceFilter === "All Services" ||
@@ -166,11 +178,11 @@ const TechnicianManagement: React.FC = () => {
 
         // Apply search and other filters
         const matchesSearch =
-          tech.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          tech.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          tech.user?.phone?.includes(searchQuery) ||
+          tech.displayName.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          tech.user?.email?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          tech.user?.phone?.includes(debouncedSearchQuery) ||
           tech.workAreas.some((area) =>
-            area.toLowerCase().includes(searchQuery.toLowerCase())
+            area.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
           );
 
         const matchesService =
@@ -202,7 +214,7 @@ const TechnicianManagement: React.FC = () => {
   // Reset to page 1 when filters or tab change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, serviceFilter, ratingFilter, activeTab]);
+  }, [debouncedSearchQuery, serviceFilter, ratingFilter, activeTab]);
 
   // Count calculations
   const pendingApplications = applications.length;
@@ -592,6 +604,11 @@ const TechnicianManagement: React.FC = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
+                  {searchLoading && (
+                      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
                   <SearchOutlined className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
               </div>

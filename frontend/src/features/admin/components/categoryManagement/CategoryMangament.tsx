@@ -17,12 +17,16 @@ import { AdminSidebar } from "../adminDashboard/actions/AdminSidebar";
 import { AddCategoryModal } from "./modals/AddCategoryModal";
 import { EditCategoryModal } from "./modals/EditCategoryModal";
 import Search from "../adminDashboard/actions/Search"
+import { useDebounce } from "../../../../hooks/useDebounce";
 
 const CategoryManagement: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null
@@ -37,6 +41,14 @@ const CategoryManagement: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const categoriesPerPage = 10;
+
+  useEffect(() => {
+      if (searchQuery !== debouncedSearchQuery) {
+        setSearchLoading(true);
+      } else {
+        setSearchLoading(false);
+      }
+    }, [searchQuery, debouncedSearchQuery]);
 
   // Update the loadCategories function
   const loadCategories = async (page: number = 1, search?: string) => {
@@ -73,12 +85,12 @@ const CategoryManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    loadCategories(currentPage, searchQuery);
-  }, [currentPage, searchQuery]);
+    loadCategories(currentPage, debouncedSearchQuery);
+  }, [currentPage, debouncedSearchQuery]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, debouncedSearchQuery]);
 
   const handleCreateCategory = async (categoryData: CreateCategoryData) => {
     try {
@@ -89,7 +101,7 @@ const CategoryManagement: React.FC = () => {
       if (response.success) {
         toast.success("Category created successfully");
         setShowAddModal(false);
-        await loadCategories(currentPage, searchQuery); // Refresh the list
+        await loadCategories(currentPage, debouncedSearchQuery); // Refresh the list
         return { success: true };
       } else {
         toast.error(response.message || "Failed to create category");
@@ -124,7 +136,7 @@ const CategoryManagement: React.FC = () => {
         toast.success("Category updated successfully");
         setShowEditModal(false);
         setSelectedCategory(null);
-        await loadCategories(currentPage, searchQuery); // Refresh the list
+        await loadCategories(currentPage, debouncedSearchQuery); // Refresh the list
         return { success: true };
       } else {
         toast.error(response.message || "Failed to update category");
@@ -158,7 +170,7 @@ const CategoryManagement: React.FC = () => {
 
       if (response.success) {
         toast.success("Category deleted successfully");
-        await loadCategories(currentPage, searchQuery); // Refresh the list
+        await loadCategories(currentPage, debouncedSearchQuery); // Refresh the list
       } else {
         toast.error(response.message || "Failed to delete category");
       }
@@ -241,6 +253,12 @@ const CategoryManagement: React.FC = () => {
                 <div className="w-full md:w-auto flex-1">
                   <div className="relative">
                     <Search value={searchQuery} onChange={handleSearch} />
+                    {/* Add loading indicator for debounced search */}
+                    {searchLoading && (
+                      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="w-full md:w-auto flex gap-4">

@@ -18,6 +18,7 @@ import fetchServices, {
 import fetchCategories, { type Category } from "../../data/categories";
 import Footer from "../../../../components/common/Footer";
 import Header from "../../../../components/common/Header";
+import { useDebounce } from "../../../../hooks/useDebounce";
 
 const Services: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ const Services: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -57,7 +60,7 @@ const Services: React.FC = () => {
   const loadServices = async (page: number = 1, size: number = pageSize) => {
     try {
       setLoading(true);
-      const response: ServicesResponse = await fetchServices(page, size);
+      const response: ServicesResponse = await fetchServices(page, size, debouncedSearchQuery);
 
       setServices(response.services);
       setTotalItems(response.pagination.totalItems);
@@ -115,8 +118,9 @@ const Services: React.FC = () => {
 
   // Reload services when page or pageSize changes
   useEffect(() => {
-    loadServices(currentPage, pageSize);
-  }, [currentPage, pageSize]);
+    setCurrentPage(1); // Reset to first page when search changes
+    loadServices(1, pageSize);
+  }, [debouncedSearchQuery, pageSize]);
 
   // Get icon URLs
   const getServiceIconUrl = (service: Service): string => {
@@ -147,8 +151,8 @@ const Services: React.FC = () => {
 
       // Search filter
       const searchMatch =
-        service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        service.description.toLowerCase().includes(searchQuery.toLowerCase());
+        service.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        service.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
 
       // Price filter
       const servicePrice = service.avgBasePrice || 299;
@@ -244,8 +248,14 @@ const Services: React.FC = () => {
                   placeholder="Search for a service..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full pl-12 pr-4 py-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
+                 {/* Show loading indicator when searching */}
+                {searchQuery !== debouncedSearchQuery && (
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

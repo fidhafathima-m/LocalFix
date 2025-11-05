@@ -26,6 +26,7 @@ import {
 import { UserMangementService } from "../../../../services/admin/UserManagementService";
 import { UserModal } from "./UserModal";
 import type { User } from "../../../../interface/admin/IUser";
+import { useDebounce } from "../../../../hooks/useDebounce";
 
 const UserManagement: React.FC = () => {
   const { users, usersLoading } = useAppSelector((state) => state.admin);
@@ -33,6 +34,7 @@ const UserManagement: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,6 +45,8 @@ const UserManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 5;
 
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
   // Filter users based on statusFilter
   const filteredUsers =
     statusFilter === "All Status"
@@ -50,11 +54,13 @@ const UserManagement: React.FC = () => {
       : users.filter((u) => u.status === statusFilter);
 
   // Apply search filter
-  const searchedUsers = searchQuery
+  const searchedUsers = debouncedSearchQuery
     ? filteredUsers.filter(
         (u) =>
-          u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+          u.fullName
+            .toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase()) ||
+          u.email?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       )
     : filteredUsers;
 
@@ -66,7 +72,15 @@ const UserManagement: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, debouncedSearchQuery]);
+
+  useEffect(() => {
+    if (searchQuery !== debouncedSearchQuery) {
+      setSearchLoading(true);
+    } else {
+      setSearchLoading(false);
+    }
+  }, [searchQuery, debouncedSearchQuery]);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -252,6 +266,12 @@ const UserManagement: React.FC = () => {
                       value={searchQuery}
                       onChange={(val) => setSearchQuery(val)}
                     />
+                    {/* Add loading indicator for debounced search */}
+                    {searchLoading && (
+                      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="w-full md:w-auto">
@@ -272,7 +292,7 @@ const UserManagement: React.FC = () => {
               </div>
             </div>
             {/* Users table */}
-            {usersLoading ? (
+            {usersLoading || searchLoading ? (
               <div className="p-6 text-center text-gray-500">
                 Loading users...
               </div>
