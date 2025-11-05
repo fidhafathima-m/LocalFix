@@ -385,11 +385,23 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const serviceRadiusKm =
         updateData.serviceRadiusKm || updateData.workRadius || 10;
 
+      // Build update payload
       const updateDataForRepo: Partial<ITechnician> = {
         workAreas: workAreas,
         serviceRadiusKm: serviceRadiusKm,
       };
 
+      // Add availability preferences if provided
+      if (updateData.availability) {
+        updateDataForRepo.availability = {
+          isAvailable: updateData.availability.isAvailable,
+          weeklyAvailability: updateData.availability.weeklyAvailability,
+        };
+      }
+
+      console.log("Updating availability with data:", updateDataForRepo);
+
+      // Update technician with the new data
       const updatedTechnician =
         await this.technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
@@ -403,6 +415,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
+      // Process slot rules and availability records if availability data is provided
       if (updateData.availability) {
         try {
           await this.processAvailabilityData(
@@ -414,6 +427,8 @@ export class TechnicianProfileService implements ITechnicianProfileService {
             "Error processing availability data:",
             availabilityError
           );
+          // Don't fail the entire request if availability processing fails
+          // Just log the error and continue
         }
       }
 

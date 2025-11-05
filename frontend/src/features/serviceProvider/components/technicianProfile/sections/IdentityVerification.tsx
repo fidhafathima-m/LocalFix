@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
 import {
-  AccessTimeOutlined,
-  CheckCircleOutline,
-  Cancel,
   LocationOn,
 } from "@mui/icons-material";
 import { TechnicianService } from "../../../../../services/technician/technicianService";
@@ -253,34 +250,7 @@ const IdentityVerification = () => {
       }));
     }
   };
-  const getStatusDisplay = () => {
-    if (!formData.verificationStatus) return null;
-
-    switch (formData.verificationStatus) {
-      case "approved":
-        return (
-          <div className="flex items-center text-green-500">
-            <CheckCircleOutline className="h-5 w-5 mr-1" />
-            <span className="text-sm">Verified</span>
-          </div>
-        );
-      case "rejected":
-        return (
-          <div className="flex items-center text-red-500">
-            <Cancel className="h-5 w-5 mr-1" />
-            <span className="text-sm">Verification Failed</span>
-          </div>
-        );
-      case "pending":
-      default:
-        return (
-          <div className="flex items-center text-yellow-500">
-            <AccessTimeOutlined className="h-5 w-5 mr-1" />
-            <span className="text-sm">Pending Verification</span>
-          </div>
-        );
-    }
-  };
+  
 
   const maskIdNumber = (idNumber?: string) => {
     if (!idNumber) return "XXXX-XXXX-XXXX";
@@ -304,16 +274,6 @@ const IdentityVerification = () => {
   return (
     <AccordionSection title="Identity & Verification" number={2}>
       <div className="space-y-6">
-        {/* Verification Status */}
-        <div className="flex items-center">
-          <span className="text-sm mr-2">Verification Status:</span>
-          {getStatusDisplay()}
-          {formData.verifiedAt && (
-            <span className="text-xs text-gray-500 ml-2">
-              Verified on {new Date(formData.verifiedAt).toLocaleDateString()}
-            </span>
-          )}
-        </div>
 
         {/* Government ID Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

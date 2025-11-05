@@ -55,6 +55,8 @@ const AvailabilityPreferences = () => {
     "Trivandrum",
   ];
 
+  
+
   useEffect(() => {
     fetchProfileAndAvailability();
   }, []);
@@ -116,65 +118,85 @@ const AvailabilityPreferences = () => {
     }
   };
   const extractAvailabilityFromProfile = (
-    profileData: any
-  ): AvailabilityData => {
-    let serviceAreas: string[] = [];
-    let workRadius = 10;
-    let isAvailable = true;
-    let availableWeeks = [1, 2, 3, 4]; // Default
+  profileData: any
+): AvailabilityData => {
+  let serviceAreas: string[] = [];
+  let workRadius = 10;
+  let isAvailable = true;
+  let availableWeeks = [1, 2, 3, 4]; // Default
 
-    // Try multiple sources for service areas
-    if (profileData.workAreas && profileData.workAreas.length > 0) {
-      serviceAreas = profileData.workAreas;
-    } else if (profileData.availabilityPreferences?.serviceAreas) {
-      serviceAreas = profileData.availabilityPreferences.serviceAreas;
-    } else if (profileData.serviceAreas) {
-      serviceAreas = profileData.serviceAreas;
+  // Try multiple sources for service areas
+  if (profileData.workAreas && profileData.workAreas.length > 0) {
+    serviceAreas = profileData.workAreas;
+  } else if (profileData.availabilityPreferences?.serviceAreas) {
+    serviceAreas = profileData.availabilityPreferences.serviceAreas;
+  } else if (profileData.serviceAreas) {
+    serviceAreas = profileData.serviceAreas;
+  }
+
+  // Get work radius
+  if (profileData.serviceRadiusKm) {
+    workRadius = profileData.serviceRadiusKm;
+  } else if (profileData.availabilityPreferences?.workRadius) {
+    workRadius = profileData.availabilityPreferences.workRadius;
+  }
+
+  // Get availability status
+  isAvailable =
+    profileData.isAvailable !== false &&
+    profileData.availabilityPreferences?.isAvailable !== false;
+
+  // Extract available weeks from slot rules
+  if (profileData.slotRules && profileData.slotRules.length > 0) {
+    const extractedWeeks = extractAvailableWeeksFromSlotRules(
+      profileData.slotRules
+    );
+    if (extractedWeeks.length > 0) {
+      availableWeeks = extractedWeeks;
     }
+  }
 
-    // Get work radius
-    if (profileData.serviceRadiusKm) {
-      workRadius = profileData.serviceRadiusKm;
-    } else if (profileData.availabilityPreferences?.workRadius) {
-      workRadius = profileData.availabilityPreferences.workRadius;
-    }
+  // Get the weekly pattern and ensure valid time values
+  const weeklyPattern = getWeeklyPatternFromProfile(profileData);
 
-    // Get availability status
-    isAvailable =
-      profileData.isAvailable !== false &&
-      profileData.availabilityPreferences?.isAvailable !== false;
+  const sanitizedWeeklyPattern: any = {};
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
-    // Extract available weeks from slot rules
-    if (profileData.slotRules && profileData.slotRules.length > 0) {
-      const extractedWeeks = extractAvailableWeeksFromSlotRules(
-        profileData.slotRules
-      );
-      if (extractedWeeks.length > 0) {
-        availableWeeks = extractedWeeks;
-      }
-    }
-
-    // Get the weekly pattern
-    const weeklyPattern = getWeeklyPatternFromProfile(profileData);
-
-    const monthlyAvailability: MonthlyAvailability = {
-      duration: {
-        months: 3,
-        startDate: new Date(),
-      },
-      availableWeeks: availableWeeks,
-      weeklyPattern: weeklyPattern,
+  days.forEach(day => {
+    const dayPattern = weeklyPattern[day] || {
+      available: false,
+      startTime: "09:00",
+      endTime: "18:00"
     };
 
-    const result = {
-      isAvailable,
-      serviceAreas: serviceAreas,
-      workRadius: workRadius,
-      availability: monthlyAvailability,
+    // Ensure valid time values
+    sanitizedWeeklyPattern[day] = {
+      available: dayPattern.available || false,
+      startTime: timeRegex.test(dayPattern.startTime) ? dayPattern.startTime : "09:00",
+      endTime: timeRegex.test(dayPattern.endTime) ? dayPattern.endTime : "18:00"
     };
+  });
 
-    return result;
+  const monthlyAvailability: MonthlyAvailability = {
+    duration: {
+      months: 3,
+      startDate: new Date(),
+    },
+    availableWeeks: availableWeeks,
+    weeklyPattern: sanitizedWeeklyPattern,
   };
+
+  const result = {
+    isAvailable,
+    serviceAreas: serviceAreas,
+    workRadius: workRadius,
+    availability: monthlyAvailability,
+  };
+
+  return result;
+};
+
 
   const extractAvailableWeeksFromSlotRules = (slotRules: any[]): number[] => {
     const weeks = new Set<number>();
@@ -479,34 +501,28 @@ const AvailabilityPreferences = () => {
     }
   };
 
+  const validateTimeSlots = (weeklyPattern: any): boolean => {
+  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/; // HH:MM format
+  
+  for (const [day, dayInfo] of Object.entries(weeklyPattern)) {
+    const dayData = dayInfo as any;
+    if (dayData.available && (!timeRegex.test(dayData.startTime) || !timeRegex.test(dayData.endTime))) {
+      console.error(`Invalid time format for ${day}:`, dayData);
+      return false;
+    }
+  }
+  return true;
+};
+
   const handleSave = async () => {
     try {
       setSaving(true);
 
-      // Convert the availability format to match the expected API structure
-      const convertedWeeklyAvailability: {
-        [key: string]: { enabled: boolean; startTime: string; endTime: string };
-      } = {};
-
-      Object.entries(formData.availability.weeklyPattern).forEach(
-        ([day, dayInfo]) => {
-          convertedWeeklyAvailability[day] = {
-            enabled: dayInfo.available,
-            startTime: dayInfo.startTime,
-            endTime: dayInfo.endTime,
-          };
-        }
-      );
-
-      const updateData = {
-        availability: {
-          isAvailable: formData.isAvailable,
-          weeklyAvailability: convertedWeeklyAvailability,
-        },
-        availableWeeks: formData.availability.availableWeeks,
-        serviceAreas: formData.serviceAreas,
-        workRadius: formData.workRadius,
-      };
+       if (!validateTimeSlots(formData.availability.weeklyPattern)) {
+      toast.error("Please ensure all time slots have valid time format (HH:MM)");
+      setSaving(false);
+      return;
+    }
 
       // Enhanced validation
       if (formData.serviceAreas.length === 0) {
@@ -534,6 +550,31 @@ const AvailabilityPreferences = () => {
         setSaving(false);
         return;
       }
+
+      // Convert the availability format to match the expected API structure
+      const convertedWeeklyAvailability: {
+        [key: string]: { enabled: boolean; startTime: string; endTime: string };
+      } = {};
+
+      Object.entries(formData.availability.weeklyPattern).forEach(
+        ([day, dayInfo]) => {
+          convertedWeeklyAvailability[day] = {
+            enabled: dayInfo.available,
+            startTime: dayInfo.startTime,
+            endTime: dayInfo.endTime,
+          };
+        }
+      );
+
+      const updateData = {
+        availability: {
+          isAvailable: formData.isAvailable,
+          weeklyAvailability: convertedWeeklyAvailability,
+          availableWeeks: formData.availability.availableWeeks,
+        },
+        serviceAreas: formData.serviceAreas,
+        workRadius: formData.workRadius,
+      };
 
       const response = await TechnicianService.updateAvailability(updateData);
 

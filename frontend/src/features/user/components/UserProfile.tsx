@@ -26,6 +26,7 @@ import type {
   Address,
   AddressFormData,
 } from "../../../interface/user/IUserApi";
+import { useNavigate } from "react-router-dom";
 
 interface UserData {
   _id: string;
@@ -57,6 +58,7 @@ const UserProfile: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   // Real user data state
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -526,7 +528,9 @@ const UserProfile: React.FC = () => {
 
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">My Profile</h1>
-            <button className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">
+            <button 
+            onClick={() => navigate("/services")}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 cursor-pointer">
               Book a Service
             </button>
           </div>

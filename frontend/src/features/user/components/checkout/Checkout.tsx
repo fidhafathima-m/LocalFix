@@ -71,6 +71,7 @@ const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAppSelector(selectUser);
+  
 
   // Load Razorpay script
   useEffect(() => {
