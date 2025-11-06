@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -21,13 +22,18 @@ import { selectUser } from "../../../../store/slices/authSlice";
 import toast from "react-hot-toast";
 import { reviewService } from "../../../../services/user/reviewService";
 import Swal from "sweetalert2";
+import InvoiceModal from "./InvoicePreview";
 
 const MyOrders: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const user = useAppSelector(selectUser);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(
+    null
+  );
+
+  const currentUser = useAppSelector(selectUser);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,6 +56,49 @@ const MyOrders: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenInvoiceModal = (order: OrderResponse) => {
+    setSelectedOrder(order);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const handleCloseInvoiceModal = () => {
+    setIsInvoiceModalOpen(false);
+    setSelectedOrder(null);
+  };
+
+  const getInvoiceData = () => {
+    if (!selectedOrder) return null;
+
+    return {
+      bookingId: selectedOrder.bookingId,
+      service: selectedOrder.serviceName,
+      technician: {
+        displayName: selectedOrder.technicianId.displayName,
+        _id: selectedOrder.technicianId._id,
+      },
+      date: selectedOrder.scheduledAt,
+      time: selectedOrder.timeSlot,
+      amount: selectedOrder.totalAmount,
+      paymentMethod: selectedOrder.payment.method,
+      paymentId: selectedOrder.payment.transactionId,
+      problemDescription: selectedOrder.problemDescription,
+      address: {
+        street: selectedOrder.address.street,
+        city: selectedOrder.address.city,
+        state: selectedOrder.address.state,
+        pincode: selectedOrder.address.pincode,
+        landmark: selectedOrder.address.landmark,
+      },
+      user: currentUser
+        ? {
+            fullName: currentUser.fullName || "Customer",
+            phoneNumber: currentUser.phone || "Phone not available",
+            email: currentUser.email || "Email not available",
+          }
+        : undefined,
+    };
   };
 
   const formatDate = (dateString: string) => {
@@ -149,72 +198,50 @@ const MyOrders: React.FC = () => {
     });
   };
 
-  const handleDownloadInvoice = async (orderId: string) => {
+  const handleLeaveReview = async (orderId: string) => {
     try {
-      const blob = await orderService.downloadInvoice(orderId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `invoice-${orderId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const existingReviewResponse = await reviewService.getOrderReview(
+        orderId
+      );
+
+      if (existingReviewResponse.success && existingReviewResponse.data) {
+        const result = await Swal.fire({
+          title: "Edit Existing Review?",
+          text: "You have already submitted a review for this order. Would you like to edit it?",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Yes, Edit Review",
+          cancelButtonText: "Cancel",
+          confirmButtonColor: "#3085d6",
+          cancelButtonColor: "#d33",
+        });
+
+        if (result.isConfirmed) {
+          navigate(`/leave-a-review/${orderId}`, {
+            state: {
+              existingReview: existingReviewResponse.data,
+              mode: "edit" as const,
+            },
+          });
+        }
+      } else {
+        navigate(`/leave-a-review/${orderId}`, {
+          state: {
+            mode: "create" as const,
+          },
+        });
+      }
     } catch (error) {
-      console.error("Error downloading invoice:", error);
-      toast.error("Failed to download invoice");
+      console.error("Error checking existing review:", error);
+      navigate(`/leave-a-review/${orderId}`, {
+        state: {
+          mode: "create" as const,
+        },
+      });
     }
   };
 
-   // In your MyOrders component - update the handleLeaveReview function
-const handleLeaveReview = async (orderId: string) => {
-  try {
-    // Check if there's an existing review for this order
-    const existingReviewResponse = await reviewService.getOrderReview(orderId);
-    
-    
-    // Check if we have a successful response WITH data
-    if (existingReviewResponse.success && existingReviewResponse.data) {
-      // Existing review found - show SweetAlert confirmation for edit
-      const result = await Swal.fire({
-        title: 'Edit Existing Review?',
-        text: 'You have already submitted a review for this order. Would you like to edit it?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Edit Review',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-      });
-
-      if (result.isConfirmed) {
-        navigate(`/leave-a-review/${orderId}`, {
-          state: {
-            existingReview: existingReviewResponse.data,
-            mode: 'edit' as const
-          }
-        });
-      }
-    } else {
-      navigate(`/leave-a-review/${orderId}`, {
-        state: {
-          mode: 'create' as const
-        }
-      });
-    }
-  } catch (error) {
-    console.error("Error checking existing review:", error);
-    // Fallback - navigate to create mode
-    navigate(`/leave-a-review/${orderId}`, {
-      state: {
-        mode: 'create' as const
-      }
-    });
-  }
-};
-
   const handleBookAgain = (technicianId: string, serviceName: string) => {
-    // Navigate to booking page with pre-filled technician and service
     toast.success(`Redirecting to book ${serviceName} again`);
   };
 
@@ -329,144 +356,18 @@ const handleLeaveReview = async (orderId: string) => {
                 </Link>
               </div>
             ) : (
-              activeOrders.map((order) => {
-                const statusConfig = getStatusConfig(order.status);
-                const StatusIcon = statusConfig.icon;
-
-                return (
-                  <div
-                    key={order._id}
-                    className="bg-white rounded-lg shadow-sm p-6"
-                  >
-                    {/* ... existing order display code ... */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div
-                        className={`flex items-center gap-2 ${statusConfig.color}`}
-                      >
-                        <StatusIcon className="w-5 h-5" />
-                        <span className="font-semibold">
-                          {statusConfig.text}
-                        </span>
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        Order ID: {order.orderCode}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="text-xl font-bold mb-2">
-                          {order.serviceName}
-                        </h3>
-                        <p className="text-gray-600 mb-4">
-                          {order.problemDescription || "Standard service"}
-                        </p>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <CalendarTodayOutlined className="w-4 h-4" />
-                            <span>Date</span>
-                            <span className="ml-auto">
-                              {formatDate(order.scheduledAt)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <AccessTimeOutlined className="w-4 h-4" />
-                            <span>Time Slot</span>
-                            <span className="ml-auto">
-                              {formatTimeSlot(order.timeSlot)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <FmdGoodOutlined className="w-4 h-4" />
-                            <span>Address</span>
-                            <span className="ml-auto">
-                              {order.address.street}, {order.address.city}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <CreditCardOutlined className="w-4 h-4" />
-                            <span>Payment</span>
-                            <span className="ml-auto">
-                              ₹{order.totalAmount} •{" "}
-                              {order.payment.method === "online"
-                                ? "Online Payment"
-                                : "Cash on Delivery"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold mb-3">Technician</h3>
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                            {order.technicianId.profilePictureUrl ? (
-                              <img
-                                src={order.technicianId.profilePictureUrl}
-                                alt={order.technicianId.displayName}
-                                className="w-12 h-12 rounded-full object-cover"
-                              />
-                            ) : (
-                              <PersonOutlined className="w-6 h-6 text-gray-400" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-semibold">
-                              {order.technicianId.displayName}
-                            </div>
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                              <span>
-                                {order.technicianId.averageRating.toFixed(1)}
-                              </span>
-                              <span>•</span>
-                              <span>
-                                {order.technicianId.ratingCount} reviews
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 mt-6">
-                      {order.status === "on_the_way" && (
-                        <Link
-                          to={`/service-tracking/${order.bookingId}`}
-                          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
-                        >
-                          Track Service
-                        </Link>
-                      )}
-
-                      {["pending", "confirmed"].includes(order.status) && (
-                        <>
-                          <button
-                            onClick={() =>
-                              navigate(`/bookings/${order.bookingId}`)
-                            }
-                            className=" bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
-                          >
-                            Track Service
-                          </button>
-                          <button
-                            onClick={() => handleRescheduleOrder(order)}
-                            className="border-2 border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
-                          >
-                            Reschedule
-                          </button>
-                          <button
-                            onClick={() => handleCancelOrder(order._id)}
-                            className="text-red-600 px-6 py-2 rounded-lg font-semibold hover:bg-red-50 transition-colors cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
+              activeOrders.map((order) => (
+                <OrderCard
+                  key={order._id}
+                  order={order}
+                  formatDate={formatDate}
+                  formatTimeSlot={formatTimeSlot}
+                  getStatusConfig={getStatusConfig}
+                  onReschedule={handleRescheduleOrder}
+                  onCancel={handleCancelOrder}
+                  onTrack={() => navigate(`/bookings/${order.bookingId}`)}
+                />
+              ))
             )}
           </div>
         ) : (
@@ -490,147 +391,226 @@ const handleLeaveReview = async (orderId: string) => {
                 </Link>
               </div>
             ) : (
-              historyOrders.map((order) => {
-                const statusConfig = getStatusConfig(order.status);
-                const StatusIcon = statusConfig.icon;
-
-                return (
-                  <div
-                    key={order._id}
-                    className="bg-white rounded-lg shadow-sm p-6"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div
-                        className={`flex items-center gap-2 ${statusConfig.color}`}
-                      >
-                        <StatusIcon className="w-5 h-5" />
-                        <span className="font-semibold">
-                          {statusConfig.text}
-                        </span>
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        Order ID: {order.orderCode}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="text-xl font-bold mb-2">
-                          {order.serviceName}
-                        </h3>
-                        <p className="text-gray-600 mb-4">
-                          {order.problemDescription || "Standard service"}
-                        </p>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <CalendarTodayOutlined className="w-4 h-4" />
-                            <span>Date</span>
-                            <span className="ml-auto">
-                              {formatDate(order.scheduledAt)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <AccessTimeOutlined className="w-4 h-4" />
-                            <span>Time Slot</span>
-                            <span className="ml-auto">
-                              {formatTimeSlot(order.timeSlot)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <FmdGoodOutlined className="w-4 h-4" />
-                            <span>Address</span>
-                            <span className="ml-auto">
-                              {order.address.street}, {order.address.city}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-700">
-                            <CreditCardOutlined className="w-4 h-4" />
-                            <span>Payment</span>
-                            <span className="ml-auto">
-                              ₹{order.totalAmount} •{" "}
-                              {order.payment.method === "online"
-                                ? "Online Payment"
-                                : "Cash on Delivery"}
-                              {order.status === "cancelled" &&
-                                order.payment.method === "online" &&
-                                " (Refunded)"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold mb-3">Technician</h3>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                            {order.technicianId.profilePictureUrl ? (
-                              <img
-                                src={order.technicianId.profilePictureUrl}
-                                alt={order.technicianId.displayName}
-                                className="w-12 h-12 rounded-full object-cover"
-                              />
-                            ) : (
-                              <PersonOutlined className="w-6 h-6 text-gray-400" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-semibold">
-                              {order.technicianId.displayName}
-                            </div>
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                              <span>
-                                {order.technicianId.averageRating.toFixed(1)}
-                              </span>
-                              <span>•</span>
-                              <span>
-                                {order.technicianId.ratingCount} reviews
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {order.status === "completed" && (
-                      <div className="flex justify-between items-center mt-6 pt-6 border-t">
-                        <button
-                          onClick={() => handleDownloadInvoice(order._id)}
-                          className="text-blue-600 hover:text-blue-700 font-semibold"
-                        >
-                          Download Invoice
-                        </button>
-                        <div className="flex gap-3">
-                          {!order.technicianRating && (
-                            <button
-                              onClick={() => handleLeaveReview(order._id)}
-                              className="text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
-                            >
-                              Leave Review
-                            </button>
-                          )}
-                          <button
-                            onClick={() =>
-                              handleBookAgain(
-                                order.technicianId._id,
-                                order.serviceName
-                              )
-                            }
-                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
-                          >
-                            Book Again
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+              historyOrders.map((order) => (
+                <OrderCard
+                  key={order._id}
+                  order={order}
+                  formatDate={formatDate}
+                  formatTimeSlot={formatTimeSlot}
+                  getStatusConfig={getStatusConfig}
+                  onDownloadInvoice={() => handleOpenInvoiceModal(order)}
+                  onLeaveReview={() => handleLeaveReview(order._id)}
+                  onBookAgain={() =>
+                    handleBookAgain(order.technicianId._id, order.serviceName)
+                  }
+                  isHistory={true}
+                />
+              ))
             )}
           </div>
         )}
       </main>
+
+      {/* Invoice Modal */}
+      {selectedOrder && getInvoiceData() && (
+        <InvoiceModal
+          isOpen={isInvoiceModalOpen}
+          onClose={handleCloseInvoiceModal}
+          invoiceData={getInvoiceData()!} // Using non-null assertion since we checked above
+        />
+      )}
+
       <Footer />
+    </div>
+  );
+};
+
+// Order Card Component for better organization
+interface OrderCardProps {
+  order: OrderResponse;
+  formatDate: (date: string) => string;
+  formatTimeSlot: (time: string) => string;
+  getStatusConfig: (status: string) => any;
+  onReschedule?: (order: OrderResponse) => void;
+  onCancel?: (orderId: string) => void;
+  onTrack?: () => void;
+  onDownloadInvoice?: () => void;
+  onLeaveReview?: () => void;
+  onBookAgain?: () => void;
+  isHistory?: boolean;
+}
+
+const OrderCard: React.FC<OrderCardProps> = ({
+  order,
+  formatDate,
+  formatTimeSlot,
+  getStatusConfig,
+  onReschedule,
+  onCancel,
+  onTrack,
+  onDownloadInvoice,
+  onLeaveReview,
+  onBookAgain,
+  isHistory = false,
+}) => {
+  const statusConfig = getStatusConfig(order.status);
+  const StatusIcon = statusConfig.icon;
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className={`flex items-center gap-2 ${statusConfig.color}`}>
+          <StatusIcon className="w-5 h-5" />
+          <span className="font-semibold">{statusConfig.text}</span>
+        </div>
+        <span className="text-sm text-gray-600">
+          Order ID: {order.orderCode}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-xl font-bold mb-2">{order.serviceName}</h3>
+          <p className="text-gray-600 mb-4">
+            {order.problemDescription || "Standard service"}
+          </p>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2 text-gray-700">
+              <CalendarTodayOutlined className="w-4 h-4" />
+              <span>Date</span>
+              <span className="ml-auto">{formatDate(order.scheduledAt)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-700">
+              <AccessTimeOutlined className="w-4 h-4" />
+              <span>Time Slot</span>
+              <span className="ml-auto">{formatTimeSlot(order.timeSlot)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-700">
+              <FmdGoodOutlined className="w-4 h-4" />
+              <span>Address</span>
+              <span className="ml-auto">
+                {order.address.street}, {order.address.city}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-700">
+              <CreditCardOutlined className="w-4 h-4" />
+              <span>Payment</span>
+              <span className="ml-auto">
+                ₹{order.totalAmount} •{" "}
+                {order.payment.method === "online"
+                  ? "Online Payment"
+                  : "Cash on Delivery"}
+                {order.status === "cancelled" &&
+                  order.payment.method === "online" &&
+                  " (Refunded)"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-3">Technician</h3>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+              {order.technicianId.profilePictureUrl ? (
+                <img
+                  src={order.technicianId.profilePictureUrl}
+                  alt={order.technicianId.displayName}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              ) : (
+                <PersonOutlined className="w-6 h-6 text-gray-400" />
+              )}
+            </div>
+            <div>
+              <div className="font-semibold">
+                {order.technicianId.displayName}
+              </div>
+              <div className="flex items-center gap-1 text-sm text-gray-600">
+                <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <span>{order.technicianId.averageRating.toFixed(1)}</span>
+                <span>•</span>
+                <span>{order.technicianId.ratingCount} reviews</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+        {!isHistory ? (
+          <>
+            {order.status === "on_the_way" && onTrack && (
+              <button
+                onClick={onTrack}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+              >
+                Track Service
+              </button>
+            )}
+
+            {["pending", "confirmed"].includes(order.status) && (
+              <>
+                {onTrack && (
+                  <button
+                    onClick={onTrack}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                  >
+                    Track Service
+                  </button>
+                )}
+                {onReschedule && (
+                  <button
+                    onClick={() => onReschedule(order)}
+                    className="border-2 border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    Reschedule
+                  </button>
+                )}
+                {onCancel && (
+                  <button
+                    onClick={() => onCancel(order._id)}
+                    className="text-red-600 px-6 py-2 rounded-lg font-semibold hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          order.status === "completed" && (
+            <div className="flex justify-between items-center w-full mt-6 pt-6 border-t">
+              {onDownloadInvoice && (
+                <button
+                  onClick={onDownloadInvoice}
+                  className="text-blue-600 hover:text-blue-700 font-semibold"
+                >
+                  Download Invoice
+                </button>
+              )}
+              <div className="flex gap-3">
+                {!order.technicianRating && onLeaveReview && (
+                  <button
+                    onClick={onLeaveReview}
+                    className="text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
+                  >
+                    Leave Review
+                  </button>
+                )}
+                {onBookAgain && (
+                  <button
+                    onClick={onBookAgain}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                  >
+                    Book Again
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 };

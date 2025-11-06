@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   CheckCircleOutlineOutlined,
@@ -9,8 +9,11 @@ import {
 } from "@mui/icons-material";
 import Header from "../../../../components/common/Header";
 import Footer from "../../../../components/common/Footer";
+import InvoiceModal from "../orders/InvoicePreview";
+import { useAppSelector } from "../../../../hooks/redux";
+import { selectUser } from "../../../../store/slices/authSlice";
 
-interface PaymentSuccessState {
+export interface PaymentSuccessState {
   bookingId: string;
   technician: {
     _id: string;
@@ -26,11 +29,21 @@ interface PaymentSuccessState {
   amount: number;
   paymentId?: string;
   paymentMethod?: string;
+  problemDescription?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    landmark?: string;
+  };
 }
 
 const PaymentSuccess: React.FC = () => {
   const location = useLocation();
   const state = location.state as PaymentSuccessState;
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const currentUser = useAppSelector(selectUser);
 
   // Format date for display
   const formatDisplayDate = (dateString: string) => {
@@ -51,21 +64,26 @@ const PaymentSuccess: React.FC = () => {
       .join(" - ");
   };
 
-  // Handle invoice download
-  const handleDownloadInvoice = () => {
-    const invoiceData = {
-      bookingId: state.bookingId,
-      service: state.service,
-      technician: state.technician.displayName,
-      date: state.date,
-      time: state.time,
-      amount: state.amount,
-      paymentId: state.paymentId,
-      timestamp: new Date().toISOString(),
-    };
+  // Handle invoice modal open
+  const handleOpenInvoiceModal = () => {
+    setIsInvoiceModalOpen(true);
+  };
 
-    console.log("Downloading invoice:", invoiceData);
-    alert("Invoice download feature will be implemented soon!");
+  // Handle invoice modal close
+  const handleCloseInvoiceModal = () => {
+    setIsInvoiceModalOpen(false);
+  };
+
+  // Prepare invoice data with user information
+  const getInvoiceData = () => {
+    return {
+      ...state,
+      user: currentUser ? {
+        fullName: currentUser.fullName || "Customer",
+        phoneNumber: currentUser.phone || "Phone not available",
+        email: currentUser.email || "Email not available"
+      } : undefined
+    };
   };
 
   if (!state) {
@@ -212,7 +230,7 @@ const PaymentSuccess: React.FC = () => {
             </Link>
 
             <button
-              onClick={handleDownloadInvoice}
+              onClick={handleOpenInvoiceModal}
               className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
             >
               <DownloadOutlined className="w-5 h-5" />
@@ -244,6 +262,13 @@ const PaymentSuccess: React.FC = () => {
         </div>
       </main>
       <Footer />
+
+      {/* Invoice Modal */}
+      <InvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={handleCloseInvoiceModal}
+        invoiceData={getInvoiceData()}
+      />
     </div>
   );
 };

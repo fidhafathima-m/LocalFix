@@ -258,6 +258,9 @@ const Checkout: React.FC = () => {
                     amount: pricing.total,
                     paymentId: response.razorpay_payment_id,
                     orderId: orderResponse.data?._id,
+                    paymentMethod: "online",
+                    problemDescription: bookingData!.problemDescription,
+                    address: bookingData!.address,
                   },
                 });
               } else {
