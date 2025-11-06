@@ -12,4 +12,5 @@ export interface ITechnicianRepository extends IBaseRepository<ITechnician> {
     updateData: Partial<ITechnician>
   ): Promise<ITechnician | null>;
   save(technician: ITechnician): Promise<ITechnician>;
+  findByPhone(phoneNumber: string): Promise<ITechnician | null>;
 }

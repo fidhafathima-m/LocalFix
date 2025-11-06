@@ -52,9 +52,9 @@ export class TechnicianAvailabilityService
       this.logger.info("Availability configuration extracted", {
         ...context,
         config: {
-          availableDays: availabilityConfig.availableDays,
-          startTime: availabilityConfig.startTime,
-          endTime: availabilityConfig.endTime,
+          availableDays: availabilityConfig.availableDays.map(
+            (ad) => `${ad.day}: ${ad.startTime}-${ad.endTime}`
+          ),
           slotDuration: availabilityConfig.slotDuration,
         },
       });
@@ -164,9 +164,7 @@ export class TechnicianAvailabilityService
   }
 
   private extractAvailabilityConfig(availabilityData: any): {
-    availableDays: string[];
-    startTime: string;
-    endTime: string;
+    availableDays: Array<{ day: string; startTime: string; endTime: string }>;
     slotDuration: number;
   } {
     const context = {
@@ -182,9 +180,11 @@ export class TechnicianAvailabilityService
 
     this.logger.debug("Extracting availability configuration", context);
 
-    const availableDays: string[] = [];
-    let startTime = "09:00";
-    let endTime = "18:00";
+    const availableDays: Array<{
+      day: string;
+      startTime: string;
+      endTime: string;
+    }> = [];
     const slotDuration = 60;
 
     // Handle both direct weeklyPattern and nested structure
@@ -200,34 +200,22 @@ export class TechnicianAvailabilityService
       throw new Error("No weekly pattern found in availability data");
     }
 
-    const dayMap: { [key: string]: any } = {
-      monday: RRule.MO,
-      tuesday: RRule.TU,
-      wednesday: RRule.WE,
-      thursday: RRule.TH,
-      friday: RRule.FR,
-      saturday: RRule.SA,
-      sunday: RRule.SU,
-    };
-
     Object.entries(weeklyPattern).forEach(([day, dayInfo]: [string, any]) => {
       const dayLower = day.toLowerCase();
-      if (dayInfo?.available === true) {
-        availableDays.push(dayLower);
-
-        // Use timing from this day
-        if (dayInfo.startTime && dayInfo.endTime) {
-          startTime = dayInfo.startTime;
-          endTime = dayInfo.endTime;
-        }
+      if (dayInfo?.available === true && dayInfo.startTime && dayInfo.endTime) {
+        availableDays.push({
+          day: dayLower,
+          startTime: dayInfo.startTime,
+          endTime: dayInfo.endTime,
+        });
       }
     });
 
     this.logger.debug("Processed weekly pattern", {
       ...context,
-      availableDays,
-      finalStartTime: startTime,
-      finalEndTime: endTime,
+      availableDays: availableDays.map(
+        (ad) => `${ad.day}: ${ad.startTime}-${ad.endTime}`
+      ),
     });
 
     if (availableDays.length === 0) {
@@ -241,13 +229,11 @@ export class TechnicianAvailabilityService
     this.logger.info("Availability configuration extracted successfully", {
       ...context,
       availableDaysCount: availableDays.length,
-      timeRange: `${startTime} - ${endTime}`,
+      daySpecificTimings: availableDays,
     });
 
     return {
       availableDays,
-      startTime,
-      endTime,
       slotDuration,
     };
   }
@@ -255,15 +241,16 @@ export class TechnicianAvailabilityService
   private async createSlotRulesFromAvailability(
     technicianId: string,
     config: {
-      availableDays: string[];
-      startTime: string;
-      endTime: string;
+      availableDays: Array<{ day: string; startTime: string; endTime: string }>;
       slotDuration: number;
     }
   ): Promise<void> {
     const context = {
       operation: "createSlotRulesFromAvailability",
-      data: { technicianId, availableDays: config.availableDays },
+      data: {
+        technicianId,
+        availableDaysCount: config.availableDays.length,
+      },
     };
 
     try {
@@ -290,41 +277,120 @@ export class TechnicianAvailabilityService
         sunday: RRule.SU,
       };
 
-      const byweekday = config.availableDays
-        .map((day) => dayMap[day])
-        .filter(Boolean);
+      // Group days by their time patterns to create efficient RRules
+      const timePatterns = this.groupDaysByTimePattern(config.availableDays);
 
-      this.logger.debug("Mapped available days to RRule weekdays", {
+      this.logger.debug("Grouped days by time patterns", {
         ...context,
-        byweekdayCount: byweekday.length,
-        availableDays: config.availableDays,
+        timePatternsCount: timePatterns.length,
+        patterns: timePatterns.map((p) => ({
+          days: p.days,
+          time: `${p.startTime}-${p.endTime}`,
+        })),
       });
 
+      // Create separate slot rules for each time pattern
+      for (const pattern of timePatterns) {
+        if (pattern.days.length > 0) {
+          await this.createSlotRuleForPattern(
+            technicianId,
+            pattern,
+            config.slotDuration
+          );
+        }
+      }
+
+      this.logger.info("All slot rules created successfully", {
+        ...context,
+        rulesCreated: timePatterns.length,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error creating slot rules", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  }
+
+  private groupDaysByTimePattern(
+    availableDays: Array<{ day: string; startTime: string; endTime: string }>
+  ): Array<{ days: string[]; startTime: string; endTime: string }> {
+    const patterns: {
+      [key: string]: { days: string[]; startTime: string; endTime: string };
+    } = {};
+
+    availableDays.forEach((dayConfig) => {
+      const patternKey = `${dayConfig.startTime}-${dayConfig.endTime}`;
+
+      if (!patterns[patternKey]) {
+        patterns[patternKey] = {
+          days: [],
+          startTime: dayConfig.startTime,
+          endTime: dayConfig.endTime,
+        };
+      }
+
+      patterns[patternKey].days.push(dayConfig.day);
+    });
+
+    return Object.values(patterns);
+  }
+
+  private async createSlotRuleForPattern(
+    technicianId: string,
+    pattern: { days: string[]; startTime: string; endTime: string },
+    slotDuration: number
+  ): Promise<void> {
+    const context = {
+      operation: "createSlotRuleForPattern",
+      data: {
+        technicianId,
+        days: pattern.days,
+        timeRange: `${pattern.startTime}-${pattern.endTime}`,
+      },
+    };
+
+    try {
+      this.logger.debug("Creating slot rule for time pattern", context);
+
+      const dayMap: { [key: string]: any } = {
+        monday: RRule.MO,
+        tuesday: RRule.TU,
+        wednesday: RRule.WE,
+        thursday: RRule.TH,
+        friday: RRule.FR,
+        saturday: RRule.SA,
+        sunday: RRule.SU,
+      };
+
+      const byweekday = pattern.days.map((day) => dayMap[day]).filter(Boolean);
+
       if (byweekday.length === 0) {
-        this.logger.warn("No valid weekdays found for technician", {
-          ...context,
-          availableDays: config.availableDays,
-        });
+        this.logger.warn("No valid weekdays found for pattern", context);
         return;
       }
 
-      // Create RRule for the availability pattern
+      // Create RRule for this specific time pattern
       const rule = new RRule({
         freq: RRule.WEEKLY,
         byweekday,
-        dtstart: new Date(), // Start from today
+        dtstart: new Date(),
         until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months ahead
       });
 
       const slotRuleData = {
         technicianId: new Types.ObjectId(technicianId),
-        name: "Primary Working Hours",
+        name: `Working Hours (${pattern.startTime}-${pattern.endTime})`,
         rruleString: rule.toString(),
-        startTime: config.startTime,
-        endTime: config.endTime,
-        slotDurationMinutes: config.slotDuration,
-        bookingBufferBeforeMinutes: 60, // 1 hour buffer
-        bookingBufferAfterMinutes: 30, // 30 minutes buffer
+        startTime: pattern.startTime,
+        endTime: pattern.endTime,
+        slotDurationMinutes: slotDuration,
+        bookingBufferBeforeMinutes: 60,
+        bookingBufferAfterMinutes: 30,
         maxBookingsPerSlot: 1,
         effectiveFrom: new Date(),
         isActive: true,
@@ -332,24 +398,19 @@ export class TechnicianAvailabilityService
         updatedAt: new Date(),
       };
 
-      this.logger.debug("Creating slot rule in database", {
+      this.logger.debug("Creating slot rule for pattern", {
         ...context,
         slotRuleData: {
           ...slotRuleData,
           technicianId: slotRuleData.technicianId.toString(),
-          rruleString: slotRuleData.rruleString.substring(0, 100) + "...", // truncate long string
+          rruleString: slotRuleData.rruleString.substring(0, 100) + "...",
         },
       });
 
       const SlotRule = require("../models/technician/SlotRuleSchema").default;
-
       const createdRule = await SlotRule.create(slotRuleData);
 
-      this.logger.debug("Slot rule created, verifying save", {
-        ...context,
-        createdRuleId: createdRule._id?.toString(),
-      });
-
+      // Verify the rule was saved
       const savedRule = await SlotRule.findById(createdRule._id);
       if (!savedRule) {
         this.logger.error("Slot rule was not saved to database", {
@@ -359,14 +420,14 @@ export class TechnicianAvailabilityService
         throw new Error("Slot rule was not saved to database");
       }
 
-      this.logger.info("Slot rule created and verified successfully", {
+      this.logger.info("Slot rule for pattern created successfully", {
         ...context,
         ruleId: savedRule._id?.toString(),
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error creating slot rule", {
+      this.logger.error("Error creating slot rule for pattern", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

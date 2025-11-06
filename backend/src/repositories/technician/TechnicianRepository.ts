@@ -53,4 +53,15 @@ export class TechnicianRepository
   ): Promise<ITechnician | null> {
     return this.update(id, { $set: updateData });
   }
+  async findByPhone(phoneNumber: string): Promise<ITechnician | null> {
+  try {
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    return await Technician.findOne({ 
+      'personalInfo.phoneNumber': { $regex: cleanPhone, $options: 'i' } 
+    }).exec();
+  } catch (error) {
+    console.error('Error finding technician by phone:', error);
+    return null;
+  }
+}
 }

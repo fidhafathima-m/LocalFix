@@ -90,12 +90,20 @@ interface ApplicationData {
     workRadius?: number;
   };
 
-  // Availability & Work Preferences
+  // Availability & Work Preferences - UPDATED STRUCTURE
   availability: {
     serviceAreas?: string[];
     workRadius?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    availability?: any;
+    availability?: {
+      availableWeeks?: number[];
+      weeklyPattern?: {
+        [key: string]: {
+          available: boolean;
+          startTime: string;
+          endTime: string;
+        };
+      };
+    };
   };
 
   // Banking Details
@@ -329,52 +337,6 @@ const PendingTechnicianApplication: React.FC = () => {
       setLoading(false);
     }
   }, [accessToken, isLoggedIn, navigate]);
-
-  const handleEditApplication = () => {
-
-    if (!applicationData?._id) {
-      toast.error("Application ID not found");
-      return;
-    }
-
-    const authData = {
-      accessToken: localStorage.getItem("accessToken"),
-      refreshToken: localStorage.getItem("refreshToken"),
-      user: localStorage.getItem("user"),
-      isLoggedIn: localStorage.getItem("isLoggedIn"),
-    };
-
-    // Clear only application data
-    localStorage.removeItem("applicationId");
-    localStorage.removeItem("currentTechnicianApplication");
-    localStorage.removeItem("technicianApplicationData");
-    localStorage.removeItem("isEditMode");
-
-    if (user?._id) {
-      localStorage.removeItem(`techApp-${user._id}`);
-      localStorage.removeItem(`techApp-step-${user._id}`);
-      localStorage.removeItem(`techApp-applicationId-${user._id}`);
-      localStorage.removeItem(`techApp-timestamp-${user._id}`);
-    }
-
-    // Restore authentication data
-    if (authData.accessToken)
-      localStorage.setItem("accessToken", authData.accessToken);
-    if (authData.refreshToken)
-      localStorage.setItem("refreshToken", authData.refreshToken);
-    if (authData.user) localStorage.setItem("user", authData.user);
-    if (authData.isLoggedIn)
-      localStorage.setItem("isLoggedIn", authData.isLoggedIn);
-
-    // Set edit mode and application ID
-    localStorage.setItem("applicationId", applicationData._id);
-    localStorage.setItem("isEditMode", "true");
-
-    // Use a small timeout to ensure the state is properly set
-    setTimeout(() => {
-      window.location.href = "/technicians/apply";
-    }, 100);
-  };
 
   useEffect(() => {}, [applicationData?.status]);
 
@@ -800,6 +762,52 @@ const PendingTechnicianApplication: React.FC = () => {
       : "U";
   };
 
+  const handleEditStep = (stepName: string) => {
+    if (!applicationData?._id) {
+      toast.error("Application ID not found");
+      return;
+    }
+
+    const authData = {
+      accessToken: localStorage.getItem("accessToken"),
+      refreshToken: localStorage.getItem("refreshToken"),
+      user: localStorage.getItem("user"),
+      isLoggedIn: localStorage.getItem("isLoggedIn"),
+    };
+
+    // Clear only application data
+    localStorage.removeItem("applicationId");
+    localStorage.removeItem("currentTechnicianApplication");
+    localStorage.removeItem("technicianApplicationData");
+    localStorage.removeItem("isEditMode");
+
+    if (user?._id) {
+      localStorage.removeItem(`techApp-${user._id}`);
+      localStorage.removeItem(`techApp-step-${user._id}`);
+      localStorage.removeItem(`techApp-applicationId-${user._id}`);
+      localStorage.removeItem(`techApp-timestamp-${user._id}`);
+    }
+
+    // Restore authentication data
+    if (authData.accessToken)
+      localStorage.setItem("accessToken", authData.accessToken);
+    if (authData.refreshToken)
+      localStorage.setItem("refreshToken", authData.refreshToken);
+    if (authData.user) localStorage.setItem("user", authData.user);
+    if (authData.isLoggedIn)
+      localStorage.setItem("isLoggedIn", authData.isLoggedIn);
+
+    // Set edit mode, application ID, and target step
+    localStorage.setItem("applicationId", applicationData._id);
+    localStorage.setItem("isEditMode", "true");
+    localStorage.setItem("editStep", stepName);
+
+    // Use a small timeout to ensure the state is properly set
+    setTimeout(() => {
+      window.location.href = "/technicians/apply";
+    }, 100);
+  };
+
   const getStatusBadge = () => {
     const status = applicationData?.status;
 
@@ -965,15 +973,6 @@ const PendingTechnicianApplication: React.FC = () => {
                   </span>
                 </div>
               </div>
-              {applicationData.status !== "rejected" && (
-                <button
-                  onClick={handleEditApplication}
-                  className="text-blue-500 flex items-center text-sm font-medium cursor-pointer hover:text-blue-700"
-                >
-                  <EditOutlined className="w-4 h-4 mr-1" />
-                  Edit Application
-                </button>
-              )}
             </div>
             <div className="mt-2">
               <p className="text-sm text-gray-500">
@@ -991,7 +990,12 @@ const PendingTechnicianApplication: React.FC = () => {
             </div>
           </div>
 
-          <ApplicationDetailsDisplay application={applicationData} />
+          <ApplicationDetailsDisplay
+            application={applicationData}
+            onEditStep={
+              applicationData.status !== "rejected" ? handleEditStep : undefined
+            }
+          />
 
           {applicationData.status === "rejected" && (
             <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-500">
@@ -1312,9 +1316,69 @@ const PendingTechnicianApplication: React.FC = () => {
 
 export default PendingTechnicianApplication;
 
-const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
-  application,
-}) => {
+const ApplicationDetailsDisplay: React.FC<{
+  application: ApplicationData;
+  onEditStep?: (stepName: string) => void;
+}> = ({ application, onEditStep }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const steps = [
+    {
+      name: "Personal Information",
+      fields: ["fullName", "phoneNumber", "email", "dateOfBirth", "gender"],
+      data: application.personal,
+    },
+    {
+      name: "Identity & Verification",
+      fields: ["idType", "idNumber", "address", "location"],
+      data: application.identity,
+    },
+    {
+      name: "Skills & Services",
+      fields: ["services", "yearsOfExperience", "languages", "bio"],
+      data: application.skills,
+    },
+    {
+      name: "Availability & Work Preferences",
+      fields: ["serviceAreas", "workRadius", "availability"],
+      data: application.availability,
+    },
+    {
+      name: "Banking Details",
+      fields: [
+        "accountHolderName",
+        "accountNumber",
+        "ifscCode",
+        "upiId",
+        "bankName",
+      ],
+      data: application.bank,
+    },
+    {
+      name: "Documents",
+      fields: ["documents"],
+      data: application.documents,
+    },
+    {
+      name: "Agreement & Consent",
+      fields: ["agreement"],
+      data: { agreement: application.agreement },
+    },
+  ];
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getStepNumber = (stepName: string): number => {
+    const stepNames = [
+      "Personal Information",
+      "Identity & Verification",
+      "Skills & Services",
+      "Availability & Work Preferences",
+      "Banking Details",
+      "Documents",
+      "Agreement & Consent",
+    ];
+    return stepNames.indexOf(stepName) + 1;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
       <h2 className="text-xl font-semibold border-b pb-3">
@@ -1322,10 +1386,21 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
       </h2>
 
       {/* Personal Information */}
-      <div className="border rounded-lg p-4">
-        <h3 className="font-medium text-lg mb-3 text-blue-600">
-          Personal Information
-        </h3>
+      <div className="border rounded-lg p-4 relative">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-medium text-lg text-blue-600">
+            Personal Information
+          </h3>
+          {onEditStep && (
+            <button
+              onClick={() => onEditStep("Personal Information")}
+              className="text-blue-500 hover:text-blue-700 flex items-center text-sm font-medium cursor-pointer"
+            >
+              <EditOutlined className="w-4 h-4 mr-1" />
+              Edit
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-gray-500">
@@ -1424,10 +1499,21 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
       </div>
 
       {/* Identity & Verification */}
-      <div className="border rounded-lg p-4">
-        <h3 className="font-medium text-lg mb-3 text-blue-600">
-          Identity & Verification
-        </h3>
+      <div className="border rounded-lg p-4 relative">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-medium text-lg text-blue-600">
+            Identity & Verification
+          </h3>
+          {onEditStep && (
+            <button
+              onClick={() => onEditStep("Identity & Verification")}
+              className="text-blue-500 hover:text-blue-700 flex items-center text-sm font-medium cursor-pointer"
+            >
+              <EditOutlined className="w-4 h-4 mr-1" />
+              Edit
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-gray-500">ID Type</label>
@@ -1503,10 +1589,21 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
       </div>
 
       {/* Skills & Services */}
-      <div className="border rounded-lg p-4">
-        <h3 className="font-medium text-lg mb-3 text-blue-600">
-          Skills & Services
-        </h3>
+      <div className="border rounded-lg p-4 relative">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-medium text-lg text-blue-600">
+            Skills & Services
+          </h3>
+          {onEditStep && (
+            <button
+              onClick={() => onEditStep("Skills & Services")}
+              className="text-blue-500 hover:text-blue-700 flex items-center text-sm font-medium cursor-pointer"
+            >
+              <EditOutlined className="w-4 h-4 mr-1" />
+              Edit
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label className="text-sm font-medium text-gray-500">
@@ -1558,10 +1655,21 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
       </div>
 
       {/* Availability & Work Preferences */}
-      <div className="border rounded-lg p-4">
-        <h3 className="font-medium text-lg mb-3 text-blue-600">
-          Availability & Work Preferences
-        </h3>
+      <div className="border rounded-lg p-4 relative">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-medium text-lg text-blue-600">
+            Availability & Work Preferences
+          </h3>
+          {onEditStep && (
+            <button
+              onClick={() => onEditStep("Availability & Work Preferences")}
+              className="text-blue-500 hover:text-blue-700 flex items-center text-sm font-medium cursor-pointer"
+            >
+              <EditOutlined className="w-4 h-4 mr-1" />
+              Edit
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label className="text-sm font-medium text-gray-500">
@@ -1594,10 +1702,36 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
             </p>
           </div>
 
-          {/* Monthly Availability Display */}
+          {/* Weekly Availability Display */}
           {application.availability?.availability && (
             <div className="md:col-span-2 mt-4 pt-4 border-t">
-              <h4 className="font-medium mb-3">Monthly Availability</h4>
+              <h4 className="font-medium mb-3">Weekly Availability</h4>
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="w-4 h-4 text-blue-600 mt-0.5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      This schedule is automatically effective for{" "}
+                      <strong>1 month</strong>. After 1 month, it will
+                      automatically reset and you can update it from your
+                      profile.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {(() => {
                 try {
                   const availability =
@@ -1605,20 +1739,18 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
                       ? JSON.parse(application.availability.availability)
                       : application.availability.availability;
 
+                  const availableDays = Object.entries(
+                    availability.weeklyPattern || {}
+                  ).filter(([, dayData]: [string, any]) => dayData.available);
+
                   return (
                     <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <label className="text-gray-500">Duration</label>
-                          <p className="text-gray-900">
-                            {availability.duration?.months || 3} months
-                          </p>
-                        </div>
-                        <div>
-                          <label className="text-gray-500">
+                          <label className="text-gray-500 font-medium">
                             Available Weeks
                           </label>
-                          <p className="text-gray-900">
+                          <p className="text-gray-900 mt-1">
                             Weeks{" "}
                             {availability.availableWeeks?.sort().join(", ") ||
                               "1, 2, 3, 4"}
@@ -1627,40 +1759,47 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
                       </div>
 
                       <div>
-                        <label className="text-gray-500 mb-2 block">
-                          Weekly Schedule
+                        <label className="text-gray-500 font-medium mb-2 block">
+                          Available Days & Times
                         </label>
-                        <div className="space-y-2">
-                          {Object.entries(availability.weeklyPattern || {}).map(
-                            ([day, dayData]: [string, any]) =>
-                              dayData.available && (
+                        {availableDays.length > 0 ? (
+                          <div className="space-y-2">
+                            {availableDays.map(
+                              ([day, dayData]: [string, any]) => (
                                 <div
                                   key={day}
-                                  className="flex justify-between items-center py-2 border-b"
+                                  className="flex justify-between items-center py-2 px-3 bg-green-50 border border-green-200 rounded-md"
                                 >
-                                  <span className="capitalize font-medium">
-                                    {day}
-                                  </span>
-                                  <span className="text-gray-600">
+                                  <div className="flex items-center">
+                                    <span className="w-2 h-2 rounded-full bg-green-500 mr-3"></span>
+                                    <span className="capitalize font-medium text-green-800">
+                                      {day}
+                                    </span>
+                                  </div>
+                                  <span className="text-green-700 font-medium">
                                     {dayData.startTime || "09:00"} -{" "}
                                     {dayData.endTime || "18:00"}
                                   </span>
                                 </div>
                               )
-                          )}
-                          {!Object.values(
-                            availability.weeklyPattern || {}
-                          ).some((day: any) => day.available) && (
-                            <p className="text-gray-500 text-center py-4">
-                              No days selected
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
+                            <AccessTimeOutlined className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-gray-500">
+                              No available days selected
                             </p>
-                          )}
-                        </div>
+                            <p className="text-sm text-gray-400 mt-1">
+                              Update your availability in the application form
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
                 } catch (error) {
-                  console.error(error);
+                  console.error("Error parsing availability data:", error);
                   return (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
                       <p className="text-yellow-700">
@@ -1676,10 +1815,19 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
       </div>
 
       {/* Banking Details */}
-      <div className="border rounded-lg p-4">
-        <h3 className="font-medium text-lg mb-3 text-blue-600">
-          Banking Details
-        </h3>
+      <div className="border rounded-lg p-4 relative">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-medium text-lg text-blue-600">Banking Details</h3>
+          {onEditStep && (
+            <button
+              onClick={() => onEditStep("Banking Details")}
+              className="text-blue-500 hover:text-blue-700 flex items-center text-sm font-medium cursor-pointer"
+            >
+              <EditOutlined className="w-4 h-4 mr-1" />
+              Edit
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-gray-500">
@@ -1726,11 +1874,45 @@ const ApplicationDetailsDisplay: React.FC<{ application: ApplicationData }> = ({
         </div>
       </div>
 
+      {/* Documents Section - Add Edit button */}
+      <div className="border rounded-lg p-4 relative">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-medium text-lg text-blue-600">Documents</h3>
+          {onEditStep && (
+            <button
+              onClick={() => onEditStep("Documents")}
+              className="text-blue-500 hover:text-blue-700 flex items-center text-sm font-medium cursor-pointer"
+            >
+              <EditOutlined className="w-4 h-4 mr-1" />
+              Edit
+            </button>
+          )}
+        </div>
+        <p className="text-gray-600 text-sm">
+          {application.documents
+            ? `${
+                Object.keys(application.documents).length
+              } document(s) uploaded`
+            : "No documents uploaded"}
+        </p>
+      </div>
+
       {/* Agreement */}
-      <div className="border rounded-lg p-4">
-        <h3 className="font-medium text-lg mb-3 text-blue-600">
-          Agreement & Consent
-        </h3>
+      <div className="border rounded-lg p-4 relative">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-medium text-lg text-blue-600">
+            Agreement & Consent
+          </h3>
+          {onEditStep && (
+            <button
+              onClick={() => onEditStep("Agreement & Consent")}
+              className="text-blue-500 hover:text-blue-700 flex items-center text-sm font-medium cursor-pointer"
+            >
+              <EditOutlined className="w-4 h-4 mr-1" />
+              Edit
+            </button>
+          )}
+        </div>
         <div className="flex items-center">
           <div
             className={`h-6 w-6 rounded-full flex items-center justify-center mr-3 ${

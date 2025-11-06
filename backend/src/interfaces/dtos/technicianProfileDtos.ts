@@ -44,24 +44,24 @@ export interface SkillsServicesUpdateDto {
   basePrices?: Record<string, number>;
 }
 
+// In your DTO file, update the AvailabilityPreferencesUpdateDto
 export interface AvailabilityPreferencesUpdateDto {
   availability?: {
     isAvailable: boolean;
-    weeklyAvailability?: {
+    weeklyPattern?: {  // Changed from weeklyAvailability
       [key: string]: {
-        enabled: boolean;
+        available: boolean;  // Changed from enabled
         startTime: string;
         endTime: string;
       };
     };
-    availableWeeks?: number[]; 
+    availableWeeks?: number[];
   };
   workAreas?: string[];
   serviceAreas?: string[];
   workRadius?: number;
   serviceRadiusKm?: number;
 }
-
 export interface BankPaymentUpdateDto {
   accountHolderName?: string;
   accountNumber?: string;
@@ -143,7 +143,7 @@ export interface AvailabilityPreferencesDto {
   isAvailable: boolean;
   serviceAreas: string[];
   workRadius: number;
-  weeklyAvailability?: Record<string, any>;
+  weeklyPattern?: Record<string, any>; // Changed from weeklyAvailability
 }
 
 export interface BankPaymentDetailsDto {

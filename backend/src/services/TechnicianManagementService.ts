@@ -1104,6 +1104,7 @@ export class TechnicianManagementService
           locationCoordinates,
         });
       }
+      // In approveApplication method, replace the availability verification part:
       if (technician && application.availability) {
         try {
           // Convert application availability format to technician availability format
@@ -1122,15 +1123,47 @@ export class TechnicianManagementService
             technicianAvailability
           );
 
-          // VERIFY the slot rules were actually created
+          // VERIFY the slot rules were actually created with correct timings
           const slotRules = await this.technicianRepository.getActiveSlotRules(
             technician._id.toString()
           );
 
           this.logger.debug("Fetching active slot rules of technician", {
             ...context,
-            texhnicianId: technician._id?.toString(),
+            technicianId: technician._id?.toString(),
+            slotRulesCount: slotRules.length,
           });
+
+          // Additional verification - check if the timings match
+          const applicationPattern =
+            application.availability?.weeklyPattern;
+          if (applicationPattern) {
+            const mondayTiming = applicationPattern.monday;
+            if (mondayTiming && mondayTiming.available) {
+              // Get all active slot rules to check if any match Monday's timing
+              const hasCorrectMondayTiming = slotRules.some((rule) => {
+                return (
+                  rule.startTime === mondayTiming.startTime &&
+                  rule.endTime === mondayTiming.endTime
+                );
+              });
+
+              if (!hasCorrectMondayTiming) {
+                this.logger.warn(
+                  "Monday timing mismatch in generated slot rules",
+                  {
+                    expected: `${mondayTiming.startTime}-${mondayTiming.endTime}`,
+                    actual: slotRules.map((r) => `${r.startTime}-${r.endTime}`),
+                  }
+                );
+              } else {
+                this.logger.info("Monday timing verified correctly", {
+                  expected: `${mondayTiming.startTime}-${mondayTiming.endTime}`,
+                  ruleCount: slotRules.length,
+                });
+              }
+            }
+          }
 
           if (slotRules.length === 0) {
             this.logger.error("Failed to create slot rules", context);
@@ -1145,6 +1178,8 @@ export class TechnicianManagementService
             "CRITICAL ERROR in availability transfer:",
             availabilityError
           );
+          // Don't fail the entire approval process due to availability issues
+          // but log it clearly for debugging
         }
       } else {
       }
@@ -1381,10 +1416,14 @@ export class TechnicianManagementService
             end: dayData.endTime,
           });
         }
+
         return {
           day: day.toLowerCase(),
           slots: slots,
           available: dayData.available || false,
+          // Store the individual day timing for proper RRule generation
+          startTime: dayData.startTime,
+          endTime: dayData.endTime,
         };
       }
     );
@@ -1397,6 +1436,8 @@ export class TechnicianManagementService
       emergencyService: applicationAvailability.emergencyService || false,
       afterHoursService: applicationAvailability.afterHoursService || false,
       weeklyPattern: weeklyPattern,
+      // Store the original availability data for proper processing
+      originalAvailability: availability,
     };
 
     return result;

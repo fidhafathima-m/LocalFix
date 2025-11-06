@@ -32,6 +32,7 @@ import {
 } from "../interfaces/dtos/technicianProfileDtos";
 import { TechnicianProfileMapper } from "../mappers/technicianProfileMappers";
 import { uploadToCloudinary } from "../utils/cloudinary";
+import { RRule } from "rrule";
 
 export class TechnicianProfileService implements ITechnicianProfileService {
   private technicianRepository: ITechnicianRepository;
@@ -364,180 +365,175 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     }
   }
 
-  async updateAvailabilityPreferences(
-    technicianId: string,
-    updateData: AvailabilityPreferencesUpdateDto
-  ): Promise<TechnicianProfileResponseDto> {
-    try {
-      const technician = await this.technicianRepository.findByUserId(
-        technicianId
+ async updateAvailabilityPreferences(
+  technicianId: string,
+  updateData: AvailabilityPreferencesUpdateDto
+): Promise<TechnicianProfileResponseDto> {
+  try {
+    const technician = await this.technicianRepository.findByUserId(
+      technicianId
+    );
+    const user = await this.userRepository.findById(technicianId);
+
+    if (!technician || !user) {
+      return ResponseHelper.notFound(
+        TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
       );
-      const user = await this.userRepository.findById(technicianId);
+    }
 
-      if (!technician || !user) {
-        return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
-        );
-      }
+    // Extract work areas and service radius
+    const workAreas = updateData.workAreas || updateData.serviceAreas || [];
+    const serviceRadiusKm =
+      updateData.serviceRadiusKm || updateData.workRadius || 10;
 
-      // Extract work areas and service radius
-      const workAreas = updateData.workAreas || updateData.serviceAreas || [];
-      const serviceRadiusKm =
-        updateData.serviceRadiusKm || updateData.workRadius || 10;
+    // Build update payload
+    const updateDataForRepo: Partial<ITechnician> = {
+      workAreas: workAreas,
+      serviceRadiusKm: serviceRadiusKm,
+    };
 
-      // Build update payload
-      const updateDataForRepo: Partial<ITechnician> = {
-        workAreas: workAreas,
-        serviceRadiusKm: serviceRadiusKm,
+    // Add availability preferences if provided
+    if (updateData.availability) {
+      updateDataForRepo.availability = {
+        isAvailable: updateData.availability.isAvailable,
+        weeklyPattern: updateData.availability.weeklyPattern, // Changed from weeklyAvailability
       };
+    }
 
-      // Add availability preferences if provided
-      if (updateData.availability) {
-        updateDataForRepo.availability = {
-          isAvailable: updateData.availability.isAvailable,
-          weeklyAvailability: updateData.availability.weeklyAvailability,
-        };
-      }
+    console.log("Updating availability with data:", updateDataForRepo);
 
-      console.log("Updating availability with data:", updateDataForRepo);
-
-      // Update technician with the new data
-      const updatedTechnician =
-        await this.technicianProfileRepository.updateTechnician(
-          technician._id!.toString(),
-          updateDataForRepo
-        );
-
-      if (!updatedTechnician) {
-        console.error("Failed to update technician work preferences");
-        return ResponseHelper.error(
-          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
-        );
-      }
-
-      // Process slot rules and availability records if availability data is provided
-      if (updateData.availability) {
-        try {
-          await this.processAvailabilityData(
-            technicianId,
-            updateData.availability
-          );
-        } catch (availabilityError) {
-          console.error(
-            "Error processing availability data:",
-            availabilityError
-          );
-          // Don't fail the entire request if availability processing fails
-          // Just log the error and continue
-        }
-      }
-
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        updatedTechnician,
-        user
+    // Update technician with the new data
+    const updatedTechnician =
+      await this.technicianProfileRepository.updateTechnician(
+        technician._id!.toString(),
+        updateDataForRepo
       );
 
-      return ResponseHelper.success(
-        TECHNICIAN_PROFILE_MESSAGES.AVAILABILITY_UPDATED,
-        {
-          profile: profileDto,
-        }
-      );
-    } catch (error: unknown) {
-      console.error("Update availability preferences error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
+    if (!updatedTechnician) {
+      console.error("Failed to update technician work preferences");
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
       );
     }
-  }
 
-  private async processAvailabilityData(
-    technicianId: string,
-    availabilityData: {
-      isAvailable: boolean;
-      weeklyAvailability?: {
-        [key: string]: {
-          enabled: boolean;
-          startTime: string;
-          endTime: string;
-        };
-      };
-      availableWeeks?: number[];
-      duration?: {
-        months: number;
-        startDate: Date;
-      };
-    }
-  ): Promise<void> {
-    try {
-      const SlotRule = require("../models/technician/SlotRuleSchema").default;
-      const TechnicianAvailability =
-        require("../models/technician/TechnicianAvailabilitySchema").default;
-
-      const technicianObjectId = new Types.ObjectId(technicianId);
-
-      if (!availabilityData.weeklyAvailability) {
-        return;
+    // Process slot rules and availability records if availability data is provided
+    if (updateData.availability) {
+      try {
+        await this.processAvailabilityData(
+          technicianId,
+          updateData.availability
+        );
+      } catch (availabilityError) {
+        console.error(
+          "Error processing availability data:",
+          availabilityError
+        );
+        // Don't fail the entire request if availability processing fails
+        // Just log the error and continue
       }
+    }
 
-      const weeklyPattern = availabilityData.weeklyAvailability;
-      const availableWeeks = availabilityData.availableWeeks || [1, 2, 3, 4];
+    const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+      updatedTechnician,
+      user
+    );
 
-      const durationMonths = availabilityData.duration?.months || 3;
-      const startDate = availabilityData.duration?.startDate || new Date();
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + durationMonths);
-
-      // Deactivate existing slot rules
-      await SlotRule.updateMany(
-        {
-          technicianId: technicianObjectId,
-          isActive: true,
-        },
-        {
-          $set: { isActive: false },
-        }
-      );
-
-      // Create new slot rules
-      const days = [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday",
-      ];
-      const dayMap: { [key: string]: string } = {
-        monday: "MO",
-        tuesday: "TU",
-        wednesday: "WE",
-        thursday: "TH",
-        friday: "FR",
-        saturday: "SA",
-        sunday: "SU",
+    return ResponseHelper.success(
+      TECHNICIAN_PROFILE_MESSAGES.AVAILABILITY_UPDATED,
+      {
+        profile: profileDto,
+      }
+    );
+  } catch (error: unknown) {
+    console.error("Update availability preferences error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    return ResponseHelper.error(
+      TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
+    );
+  }
+}
+  private async processAvailabilityData(
+  technicianId: string,
+  availabilityData: {
+    isAvailable: boolean;
+    weeklyPattern?: {
+      [key: string]: {
+        available: boolean;
+        startTime: string;
+        endTime: string;
       };
+    };
+    availableWeeks?: number[];
+  }
+): Promise<void> {
+  try {
+    const SlotRule = require("../models/technician/SlotRuleSchema").default;
+    const TechnicianAvailability =
+      require("../models/technician/TechnicianAvailabilitySchema").default;
 
-      let createdRulesCount = 0;
+    const technicianObjectId = new Types.ObjectId(technicianId);
 
-      for (const day of days) {
-        const dayData = weeklyPattern[day];
+    if (!availabilityData.weeklyPattern) {
+      return;
+    }
 
-        if (dayData && dayData.enabled) {
-          const byWeekDays = availableWeeks
-            .map((week) => `${week}${dayMap[day]}`)
-            .join(",");
-          const rruleString = `FREQ=MONTHLY;BYDAY=${byWeekDays}`;
+    const weeklyPattern = availabilityData.weeklyPattern;
+
+    const durationMonths = 3;
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + durationMonths);
+
+    // Deactivate existing slot rules
+    await SlotRule.updateMany(
+      {
+        technicianId: technicianObjectId,
+        isActive: true,
+      },
+      {
+        $set: { isActive: false },
+      }
+    );
+
+    const days = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ];
+    const dayMap: { [key: string]: any } = {
+      monday: RRule.MO,
+      tuesday: RRule.TU,
+      wednesday: RRule.WE,
+      thursday: RRule.TH,
+      friday: RRule.FR,
+      saturday: RRule.SA,
+      sunday: RRule.SU,
+    };
+
+    let createdRulesCount = 0;
+
+    for (const day of days) {
+      const dayData = weeklyPattern[day];
+
+      if (dayData && dayData.available) {
+        try {
+          // Create simple weekly RRule for this specific day
+          const rule = new RRule({
+            freq: RRule.WEEKLY,
+            byweekday: [dayMap[day]],
+            dtstart: startDate,
+            until: endDate,
+          });
 
           const slotRule = new SlotRule({
             technicianId: technicianObjectId,
-            name: `${
-              day.charAt(0).toUpperCase() + day.slice(1)
-            } Availability (Weeks ${availableWeeks.join(",")})`,
-            rruleString: rruleString,
+            name: `${day.charAt(0).toUpperCase() + day.slice(1)} Availability`,
+            rruleString: rule.toString(),
             startTime: dayData.startTime,
             endTime: dayData.endTime,
             slotDurationMinutes: 60,
@@ -550,65 +546,61 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
           await slotRule.save();
           createdRulesCount++;
+        } catch (error) {
+          console.error(`Error creating slot rule for ${day}:`, error);
         }
       }
-
-      // Delete existing availability records
-      const deleteResult = await TechnicianAvailability.deleteMany({
-        technicianId: technicianObjectId,
-        date: { $gte: startDate, $lte: endDate },
-      });
-
-      // Get active slot rules
-      const activeSlotRules = await SlotRule.find({
-        technicianId: technicianObjectId,
-        isActive: true,
-      });
-
-      // Generate new availability records
-      let totalRecordsCreated = 0;
-
-      for (const slotRule of activeSlotRules) {
-        try {
-          const occurrences = slotRule.getOccurrencesBetween(
-            startDate,
-            endDate
-          );
-
-          for (const occurrence of occurrences) {
-            const timeSlots = slotRule.generateSlotsForDate(occurrence);
-
-            const formattedTimeSlots = timeSlots.map(
-              (slot: { start: Date; end: Date }) => ({
-                start: this.formatTimeToString(slot.start),
-                end: this.formatTimeToString(slot.end),
-                status: "available",
-              })
-            );
-
-            const availabilityRecord = new TechnicianAvailability({
-              technicianId: technicianObjectId,
-              date: occurrence,
-              timeSlots: formattedTimeSlots,
-              isRecurring: true,
-              slotRuleId: slotRule._id,
-            });
-
-            await availabilityRecord.save();
-            totalRecordsCreated++;
-          }
-        } catch (ruleError) {
-          console.error(
-            `Error processing slot rule ${slotRule.name}:`,
-            ruleError
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error in processAvailabilityData:", error);
-      throw error;
     }
+
+    console.log(`Created ${createdRulesCount} slot rules`);
+
+    // The rest of the method remains the same...
+    // Delete existing availability records
+    const deleteResult = await TechnicianAvailability.deleteMany({
+      technicianId: technicianObjectId,
+      date: { $gte: startDate, $lte: endDate },
+    });
+
+    console.log(`Deleted ${deleteResult.deletedCount} old availability records`);
+
+    // Get active slot rules and generate availability records
+    const activeSlotRules = await SlotRule.find({
+      technicianId: technicianObjectId,
+      isActive: true,
+    });
+
+    let totalRecordsCreated = 0;
+
+    for (const slotRule of activeSlotRules) {
+      try {
+        const rrule = RRule.fromString(slotRule.rruleString);
+        const occurrences = rrule.between(startDate, endDate, true);
+
+        for (const occurrence of occurrences) {
+          const timeSlots = slotRule.generateSlotsForDate(occurrence);
+
+          const availabilityRecord = new TechnicianAvailability({
+            technicianId: technicianObjectId,
+            date: occurrence,
+            timeSlots: timeSlots,
+            isRecurring: true,
+            slotRuleId: slotRule._id,
+          });
+
+          await availabilityRecord.save();
+          totalRecordsCreated++;
+        }
+      } catch (ruleError) {
+        console.error(`Error processing slot rule ${slotRule.name}:`, ruleError);
+      }
+    }
+
+    console.log(`Created ${totalRecordsCreated} new availability records`);
+  } catch (error) {
+    console.error("Error in processAvailabilityData:", error);
+    throw error;
   }
+}
 
   private formatTimeToString(date: Date): string {
     return date.toTimeString().slice(0, 5); // Returns "HH:MM" format

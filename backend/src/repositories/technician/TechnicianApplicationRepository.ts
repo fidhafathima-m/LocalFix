@@ -51,4 +51,32 @@ export class TechnicianApplicationRepository
       status: { $in: statuses },
     });
   }
+  async findByPhoneAndStatus(
+  phoneNumber: string,
+  status: string[],
+  excludeUserId?: string
+): Promise<ITechnicianApplication | null> {
+  try {
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    
+    const query: any = {
+      $or: [
+        { 'personal.phoneNumber': cleanPhone },
+        { 'personal.phoneNumber': { $regex: cleanPhone, $options: 'i' } }
+      ],
+      status: { $in: status }
+    };
+
+    // Exclude specific user if provided
+    if (excludeUserId) {
+      query.technicianId = { $ne: new Types.ObjectId(excludeUserId) };
+    }
+
+    return await TechnicianApplication.findOne(query).exec();
+  } catch (error) {
+    console.error('Error finding application by phone:', error);
+    return null;
+  }
+}
+
 }

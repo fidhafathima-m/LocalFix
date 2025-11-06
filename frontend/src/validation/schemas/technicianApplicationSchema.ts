@@ -109,21 +109,7 @@ export const dayAvailabilitySchema = z.object({
   endTime: z.string().min(1, "End time is required"),
 });
 
-export const availabilitySchema = z.object({
-  monday: dayAvailabilitySchema,
-  tuesday: dayAvailabilitySchema,
-  wednesday: dayAvailabilitySchema,
-  thursday: dayAvailabilitySchema,
-  friday: dayAvailabilitySchema,
-  saturday: dayAvailabilitySchema,
-  sunday: dayAvailabilitySchema,
-});
-
-export const monthlyAvailabilitySchema = z.object({
-  duration: z.object({
-    months: z.number().min(1).max(12, "Duration must be between 1-12 months"),
-    startDate: z.date().optional(),
-  }),
+export const weeklyAvailabilitySchema = z.object({
   availableWeeks: z.array(z.number().min(1).max(4)).min(1, "Select at least one week"),
   weeklyPattern: z.record(
     z.string(),
@@ -185,31 +171,13 @@ export const personalInfoSchema = z.object({
   }),
 });
 
-// Step 2: Identity & Verification - FIXED structure
-export const identitySchema = z.object({
-  idType: z.enum(["passport", "drivingLicense", "nationalId", "aadhaar"], {
-    message: "Please select ID type",
-  }),
-  idNumber: requiredString,
-  location: locationSchema,
-});
-
-export const addressFormSchema = z.object({
-  "address.street": z.string().min(1, "Street address is required"),
-  "address.city": z.string().min(1, "City is required"),
-  "address.state": z.string().min(1, "State is required"),
-  "address.pincode": z.string().min(1, "PIN code is required"),
-  "address.landmark": z.string().optional(),
-});
-
+// Step 2: Identity & Verification
 export const identityStepSchema = z.object({
   idType: z.enum(["passport", "drivingLicense", "nationalId", "aadhaar"], {
     message: "Please select ID type",
   }),
   idNumber: requiredString,
-
   location: locationSchema,
-
   "address.street": z.string().min(1, "Street address is required"),
   "address.city": z.string().min(1, "City is required"),
   "address.state": z.string().min(1, "State is required"),
@@ -232,7 +200,7 @@ export const skillsSchema = z.object({
 export const availabilityStepSchema = z.object({
   serviceAreas: z.array(z.string()).min(1, "Select at least one service area"),
   workRadius: requiredString,
-  availability: monthlyAvailabilitySchema.refine(
+  availability: weeklyAvailabilitySchema.refine(
     (avail) => {
       // Check if at least one day is available
       return Object.values(avail.weeklyPattern).some((day) => day.available);
@@ -254,7 +222,7 @@ export const bankingSchema = z.object({
   upiId: z.string().optional(),
 });
 
-//  Step 6: Documents - Proper file validation
+// Step 6: Documents
 export const documentsSchema = z.object({
   idProof: requiredFileSchema,
   addressProof: requiredFileSchema,
@@ -270,6 +238,7 @@ export const agreementSchema = z.object({
     message: "You must agree to the terms and conditions",
   }),
 });
+
 export const validateMonthlyAvailability = (
   availability: any
 ): Record<string, string> => {
@@ -277,15 +246,6 @@ export const validateMonthlyAvailability = (
 
   if (!availability || typeof availability !== 'object') {
     return { availability: "Availability configuration is required" };
-  }
-
-  // Validate duration
-  if (!availability.duration || typeof availability.duration !== 'object') {
-    errors.duration = "Duration is required";
-  } else {
-    if (!availability.duration.months || availability.duration.months < 1) {
-      errors.duration = "Valid duration in months is required";
-    }
   }
 
   // Validate available weeks
@@ -346,7 +306,7 @@ export const stepSchemas = {
 export type PersonalInfoData = z.infer<typeof personalInfoSchema>;
 export type IdentityData = z.infer<typeof identityStepSchema>;
 export type SkillsData = z.infer<typeof skillsSchema>;
-export type MonthlyAvailabilityData = z.infer<typeof monthlyAvailabilitySchema>;
+export type WeeklyAvailabilityData = z.infer<typeof weeklyAvailabilitySchema>;
 export type AvailabilityData = z.infer<typeof availabilityStepSchema>;
 export type BankingData = z.infer<typeof bankingSchema>;
 export type DocumentsData = z.infer<typeof documentsSchema>;

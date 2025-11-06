@@ -3,7 +3,6 @@ import {
   CheckCircleOutlined,
   BlockOutlined,
   RemoveRedEyeOutlined,
-  EditOutlined,
 } from "@mui/icons-material";
 
 export type ActionType =
@@ -11,8 +10,7 @@ export type ActionType =
   | "approve"
   | "reject"
   | "suspend"
-  | "activate"
-  | "edit";
+  | "activate";
 
 interface ActionButtonProps {
   type: ActionType;
@@ -87,17 +85,6 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
         bgColor: "bg-green-50",
         borderColor: "border-green-200",
         text: "Activate",
-      },
-      edit: {
-        icon: (
-          <EditOutlined
-            className={`${size === "sm" ? "h-4 w-4" : "h-5 w-5"}`}
-          />
-        ),
-        color: "text-gray-600 hover:bg-gray-100",
-        bgColor: "bg-gray-50",
-        borderColor: "border-gray-200",
-        text: "Edit",
       },
     };
 
@@ -181,13 +168,7 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
                   ? "text-blue-600 hover:bg-blue-100"
                   : action.type === "approve"
                   ? "text-green-600 hover:bg-green-100"
-                  : action.type === "reject"
-                  ? "text-red-600 hover:bg-red-100"
-                  : action.type === "suspend"
-                  ? "text-red-600 hover:bg-red-100"
-                  : action.type === "activate"
-                  ? "text-green-600 hover:bg-green-100"
-                  : "text-gray-600 hover:bg-gray-100"
+                  : "text-red-600 hover:bg-red-100"
               }
             `}
           >
@@ -197,14 +178,8 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
               <RemoveRedEyeOutlined className="h-4 w-4" />
             ) : action.type === "approve" ? (
               <CheckCircleOutlined className="h-4 w-4" />
-            ) : action.type === "reject" ? (
-              <BlockOutlined className="h-4 w-4" />
-            ) : action.type === "suspend" ? (
-              <BlockOutlined className="h-4 w-4" />
-            ) : action.type === "activate" ? (
-              <CheckCircleOutlined className="h-4 w-4" />
             ) : (
-              <EditOutlined className="h-4 w-4" />
+              <BlockOutlined className="h-4 w-4" />
             )}
           </button>
         ))}

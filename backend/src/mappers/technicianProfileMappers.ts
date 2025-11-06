@@ -207,7 +207,7 @@ export class TechnicianProfileMapper {
       serviceAreas: technician.workAreas || [],
       workRadius:
         technician.serviceRadiusKm || AVAILABILITY_DEFAULTS.WORK_RADIUS,
-      weeklyAvailability: technician.availability?.weeklyAvailability,
+      weeklyPattern : technician.availability?.weeklyPattern ,
     };
   }
 

@@ -5,6 +5,7 @@ import {
   BankInfo,
   DocumentsInfo,
   IdentityInfo,
+  WeeklyPattern,
 } from "../technician/ITechnician";
 
 export interface IAdminTechnician {
@@ -139,7 +140,11 @@ export interface ITechnicianApplication {
     workRadius?: string;
     languages?: string[];
   };
-  availability: AvailabilityInfo;
+   availability: {
+    serviceAreas: string[];
+    workRadius: string;
+    weeklyPattern: WeeklyPattern;
+  };
   bank: BankInfo;
   documents: DocumentsInfo;
   agreement: boolean;

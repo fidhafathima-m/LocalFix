@@ -19,6 +19,7 @@ import {
   DocumentsInfo,
   BankInfo,
   IdentityInfo,
+  WeeklyPattern,
 } from "../../interfaces/technician/ITechnician";
 import { IUser } from "@/interfaces/admin/IUserManagements";
 import { IUserAddress } from "@/models/UserAddressSchema";
@@ -76,6 +77,52 @@ const convertToAdminApplication = (
 ): AdminITechnicianApplication => {
   const skillsData = app.skills || {};
 
+  // Process availability data to use new structure
+  const availabilityData = app.availability as AvailabilityInfo | any || {};
+  let weeklyPattern: WeeklyPattern = {};
+
+  // Convert old structure to new structure if needed
+  if (availabilityData && typeof availabilityData === 'object') {
+    // Check for nested availability structure (old format)
+    if ('availability' in availabilityData && availabilityData.availability && typeof availabilityData.availability === 'object' && 'weeklyPattern' in availabilityData.availability) {
+      weeklyPattern = availabilityData.availability.weeklyPattern as WeeklyPattern;
+    } 
+    // Check for direct weeklyPattern (new format)
+    else if ('weeklyPattern' in availabilityData) {
+      weeklyPattern = availabilityData.weeklyPattern as WeeklyPattern;
+    }
+    // Check for old weeklyAvailability structure and convert
+    else if ('weeklyAvailability' in availabilityData) {
+      const oldWeeklyAvailability = availabilityData.weeklyAvailability as any;
+      weeklyPattern = {};
+      
+      // Convert from old structure { enabled, startTime, endTime } to new structure { available, startTime, endTime }
+      Object.keys(oldWeeklyAvailability).forEach(day => {
+        const dayData = oldWeeklyAvailability[day];
+        if (dayData && typeof dayData === 'object') {
+          weeklyPattern[day as keyof WeeklyPattern] = {
+            available: dayData.enabled || false,
+            startTime: dayData.startTime || "09:00",
+            endTime: dayData.endTime || "18:00"
+          };
+        }
+      });
+    }
+  }
+
+  // If no weeklyPattern was found, create default
+  if (Object.keys(weeklyPattern).length === 0) {
+    weeklyPattern = {
+      monday: { available: false, startTime: "09:00", endTime: "18:00" },
+      tuesday: { available: false, startTime: "09:00", endTime: "18:00" },
+      wednesday: { available: false, startTime: "09:00", endTime: "18:00" },
+      thursday: { available: false, startTime: "09:00", endTime: "18:00" },
+      friday: { available: false, startTime: "09:00", endTime: "18:00" },
+      saturday: { available: false, startTime: "09:00", endTime: "18:00" },
+      sunday: { available: false, startTime: "09:00", endTime: "18:00" },
+    };
+  }
+
   const baseApplication = {
     _id: app._id as Types.ObjectId,
     technicianId: app.technicianId as Types.ObjectId,
@@ -120,18 +167,10 @@ const convertToAdminApplication = (
       serviceAreas: (skillsData as any).serviceAreas || [],
       workRadius: (skillsData as any).workRadius || "",
     },
-    availability: app.availability || {
-      serviceAreas: [],
-      workRadius: "",
-      availability: {
-        monday: { available: false, startTime: "", endTime: "" },
-        tuesday: { available: false, startTime: "", endTime: "" },
-        wednesday: { available: false, startTime: "", endTime: "" },
-        thursday: { available: false, startTime: "", endTime: "" },
-        friday: { available: false, startTime: "", endTime: "" },
-        saturday: { available: false, startTime: "", endTime: "" },
-        sunday: { available: false, startTime: "", endTime: "" },
-      },
+    availability: {
+      serviceAreas: availabilityData.serviceAreas || [],
+      workRadius: availabilityData.workRadius || "",
+      weeklyPattern: weeklyPattern, // Use the processed weeklyPattern
     },
     bank: app.bank || {
       accountHolderName: "",
@@ -195,7 +234,27 @@ const getLanguagesFromSkills = (skillsData: any): string[] => {
 };
 
 // Helper function to convert AdminITechnicianApplication to ModelITechnicianApplication for repository operations
+// Helper function to convert AdminITechnicianApplication to ModelITechnicianApplication for repository operations
 const convertToModelApplication = (app: AdminITechnicianApplication): any => {
+  // Process availability data for backward compatibility
+  let availabilityData = app.availability;
+  
+  // Ensure availability has the correct structure
+  if (availabilityData && !availabilityData.weeklyPattern) {
+    availabilityData = {
+      ...availabilityData,
+      weeklyPattern: {
+        monday: { available: false, startTime: "09:00", endTime: "18:00" },
+        tuesday: { available: false, startTime: "09:00", endTime: "18:00" },
+        wednesday: { available: false, startTime: "09:00", endTime: "18:00" },
+        thursday: { available: false, startTime: "09:00", endTime: "18:00" },
+        friday: { available: false, startTime: "09:00", endTime: "18:00" },
+        saturday: { available: false, startTime: "09:00", endTime: "18:00" },
+        sunday: { available: false, startTime: "09:00", endTime: "18:00" },
+      },
+    };
+  }
+
   return {
     _id: app._id,
     technicianId: app.technicianId,
@@ -205,7 +264,7 @@ const convertToModelApplication = (app: AdminITechnicianApplication): any => {
     personal: app.personal,
     identity: app.identity,
     skills: app.skills,
-    availability: app.availability,
+    availability: availabilityData, // Use processed availability data
     bank: app.bank,
     documents: app.documents,
     agreement: app.agreement,
@@ -459,126 +518,130 @@ export class TechnicianManagementRepository
   }
 
   async findOrCreateTechnician(
-    application: AdminITechnicianApplication,
-    availabilityData?: any
-  ): Promise<ITechnician> {
-    try {
-      // Convert AdminITechnicianApplication to a format compatible with the model
-      const modelApplication = convertToModelApplication(application);
+  application: AdminITechnicianApplication,
+  availabilityData?: any
+): Promise<ITechnician> {
+  try {
+    // Convert AdminITechnicianApplication to a format compatible with the model
+    const modelApplication = convertToModelApplication(application);
 
-      let technician = await Technician.findOne({
-        userId: application.technicianId,
-      });
+    let technician = await Technician.findOne({
+      userId: application.technicianId,
+    });
 
-      const languages = application.skills?.languages || [];
-      const languagesArray = Array.isArray(languages)
-        ? languages
-        : typeof languages === "string"
-        ? [languages]
-        : [];
+    const languages = application.skills?.languages || [];
+    const languagesArray = Array.isArray(languages)
+      ? languages
+      : typeof languages === "string"
+      ? [languages]
+      : [];
 
-      // Prepare personal info
-      const personalInfo: PersonalInfo = {
-        fullName:
-          application.personal?.fullName ||
-          technician?.personalInfo?.fullName ||
-          "Technician",
-        email: application.personal?.email || technician?.personalInfo?.email,
-        phoneNumber:
-          application.personal?.phoneNumber ||
-          technician?.personalInfo?.phoneNumber,
-        dateOfBirth:
-          application.personal?.dateOfBirth ||
-          technician?.personalInfo?.dateOfBirth,
-        gender:
-          application.personal?.gender || technician?.personalInfo?.gender,
-        languages: languagesArray,
-        bio: application.skills?.bio || technician?.personalInfo?.bio,
-        address:
-          application.personal?.address || technician?.personalInfo?.address,
-      };
+    // Prepare personal info
+    const personalInfo: PersonalInfo = {
+      fullName:
+        application.personal?.fullName ||
+        technician?.personalInfo?.fullName ||
+        "Technician",
+      email: application.personal?.email || technician?.personalInfo?.email,
+      phoneNumber:
+        application.personal?.phoneNumber ||
+        technician?.personalInfo?.phoneNumber,
+      dateOfBirth:
+        application.personal?.dateOfBirth ||
+        technician?.personalInfo?.dateOfBirth,
+      gender:
+        application.personal?.gender || technician?.personalInfo?.gender,
+      languages: languagesArray,
+      bio: application.skills?.bio || technician?.personalInfo?.bio,
+      address:
+        application.personal?.address || technician?.personalInfo?.address,
+    };
 
-      const availabilityPreferences = availabilityData || {
-        daysAvailable: ["monday", "tuesday", "wednesday", "thursday", "friday"],
-        startTime: "09:00",
-        endTime: "18:00",
-        workRadius: application.availability?.workRadius
-          ? parseInt(application.availability.workRadius as string)
-          : 10,
-        serviceAreas: application.availability?.serviceAreas || [],
-        emergencyService: false,
-        afterHoursService: false,
-      };
+    // Extract service areas and work radius from application.availability (not from availabilityInfo)
+    const serviceAreas = application.availability?.serviceAreas || [];
+    const workRadius = application.availability?.workRadius 
+      ? parseInt(application.availability.workRadius as string)
+      : 10;
 
-      if (technician) {
-        // Update existing technician
-        technician = await Technician.findOneAndUpdate(
-          { userId: application.technicianId },
-          {
-            $set: {
-              displayName: personalInfo.fullName,
-              services: application.skills?.services || technician.services,
-              experienceYears: application.skills?.yearsOfExperience
-                ? parseInt(String(application.skills.yearsOfExperience))
-                : technician.experienceYears,
-              workAreas:
-                application.availability?.serviceAreas || technician.workAreas,
-              serviceRadiusKm: application.availability?.workRadius
-                ? parseInt(application.availability.workRadius as string)
-                : technician.serviceRadiusKm,
-              status: "approved",
-              profilePictureUrl:
-                application.documents?.passportPhoto?.url ||
-                application.documents?.profilePhoto?.url ||
-                technician.profilePictureUrl,
-              phone: personalInfo.phoneNumber || technician.phone,
-              personalInfo: personalInfo,
-              availabilityPreferences: availabilityPreferences,
-              updatedAt: new Date(),
-            },
+    // Process availability data for the new structure
+    const availabilityInfo = availabilityData || {
+      isAvailable: true,
+      weeklyPattern: application.availability?.weeklyPattern || {
+        monday: { available: false, startTime: "09:00", endTime: "18:00" },
+        tuesday: { available: false, startTime: "09:00", endTime: "18:00" },
+        wednesday: { available: false, startTime: "09:00", endTime: "18:00" },
+        thursday: { available: false, startTime: "09:00", endTime: "18:00" },
+        friday: { available: false, startTime: "09:00", endTime: "18:00" },
+        saturday: { available: false, startTime: "09:00", endTime: "18:00" },
+        sunday: { available: false, startTime: "09:00", endTime: "18:00" },
+      },
+      availableWeeks: [1, 2, 3, 4],
+    };
+
+    if (technician) {
+      // Update existing technician
+      technician = await Technician.findOneAndUpdate(
+        { userId: application.technicianId },
+        {
+          $set: {
+            displayName: personalInfo.fullName,
+            services: application.skills?.services || technician.services,
+            experienceYears: application.skills?.yearsOfExperience
+              ? parseInt(String(application.skills.yearsOfExperience))
+              : technician.experienceYears,
+            workAreas: serviceAreas, // Use extracted serviceAreas
+            serviceRadiusKm: workRadius, // Use extracted workRadius
+            status: "approved",
+            profilePictureUrl:
+              application.documents?.passportPhoto?.url ||
+              application.documents?.profilePhoto?.url ||
+              technician.profilePictureUrl,
+            phone: personalInfo.phoneNumber || technician.phone,
+            personalInfo: personalInfo,
+            availability: availabilityInfo, // Use new availability structure
+            updatedAt: new Date(),
           },
-          { new: true }
-        );
-      } else {
-        // Create new technician
-        technician = await Technician.create({
-          userId: application.technicianId,
-          displayName: personalInfo.fullName,
-          services: application.skills?.services || [],
-          experienceYears: application.skills?.yearsOfExperience
-            ? parseInt(String(application.skills.yearsOfExperience))
-            : 0,
-          workAreas: application.availability?.serviceAreas || [],
-          serviceRadiusKm: application.availability?.workRadius
-            ? parseInt(application.availability.workRadius as string)
-            : 10,
-          status: "approved",
-          profilePictureUrl:
-            application.documents?.passportPhoto?.url ||
-            application.documents?.profilePhoto?.url,
-          phone: personalInfo.phoneNumber,
-          personalInfo: personalInfo,
-          availabilityPreferences: availabilityPreferences,
-          averageRating: 0,
-          ratingCount: 0,
-          totalJobs: 0,
-          completedJobs: 0,
-          ongoingJobs: 0,
-          totalEarnings: 0,
-          resubmittedCount: 0,
-        });
-      }
-
-      if (!technician) {
-        throw new Error("Technician could not be found or created");
-      }
-
-      return technician as ITechnician;
-    } catch (error) {
-      console.error("Find or create technician error:", error);
-      throw error;
+        },
+        { new: true }
+      );
+    } else {
+      // Create new technician
+      technician = await Technician.create({
+        userId: application.technicianId,
+        displayName: personalInfo.fullName,
+        services: application.skills?.services || [],
+        experienceYears: application.skills?.yearsOfExperience
+          ? parseInt(String(application.skills.yearsOfExperience))
+          : 0,
+        workAreas: serviceAreas, // Use extracted serviceAreas
+        serviceRadiusKm: workRadius, // Use extracted workRadius
+        status: "approved",
+        profilePictureUrl:
+          application.documents?.passportPhoto?.url ||
+          application.documents?.profilePhoto?.url,
+        phone: personalInfo.phoneNumber,
+        personalInfo: personalInfo,
+        availability: availabilityInfo, // Use new availability structure
+        averageRating: 0,
+        ratingCount: 0,
+        totalJobs: 0,
+        completedJobs: 0,
+        ongoingJobs: 0,
+        totalEarnings: 0,
+        resubmittedCount: 0,
+      });
     }
+
+    if (!technician) {
+      throw new Error("Technician could not be found or created");
+    }
+
+    return technician as ITechnician;
+  } catch (error) {
+    console.error("Find or create technician error:", error);
+    throw error;
   }
+}
 
   async findTechnicianByApplicationId(
     applicationId: string

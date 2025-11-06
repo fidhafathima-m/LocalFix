@@ -73,14 +73,14 @@ export interface TechnicianProfile {
     verificationStatus?: "pending" | "approved" | "rejected";
     verifiedAt?: string;
   };
-  // Availability & Work Preferences
+  // Availability & Work Preferences - UPDATED
   workAreas: string[];
   serviceRadiusKm?: number;
   availability?: {
     isAvailable?: boolean;
-    weeklyAvailability?: {
+    weeklyPattern?: { // Changed from weeklyAvailability
       [key: string]: {
-        enabled: boolean;
+        available: boolean; // Changed from enabled
         startTime: string;
         endTime: string;
       };
@@ -105,7 +105,6 @@ export interface TechnicianProfile {
   suspensionReason?: string;
   suspendedAt?: string;
 }
-
 export interface ApplicationData {
   _id: string;
   phone: string;

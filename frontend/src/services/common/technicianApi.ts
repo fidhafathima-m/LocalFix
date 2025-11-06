@@ -495,47 +495,47 @@ export const technicianAPI = {
   },
 
   updateAvailability: async (data: {
-    availability: {
-      isAvailable: boolean;
-      weeklyAvailability: {
-        [key: string]: {
-          enabled: boolean;
-          startTime: string;
-          endTime: string;
-        };
+  availability: {
+    isAvailable: boolean;
+    weeklyPattern: {  // Changed from weeklyAvailability
+      [key: string]: {
+        available: boolean;  // Changed from enabled
+        startTime: string;
+        endTime: string;
       };
-      availableWeeks?: number[];
     };
-    serviceAreas: string[];
-    workRadius: number;
-  }) => {
-    try {
-      const backendData = {
-        availability: data.availability,
-        workAreas: data.serviceAreas,
-        serviceRadiusKm: data.workRadius,
-      };
+    availableWeeks?: number[];
+  };
+  serviceAreas: string[];
+  workRadius: number;
+}) => {
+  try {
+    const backendData = {
+      availability: data.availability,
+      workAreas: data.serviceAreas,
+      serviceRadiusKm: data.workRadius,
+    };
 
-      const response = await api.put<{
-        success: boolean;
-        message: string;
-        data: { profile: TechnicianProfile };
-        statusCode: number;
-      }>(TECHNICIAN_ROUTES.PROFILE.AVAILABILITY, backendData);
-      return normalizeResponse(response);
-    } catch (error: any) {
-      if (error.response?.data) {
-        return normalizeResponse(error.response.data);
-      }
-      return {
-        success: false,
-        message: error.message || "Failed to update availability",
-        error: "Network error",
-        data: null,
-        statusCode: 500,
-      };
+    const response = await api.put<{
+      success: boolean;
+      message: string;
+      data: { profile: TechnicianProfile };
+      statusCode: number;
+    }>(TECHNICIAN_ROUTES.PROFILE.AVAILABILITY, backendData);
+    return normalizeResponse(response);
+  } catch (error: any) {
+    if (error.response?.data) {
+      return normalizeResponse(error.response.data);
     }
-  },
+    return {
+      success: false,
+      message: error.message || "Failed to update availability",
+      error: "Network error",
+      data: null,
+      statusCode: 500,
+    };
+  }
+},
   updateBankPayment: async (data: {
     paymentDetails: {
       bankAccount: {

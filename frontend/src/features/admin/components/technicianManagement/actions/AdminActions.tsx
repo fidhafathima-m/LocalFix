@@ -78,7 +78,7 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
   return (
     <div className="border-t border-gray-200 mt-8 pt-6">
       <h3 className="text-base font-medium mb-4">Admin Actions</h3>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-2">
         {technicianId && (
           <ActionButton
             type="suspend"
@@ -89,13 +89,6 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
             loading={actionInProgress}
           />
         )}
-        <ActionButton
-          type="edit"
-          onClick={() => {
-            /* Implement edit logic */
-          }}
-          disabled={actionInProgress}
-        />
       </div>
     </div>
   );

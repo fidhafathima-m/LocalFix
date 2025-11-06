@@ -2,34 +2,30 @@
 import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
 import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
+import CloseIcon from "@mui/icons-material/Close";
 import { TechnicianService } from "../../../../../services/technician/technicianService";
-import {
-  MonthlyAvailabilitySelector,
-  type MonthlyAvailability,
-} from "../helper/AvailabilitySelector";
 import toast from "react-hot-toast";
 import type { TechnicianProfile } from "../../../../../interface/technician/ITechnicianApi";
+import { WeeklyAvailabilitySelector, type WeeklyAvailability } from "../helper/AvailabilitySelector";
 
 interface AvailabilityData {
   isAvailable: boolean;
   serviceAreas: string[];
   workRadius: number;
-  availability: MonthlyAvailability;
+  availability: WeeklyAvailability;
+  tomorrowAvailable?: boolean;
 }
 
 const AvailabilityPreferences = () => {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [updatingTomorrow, setUpdatingTomorrow] = useState(false);
   const [formData, setFormData] = useState<AvailabilityData>({
     isAvailable: true,
     serviceAreas: [],
     workRadius: 10,
     availability: {
-      duration: {
-        months: 3,
-        startDate: new Date(),
-      },
       availableWeeks: [1, 2, 3, 4],
       weeklyPattern: {
         monday: { available: false, startTime: "09:00", endTime: "18:00" },
@@ -41,6 +37,7 @@ const AvailabilityPreferences = () => {
         sunday: { available: false, startTime: "09:00", endTime: "18:00" },
       },
     },
+    tomorrowAvailable: true,
   });
 
   // Available service areas - matching your application form
@@ -54,8 +51,6 @@ const AvailabilityPreferences = () => {
     "Kozhikode",
     "Trivandrum",
   ];
-
-  
 
   useEffect(() => {
     fetchProfileAndAvailability();
@@ -110,6 +105,7 @@ const AvailabilityPreferences = () => {
           extractAvailabilityFromProfile(combinedData);
 
         setFormData(extractedAvailabilityData);
+        setProfile(profileData);
       }
     } catch (error) {
       console.error("Error fetching profile and availability:", error);
@@ -117,86 +113,115 @@ const AvailabilityPreferences = () => {
       setLoading(false);
     }
   };
+
+  // Get tomorrow's date and day name
+  const getTomorrowInfo = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const dayName = dayNames[tomorrow.getDay()];
+    
+    const formattedDate = tomorrow.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    return {
+      date: tomorrow,
+      dayName,
+      formattedDate
+    };
+  };
+
+  // Check if tomorrow is available based on weekly pattern
+  const checkTomorrowAvailability = (weeklyPattern: any): boolean => {
+    const tomorrowInfo = getTomorrowInfo();
+    const tomorrowDay = tomorrowInfo.dayName;
+    
+    // Check if tomorrow's day is marked as available in the weekly pattern
+    const tomorrowPattern = weeklyPattern[tomorrowDay];
+    return tomorrowPattern?.available || false;
+  };
+
   const extractAvailabilityFromProfile = (
-  profileData: any
-): AvailabilityData => {
-  let serviceAreas: string[] = [];
-  let workRadius = 10;
-  let isAvailable = true;
-  let availableWeeks = [1, 2, 3, 4]; // Default
+    profileData: any
+  ): AvailabilityData => {
+    let serviceAreas: string[] = [];
+    let workRadius = 10;
+    let isAvailable = true;
+    let availableWeeks = [1, 2, 3, 4]; // Default
 
-  // Try multiple sources for service areas
-  if (profileData.workAreas && profileData.workAreas.length > 0) {
-    serviceAreas = profileData.workAreas;
-  } else if (profileData.availabilityPreferences?.serviceAreas) {
-    serviceAreas = profileData.availabilityPreferences.serviceAreas;
-  } else if (profileData.serviceAreas) {
-    serviceAreas = profileData.serviceAreas;
-  }
-
-  // Get work radius
-  if (profileData.serviceRadiusKm) {
-    workRadius = profileData.serviceRadiusKm;
-  } else if (profileData.availabilityPreferences?.workRadius) {
-    workRadius = profileData.availabilityPreferences.workRadius;
-  }
-
-  // Get availability status
-  isAvailable =
-    profileData.isAvailable !== false &&
-    profileData.availabilityPreferences?.isAvailable !== false;
-
-  // Extract available weeks from slot rules
-  if (profileData.slotRules && profileData.slotRules.length > 0) {
-    const extractedWeeks = extractAvailableWeeksFromSlotRules(
-      profileData.slotRules
-    );
-    if (extractedWeeks.length > 0) {
-      availableWeeks = extractedWeeks;
+    // Try multiple sources for service areas
+    if (profileData.workAreas && profileData.workAreas.length > 0) {
+      serviceAreas = profileData.workAreas;
+    } else if (profileData.availabilityPreferences?.serviceAreas) {
+      serviceAreas = profileData.availabilityPreferences.serviceAreas;
+    } else if (profileData.serviceAreas) {
+      serviceAreas = profileData.serviceAreas;
     }
-  }
 
-  // Get the weekly pattern and ensure valid time values
-  const weeklyPattern = getWeeklyPatternFromProfile(profileData);
+    // Get work radius
+    if (profileData.serviceRadiusKm) {
+      workRadius = profileData.serviceRadiusKm;
+    } else if (profileData.availabilityPreferences?.workRadius) {
+      workRadius = profileData.availabilityPreferences.workRadius;
+    }
 
-  const sanitizedWeeklyPattern: any = {};
-  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    // Get availability status
+    isAvailable =
+      profileData.isAvailable !== false &&
+      profileData.availabilityPreferences?.isAvailable !== false;
 
-  days.forEach(day => {
-    const dayPattern = weeklyPattern[day] || {
-      available: false,
-      startTime: "09:00",
-      endTime: "18:00"
+    // Extract available weeks from slot rules
+    if (profileData.slotRules && profileData.slotRules.length > 0) {
+      const extractedWeeks = extractAvailableWeeksFromSlotRules(
+        profileData.slotRules
+      );
+      if (extractedWeeks.length > 0) {
+        availableWeeks = extractedWeeks;
+      }
+    }
+
+    // Get the weekly pattern and ensure valid time values
+    const weeklyPattern = getWeeklyPatternFromProfile(profileData);
+
+    const sanitizedWeeklyPattern: any = {};
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+    days.forEach(day => {
+      const dayPattern = weeklyPattern[day] || {
+        available: false,
+        startTime: "09:00",
+        endTime: "18:00"
+      };
+
+      // Ensure valid time values
+      sanitizedWeeklyPattern[day] = {
+        available: dayPattern.available || false,
+        startTime: timeRegex.test(dayPattern.startTime) ? dayPattern.startTime : "09:00",
+        endTime: timeRegex.test(dayPattern.endTime) ? dayPattern.endTime : "18:00"
+      };
+    });
+
+    // Check tomorrow's availability
+    const tomorrowAvailable = checkTomorrowAvailability(sanitizedWeeklyPattern);
+
+    const result: AvailabilityData = {
+      isAvailable,
+      serviceAreas: serviceAreas,
+      workRadius: workRadius,
+      availability: {
+        availableWeeks: availableWeeks,
+        weeklyPattern: sanitizedWeeklyPattern,
+      },
+      tomorrowAvailable,
     };
 
-    // Ensure valid time values
-    sanitizedWeeklyPattern[day] = {
-      available: dayPattern.available || false,
-      startTime: timeRegex.test(dayPattern.startTime) ? dayPattern.startTime : "09:00",
-      endTime: timeRegex.test(dayPattern.endTime) ? dayPattern.endTime : "18:00"
-    };
-  });
-
-  const monthlyAvailability: MonthlyAvailability = {
-    duration: {
-      months: 3,
-      startDate: new Date(),
-    },
-    availableWeeks: availableWeeks,
-    weeklyPattern: sanitizedWeeklyPattern,
+    return result;
   };
-
-  const result = {
-    isAvailable,
-    serviceAreas: serviceAreas,
-    workRadius: workRadius,
-    availability: monthlyAvailability,
-  };
-
-  return result;
-};
-
 
   const extractAvailableWeeksFromSlotRules = (slotRules: any[]): number[] => {
     const weeks = new Set<number>();
@@ -218,6 +243,7 @@ const AvailabilityPreferences = () => {
 
     return weeks.size > 0 ? Array.from(weeks).sort() : [1, 2, 3, 4];
   };
+
   const getWeeklyPatternFromProfile = (profileData: any): any => {
     // 1. First try to extract pattern from actual availability records
     if (
@@ -257,7 +283,6 @@ const AvailabilityPreferences = () => {
     }
 
     // 6. Default pattern (all days unavailable)
-
     return getDefaultWeeklyPattern();
   };
 
@@ -350,6 +375,7 @@ const AvailabilityPreferences = () => {
 
     return weeklyPattern;
   };
+
   const convertSlotRulesToWeeklyPattern = (slotRules: any[]): any => {
     const weeklyPattern = getDefaultWeeklyPattern();
 
@@ -468,61 +494,185 @@ const AvailabilityPreferences = () => {
     }
   };
 
-  const handleAvailabilityChange = (newAvailability: MonthlyAvailability) => {
+  const handleAvailabilityChange = (newAvailability: WeeklyAvailability) => {
     setFormData((prev) => ({
       ...prev,
       availability: newAvailability,
+      // Update tomorrow's availability when weekly pattern changes
+      tomorrowAvailable: checkTomorrowAvailability(newAvailability.weeklyPattern),
     }));
   };
 
+  // Toggle tomorrow's availability
+  const handleTomorrowToggle = async (available: boolean) => {
+    try {
+      setUpdatingTomorrow(true);
+      
+      // Update the weekly pattern for tomorrow's specific day
+      const tomorrowInfo = getTomorrowInfo();
+      const tomorrowDay = tomorrowInfo.dayName;
+      
+      const updatedWeeklyPattern = {
+        ...formData.availability.weeklyPattern,
+        [tomorrowDay]: {
+          ...formData.availability.weeklyPattern[tomorrowDay],
+          available: available
+        }
+      };
+
+      const updateData = {
+        availability: {
+          isAvailable: formData.isAvailable,
+          weeklyPattern: updatedWeeklyPattern,
+          availableWeeks: formData.availability.availableWeeks,
+        },
+        serviceAreas: formData.serviceAreas,
+        workRadius: formData.workRadius,
+      };
+
+      const response = await TechnicianService.updateAvailability(updateData);
+
+      if (response.success) {
+        setFormData(prev => ({
+          ...prev,
+          availability: {
+            ...prev.availability,
+            weeklyPattern: updatedWeeklyPattern
+          },
+          tomorrowAvailable: available
+        }));
+
+        if (profile) {
+          setProfile({
+            ...profile,
+            availability: {
+              isAvailable: formData.isAvailable,
+              weeklyPattern: updatedWeeklyPattern,
+            },
+          });
+        }
+
+        toast.success(`You are now ${available ? 'available' : 'unavailable'} for ${tomorrowInfo.formattedDate}`);
+        
+        // Refresh data to confirm changes
+        await fetchProfileAndAvailability();
+      } else {
+        toast.error("Failed to update tomorrow's availability");
+      }
+    } catch (error) {
+      console.error("Error updating tomorrow's availability:", error);
+      toast.error("Failed to update availability");
+    } finally {
+      setUpdatingTomorrow(false);
+    }
+  };
+
   const getStatusDisplay = () => {
+    const tomorrowInfo = getTomorrowInfo();
+    
     if (formData.isAvailable) {
       return (
-        <div className="flex items-start">
-          <div className="text-green-500 bg-green-100 rounded-full p-1 mr-2">
-            <CheckOutlinedIcon className="h-5 w-5" />
+        <div className="space-y-4">
+          {/* Overall Status */}
+          <div className="flex items-start">
+            <div className="text-green-500 bg-green-100 rounded-full p-1 mr-2">
+              <CheckOutlinedIcon className="h-5 w-5" />
+            </div>
+            <span className="text-green-500 text-sm font-medium">
+              Available for new jobs
+            </span>
           </div>
-          <span className="text-green-500 text-sm font-medium">
-            Available for new jobs
-          </span>
+
+          {/* Tomorrow's Availability */}
+          <div className="bg-gray-50 p-4 rounded-lg border">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-gray-900">
+                  Available tomorrow?
+                </h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  {tomorrowInfo.formattedDate}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  This will update your {tomorrowInfo.dayName} schedule
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className={`text-sm font-medium ${
+                  formData.tomorrowAvailable ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {formData.tomorrowAvailable ? 'Available' : 'Unavailable'}
+                </span>
+                <button
+                  onClick={() => handleTomorrowToggle(!formData.tomorrowAvailable)}
+                  disabled={updatingTomorrow}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    formData.tomorrowAvailable ? 'bg-green-500' : 'bg-gray-300'
+                  } ${updatingTomorrow ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.tomorrowAvailable ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+            {updatingTomorrow && (
+              <div className="flex items-center mt-2 text-blue-600 text-sm">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-2"></div>
+                Updating...
+              </div>
+            )}
+          </div>
         </div>
       );
     } else {
       return (
-        <div className="flex items-start">
-          <div className="text-red-500 bg-red-100 rounded-full p-1 mr-2">
-            <CheckOutlinedIcon className="h-5 w-5" />
+        <div className="space-y-4">
+          {/* Overall Status */}
+          <div className="flex items-start">
+            <div className="text-red-500 bg-red-100 rounded-full p-1 mr-2">
+              <CloseIcon className="h-5 w-5" />
+            </div>
+            <span className="text-red-500 text-sm font-medium">
+              Not available for new jobs
+            </span>
           </div>
-          <span className="text-red-500 text-sm font-medium">
-            Not available for new jobs
-          </span>
+
+          {/* Note when overall unavailable */}
+          <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+            <p className="text-sm text-yellow-800">
+              You are currently set as unavailable. Enable overall availability to manage daily schedules.
+            </p>
+          </div>
         </div>
       );
     }
   };
 
   const validateTimeSlots = (weeklyPattern: any): boolean => {
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/; // HH:MM format
-  
-  for (const [day, dayInfo] of Object.entries(weeklyPattern)) {
-    const dayData = dayInfo as any;
-    if (dayData.available && (!timeRegex.test(dayData.startTime) || !timeRegex.test(dayData.endTime))) {
-      console.error(`Invalid time format for ${day}:`, dayData);
-      return false;
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/; // HH:MM format
+    
+    for (const [day, dayInfo] of Object.entries(weeklyPattern)) {
+      const dayData = dayInfo as any;
+      if (dayData.available && (!timeRegex.test(dayData.startTime) || !timeRegex.test(dayData.endTime))) {
+        console.error(`Invalid time format for ${day}:`, dayData);
+        return false;
+      }
     }
-  }
-  return true;
-};
+    return true;
+  };
 
   const handleSave = async () => {
     try {
       setSaving(true);
 
-       if (!validateTimeSlots(formData.availability.weeklyPattern)) {
-      toast.error("Please ensure all time slots have valid time format (HH:MM)");
-      setSaving(false);
-      return;
-    }
+      if (!validateTimeSlots(formData.availability.weeklyPattern)) {
+        toast.error("Please ensure all time slots have valid time format (HH:MM)");
+        setSaving(false);
+        return;
+      }
 
       // Enhanced validation
       if (formData.serviceAreas.length === 0) {
@@ -551,25 +701,11 @@ const AvailabilityPreferences = () => {
         return;
       }
 
-      // Convert the availability format to match the expected API structure
-      const convertedWeeklyAvailability: {
-        [key: string]: { enabled: boolean; startTime: string; endTime: string };
-      } = {};
-
-      Object.entries(formData.availability.weeklyPattern).forEach(
-        ([day, dayInfo]) => {
-          convertedWeeklyAvailability[day] = {
-            enabled: dayInfo.available,
-            startTime: dayInfo.startTime,
-            endTime: dayInfo.endTime,
-          };
-        }
-      );
-
+      // Convert to the expected API format
       const updateData = {
         availability: {
           isAvailable: formData.isAvailable,
-          weeklyAvailability: convertedWeeklyAvailability,
+          weeklyPattern: formData.availability.weeklyPattern,
           availableWeeks: formData.availability.availableWeeks,
         },
         serviceAreas: formData.serviceAreas,
@@ -587,7 +723,7 @@ const AvailabilityPreferences = () => {
             serviceRadiusKm: formData.workRadius,
             availability: {
               isAvailable: formData.isAvailable,
-              weeklyAvailability: convertedWeeklyAvailability,
+              weeklyPattern: formData.availability.weeklyPattern,
             },
           });
         }
@@ -628,11 +764,10 @@ const AvailabilityPreferences = () => {
     <AccordionSection title="Availability & Work Preferences" number={4}>
       <div className="space-y-6">
         {/* Overall Availability Status */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Overall Availability Status</h3>
+        <div>
+          <h3 className="text-sm font-medium mb-3">Overall Availability Status</h3>
+          {getStatusDisplay()}
         </div>
-
-        {getStatusDisplay()}
 
         {/* Service Areas */}
         <div>
@@ -687,17 +822,17 @@ const AvailabilityPreferences = () => {
           </select>
         </div>
 
-        {/* Monthly Availability Selector */}
+        {/* Weekly Availability Selector */}
         <div>
           <label className="block mb-2 font-medium text-gray-700">
-            Monthly Availability Pattern <span className="text-red-500">*</span>
+            Weekly Availability Pattern <span className="text-red-500">*</span>
           </label>
-          <MonthlyAvailabilitySelector
+          <WeeklyAvailabilitySelector
             value={formData.availability}
             onChange={handleAvailabilityChange}
           />
           <p className="text-xs text-gray-500 mt-2">
-            Set your availability pattern for the coming months. This will
+            Set your availability pattern for the coming weeks. This will
             automatically generate your available time slots using RRule.
           </p>
         </div>

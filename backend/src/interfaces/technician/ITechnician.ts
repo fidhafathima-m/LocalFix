@@ -58,7 +58,7 @@ export interface DayAvailability {
   endTime?: string;
 }
 
-export interface WeeklyAvailability {
+export interface WeeklyPattern {
   monday?: DayAvailability;
   tuesday?: DayAvailability;
   wednesday?: DayAvailability;
@@ -69,9 +69,9 @@ export interface WeeklyAvailability {
 }
 
 export interface AvailabilityInfo {
-  serviceAreas?: string[];
-  workRadius?: string;
-  availability?: WeeklyAvailability;
+  isAvailable: boolean;
+  weeklyPattern?: WeeklyPattern;
+  availableWeeks?: number[];
 }
 
 export interface BankInfo {
@@ -154,17 +154,8 @@ export interface ITechnician extends Document {
   skills?: SkillsInfo;
   certifications?: string[];
 
-  // Availability & Work Preferences
-  availability?: {
-    isAvailable: boolean;
-    weeklyAvailability?: {
-      [day: string]: {
-        enabled: boolean;
-        startTime: string;
-        endTime: string;
-      };
-    };
-  };
+  // Availability & Work Preferences - UPDATED STRUCTURE
+  availability?: AvailabilityInfo;
   workAreas: string[];
   serviceRadiusKm?: number;
 

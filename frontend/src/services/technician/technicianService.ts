@@ -30,14 +30,14 @@ export class TechnicianService {
  static async updateAvailability(data: {
   availability: {
     isAvailable: boolean;
-    weeklyAvailability: {
+    weeklyPattern: {  // Changed from weeklyAvailability
       [key: string]: {
-        enabled: boolean;
+        available: boolean;  // Changed from enabled
         startTime: string;
         endTime: string;
       };
     };
-    availableWeeks?: number[]; 
+    availableWeeks?: number[];
   };
   serviceAreas: string[];
   workRadius: number;

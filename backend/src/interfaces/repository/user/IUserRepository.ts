@@ -30,4 +30,5 @@ export interface IUserRepository extends IBaseRepository<IUser> {
   ): Promise<void>;
   removeRefreshToken(userId: string, refreshToken: string): Promise<void>;
   removeAllRefreshTokens(userId: string): Promise<void>;
+  findByPhone(phoneNumber: string): Promise<IUser | null>;
 }

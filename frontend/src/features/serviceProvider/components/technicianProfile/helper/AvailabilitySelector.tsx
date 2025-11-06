@@ -1,10 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 
-export interface MonthlyAvailability {
-  duration: {
-    months: number;
-    startDate: Date;
-  };
+export interface WeeklyAvailability {
   availableWeeks: number[]; // Week numbers (1-4) in each month
   weeklyPattern: {
     [key: string]: {
@@ -15,17 +11,14 @@ export interface MonthlyAvailability {
   };
 }
 
-interface MonthlyAvailabilitySelectorProps {
-  value: MonthlyAvailability;
-  onChange: (availability: MonthlyAvailability) => void;
+interface WeeklyAvailabilitySelectorProps {
+  value: WeeklyAvailability;
+  onChange: (availability: WeeklyAvailability) => void;
 }
 
-export const MonthlyAvailabilitySelector: React.FC<
-  MonthlyAvailabilitySelectorProps
+export const WeeklyAvailabilitySelector: React.FC<
+  WeeklyAvailabilitySelectorProps
 > = ({ value, onChange }) => {
-  const [duration, setDuration] = useState(value.duration.months || 3);
-
-  const monthOptions = [1, 2, 3, 6, 12];
   const weekOptions = [1, 2, 3, 4];
   const days = [
     { key: "monday", label: "Monday" },
@@ -43,18 +36,6 @@ export const MonthlyAvailabilitySelector: React.FC<
     return `${hour.toString().padStart(2, "0")}:00`;
   });
 
-  const handleDurationChange = (months: number) => {
-    const newValue = {
-      ...value,
-      duration: {
-        months,
-        startDate: value.duration.startDate || new Date(), 
-      },
-    };
-    setDuration(months);
-    onChange(newValue);
-  };
-
   const handleWeekToggle = (week: number) => {
     const newAvailableWeeks = value.availableWeeks.includes(week)
       ? value.availableWeeks.filter((w) => w !== week)
@@ -70,7 +51,7 @@ export const MonthlyAvailabilitySelector: React.FC<
     const dayPattern = value.weeklyPattern[day] || {
       available: false,
       startTime: "09:00",
-      endTime: "18:00"
+      endTime: "18:00",
     };
 
     onChange({
@@ -81,20 +62,24 @@ export const MonthlyAvailabilitySelector: React.FC<
           ...dayPattern,
           available,
           startTime: dayPattern.startTime || "09:00",
-          endTime: dayPattern.endTime || "18:00"
+          endTime: dayPattern.endTime || "18:00",
         },
       },
     });
   };
 
-  const handleTimeChange = (day: string, field: "startTime" | "endTime", newTime: string) => {
+  const handleTimeChange = (
+    day: string,
+    field: "startTime" | "endTime",
+    newTime: string
+  ) => {
     const dayPattern = value.weeklyPattern[day];
     if (!dayPattern) return;
 
     // Basic time format validation
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
     let validatedTime = newTime;
-    
+
     if (!timeRegex.test(newTime)) {
       console.warn(`Invalid time format: ${newTime}`);
       validatedTime = field === "startTime" ? "09:00" : "18:00";
@@ -114,44 +99,51 @@ export const MonthlyAvailabilitySelector: React.FC<
 
   // Get end time options based on selected start time
   const getEndTimeOptions = (startTime: string) => {
-    const startHour = parseInt(startTime.split(':')[0]);
-    return timeOptions.filter(time => {
-      const hour = parseInt(time.split(':')[0]);
+    const startHour = parseInt(startTime.split(":")[0]);
+    return timeOptions.filter((time) => {
+      const hour = parseInt(time.split(":")[0]);
       return hour > startHour; // End time must be after start time
     });
   };
 
   return (
     <div className="space-y-6">
-      {/* Duration Selection */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="text-lg font-medium mb-3">Availability Duration</h3>
-        <div className="flex flex-wrap gap-2">
-          {monthOptions.map((months) => (
-            <button
-              key={months}
-              type="button"
-              onClick={() => handleDurationChange(months)}
-              className={`px-4 py-2 rounded-md ${
-                duration === months
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-              }`}
+      {/* Information Note */}
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <svg
+              className="w-5 h-5 text-blue-600 mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
             >
-              {months} {months === 1 ? "Month" : "Months"}
-            </button>
-          ))}
-        </div>
-        <p className="text-sm text-gray-600 mt-2">
-          How long will this availability pattern be effective?
-        </p>
-        {/* Debug info */}
-        <div className="mt-2 text-xs text-gray-500">
-          Current duration: {value.duration.months} months
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-blue-800">
+              Schedule Information
+            </h3>
+            <div className="mt-1 text-sm text-blue-700">
+              <p>
+                This schedule will be automatically effective for{" "}
+                <strong>1 month</strong>. After 1 month, it will automatically
+                reset. If you are not available for the next day, kindly update
+                that in your profile.
+              </p>
+              <p className="mt-1">
+                You can modify your availability schedule anytime from your
+                technician profile.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Rest of your component remains the same */}
       {/* Weekly Pattern */}
       <div className="bg-gray-50 p-4 rounded-lg">
         <h3 className="text-lg font-medium mb-3">
@@ -185,7 +177,7 @@ export const MonthlyAvailabilitySelector: React.FC<
             const dayPattern = value.weeklyPattern[day.key] || {
               available: false,
               startTime: "09:00",
-              endTime: "18:00"
+              endTime: "18:00",
             };
             const endTimeOptions = getEndTimeOptions(dayPattern.startTime);
 
@@ -244,12 +236,18 @@ export const MonthlyAvailabilitySelector: React.FC<
       </div>
 
       {/* Summary */}
-      <div className="bg-blue-50 p-4 rounded-md">
-        <h4 className="font-medium text-blue-800 mb-2">Availability Summary</h4>
-        <p className="text-sm text-blue-700">
-          You'll be available for <strong>{value.duration.months} months</strong>, during{" "}
+      <div className="bg-green-50 p-4 rounded-md border border-green-200">
+        <h4 className="font-medium text-green-800 mb-2">
+          Availability Summary
+        </h4>
+        <p className="text-sm text-green-700">
+          You'll be available during{" "}
           <strong>weeks {value.availableWeeks.sort().join(", ")}</strong> of
           each month, on selected days with your specified timings.
+        </p>
+        <p className="text-sm text-green-700 mt-1">
+          This schedule is valid for <strong>1 month</strong> and can be updated
+          anytime from your profile.
         </p>
       </div>
     </div>

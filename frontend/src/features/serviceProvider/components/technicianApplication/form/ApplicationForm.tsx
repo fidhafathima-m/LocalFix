@@ -27,11 +27,11 @@ import {
 import { TechnicianApplicationService } from "../../../../../services/technician/technicianApplicationService";
 import type { ApplicationData } from "../../../../../store/slices/technicianSlice";
 import Swal from "sweetalert2";
-import {
-  MonthlyAvailabilitySelector,
-  type MonthlyAvailability,
-} from "../../technicianProfile/helper/AvailabilitySelector";
 import ApplicationSubmittedPage from "../../../pages/ApplicationSubmittedPage";
+import {
+  type WeeklyAvailability,
+  WeeklyAvailabilitySelector,
+} from "../../technicianProfile/helper/AvailabilitySelector";
 
 const STEPS = [
   "Personal Information",
@@ -114,7 +114,7 @@ interface FormDataState {
   // Step 4: Availability & Work Preferences
   serviceAreas: string[];
   workRadius: string;
-  availability: MonthlyAvailability;
+  availability: WeeklyAvailability;
   // Step 5: Banking Details
   accountHolderName: string;
   accountNumber: string;
@@ -141,8 +141,8 @@ interface FileMetadata {
   verified?: boolean;
 }
 
-// Helper function to create default availability
-const createDefaultMonthlyAvailability = (): MonthlyAvailability => {
+// With this:
+const createDefaultWeeklyAvailability = (): WeeklyAvailability => {
   const days = [
     "monday",
     "tuesday",
@@ -156,17 +156,13 @@ const createDefaultMonthlyAvailability = (): MonthlyAvailability => {
 
   days.forEach((day) => {
     weeklyPattern[day] = {
-      available: false, // Default to false, will be overridden by actual data
+      available: false,
       startTime: "09:00",
       endTime: "18:00",
     };
   });
 
   return {
-    duration: {
-      months: 3,
-      startDate: new Date(),
-    },
     availableWeeks: [1, 2, 3, 4], // Default to all weeks
     weeklyPattern,
   };
@@ -226,7 +222,7 @@ export const ApplicationForm: React.FC = () => {
     // Step 4: Availability & Work Preferences
     serviceAreas: [],
     workRadius: "",
-    availability: createDefaultMonthlyAvailability(),
+    availability: createDefaultWeeklyAvailability(),
     // Step 5: Banking Details
     accountHolderName: "",
     accountNumber: "",
@@ -298,6 +294,22 @@ export const ApplicationForm: React.FC = () => {
     hasRestoredFromLocalStorage,
   ]);
 
+  // Add this to your ApplicationForm component
+useEffect(() => {
+  // Check if we're in edit mode and have a specific step to jump to
+  const isEditMode = localStorage.getItem("isEditMode") === "true";
+  const editStep = localStorage.getItem("editStep");
+  
+  if (isEditMode && editStep) {
+    const stepIndex = STEPS.findIndex(step => step === editStep);
+    if (stepIndex !== -1) {
+      setCurrentStep(stepIndex + 1);
+      // Clear the edit step after using it
+      localStorage.removeItem("editStep");
+    }
+  }
+}, []);
+
   useEffect(() => {
     if (existingApplicationData?.stepsCompleted) {
       const completedStepIndexes = existingApplicationData.stepsCompleted
@@ -360,6 +372,7 @@ export const ApplicationForm: React.FC = () => {
     };
   }, []);
 
+  // In the populateFormWithExistingData function, replace the availability section:
   const populateFormWithExistingData = (appData: ApplicationData) => {
     if (!appData) {
       console.error("No application data provided for population");
@@ -368,41 +381,26 @@ export const ApplicationForm: React.FC = () => {
 
     try {
       // Handle availability data conversion
-      let availabilityData = createDefaultMonthlyAvailability();
+      let availabilityData = createDefaultWeeklyAvailability();
 
       // Access the nested availability object
       const availabilityFromDB = appData.availability?.availability;
 
       if (availabilityFromDB) {
         try {
-
-          const convertedAvailability = {
-            ...availabilityFromDB,
-            duration: availabilityFromDB.duration
-              ? {
-                  ...availabilityFromDB.duration,
-                  startDate: availabilityFromDB.duration.startDate
-                    ? new Date(availabilityFromDB.duration.startDate)
-                    : new Date(),
-                }
-              : availabilityData.duration,
-          };
-
           // Use the nested availability data directly
           availabilityData = {
-            duration:
-              convertedAvailability.duration || availabilityData.duration,
             availableWeeks:
-              convertedAvailability.availableWeeks ||
+              availabilityFromDB.availableWeeks ||
               availabilityData.availableWeeks,
             weeklyPattern:
-              convertedAvailability.weeklyPattern ||
+              availabilityFromDB.weeklyPattern ||
               availabilityData.weeklyPattern,
           };
         } catch (error) {
           console.error("Error converting availability:", error);
           // Fall back to default availability
-          availabilityData = createDefaultMonthlyAvailability();
+          availabilityData = createDefaultWeeklyAvailability();
         }
       }
 
@@ -459,7 +457,6 @@ export const ApplicationForm: React.FC = () => {
         ...prev,
         ...documentMetadata,
       }));
-
     } catch (error) {
       console.error("Error populating form data:", error);
       toast.error("Error loading application data");
@@ -874,6 +871,7 @@ export const ApplicationForm: React.FC = () => {
     user?.applicationStatus,
   ]);
   // Fetch saved application from backend
+  // In the fetchSavedApplication useEffect, replace the availability section:
   useEffect(() => {
     const fetchSavedApplication = async () => {
       if (!applicationId || !user?._id || hasRestoredFromLocalStorage) return;
@@ -891,44 +889,28 @@ export const ApplicationForm: React.FC = () => {
             return;
           }
 
-          const defaultAvailability = {
-            monday: { available: false, startTime: "09:00", endTime: "18:00" },
-            tuesday: { available: false, startTime: "09:00", endTime: "18:00" },
-            wednesday: {
-              available: false,
-              startTime: "09:00",
-              endTime: "18:00",
-            },
-            thursday: {
-              available: false,
-              startTime: "09:00",
-              endTime: "18:00",
-            },
-            friday: { available: false, startTime: "09:00", endTime: "18:00" },
-            saturday: {
-              available: false,
-              startTime: "09:00",
-              endTime: "18:00",
-            },
-            sunday: { available: false, startTime: "09:00", endTime: "18:00" },
-          };
+          // Use the new weekly availability structure
+          const defaultAvailability = createDefaultWeeklyAvailability();
 
-          let availabilityData =
-            application.availability || defaultAvailability;
+          let availabilityData = defaultAvailability;
 
-          if (typeof availabilityData === "string") {
-            try {
-              availabilityData = JSON.parse(availabilityData);
-            } catch (e) {
-              console.error("Error parsing availability:", e);
-              availabilityData = defaultAvailability;
+          // Handle availability from backend
+          const availabilityFromDB = application.availability;
+          if (availabilityFromDB) {
+            if (typeof availabilityFromDB === "string") {
+              try {
+                availabilityData = JSON.parse(availabilityFromDB);
+              } catch (e) {
+                console.error("Error parsing availability:", e);
+                availabilityData = defaultAvailability;
+              }
+            } else {
+              availabilityData = {
+                ...defaultAvailability,
+                ...availabilityFromDB,
+              };
             }
           }
-
-          availabilityData = {
-            ...defaultAvailability,
-            ...availabilityData,
-          };
 
           // Populate formData with saved values
           setFormData((prev) => ({
@@ -969,14 +951,32 @@ export const ApplicationForm: React.FC = () => {
   };
 
   // Save formData locally on every change
+  // In the localStorage backup useEffect, replace the availability section:
   useEffect(() => {
     if (applicationId) {
-      localStorage.setItem(
-        `techApp-${applicationId}`,
-        JSON.stringify(formData)
-      );
+      const backup = localStorage.getItem(`techApp-${applicationId}`);
+      if (backup) {
+        const parsedData = JSON.parse(backup);
+
+        // Use the new weekly availability structure
+        const defaultAvailability = createDefaultWeeklyAvailability();
+
+        if (
+          !parsedData.availability ||
+          typeof parsedData.availability !== "object"
+        ) {
+          parsedData.availability = defaultAvailability;
+        } else {
+          parsedData.availability = {
+            ...defaultAvailability,
+            ...parsedData.availability,
+          };
+        }
+
+        setFormData(parsedData);
+      }
     }
-  }, [formData, applicationId]);
+  }, [applicationId]);
 
   useEffect(() => {
     if (applicationId) {
@@ -1366,7 +1366,12 @@ export const ApplicationForm: React.FC = () => {
           setCurrentStep((prev) => prev + 1);
         }
       } else {
-        toast.error(response.message || "Failed to save step");
+        const errorMessage = response.message || "Failed to save step";
+        toast.error(errorMessage);
+
+        if (errorMessage.toLowerCase().includes("phone")) {
+          setErrors({ phoneNumber: errorMessage });
+        }
       }
     } catch (err: unknown) {
       console.error("Error saving step:", err);
@@ -2237,12 +2242,12 @@ export const ApplicationForm: React.FC = () => {
                 )}
               </div>
 
-              {/* Monthly Availability */}
+              {/* Weekly Availability */}
               <div>
                 <label className="block mb-2 font-medium text-gray-700">
-                  Monthly Availability <span className="text-red-500">*</span>
+                  Weekly Availability <span className="text-red-500">*</span>
                 </label>
-                <MonthlyAvailabilitySelector
+                <WeeklyAvailabilitySelector
                   value={formData.availability}
                   onChange={(newAvailability) => {
                     setFormData((prev) => ({
@@ -2257,8 +2262,8 @@ export const ApplicationForm: React.FC = () => {
                   </p>
                 )}
                 <p className="text-xs text-gray-500 mt-2">
-                  Set your availability pattern for the coming months. This will
-                  automatically generate your available time slots.
+                  Set your weekly availability pattern. This schedule will be
+                  automatically effective for 1 month.
                 </p>
               </div>
             </div>
@@ -2670,7 +2675,6 @@ export const ApplicationForm: React.FC = () => {
                 <h3 className="text-lg font-medium text-gray-800 mb-4">
                   Application Summary
                 </h3>
-
                 {/* Personal Information */}
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-700 mb-3">
@@ -2714,7 +2718,6 @@ export const ApplicationForm: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
                 {/* Identity & Verification */}
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-700 mb-3">
@@ -2755,7 +2758,6 @@ export const ApplicationForm: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
                 {/* Skills & Services */}
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-700 mb-3">
@@ -2792,7 +2794,6 @@ export const ApplicationForm: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
                 {/* Availability */}
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-700 mb-3">
@@ -2827,13 +2828,7 @@ export const ApplicationForm: React.FC = () => {
                           .join(", ") || "No days selected"}
                       </p>
                     </div>
-                    <div>
-                      <span className="text-gray-600">Duration:</span>
-                      <p className="font-medium">
-                        {formData.availability.duration.months} months
-                      </p>
-                    </div>
-                    <div>
+                    <div className="md:col-span-2">
                       <span className="text-gray-600">Available Weeks:</span>
                       <p className="font-medium">
                         Weeks{" "}
@@ -2842,7 +2837,6 @@ export const ApplicationForm: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
                 {/* Banking Details */}
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-700 mb-3">
@@ -2883,7 +2877,6 @@ export const ApplicationForm: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
                 {/* Documents */}
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-700 mb-3">Documents</h4>
@@ -2912,7 +2905,6 @@ export const ApplicationForm: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
                 {/* Agreement */}
                 <div>
                   <h4 className="font-medium text-gray-700 mb-3">Agreements</h4>

@@ -16,4 +16,9 @@ export interface ITechnicianApplicationRepository
     userId: string,
     statuses: string[]
   ): Promise<ITechnicianApplication | null>;
+  findByPhoneAndStatus(
+    phoneNumber: string,
+    status: string[],
+    excludeUserId?: string
+  ): Promise<ITechnicianApplication | null>;
 }

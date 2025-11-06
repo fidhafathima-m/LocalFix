@@ -288,15 +288,6 @@ const TechnicianManagement: React.FC = () => {
     }
   };
 
-  // Handle edit technician
-  const handleEditTechnician = (
-    technicianId: string,
-    technicianName: string
-  ) => {
-    toast.success(`Edit details for ${technicianName}`);
-    // edit logic
-  };
-
   const renderTableRows = () => {
     return currentItemsPage.map((item) => {
       // Check if it's an application
@@ -449,12 +440,6 @@ const TechnicianManagement: React.FC = () => {
                     type: "view" as ActionType,
                     onClick: () => handleViewDetails(tech._id, "technician"),
                     title: "View Technician Details",
-                  },
-                  {
-                    type: "edit" as ActionType,
-                    onClick: () =>
-                      handleEditTechnician(tech._id, tech.displayName),
-                    title: "Edit Technician",
                   },
                   ...(tech.status === "approved"
                     ? [

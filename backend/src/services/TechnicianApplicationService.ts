@@ -322,6 +322,23 @@ export class TechnicianApplicationService
         );
       }
 
+      if (step === APPLICATION_STEPS.PERSONAL_INFORMATION) {
+        const validation = await this.validatePersonalInfoStep(
+          application,
+          stepData
+        );
+        if (!validation.isValid) {
+          this.logger.warn("Personal information validation failed", {
+            ...context,
+            validationError: validation.message,
+          });
+          // Return the specific validation error message
+          return ResponseHelper.badRequest(
+            validation.message || "Personal information validation failed"
+          );
+        }
+      }
+
       this.logger.debug("Application found, processing step data", {
         ...context,
         currentStatus: application.status,
@@ -983,6 +1000,24 @@ export class TechnicianApplicationService
         );
       }
 
+      const phoneNumber = application.personal?.phoneNumber as string;
+      if (phoneNumber) {
+        const phoneValidation = await this.validatePhoneNumber(
+          phoneNumber,
+          userId
+        );
+
+        if (!phoneValidation.isValid) {
+          this.logger.warn("Phone validation failed during submission", {
+            ...context,
+            validationError: phoneValidation.message,
+          });
+          return ResponseHelper.badRequest(
+            phoneValidation.message || "Phone number validation failed"
+          );
+        }
+      }
+
       this.logger.debug("Processing languages data", context);
 
       let languagesArray: string[] = [];
@@ -1110,6 +1145,20 @@ export class TechnicianApplicationService
         await this.userRepository.update(userId, { email: application.email });
       }
 
+      // Extract service areas and work radius from application data
+      // Use type assertion since the application form has different structure
+      const applicationAvailability = application.availability as any;
+      const serviceAreas =
+        applicationAvailability?.serviceAreas ||
+        application.skills?.serviceAreas ||
+        [];
+
+      const workRadius = applicationAvailability?.workRadius
+        ? parseInt(applicationAvailability.workRadius as string)
+        : application.skills?.workRadius
+        ? parseInt(application.skills.workRadius as string)
+        : 10;
+
       // Create or update technician record
       let technician = await this.technicianRepository.findByUserId(userId);
 
@@ -1142,9 +1191,8 @@ export class TechnicianApplicationService
             parseInt(application.skills?.yearsOfExperience as string) || 0,
           services: (application.skills?.services as string[]) || [],
           serviceRates: {},
-          workAreas: (application.availability?.serviceAreas as string[]) || [],
-          serviceRadiusKm:
-            parseInt(application.availability?.workRadius as string) || 10,
+          workAreas: serviceAreas,
+          serviceRadiusKm: workRadius,
           currentLocation: {
             type: "Point",
             coordinates: [0, 0],
@@ -1183,12 +1231,8 @@ export class TechnicianApplicationService
             technician.experienceYears,
           services:
             (application.skills?.services as string[]) || technician.services,
-          workAreas:
-            (application.availability?.serviceAreas as string[]) ||
-            technician.workAreas,
-          serviceRadiusKm:
-            parseInt(application.availability?.workRadius as string) ||
-            technician.serviceRadiusKm,
+          workAreas: serviceAreas || technician.workAreas,
+          serviceRadiusKm: workRadius || technician.serviceRadiusKm,
           profilePictureUrl:
             (application.documents?.passportPhoto?.url as string) ||
             technician.profilePictureUrl,
@@ -1608,6 +1652,185 @@ export class TechnicianApplicationService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error("Failed to load application for editing");
+    }
+  }
+
+  // Add these methods to your TechnicianApplicationService class
+
+  private async validatePhoneNumber(
+    phoneNumber: string,
+    excludeUserId?: string
+  ): Promise<{ isValid: boolean; message?: string }> {
+    const context = {
+      operation: "validatePhoneNumber",
+      data: { phoneNumber, excludeUserId },
+    };
+
+    try {
+      this.logger.info("Validating phone number", context);
+
+      if (!phoneNumber) {
+        return { isValid: false, message: "Phone number is required" };
+      }
+
+      // Basic phone number format validation (Indian format)
+      const phoneRegex = /^[6-9]\d{9}$/;
+      const cleanPhone = phoneNumber.replace(/\D/g, "");
+
+      if (!phoneRegex.test(cleanPhone)) {
+        return {
+          isValid: false,
+          message:
+            "Please enter a valid 10-digit Indian phone number starting with 6-9",
+        };
+      }
+
+      // Check if phone number already exists in user records
+      const existingUser = await this.userRepository.findByPhone(cleanPhone);
+      if (existingUser && existingUser._id.toString() !== excludeUserId) {
+        this.logger.warn("Phone number already registered with another user", {
+          ...context,
+          existingUserId: existingUser._id.toString(),
+        });
+        return {
+          isValid: false,
+          message:
+            "This phone number is already registered with another account",
+        };
+      }
+
+      // Check if phone number exists in any active technician applications
+      const existingApplication =
+        await this.applicationRepository.findByPhoneAndStatus(
+          cleanPhone,
+          [
+            APPLICATION_STATUS.DRAFT,
+            APPLICATION_STATUS.SUBMITTED,
+            APPLICATION_STATUS.UNDER_REVIEW,
+          ],
+          excludeUserId
+        );
+
+      if (existingApplication) {
+        this.logger.warn("Phone number already in use in another application", {
+          ...context,
+          existingApplicationId: existingApplication._id.toString(),
+        });
+        return {
+          isValid: false,
+          message:
+            "This phone number is already being used in another technician application",
+        };
+      }
+
+      // Check if phone number exists in approved technicians
+      const existingTechnician = await this.technicianRepository.findByPhone(
+        cleanPhone
+      );
+      if (
+        existingTechnician &&
+        existingTechnician.userId?.toString() !== excludeUserId
+      ) {
+        this.logger.warn(
+          "Phone number already registered with another technician",
+          {
+            ...context,
+            existingTechnicianId: existingTechnician._id.toString(),
+          }
+        );
+        return {
+          isValid: false,
+          message:
+            "This phone number is already registered with another technician",
+        };
+      }
+
+      this.logger.info("Phone number validation successful", context);
+      return { isValid: true };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Phone number validation failed", {
+        ...context,
+        error: errorMessage,
+      });
+      return { isValid: false, message: "Failed to validate phone number" };
+    }
+  }
+
+  private async validatePersonalInfoStep(
+    application: ITechnicianApplication,
+    stepData: StepData
+  ): Promise<{ isValid: boolean; message?: string }> {
+    const context = {
+      operation: "validatePersonalInfoStep",
+      data: {
+        applicationId: application._id.toString(),
+        hasPhone: !!stepData.phoneNumber,
+      },
+    };
+
+    try {
+      this.logger.info("Validating personal information step", context);
+
+      const phoneNumber = stepData.phoneNumber as string;
+
+      if (!phoneNumber) {
+        return { isValid: false, message: "Phone number is required" };
+      }
+
+      // Validate phone number
+      const phoneValidation = await this.validatePhoneNumber(
+        phoneNumber,
+        application.technicianId?.toString()
+      );
+
+      if (!phoneValidation.isValid) {
+        return phoneValidation;
+      }
+
+      // Validate other required personal info fields
+      const requiredFields = ["fullName", "dateOfBirth", "gender"];
+      const missingFields = requiredFields.filter((field) => !stepData[field]);
+
+      if (missingFields.length > 0) {
+        return {
+          isValid: false,
+          message: `Missing required fields: ${missingFields.join(", ")}`,
+        };
+      }
+
+      // Validate date of birth (must be at least 18 years old)
+      if (stepData.dateOfBirth) {
+        const dob = new Date(stepData.dateOfBirth as string);
+        const today = new Date();
+        const minDate = new Date(
+          today.getFullYear() - 18,
+          today.getMonth(),
+          today.getDate()
+        );
+
+        if (dob > minDate) {
+          return {
+            isValid: false,
+            message: "You must be at least 18 years old to apply",
+          };
+        }
+      }
+
+      this.logger.info("Personal information validation successful", context);
+      return { isValid: true };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Personal info validation failed", {
+        ...context,
+        error: errorMessage,
+      });
+      return {
+        isValid: false,
+        message: "Failed to validate personal information",
+      };
     }
   }
 }
