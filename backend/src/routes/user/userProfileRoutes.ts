@@ -5,6 +5,7 @@ import {
   userLocationController,
   userProfileController,
   addressController,
+  reviewController,
 } from "../../config/container";
 
 const router = Router();
@@ -63,6 +64,34 @@ router.delete("/location", protect, (req, res) =>
 // Public route for nearby technicians
 router.get("/nearby-technicians", (req, res) =>
   userLocationController.getNearbyTechnicians(req, res)
+);
+
+router.post("/reviews", protect, (req, res) =>
+  reviewController.createReview(req, res)
+);
+router.put("/reviews/:reviewId", protect, (req, res) =>
+  reviewController.updateReview(req, res)
+);
+router.delete("/reviews/:reviewId", protect, (req, res) =>
+  reviewController.deleteReview(req, res)
+);
+router.get("/reviews", protect, (req, res) =>
+  reviewController.getUserReviews(req, res)
+);
+router.get("/reviews/:reviewId", (req, res) =>
+  reviewController.getReviewById(req, res)
+);
+router.get("/reviews/order/:orderId", (req, res) =>
+  reviewController.getOrderReview(req, res)
+);
+router.get("/reviews/technician/:technicianId", (req, res) =>
+  reviewController.getTechnicianReviews(req, res)
+);
+router.get("/reviews/technician/:technicianId/stats", (req, res) =>
+  reviewController.getTechnicianReviewStats(req, res)
+);
+router.get("/reviews/can-review/:orderId", protect, (req, res) =>
+  reviewController.canUserReviewOrder(req, res)
 );
 
 export default router;

@@ -53,6 +53,9 @@ import TechnicianOrderController from "../controllers/technician/technicianOrder
 import { OrderManagementRepository } from "../repositories/admin/OrderManagementRepository";
 import { OrderManagementService } from "../services/OrderManagementService";
 import { OrderManagementController } from "../controllers/admin/orderManagementController";
+import { ReviewRepository } from "../repositories/user/ReviewRepository";
+import { ReviewService } from "../services/ReviewService";
+import { ReviewController } from "../controllers/user/reviewController";
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
@@ -184,6 +187,11 @@ const orderManagementController = new OrderManagementController(
   orderManagementService
 );
 
+// Review dependencies
+const reviewRepository = new ReviewRepository();
+const reviewService = new ReviewService(reviewRepository);
+const reviewController = new ReviewController(reviewService, reviewRepository);
+
 export {
   userManagementController,
   userManagementService,
@@ -232,4 +240,7 @@ export {
   orderManagementRepository,
   orderManagementService,
   orderManagementController,
+  reviewRepository,
+  reviewService,
+  reviewController
 };

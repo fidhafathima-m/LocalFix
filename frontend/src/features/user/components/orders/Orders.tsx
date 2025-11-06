@@ -19,6 +19,8 @@ import { type OrderResponse } from "../../../../services/user/orderService";
 import { useAppSelector } from "../../../../hooks/redux";
 import { selectUser } from "../../../../store/slices/authSlice";
 import toast from "react-hot-toast";
+import { reviewService } from "../../../../services/user/reviewService";
+import Swal from "sweetalert2";
 
 const MyOrders: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
@@ -164,11 +166,52 @@ const MyOrders: React.FC = () => {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleLeaveReview = (orderId: string) => {
-    // Navigate to review page or open review modal
-    toast.success("Review feature coming soon!");
-  };
+   // In your MyOrders component - update the handleLeaveReview function
+const handleLeaveReview = async (orderId: string) => {
+  try {
+    // Check if there's an existing review for this order
+    const existingReviewResponse = await reviewService.getOrderReview(orderId);
+    
+    
+    // Check if we have a successful response WITH data
+    if (existingReviewResponse.success && existingReviewResponse.data) {
+      // Existing review found - show SweetAlert confirmation for edit
+      const result = await Swal.fire({
+        title: 'Edit Existing Review?',
+        text: 'You have already submitted a review for this order. Would you like to edit it?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Edit Review',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+      });
+
+      if (result.isConfirmed) {
+        navigate(`/leave-a-review/${orderId}`, {
+          state: {
+            existingReview: existingReviewResponse.data,
+            mode: 'edit' as const
+          }
+        });
+      }
+    } else {
+      navigate(`/leave-a-review/${orderId}`, {
+        state: {
+          mode: 'create' as const
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error checking existing review:", error);
+    // Fallback - navigate to create mode
+    navigate(`/leave-a-review/${orderId}`, {
+      state: {
+        mode: 'create' as const
+      }
+    });
+  }
+};
 
   const handleBookAgain = (technicianId: string, serviceName: string) => {
     // Navigate to booking page with pre-filled technician and service
@@ -561,7 +604,7 @@ const MyOrders: React.FC = () => {
                           {!order.technicianRating && (
                             <button
                               onClick={() => handleLeaveReview(order._id)}
-                              className="text-blue-600 hover:text-blue-700 font-semibold"
+                              className="text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
                             >
                               Leave Review
                             </button>
@@ -573,7 +616,7 @@ const MyOrders: React.FC = () => {
                                 order.serviceName
                               )
                             }
-                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
                           >
                             Book Again
                           </button>
