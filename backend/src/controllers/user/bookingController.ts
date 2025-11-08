@@ -228,6 +228,74 @@ export class BookingController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
+  // BookingController.ts - Add this method
+updateBooking = async (req: AuthRequest, res: Response): Promise<void> => {
+  const userId = req.user?.id;
+  const { bookingId } = req.params;
+  const updateData = req.body;
+
+  const context = {
+    operation: "updateBooking",
+    userId,
+    bookingId,
+    updateFields: Object.keys(updateData),
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    this.logger.info("Updating booking", context);
+
+    if (!userId) {
+      this.logger.warn(
+        "Update booking failed - authentication required",
+        context
+      );
+      const errorResponse = ResponseHelper.unauthorized(
+        "Authentication required"
+      );
+      res.status(errorResponse.statusCode).json(errorResponse);
+      return;
+    }
+
+    // Validate required fields
+    if (!updateData || Object.keys(updateData).length === 0) {
+      this.logger.warn("Update booking failed - no update data provided", context);
+      const badRequestResponse = ResponseHelper.badRequest(
+        "No update data provided"
+      );
+      res.status(badRequestResponse.statusCode).json(badRequestResponse);
+      return;
+    }
+
+    // Check if user owns the booking
+    const booking = await this.bookingService.getBookingById(userId, bookingId);
+    if (!booking.success) {
+      this.logger.warn("Booking not found or user not authorized", context);
+      res.status(booking.statusCode).json(booking);
+      return;
+    }
+
+    // Update the booking
+    const result = await this.bookingService.updateBooking(
+      userId,
+      bookingId,
+      updateData
+    );
+
+    this.logger.info("Booking updated successfully", context);
+
+    res.status(result.statusCode).json(result);
+  } catch (error: any) {
+    this.logger.error("Update booking controller error", {
+      ...context,
+      error: error.message,
+      stack: error.stack,
+    });
+
+    const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+    res.status(errorResponse.statusCode).json(errorResponse);
+  }
+};
   updateBookingStatus = async (
     req: AuthRequest,
     res: Response

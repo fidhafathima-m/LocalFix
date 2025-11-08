@@ -53,6 +53,9 @@ const PaymentSuccess = lazy(
 const PaymentFailed = lazy(
   () => import("../features/user/pages/PaymentFailedPage")
 );
+const PaymentRetry = lazy(
+  () => import("../features/user/pages/PaymentRetryPage")
+);
 const ServiceTracking = lazy(
   () => import("../features/user/pages/ServiceTrackingPage")
 );
@@ -183,6 +186,7 @@ const AppRoutes = () => {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-failed" element={<PaymentFailed />} />
+            <Route path="/retry-payment" element={<PaymentRetry />} />
             <Route path="/bookings/:bookingId" element={<ServiceTracking />} />
             <Route path="/orders" element={<MyOrders />} />
             <Route path="/cancel-order/:orderId" element={<CancelBooking />} />

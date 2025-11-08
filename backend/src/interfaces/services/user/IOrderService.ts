@@ -8,7 +8,7 @@ export interface IOrderService {
   getUserOrders(
     userId: string,
     page: number,
-    limit: number
+    limit: number,
   ): Promise<ApiResponse<OrderListResponseDto>>;
   getOrderById(
     userId: string,
@@ -68,5 +68,19 @@ export interface IOrderService {
   orderId: string,
   newDate: string,
   newTimeSlot: string
+): Promise<ApiResponse<OrderResponseDto>>
+getOrderByBookingId(
+  userId: string,
+  bookingId: string
+): Promise<ApiResponse<OrderResponseDto>>
+updateOrderPayment(
+  orderId: string,
+  paymentData: {
+    method: "online" | "cod";
+    amount: number;
+    status: "pending" | "paid" | "failed";
+    transactionId?: string;
+    paidAt?: Date;
+  }
 ): Promise<ApiResponse<OrderResponseDto>>
 }

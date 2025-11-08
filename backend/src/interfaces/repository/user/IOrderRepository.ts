@@ -9,7 +9,7 @@ export interface IOrderRepository {
   findByUserId(
     userId: string,
     page: number,
-    limit: number
+    limit: number,
   ): Promise<{ orders: IOrder[]; total: number }>;
   updateStatus(
     orderId: string,
@@ -40,4 +40,14 @@ export interface IOrderRepository {
     excludeOrderId?: string
   ): Promise<IOrder[]>
   findByBookingId(bookingId: string): Promise<IOrderPopulated | null>
+  updatePaymentDetails(
+    orderId: string,
+    paymentData: {
+      method: "online" | "cod";
+      amount: number;
+      status: "pending" | "paid" | "failed";
+      transactionId?: string;
+      paidAt?: Date;
+    }
+  ): Promise<IOrder | null>
 }

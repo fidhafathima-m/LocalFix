@@ -13,13 +13,14 @@ import { Types } from "mongoose";
 import { IOrderRepository } from "@/interfaces/repository/user/IOrderRepository";
 import { ITechnicianRepository } from "@/interfaces/repository/technician/ITechnicianRepository";
 import { ITechnician } from "@/interfaces/technician/ITechnician";
+import { IBooking } from "@/models/BookingSchema";
 
 export class BookingService implements IBookingService {
   private logger: LoggerService;
 
   constructor(
     private bookingRepository: IBookingRepository,
-    private orderRepository: IOrderRepository,
+    private orderRepository: IOrderRepository
   ) {
     this.logger = new LoggerService();
   }
@@ -266,6 +267,106 @@ export class BookingService implements IBookingService {
     }
   }
 
+  // BookingService.ts - Add this method
+  // In your BookingService.ts - update the updateBooking method
+  async updateBooking(
+    userId: string,
+    bookingId: string,
+    updateData: Partial<BookingResponseDto>
+  ): Promise<ApiResponse<BookingResponseDto>> {
+    const context = {
+      operation: "updateBooking",
+      data: { userId, bookingId, updateData },
+    };
+
+    try {
+      this.logger.info("Updating booking", context);
+
+      // First, verify the booking exists and user has access
+      const existingBooking = await this.bookingRepository.findById(bookingId);
+
+      if (!existingBooking) {
+        this.logger.warn("Booking not found for update", context);
+        return ResponseHelper.notFound("Booking not found");
+      }
+
+      const bookingUserId =
+        existingBooking.userId?._id?.toString() ||
+        existingBooking.userId?.toString();
+
+      // Check if user owns the booking
+      if (bookingUserId !== userId) {
+        this.logger.warn("User not authorized to update this booking", context);
+        return ResponseHelper.forbidden(
+          "Not authorized to update this booking"
+        );
+      }
+
+      // UPDATED: Allow updates for pending, cancelled, AND accepted status for payment retry
+      const allowedStatuses = ["pending", "cancelled", "accepted"];
+      if (!allowedStatuses.includes(existingBooking.status)) {
+        this.logger.warn("Booking cannot be updated in current status", {
+          ...context,
+          currentStatus: existingBooking.status,
+        });
+        return ResponseHelper.badRequest(
+          `Booking cannot be updated in ${existingBooking.status} status`
+        );
+      }
+
+      // Prepare update data for repository
+      const repositoryUpdateData: Partial<IBooking> = {};
+
+      // Map the update fields to the repository model
+      if (updateData.serviceName)
+        repositoryUpdateData.serviceName = updateData.serviceName;
+      if (updateData.brand) repositoryUpdateData.brand = updateData.brand;
+      if (updateData.scheduledAt)
+        repositoryUpdateData.scheduledAt = new Date(updateData.scheduledAt);
+      if (updateData.timeSlot)
+        repositoryUpdateData.timeSlot = updateData.timeSlot;
+      if (updateData.amount !== undefined)
+        repositoryUpdateData.amount = updateData.amount;
+      if (updateData.notes !== undefined)
+        repositoryUpdateData.notes = updateData.notes;
+
+      // Handle address update
+      if (updateData.addressId) {
+        repositoryUpdateData.addressId = new Types.ObjectId(
+          updateData.addressId
+        );
+      }
+
+      // Update the booking in repository
+      const updatedBooking = await this.bookingRepository.update(
+        bookingId,
+        repositoryUpdateData
+      );
+
+      if (!updatedBooking) {
+        this.logger.error("Failed to update booking in repository", context);
+        return ResponseHelper.error("Failed to update booking");
+      }
+
+      this.logger.info("Booking updated successfully", {
+        ...context,
+        updatedFields: Object.keys(repositoryUpdateData),
+      });
+
+      const bookingDto = this.mapToDto(updatedBooking);
+      return ResponseHelper.success("Booking updated successfully", bookingDto);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error updating booking", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return ResponseHelper.error("Failed to update booking");
+    }
+  }
+
   async updateBookingStatus(
     bookingId: string,
     status: string,
@@ -414,132 +515,139 @@ export class BookingService implements IBookingService {
     };
   }
   async getTrackingDetails(
-  userId: string,
-  bookingId: string
-): Promise<ApiResponse<TrackingDetailsDto>> {
-  const context = {
-    operation: "getTrackingDetails",
-    data: { userId, bookingId },
-  };
-
-  try {
-    this.logger.info("Fetching tracking details", context);
-
-    // Query Order collection
-    const order = await this.orderRepository.findByBookingId(bookingId);
-
-    if (!order) {
-      this.logger.warn("Order not found for tracking", context);
-      return ResponseHelper.notFound("Order not found");
-    }
-
-    // DEBUG: Check what technicianId contains
-    this.logger.debug("Technician data from order", {
-      technicianId: order.technicianId,
-      technicianIdType: typeof order.technicianId,
-      isObject: typeof order.technicianId === 'object',
-      hasId: order.technicianId?._id !== undefined
-    });
-
-    // FIX: Add type guard to check if technician is populated
-    const technician = order.technicianId;
-
-    // Type guard function to check if it's ITechnician
-    const isTechnicianPopulated = (tech: any): tech is ITechnician => {
-      return tech && 
-             typeof tech === 'object' && 
-             '_id' in tech && 
-             'displayName' in tech;
+    userId: string,
+    bookingId: string
+  ): Promise<ApiResponse<TrackingDetailsDto>> {
+    const context = {
+      operation: "getTrackingDetails",
+      data: { userId, bookingId },
     };
 
-    if (!technician || !isTechnicianPopulated(technician)) {
-      this.logger.warn("Technician data not properly populated in order", context);
-      return ResponseHelper.notFound("Technician details not found");
-    }
+    try {
+      this.logger.info("Fetching tracking details", context);
 
-    // Now TypeScript knows technician is ITechnician
-    // Use order address directly
-    const address = order.address;
+      // Query Order collection
+      const order = await this.orderRepository.findByBookingId(bookingId);
 
-    // Get technician location if available
-    const technicianLocation = await this.bookingRepository.getTechnicianLocation(
-      technician._id.toString() // Use the actual technician ID
-    );
+      if (!order) {
+        this.logger.warn("Order not found for tracking", context);
+        return ResponseHelper.notFound("Order not found");
+      }
 
-    // Calculate estimated arrival and distance if technician is on the way
-    let estimatedArrival: string | undefined;
-    let distance: number | undefined;
+      // DEBUG: Check what technicianId contains
+      this.logger.debug("Technician data from order", {
+        technicianId: order.technicianId,
+        technicianIdType: typeof order.technicianId,
+        isObject: typeof order.technicianId === "object",
+        hasId: order.technicianId?._id !== undefined,
+      });
 
-    if (order.status === "on_the_way" && technicianLocation) {
-      distance = this.calculateDistance(
-        technicianLocation.latitude,
-        technicianLocation.longitude
+      // FIX: Add type guard to check if technician is populated
+      const technician = order.technicianId;
+
+      // Type guard function to check if it's ITechnician
+      const isTechnicianPopulated = (tech: any): tech is ITechnician => {
+        return (
+          tech &&
+          typeof tech === "object" &&
+          "_id" in tech &&
+          "displayName" in tech
+        );
+      };
+
+      if (!technician || !isTechnicianPopulated(technician)) {
+        this.logger.warn(
+          "Technician data not properly populated in order",
+          context
+        );
+        return ResponseHelper.notFound("Technician details not found");
+      }
+
+      // Now TypeScript knows technician is ITechnician
+      // Use order address directly
+      const address = order.address;
+
+      // Get technician location if available
+      const technicianLocation =
+        await this.bookingRepository.getTechnicianLocation(
+          technician._id.toString() // Use the actual technician ID
+        );
+
+      // Calculate estimated arrival and distance if technician is on the way
+      let estimatedArrival: string | undefined;
+      let distance: number | undefined;
+
+      if (order.status === "on_the_way" && technicianLocation) {
+        distance = this.calculateDistance(
+          technicianLocation.latitude,
+          technicianLocation.longitude
+        );
+        estimatedArrival = this.calculateEstimatedArrival(distance);
+      }
+
+      const trackingDetails: TrackingDetailsDto = {
+        _id: order._id.toString(),
+        bookingId: order.bookingId.toString(),
+        userId: order.userId.toString(),
+        technicianId: {
+          _id: technician._id.toString(),
+          displayName: technician.displayName,
+          profilePictureUrl: technician.profilePictureUrl || "",
+          averageRating: technician.averageRating || 0,
+          ratingCount: technician.ratingCount || 0,
+          skills: technician.services || technician.skills || [],
+          phone: technician.phone || "",
+        },
+        serviceName: order.serviceName,
+        problemDescription: order.problemDescription,
+        scheduledAt: order.scheduledAt.toISOString(),
+        timeSlot: order.timeSlot,
+        address: {
+          label: address.label,
+          street: address.street,
+          city: address.city,
+          state: address.state,
+          pincode: address.pincode,
+          landmark: address.landmark,
+        },
+        status: order.status as any,
+        amount: order.totalAmount,
+        estimatedDuration: "1-2 hours",
+        statusHistory: order.history.map((h: any) => ({
+          status: h.status,
+          timestamp: h.timestamp.toISOString(),
+          description:
+            h.description || this.getStatusDescription(h.status, h.reason),
+          updatedBy: h.updatedBy as "user" | "technician" | "system",
+        })),
+        technicianLocation: technicianLocation
+          ? {
+              latitude: technicianLocation.latitude,
+              longitude: technicianLocation.longitude,
+              lastUpdated: technicianLocation.lastUpdated.toISOString(),
+            }
+          : undefined,
+        estimatedArrival,
+        distance,
+      };
+
+      this.logger.info("Tracking details retrieved successfully", context);
+
+      return ResponseHelper.success(
+        "Tracking details retrieved successfully",
+        trackingDetails
       );
-      estimatedArrival = this.calculateEstimatedArrival(distance);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error fetching tracking details", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return ResponseHelper.error("Failed to fetch tracking details");
     }
-
-    const trackingDetails: TrackingDetailsDto = {
-      _id: order._id.toString(),
-      bookingId: order.bookingId.toString(),
-      userId: order.userId.toString(),
-      technicianId: {
-        _id: technician._id.toString(),
-        displayName: technician.displayName,
-        profilePictureUrl: technician.profilePictureUrl || "",
-        averageRating: technician.averageRating || 0,
-        ratingCount: technician.ratingCount || 0,
-        skills: technician.services || technician.skills || [],
-        phone: technician.phone || "",
-      },
-      serviceName: order.serviceName,
-      problemDescription: order.problemDescription,
-      scheduledAt: order.scheduledAt.toISOString(),
-      timeSlot: order.timeSlot,
-      address: {
-        label: address.label,
-        street: address.street,
-        city: address.city,
-        state: address.state,
-        pincode: address.pincode,
-        landmark: address.landmark,
-      },
-      status: order.status as any,
-      amount: order.totalAmount,
-      estimatedDuration: "1-2 hours",
-      statusHistory: order.history.map((h: any) => ({
-        status: h.status,
-        timestamp: h.timestamp.toISOString(),
-        description: h.description || this.getStatusDescription(h.status, h.reason),
-        updatedBy: h.updatedBy as "user" | "technician" | "system",
-      })),
-      technicianLocation: technicianLocation
-        ? {
-            latitude: technicianLocation.latitude,
-            longitude: technicianLocation.longitude,
-            lastUpdated: technicianLocation.lastUpdated.toISOString(),
-          }
-        : undefined,
-      estimatedArrival,
-      distance,
-    };
-
-    this.logger.info("Tracking details retrieved successfully", context);
-
-    return ResponseHelper.success(
-      "Tracking details retrieved successfully",
-      trackingDetails
-    );
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    this.logger.error("Error fetching tracking details", {
-      ...context,
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return ResponseHelper.error("Failed to fetch tracking details");
   }
-}
   async getTechnicianLocation(
     bookingId: string
   ): Promise<ApiResponse<TechnicianLocationDto>> {

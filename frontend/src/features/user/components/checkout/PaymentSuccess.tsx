@@ -4,8 +4,8 @@ import {
   CheckCircleOutlineOutlined,
   PlaceOutlined,
   DownloadOutlined,
-  HomeOutlined,
   PersonOutlined,
+  ReceiptLongOutlined,
 } from "@mui/icons-material";
 import Header from "../../../../components/common/Header";
 import Footer from "../../../../components/common/Footer";
@@ -238,11 +238,11 @@ const PaymentSuccess: React.FC = () => {
             </button>
 
             <Link
-              to="/"
+              to="/orders"
               className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
             >
-              <HomeOutlined className="w-5 h-5" />
-              Back to Home
+              <ReceiptLongOutlined className="w-5 h-5" />
+              Go to Orders
             </Link>
           </div>
         </div>

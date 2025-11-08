@@ -392,4 +392,65 @@ export class OrderRepository implements IOrderRepository {
       .populate<{ userId: IUser }>("userId", "fullName email phone")
       .exec();
   }
+  // In your OrderRepository.ts - add this method
+async updatePaymentDetails(
+  orderId: string,
+  paymentData: {
+    method: "online" | "cod";
+    amount: number;
+    status: "pending" | "paid" | "failed";
+    transactionId?: string;
+    paidAt?: Date;
+  }
+): Promise<IOrder | null> {
+  try {
+    const updateData: any = {
+      "payment.method": paymentData.method,
+      "payment.amount": paymentData.amount,
+      "payment.status": paymentData.status,
+      "payment.paidAt": paymentData.paidAt || new Date(),
+      totalAmount: paymentData.amount,
+      updatedAt: new Date(),
+    };
+
+    if (paymentData.transactionId) {
+      updateData["payment.transactionId"] = paymentData.transactionId;
+    }
+
+    // Also update order status based on payment status
+    let orderStatus = "pending";
+    if (paymentData.status === "paid") {
+      orderStatus = "confirmed";
+    } else if (paymentData.status === "failed") {
+      orderStatus = "cancelled";
+    }
+
+    updateData.status = orderStatus;
+
+    // Add to history
+    const historyEntry = {
+      status: orderStatus,
+      description: `Payment ${paymentData.status} via ${paymentData.method}`,
+      updatedBy: "system",
+      timestamp: new Date(),
+    };
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      new Types.ObjectId(orderId),
+      {
+        $set: updateData,
+        $push: { history: historyEntry },
+      },
+      { new: true }
+    )
+      .populate("userId", "fullName email phone")
+      .populate("technicianId", "displayName profilePictureUrl services")
+      .exec();
+
+    return updatedOrder;
+  } catch (error) {
+    console.error("Error updating payment details:", error);
+    return null;
+  }
+}
 }

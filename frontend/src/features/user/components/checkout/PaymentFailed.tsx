@@ -4,7 +4,6 @@ import {
   HighlightOffOutlined,
   AutorenewOutlined,
   ChatBubbleOutlineOutlined,
-  HomeOutlined,
   ReceiptLongOutlined,
 } from "@mui/icons-material";
 import Header from "../../../../components/common/Header";
@@ -22,12 +21,13 @@ const PaymentFailed: React.FC = () => {
   const state = location.state as PaymentFailedState;
 
   const handleTryAgain = () => {
+    const state = location.state as PaymentFailedState;
     if (state?.bookingId) {
       // Navigate back to checkout with the same booking data
-      navigate("/checkout", {
+      navigate("/retry-payment", {
         state: {
-          retry: true,
           bookingId: state.bookingId,
+          error: state.error,
         },
       });
     } else {
@@ -140,11 +140,11 @@ const PaymentFailed: React.FC = () => {
             </button>
 
             <Link
-              to="/"
+              to="/orders"
               className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
             >
-              <HomeOutlined className="w-5 h-5" />
-              Back to Home
+              <ReceiptLongOutlined className="w-5 h-5" />
+              Go to Orders
             </Link>
           </div>
         </div>

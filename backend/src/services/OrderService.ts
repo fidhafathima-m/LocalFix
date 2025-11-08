@@ -120,25 +120,56 @@ export class OrderService implements IOrderService {
     }
   }
 
-  async createOrderFromBooking(
-    bookingId: string,
-    paymentData: {
-      method: "online" | "cod";
-      amount: number;
-      status: "pending" | "paid" | "failed";
-      transactionId?: string;
-      paidAt?: Date;
-    }
-  ): Promise<ApiResponse<OrderResponseDto>> {
-    const context = {
-      operation: "createOrderFromBooking",
-      data: { bookingId, ...paymentData },
-    };
+  // In your OrderService.ts - update the createOrderFromBooking method
+async createOrderFromBooking(
+  bookingId: string,
+  paymentData: {
+    method: "online" | "cod";
+    amount: number;
+    status: "pending" | "paid" | "failed";
+    transactionId?: string;
+    paidAt?: Date;
+  }
+): Promise<ApiResponse<OrderResponseDto>> {
+  const context = {
+    operation: "createOrderFromBooking",
+    data: { bookingId, ...paymentData },
+  };
 
-    try {
-      this.logger.info("Creating order from booking", context);
+  try {
+    this.logger.info("Creating/updating order from booking", context);
 
-      const order = await this.orderRepository.createFromBooking(
+    // FIRST: Check if an order already exists for this booking
+    const existingOrder = await this.orderRepository.findByBookingId(bookingId);
+
+    let order;
+
+    if (existingOrder) {
+      // UPDATE existing order for payment retry
+      this.logger.info("Updating existing order for payment retry", {
+        ...context,
+        existingOrderId: existingOrder._id.toString(),
+      });
+
+      // Update payment details and status
+      order = await this.orderRepository.updatePaymentDetails(
+        existingOrder._id.toString(),
+        paymentData
+      );
+
+      if (!order) {
+        this.logger.error("Failed to update existing order", context);
+        return ResponseHelper.error("Failed to update order for payment retry");
+      }
+
+      this.logger.info("Existing order updated successfully", {
+        ...context,
+        orderId: order._id.toString(),
+      });
+    } else {
+      // CREATE new order (original logic)
+      this.logger.info("Creating new order from booking", context);
+      order = await this.orderRepository.createFromBooking(
         bookingId,
         paymentData
       );
@@ -148,25 +179,29 @@ export class OrderService implements IOrderService {
         return ResponseHelper.error("Failed to create order");
       }
 
-      this.logger.info("Order created successfully", {
+      this.logger.info("New order created successfully", {
         ...context,
         orderId: order._id.toString(),
         orderCode: order.orderCode,
       });
-
-      const orderDto = this.mapToDto(order);
-      return ResponseHelper.created("Order created successfully", orderDto);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error creating order from booking", {
-        ...context,
-        error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      return ResponseHelper.error("Failed to create order");
     }
+
+    const orderDto = this.mapToDto(order);
+    return ResponseHelper.created(
+      existingOrder ? "Order updated successfully" : "Order created successfully",
+      orderDto
+    );
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    this.logger.error("Error creating/updating order from booking", {
+      ...context,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return ResponseHelper.error("Failed to process order");
   }
+}
 
   async cancelOrder(
     userId: string,
@@ -674,4 +709,96 @@ private canOrderBeRescheduled(status: string): boolean {
       return null;
     }
   }
+  // In your OrderService.ts - add this method
+async getOrderByBookingId(
+  userId: string,
+  bookingId: string
+): Promise<ApiResponse<OrderResponseDto>> {
+  const context = {
+    operation: "getOrderByBookingId",
+    data: { userId, bookingId },
+  };
+
+  try {
+    this.logger.info("Fetching order by booking ID", context);
+
+    const order = await this.orderRepository.findByBookingId(bookingId);
+
+    if (!order) {
+      this.logger.warn("Order not found for booking", context);
+      return ResponseHelper.notFound("Order not found for this booking");
+    }
+
+    const realOrderId =
+      order.userId?._id?.toString() || order.userId?.toString();
+
+    // Check if user has access to this order
+    if (realOrderId !== userId) {
+      this.logger.warn("User not authorized to access this order", {
+        ...context,
+        orderUserId: order.userId.toString(),
+        requestingUserId: userId,
+      });
+      return ResponseHelper.forbidden("Not authorized to access this order");
+    }
+
+    this.logger.info("Order retrieved successfully by booking ID", context);
+
+    const orderDto = this.mapToDto(order);
+    return ResponseHelper.success("Order retrieved successfully", orderDto);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    this.logger.error("Error fetching order by booking ID", {
+      ...context,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return ResponseHelper.error("Failed to fetch order");
+  }
+}
+// In your OrderService.ts - add this method
+async updateOrderPayment(
+  orderId: string,
+  paymentData: {
+    method: "online" | "cod";
+    amount: number;
+    status: "pending" | "paid" | "failed";
+    transactionId?: string;
+    paidAt?: Date;
+  }
+): Promise<ApiResponse<OrderResponseDto>> {
+  const context = {
+    operation: "updateOrderPayment",
+    data: { orderId, ...paymentData },
+  };
+
+  try {
+    this.logger.info("Updating order payment", context);
+
+    const updatedOrder = await this.orderRepository.updatePaymentDetails(
+      orderId,
+      paymentData
+    );
+
+    if (!updatedOrder) {
+      this.logger.error("Failed to update order payment", context);
+      return ResponseHelper.error("Failed to update order payment");
+    }
+
+    this.logger.info("Order payment updated successfully", context);
+
+    const orderDto = this.mapToDto(updatedOrder);
+    return ResponseHelper.success("Order payment updated successfully", orderDto);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    this.logger.error("Error updating order payment", {
+      ...context,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return ResponseHelper.error("Failed to update order payment");
+  }
+}
 }

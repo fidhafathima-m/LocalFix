@@ -89,9 +89,9 @@ export const orderService = {
     return response.data;
   },
 
-  async getUserOrders(page: number = 1, limit: number = 10): Promise<ApiResponse<OrderListResponse>> {
+  async getUserOrders(page: number = 1, limit: number = 10, status?: string): Promise<ApiResponse<OrderListResponse>> {
     const response = await api.get<ApiResponse<OrderListResponse>>("/orders", {
-      params: { page, limit }
+      params: { page, limit, status }
     });
     return response.data;
   },
@@ -133,11 +133,52 @@ export const orderService = {
     }
   },
 
-  async rescheduleOrder(orderId: string, newDate: string, newTimeSlot: string): Promise<ApiResponse<OrderResponse>> {
+  rescheduleOrder: async(orderId: string, newDate: string, newTimeSlot: string): Promise<ApiResponse<OrderResponse>> => {
     const response = await api.post<ApiResponse<OrderResponse>>(`/orders/${orderId}/reschedule`, {
       newDate,
       newTimeSlot
     });
     return response.data;
-  }
+  },
+
+   async getOrderByBookingId(bookingId: string): Promise<ApiResponse<OrderResponse>> {
+    const response = await api.get<ApiResponse<OrderResponse>>(`/orders/booking/${bookingId}`);
+    return response.data;
+  },
+
+  // NEW: Update order payment details
+  async updateOrderPayment(
+    orderId: string, 
+    paymentData: {
+      method: 'online' | 'cod';
+      amount: number;
+      status: 'pending' | 'paid' | 'failed';
+      transactionId?: string;
+      paidAt?: Date;
+    }
+  ): Promise<ApiResponse<OrderResponse>> {
+    const response = await api.patch<ApiResponse<OrderResponse>>(
+      `/orders/${orderId}/payment`,
+      paymentData
+    );
+    return response.data;
+  },
+
+  // NEW: Retry payment for existing order
+  async retryPaymentForOrder(
+    bookingId: string,
+    paymentData: {
+      method: 'online' | 'cod';
+      amount: number;
+      status: 'pending' | 'paid' | 'failed';
+      transactionId?: string;
+      paidAt?: Date;
+    }
+  ): Promise<ApiResponse<OrderResponse>> {
+    const response = await api.post<ApiResponse<OrderResponse>>(
+      `/orders/retry-payment`,
+      { bookingId, ...paymentData }
+    );
+    return response.data;
+  },
 };

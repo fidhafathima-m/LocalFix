@@ -12,6 +12,9 @@ import {
   LocalShippingOutlined,
   PersonOutlined,
   RefreshOutlined,
+  PaymentOutlined,
+  ChevronLeft,
+  ChevronRight,
 } from "@mui/icons-material";
 import Header from "../../../../components/common/Header";
 import Footer from "../../../../components/common/Footer";
@@ -23,30 +26,42 @@ import toast from "react-hot-toast";
 import { reviewService } from "../../../../services/user/reviewService";
 import Swal from "sweetalert2";
 import InvoiceModal from "./InvoicePreview";
+import FailedPaymentCard from "./FailedPaymentCard";
+
+const ITEMS_PER_PAGE = 5;
 
 const MyOrders: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
+  const [activeTab, setActiveTab] = useState<"active" | "history" | "failed">(
+    "active"
+  );
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(
     null
   );
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total: 0,
+    pages: 0,
+  });
 
   const currentUser = useAppSelector(selectUser);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(1, ITEMS_PER_PAGE);
   }, []);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (page: number = 1, limit: number = ITEMS_PER_PAGE) => {
     try {
       setLoading(true);
-      const response = await orderService.getUserOrders();
+      const response = await orderService.getUserOrders(page, limit);
 
       if (response.success && response.data) {
         setOrders(response.data.orders);
+        setPagination(response.data.pagination);
       } else {
         toast.error("Failed to fetch orders");
       }
@@ -56,6 +71,16 @@ const MyOrders: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    fetchOrders(newPage, pagination.limit);
+  };
+
+  const handleTabChange = (tab: "active" | "history" | "failed") => {
+    setActiveTab(tab);
+    // Reset to first page when changing tabs
+    fetchOrders(1, ITEMS_PER_PAGE);
   };
 
   const handleOpenInvoiceModal = (order: OrderResponse) => {
@@ -245,6 +270,118 @@ const MyOrders: React.FC = () => {
     toast.success(`Redirecting to book ${serviceName} again`);
   };
 
+  const getFailedPaymentOrders = () => {
+    const failedOrders = orders
+      .filter((order) => {
+        return (
+          order.status === "cancelled" &&
+          order.payment.method === "online" &&
+          new Date(order.createdAt) >
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+    return failedOrders;
+  };
+
+  const handleRetryPayment = (order: OrderResponse) => {
+    navigate("/retry-payment", {
+      state: {
+        bookingId: order.bookingId,
+        bookingData: {
+          technician: order.technicianId,
+          service: order.serviceName,
+          date: order.scheduledAt,
+          time: order.timeSlot,
+          address: order.address,
+          usesSavedAddress: true,
+          problemDescription: order.problemDescription,
+        },
+        pricing: {
+          subtotal: order.totalAmount - Math.round(order.totalAmount * 0.1),
+          serviceTax: Math.round(order.totalAmount * 0.1),
+          total: order.totalAmount,
+        },
+        error: "Payment failed previously",
+      },
+    });
+  };
+
+  // Pagination Component
+  const Pagination = () => {
+    const { page, pages } = pagination;
+    
+    if (pages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between mt-8 border-t pt-6">
+        <div className="text-sm text-gray-700">
+          Showing page {page} of {pages}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page <= 1}
+            className={`flex items-center gap-1 px-3 py-2 rounded-lg border ${
+              page <= 1
+                ? "text-gray-400 cursor-not-allowed"
+                : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+            }`}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, pages) }, (_, i) => {
+              let pageNum;
+              if (pages <= 5) {
+                pageNum = i + 1;
+              } else if (page <= 3) {
+                pageNum = i + 1;
+              } else if (page >= pages - 2) {
+                pageNum = pages - 4 + i;
+              } else {
+                pageNum = page - 2 + i;
+              }
+
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`w-10 h-10 rounded-lg border flex items-center justify-center ${
+                    page === pageNum
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page >= pages}
+            className={`flex items-center gap-1 px-3 py-2 rounded-lg border ${
+              page >= pages
+                ? "text-gray-400 cursor-not-allowed"
+                : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+            }`}
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
@@ -262,6 +399,7 @@ const MyOrders: React.FC = () => {
 
   const activeOrders = getActiveOrders();
   const historyOrders = getHistoryOrders();
+  const failedPaymentOrders = getFailedPaymentOrders();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -271,7 +409,7 @@ const MyOrders: React.FC = () => {
           <h1 className="text-3xl font-bold">My Orders</h1>
           <div className="flex items-center gap-4">
             <button
-              onClick={fetchOrders}
+              onClick={() => fetchOrders(pagination.page, pagination.limit)}
               className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-2"
             >
               <RefreshOutlined className="w-5 h-5" />
@@ -285,11 +423,10 @@ const MyOrders: React.FC = () => {
             </Link>
           </div>
         </div>
-
-        <div className="flex gap-8 border-b mb-6">
+        <div className="flex gap-8 border-b mb-6 overflow-x-auto">
           <button
-            onClick={() => setActiveTab("active")}
-            className={`pb-3 px-1 font-semibold transition-colors relative ${
+            onClick={() => handleTabChange("active")}
+            className={`pb-3 px-1 font-semibold transition-colors relative whitespace-nowrap ${
               activeTab === "active"
                 ? "text-blue-600"
                 : "text-gray-600 hover:text-gray-900"
@@ -297,15 +434,33 @@ const MyOrders: React.FC = () => {
           >
             <div className="flex items-center gap-2">
               <LocalShippingOutlined className="w-5 h-5" />
-              Active Orders ({activeOrders.length})
+              Active Orders ({pagination.total > 0 ? `${activeOrders.length}` : '0'})
             </div>
             {activeTab === "active" && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
             )}
           </button>
+
           <button
-            onClick={() => setActiveTab("history")}
-            className={`pb-3 px-1 font-semibold transition-colors relative ${
+            onClick={() => handleTabChange("failed")}
+            className={`pb-3 px-1 font-semibold transition-colors relative whitespace-nowrap ${
+              activeTab === "failed"
+                ? "text-blue-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <PaymentOutlined className="w-5 h-5" />
+              Failed Payments ({failedPaymentOrders.length})
+            </div>
+            {activeTab === "failed" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+            )}
+          </button>
+
+          <button
+            onClick={() => handleTabChange("history")}
+            className={`pb-3 px-1 font-semibold transition-colors relative whitespace-nowrap ${
               activeTab === "history"
                 ? "text-blue-600"
                 : "text-gray-600 hover:text-gray-900"
@@ -313,31 +468,49 @@ const MyOrders: React.FC = () => {
           >
             <div className="flex items-center gap-2">
               <AccessTimeOutlined className="w-5 h-5" />
-              Order History ({historyOrders.length})
+              Order History ({pagination.total > 0 ? `${historyOrders.length}` : '0'})
             </div>
             {activeTab === "history" && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
             )}
           </button>
         </div>
-
-        {orders.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LocalShippingOutlined className="w-10 h-10 text-gray-400" />
-            </div>
-            <h2 className="text-xl font-semibold mb-2">No Orders Found</h2>
-            <p className="text-gray-600 mb-6">
-              You haven't placed any orders yet.
-            </p>
-            <Link
-              to="/services"
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
-            >
-              Book Your First Service
-            </Link>
+        {/* Failed Payments Tab Content */}
+        {activeTab === "failed" && (
+          <div className="space-y-6">
+            {failedPaymentOrders.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircleOutlineOutlined className="w-10 h-10 text-gray-400" />
+                </div>
+                <h2 className="text-xl font-semibold mb-2">
+                  No Failed Payments
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  You don't have any failed payments to retry.
+                </p>
+                <Link
+                  to="/services"
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
+                >
+                  Book a Service
+                </Link>
+              </div>
+            ) : (
+              failedPaymentOrders.map((order) => (
+                <FailedPaymentCard
+                  key={order._id}
+                  order={order}
+                  formatDate={formatDate}
+                  formatTimeSlot={formatTimeSlot}
+                  onRetryPayment={() => handleRetryPayment(order)}
+                />
+              ))
+            )}
           </div>
-        ) : activeTab === "active" ? (
+        )}
+        {/* Active Orders Tab Content */}
+        {activeTab === "active" && (
           <div className="space-y-6">
             {activeOrders.length === 0 ? (
               <div className="text-center py-12">
@@ -369,8 +542,11 @@ const MyOrders: React.FC = () => {
                 />
               ))
             )}
+            <Pagination />
           </div>
-        ) : (
+        )}
+        {/* Order History Tab Content */}
+        {activeTab === "history" && (
           <div className="space-y-6">
             {historyOrders.length === 0 ? (
               <div className="text-center py-12">
@@ -407,6 +583,25 @@ const MyOrders: React.FC = () => {
                 />
               ))
             )}
+            <Pagination />
+          </div>
+        )}
+        {/* No Orders Fallback - Only show when there are no orders at all */}
+        {orders.length === 0 && activeTab !== "failed" && (
+          <div className="text-center py-12">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LocalShippingOutlined className="w-10 h-10 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">No Orders Found</h2>
+            <p className="text-gray-600 mb-6">
+              You haven't placed any orders yet.
+            </p>
+            <Link
+              to="/services"
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
+            >
+              Book Your First Service
+            </Link>
           </div>
         )}
       </main>
@@ -416,7 +611,7 @@ const MyOrders: React.FC = () => {
         <InvoiceModal
           isOpen={isInvoiceModalOpen}
           onClose={handleCloseInvoiceModal}
-          invoiceData={getInvoiceData()!} // Using non-null assertion since we checked above
+          invoiceData={getInvoiceData()!}
         />
       )}
 

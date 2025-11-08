@@ -66,31 +66,43 @@ export interface UpdateBookingStatusRequest {
 
 class BookingService {
   // Create a new booking
-  async createBooking(bookingData: CreateBookingRequest): Promise<BookingResponse> {
+  async createBooking(
+    bookingData: CreateBookingRequest
+  ): Promise<BookingResponse> {
     try {
-      const response = await apiClient.post<BookingResponse>('/bookings', bookingData);
-      
+      const response = await apiClient.post<BookingResponse>(
+        "/bookings",
+        bookingData
+      );
+
       if (response.data.success) {
-        toast.success('Booking created successfully!');
+        toast.success("Booking created successfully!");
       }
-      
+
       return response.data;
     } catch (error: any) {
-      console.error('Error creating booking:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create booking';
+      console.error("Error creating booking:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create booking";
       toast.error(errorMessage);
       throw new Error(errorMessage);
     }
   }
 
   // Get user bookings
-  async getUserBookings(page: number = 1, limit: number = 10): Promise<BookingListResponse> {
+  async getUserBookings(
+    page: number = 1,
+    limit: number = 10
+  ): Promise<BookingListResponse> {
     try {
-      const response = await apiClient.get<BookingListResponse>(`/bookings/user?page=${page}&limit=${limit}`);
+      const response = await apiClient.get<BookingListResponse>(
+        `/bookings/user?page=${page}&limit=${limit}`
+      );
       return response.data;
     } catch (error: any) {
-      console.error('Error fetching user bookings:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to fetch bookings';
+      console.error("Error fetching user bookings:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to fetch bookings";
       throw new Error(errorMessage);
     }
   }
@@ -98,28 +110,38 @@ class BookingService {
   // Get booking by ID
   async getBookingById(bookingId: string): Promise<BookingResponse> {
     try {
-      const response = await apiClient.get<BookingResponse>(`/bookings/${bookingId}`);
+      const response = await apiClient.get<BookingResponse>(
+        `/bookings/${bookingId}`
+      );
       return response.data;
     } catch (error: any) {
-      console.error('Error fetching booking:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to fetch booking';
+      console.error("Error fetching booking:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to fetch booking";
       throw new Error(errorMessage);
     }
   }
 
   // Cancel booking
-  async cancelBooking(bookingId: string, reason: string): Promise<BookingResponse> {
+  async cancelBooking(
+    bookingId: string,
+    reason: string
+  ): Promise<BookingResponse> {
     try {
-      const response = await apiClient.post<BookingResponse>(`/bookings/${bookingId}/cancel`, { reason });
-      
+      const response = await apiClient.post<BookingResponse>(
+        `/bookings/${bookingId}/cancel`,
+        { reason }
+      );
+
       if (response.data.success) {
-        toast.success('Booking cancelled successfully!');
+        toast.success("Booking cancelled successfully!");
       }
-      
+
       return response.data;
     } catch (error: any) {
-      console.error('Error cancelling booking:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to cancel booking';
+      console.error("Error cancelling booking:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to cancel booking";
       toast.error(errorMessage);
       throw new Error(errorMessage);
     }
@@ -127,54 +149,53 @@ class BookingService {
 
   // Update booking status
   async updateBookingStatus(
-    bookingId: string, 
-    status: string, 
-    updatedBy: string, 
+    bookingId: string,
+    status: string,
+    updatedBy: string,
     reason?: string
   ): Promise<BookingResponse> {
     try {
       const updateData: UpdateBookingStatusRequest = {
         status,
         updatedBy,
-        reason
+        reason,
       };
 
       const response = await apiClient.patch<BookingResponse>(
-        `/bookings/${bookingId}/status`, 
+        `/bookings/${bookingId}/status`,
         updateData
       );
-      
-      if (response.data.success) {
-        toast.success(`Booking status updated to ${status}`);
-      }
-      
+
       return response.data;
     } catch (error: any) {
-      console.error('Error updating booking status:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update booking status';
+      console.error("Error updating booking status:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update booking status";
       toast.error(errorMessage);
       throw new Error(errorMessage);
     }
   }
 
+  // bookingService.ts - Update the updateBooking method
   async updateBooking(
-    bookingId: string, 
+    bookingId: string,
     updateData: Partial<Booking>
   ): Promise<BookingResponse> {
     try {
       const response = await apiClient.put<BookingResponse>(
-        `/bookings/${bookingId}`, 
+        `/bookings/${bookingId}`,
         updateData
       );
-      
+
       if (response.data.success) {
-        toast.success('Booking updated successfully!');
+        toast.success("Booking updated successfully!");
       }
-      
+
       return response.data;
     } catch (error: any) {
-      console.error('Error updating booking:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to update booking';
+      console.error("Error updating booking:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to update booking";
       toast.error(errorMessage);
       throw new Error(errorMessage);
     }

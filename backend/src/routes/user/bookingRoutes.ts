@@ -9,6 +9,7 @@ router.post("/", protect, bookingController.createBooking);
 router.get("/user", protect, bookingController.getUserBookings);
 router.get("/:bookingId", protect, bookingController.getBookingById);
 router.post("/:bookingId/cancel", protect, bookingController.cancelBooking);
+router.put("/:bookingId", protect, bookingController.updateBooking);
 router.patch("/:bookingId/status", protect, bookingController.updateBookingStatus);
 
 router.get("/:bookingId/tracking", protect, bookingController.getTrackingDetails);

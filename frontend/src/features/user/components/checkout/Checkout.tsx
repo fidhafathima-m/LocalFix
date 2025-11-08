@@ -71,7 +71,6 @@ const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAppSelector(selectUser);
-  
 
   // Load Razorpay script
   useEffect(() => {
@@ -317,6 +316,7 @@ const Checkout: React.FC = () => {
 
       const razorpayInstance = new window.Razorpay(options);
 
+      // In Checkout component - update the payment.failed handler
       razorpayInstance.on("payment.failed", function (response: any) {
         console.error("Payment failed:", response.error);
 
@@ -334,20 +334,21 @@ const Checkout: React.FC = () => {
 
         setProcessingPayment(false);
 
-        // Show specific error message
+        // Extract error message from Razorpay response
         const errorMessage =
           response.error.description ||
           "Payment failed due to technical issues";
-        toast.error(`Payment Failed: ${errorMessage}`);
 
-        // Navigate to payment failed page with detailed error info
+        // Navigate to payment retry with proper error details
         navigate("/payment-failed", {
           state: {
-            bookingId,
+            bookingData,
+            pricing,
             error: errorMessage,
-            errorCode: response.error.code || "PAYMENT_FAILED",
-            razorpayError: response.error,
+            bookingId,
+            razorpayError: response.error, // Pass the full error object
           },
+          replace: true,
         });
       });
 
