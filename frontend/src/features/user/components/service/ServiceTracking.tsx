@@ -40,6 +40,8 @@ const ServiceTrackingComponent: React.FC = () => {
       setLoading(true);
       const response = await trackingService.getTrackingDetails(bookingId!);
 
+      console.log("Response: ", response);
+
       if (response.success && response.data) {
         setTrackingData(response.data);
       } else {
@@ -157,25 +159,6 @@ const ServiceTrackingComponent: React.FC = () => {
     };
     return statusText[status as keyof typeof statusText] || status;
   };
-
-  const isStatusCompleted = (status: string, currentStatus: string) => {
-    const statusOrder = [
-      "pending",
-      "accepted",
-      "assigned",
-      "on_the_way",
-      "in_progress",
-      "completed",
-    ];
-    const currentIndex = statusOrder.indexOf(currentStatus);
-    const statusIndex = statusOrder.indexOf(status);
-    return statusIndex <= currentIndex;
-  };
-
-  const isStatusActive = (status: string, currentStatus: string) => {
-    return status === currentStatus;
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
@@ -339,89 +322,142 @@ const ServiceTrackingComponent: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold mb-6">Service Status</h2>
           <div className="space-y-6">
-            {[
-              "pending",
-              "accepted",
-              "assigned",
-              "on_the_way",
-              "in_progress",
-              "completed",
-            ].map((status, index) => {
-              const isCompleted = isStatusCompleted(
-                status,
-                trackingData.status
-              );
-              const isActive = isStatusActive(status, trackingData.status);
-              const statusConfig = getStatusConfig(status);
-              const StatusIcon = statusConfig.icon;
-              const statusHistory = trackingData.statusHistory.find(
-                (sh) => sh.status === status
+            {/* Combine status history with current status */}
+            {(() => {
+              // Create a combined array of status history + current status
+              const allStatuses = [...trackingData.statusHistory];
+
+              // Check if current status is already in history
+              const currentStatusInHistory = trackingData.statusHistory.some(
+                (item) => item.status === trackingData.status
               );
 
-              return (
-                <div key={status} className="flex gap-4">
-                  <div className="flex flex-col items-center">
+              // If current status is not in history, add it
+              if (!currentStatusInHistory) {
+                allStatuses.push({
+                  status: trackingData.status,
+                  timestamp: new Date().toISOString(), // Use current time
+                  description: getDefaultStatusDescription(trackingData.status),
+                  updatedBy: "system",
+                });
+              }
+
+              // Sort by timestamp
+              return allStatuses
+                .sort(
+                  (a, b) =>
+                    new Date(a.timestamp).getTime() -
+                    new Date(b.timestamp).getTime()
+                )
+                .map((statusItem, index, array) => {
+                  const isCompleted = true; // All history items are completed
+                  const isActive = statusItem.status === trackingData.status;
+                  const statusConfig = getStatusConfig(statusItem.status);
+                  const StatusIcon = statusConfig.icon;
+
+                  return (
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        isCompleted ? statusConfig.color : "bg-gray-200"
-                      }`}
+                      key={statusItem._id || statusItem.status}
+                      className="flex gap-4"
                     >
-                      <StatusIcon
-                        className={`w-6 h-6 ${
-                          isCompleted ? statusConfig.textColor : "text-gray-400"
-                        }`}
-                      />
-                    </div>
-                    {index < 5 && (
-                      <div
-                        className={`w-0.5 h-16 my-2 ${
-                          isCompleted ? "bg-green-200" : "bg-gray-200"
-                        }`}
-                      />
-                    )}
-                  </div>
-                  <div
-                    className={`flex-1 pb-6 ${
-                      isActive ? "text-current" : "text-gray-400"
-                    }`}
-                  >
-                    <h3
-                      className={`font-semibold mb-1 ${
-                        isActive ? "" : "text-gray-400"
-                      }`}
-                    >
-                      {getStatusDisplayText(status)}
-                    </h3>
-                    <p className="text-sm mb-1">
-                      {statusHistory?.description ||
-                        getDefaultStatusDescription(status)}
-                    </p>
-                    {statusHistory && (
-                      <p className="text-xs text-gray-500">
-                        {formatDate(statusHistory.timestamp)},{" "}
-                        {formatTime(statusHistory.timestamp)}
-                      </p>
-                    )}
-                    {isActive &&
-                      status === "on_the_way" &&
-                      trackingData.estimatedArrival && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
-                          <p className="font-semibold text-blue-900 mb-1">
-                            Estimated arrival in {trackingData.estimatedArrival}
-                          </p>
-                          {trackingData.distance && (
-                            <p className="text-sm text-blue-800">
-                              The technician is{" "}
-                              {trackingData.distance.toFixed(1)} km away from
-                              your location
-                            </p>
-                          )}
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            isCompleted ? statusConfig.color : "bg-gray-200"
+                          }`}
+                        >
+                          <StatusIcon
+                            className={`w-6 h-6 ${
+                              isCompleted
+                                ? statusConfig.textColor
+                                : "text-gray-400"
+                            }`}
+                          />
                         </div>
-                      )}
-                  </div>
-                </div>
-              );
-            })}
+                        {index < array.length - 1 && (
+                          <div
+                            className={`w-0.5 h-16 my-2 ${
+                              isCompleted ? "bg-green-200" : "bg-gray-200"
+                            }`}
+                          />
+                        )}
+                      </div>
+                      <div
+                        className={`flex-1 pb-6 ${
+                          isActive ? "text-current" : "text-gray-400"
+                        }`}
+                      >
+                        <h3
+                          className={`font-semibold mb-1 ${
+                            isActive ? "" : "text-gray-400"
+                          }`}
+                        >
+                          {getStatusDisplayText(statusItem.status)}
+                          {isActive && (
+                            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              ● Current
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-sm mb-1">
+                          {statusItem.description ||
+                            getDefaultStatusDescription(statusItem.status)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatDate(statusItem.timestamp)},{" "}
+                          {formatTime(statusItem.timestamp)}
+                        </p>
+
+                        {/* Show current status info */}
+                        {isActive && (
+                          <div className="mt-2">
+                            {statusItem.status === "on_the_way" &&
+                              trackingData.estimatedArrival && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                  <p className="font-semibold text-blue-900 mb-1">
+                                    Estimated arrival in{" "}
+                                    {trackingData.estimatedArrival}
+                                  </p>
+                                  {trackingData.distance && (
+                                    <p className="text-sm text-blue-800">
+                                      The technician is{" "}
+                                      {trackingData.distance.toFixed(1)} km away
+                                      from your location
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                            {statusItem.status === "in_progress" && (
+                              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                                <p className="font-semibold text-orange-900 mb-1">
+                                  Service in Progress
+                                </p>
+                                <p className="text-sm text-orange-800">
+                                  The technician is currently working on your{" "}
+                                  {trackingData.serviceName}
+                                </p>
+                              </div>
+                            )}
+
+                            {statusItem.status === "accepted" && (
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <p className="font-semibold text-green-900 mb-1">
+                                  Booking Accepted
+                                </p>
+                                <p className="text-sm text-green-800">
+                                  Your booking has been accepted. The technician
+                                  will be assigned shortly.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                });
+            })()}
           </div>
         </div>
 

@@ -230,4 +230,55 @@ export class OrderManagementService implements IOrderService {
       throw error;
     }
   }
+  async getOrdersByTechnician(
+    technicianId: string,
+    page: number = 1,
+    limit: number = 100
+  ): Promise<OrderListResponseDto> {
+    const context = {
+      operation: "getOrdersByTechnician",
+      technicianId,
+      page,
+      limit,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this.logger.info("Fetching orders by technician", context);
+
+      if (!Types.ObjectId.isValid(technicianId)) {
+        this.logger.warn("Invalid technician ID provided", context);
+        throw new Error("Invalid technician ID");
+      }
+
+      const skip = (page - 1) * limit;
+
+      const filter = { technicianId: new Types.ObjectId(technicianId) };
+
+      const [orders, total] = await Promise.all([
+        this.orderRepository.findAll(filter, skip, limit),
+        this.orderRepository.count(filter),
+      ]);
+
+      this.logger.info("Technician orders retrieved successfully", {
+        ...context,
+        ordersCount: orders.length,
+        totalOrders: total,
+      });
+
+      return this.orderMapper.toOrderListResponseDto(
+        orders,
+        total,
+        page,
+        limit
+      );
+    } catch (error: any) {
+      this.logger.error("Get technician orders error", {
+        ...context,
+        error: error.message,
+        stack: error.stack,
+      });
+      throw new Error("Failed to fetch technician orders");
+    }
+  }
 }

@@ -261,23 +261,15 @@ const Header: React.FC<HeaderProps> = ({
             return [
               <a
                 key="dashboard"
-                href="/technicians/dashboard"
+                href="/technician/dashboard"
                 className="px-3 hover:text-blue-600 transition-colors"
                 onClick={closeMobileMenu}
               >
                 Dashboard
               </a>,
               <a
-                key="bookings"
-                href="/technicians/bookings"
-                className="px-3 hover:text-blue-600 transition-colors"
-                onClick={closeMobileMenu}
-              >
-                Bookings
-              </a>,
-              <a
                 key="messages"
-                href="/technicians/messages"
+                href="/technician/messages"
                 className="px-3 hover:text-blue-600 transition-colors"
                 onClick={closeMobileMenu}
               >

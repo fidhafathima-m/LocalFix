@@ -881,95 +881,97 @@ export class TechnicianManagementRepository
   }
 
   async findPublicTechnicians(
-    filters: TechnicianFilter,
-    skip: number = 0,
-    limit: number = 10
-  ): Promise<ITechnician[]> {
-    try {
-      // Force only approved technicians for public access
-      const publicFilters = {
-        ...filters,
-        status: "approved",
-      };
+  filters: TechnicianFilter,
+  skip: number = 0,
+  limit: number = 10,
+  sortOptions: any = { createdAt: -1 }  // Ensure this parameter is accepted
+): Promise<ITechnician[]> {
+  try {
+    // Force only approved technicians for public access
+    const publicFilters = {
+      ...filters,
+      status: "approved",
+    };
 
-      // Remove any sensitive filter fields that shouldn't be exposed publicly
-      delete publicFilters.$or;
+    // Remove any sensitive filter fields that shouldn't be exposed publicly
+    delete publicFilters.$or;
 
-      // Build the MongoDB query
-      const query: any = { status: "approved" };
+    // Build the MongoDB query
+    const query: any = { status: "approved" };
 
-      // Service filter
-      if (filters.services) {
-        if (typeof filters.services === "string") {
-          query.services = { $in: [filters.services] };
-        } else if (filters.services.$in) {
-          query.services = { $in: filters.services.$in };
-        }
+    // Service filter
+    if (filters.services) {
+      if (typeof filters.services === "string") {
+        query.services = { $in: [filters.services] };
+      } else if (filters.services.$in) {
+        query.services = { $in: filters.services.$in };
       }
-
-      // Rating filter
-      if (filters.averageRating) {
-        query.averageRating = filters.averageRating;
-      }
-
-      // Work areas filter
-      if (filters.workAreas) {
-        query.workAreas = filters.workAreas;
-      }
-
-      // Search filter (name, email, etc.)
-      if (filters.$or) {
-        // For public access, only allow search on safe fields
-        const safeSearchFields = ["displayName", "services", "workAreas"];
-        query.$or = filters.$or.filter((condition) => {
-          const field = Object.keys(condition)[0];
-          return safeSearchFields.includes(field);
-        });
-      }
-
-      // Date range filter
-      if (filters.createdAt) {
-        query.createdAt = filters.createdAt;
-      }
-
-      const technicians = await Technician.find(query)
-        .populate("userId", "email phone fullName")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
-
-      // Remove sensitive data before returning
-      const publicTechnicians = technicians.map((tech) => ({
-        ...tech,
-        identityVerification: undefined,
-        paymentDetails: undefined,
-        suspensionReason: undefined,
-        rejectionReason: undefined,
-        personalInfo: tech.personalInfo
-          ? {
-              ...tech.personalInfo,
-              // Keep only non-sensitive personal info
-              fullName: tech.personalInfo.fullName,
-              languages: tech.personalInfo.languages,
-              bio: tech.personalInfo.bio,
-              address: tech.personalInfo.address
-                ? {
-                    city: tech.personalInfo.address.city,
-                    state: tech.personalInfo.address.state,
-                    pincode: tech.personalInfo.address.pincode,
-                  }
-                : undefined,
-            }
-          : undefined,
-      }));
-
-      return publicTechnicians as ITechnician[];
-    } catch (error) {
-      console.error("Repository: Error finding public technicians:", error);
-      throw error;
     }
+
+    // Rating filter
+    if (filters.averageRating) {
+      query.averageRating = filters.averageRating;
+    }
+
+    // Work areas filter
+    if (filters.workAreas) {
+      query.workAreas = filters.workAreas;
+    }
+
+    // Search filter (name, email, etc.)
+    if (filters.$or) {
+      // For public access, only allow search on safe fields
+      const safeSearchFields = ["displayName", "services", "workAreas"];
+      query.$or = filters.$or.filter((condition) => {
+        const field = Object.keys(condition)[0];
+        return safeSearchFields.includes(field);
+      });
+    }
+
+    // Date range filter
+    if (filters.createdAt) {
+      query.createdAt = filters.createdAt;
+    }
+
+    // FIXED: Use the provided sortOptions parameter
+    const technicians = await Technician.find(query)
+      .populate("userId", "email phone fullName")
+      .sort(sortOptions)  // Use the sortOptions passed from service
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    // Remove sensitive data before returning
+    const publicTechnicians = technicians.map((tech) => ({
+      ...tech,
+      identityVerification: undefined,
+      paymentDetails: undefined,
+      suspensionReason: undefined,
+      rejectionReason: undefined,
+      personalInfo: tech.personalInfo
+        ? {
+            ...tech.personalInfo,
+            // Keep only non-sensitive personal info
+            fullName: tech.personalInfo.fullName,
+            languages: tech.personalInfo.languages,
+            bio: tech.personalInfo.bio,
+            address: tech.personalInfo.address
+              ? {
+                  city: tech.personalInfo.address.city,
+                  state: tech.personalInfo.address.state,
+                  pincode: tech.personalInfo.address.pincode,
+                }
+              : undefined,
+          }
+        : undefined,
+    }));
+
+    return publicTechnicians as ITechnician[];
+  } catch (error) {
+    console.error("Repository: Error finding public technicians:", error);
+    throw error;
   }
+}
 
   async countPublicTechnicians(filters: TechnicianFilter): Promise<number> {
     try {

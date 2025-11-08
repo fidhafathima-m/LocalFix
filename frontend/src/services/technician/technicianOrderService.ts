@@ -104,10 +104,6 @@ class TechnicianOrderService {
         message: string;
       }>(TECHNICIAN_ROUTES.ORDER.UPDATE_ORDER_STATUS(orderId), updateData);
 
-      if (response.data.success) {
-        toast.success(`Order status updated to ${status}`);
-      }
-
       return response.data;
     } catch (error: any) {
       console.error("Error updating order status:", error);

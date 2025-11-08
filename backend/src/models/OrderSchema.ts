@@ -116,6 +116,7 @@ const orderSchema = new Schema<IOrder>(
         "pending",
         "accepted",
         "confirmed",
+        "on_the_way",
         "in_progress",
         "completed",
         "cancelled",

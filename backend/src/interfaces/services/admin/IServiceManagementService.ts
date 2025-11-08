@@ -18,7 +18,9 @@ export interface IServiceService {
   getAllServices(
     page?: number,
     limit?: number,
-    search?: string
+    search?: string,
+    sortBy?: string,
+    sortOrder?: string
   ): Promise<ServiceListResponseDto>;
   updateService(
     serviceId: string,

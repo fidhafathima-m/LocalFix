@@ -34,10 +34,18 @@ export interface ServicesResponse {
 export const fetchServices = async (
   page: number = 1,
   pageSize: number = 10,
-  search?: string
+  search?: string,
+  sortBy?: string,
+  sortOrder?: string
 ): Promise<ServicesResponse> => {
   try {
-    const response = await ServiceManagementService.getAllServices(page, pageSize, search);
+    const response = await ServiceManagementService.getAllServices(
+      page,
+      pageSize,
+      search,
+      sortBy,
+      sortOrder
+    );
 
     // Transform the API response to match your frontend needs
     if (response && response.services) {
@@ -63,9 +71,19 @@ export const fetchServices = async (
         currentPage: page,
         pageSize: pageSize,
         totalItems: response.totalItems || response.total || 0,
-        totalPages: response.totalPages || Math.ceil((response.totalItems || response.total || 0) / pageSize),
-        hasNext: response.hasNext !== undefined ? response.hasNext : page < (response.totalPages || Math.ceil((response.totalItems || response.total || 0) / pageSize)),
-        hasPrevious: response.hasPrevious !== undefined ? response.hasPrevious : page > 1,
+        totalPages:
+          response.totalPages ||
+          Math.ceil((response.totalItems || response.total || 0) / pageSize),
+        hasNext:
+          response.hasNext !== undefined
+            ? response.hasNext
+            : page <
+              (response.totalPages ||
+                Math.ceil(
+                  (response.totalItems || response.total || 0) / pageSize
+                )),
+        hasPrevious:
+          response.hasPrevious !== undefined ? response.hasPrevious : page > 1,
       };
 
       return {

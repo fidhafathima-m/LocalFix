@@ -1,4 +1,4 @@
-import { IOrder } from "@/interfaces/user/IOrder";
+import { IOrder, IOrderPopulated } from "@/interfaces/user/IOrder";
 
 export interface IOrderRepository {
   createFromBooking(
@@ -39,4 +39,5 @@ export interface IOrderRepository {
     timeSlot: string,
     excludeOrderId?: string
   ): Promise<IOrder[]>
+  findByBookingId(bookingId: string): Promise<IOrderPopulated | null>
 }

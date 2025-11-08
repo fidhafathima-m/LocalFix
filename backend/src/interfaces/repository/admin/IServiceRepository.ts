@@ -14,7 +14,8 @@ export interface IServiceRepository {
   findAll(
     filter?: FilterQuery<IService>,
     skip?: number,
-    limit?: number
+    limit?: number,
+    sort?: any
   ): Promise<IService[]>;
   update(
     serviceId: string | Types.ObjectId,
@@ -22,7 +23,7 @@ export interface IServiceRepository {
   ): Promise<IService | null>;
   delete(serviceId: string | Types.ObjectId): Promise<boolean>;
   count(filter?: FilterQuery<IService>): Promise<number>;
-  search(query: string, limit?: number): Promise<IService[]>;
+  search(query: string, limit?: number, sort?: any): Promise<IService[]>;
   searchByCategory(
     categoryId: string | Types.ObjectId,
     query: string,

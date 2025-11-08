@@ -1,4 +1,6 @@
 import { Types } from "mongoose";
+import { ITechnician } from "../technician/ITechnician";
+import { IUser } from "./IUser";
 
 export interface IOrderItem {
   _id: Types.ObjectId;
@@ -37,6 +39,7 @@ export interface IOrder extends Document {
     | "accepted"
     | "confirmed"
     | "in_progress"
+    | "on_the_way"
     | "completed"
     | "cancelled"
     | "refunded";
@@ -73,6 +76,11 @@ export interface IOrder extends Document {
   }>;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface IOrderPopulated extends Omit<IOrder, 'technicianId' | 'userId'> {
+  technicianId: ITechnician | Types.ObjectId;
+  userId: IUser | Types.ObjectId;
 }
 
 export interface OrderResponseDto {

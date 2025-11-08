@@ -167,10 +167,23 @@ export const adminAPI = {
       }
     ),
 
-  getAllServices: (page: number = 1, limit: number = 10, search?: string) =>
-    api.get<ApiResponse<ServicesResponse>>(ADMIN_ROUTES.SERVICES, {
-      params: { page, limit, search },
-    }),
+ // In your adminAPI file
+getAllServices: (
+  page: number = 1, 
+  limit: number = 10, 
+  search?: string,
+  sortBy?: string,
+  sortOrder?: string
+) =>
+  api.get<ApiResponse<ServicesResponse>>(ADMIN_ROUTES.SERVICES, {
+    params: { 
+      page, 
+      limit, 
+      search,
+      sortBy,
+      sortOrder 
+    },
+  }),
 
   getServiceById: (serviceId: string) =>
     api.get<ApiResponse<{ service: Service }>>(
@@ -276,4 +289,8 @@ export const adminAPI = {
       ADMIN_ROUTES.ORDER_STATUS(orderId),
       { status, reason }
     ),
+    getOrdersByTechnician: (technicianId: string, page: number = 1, limit: number = 100) =>
+    api.get<ApiResponse<OrdersResponse>>(ADMIN_ROUTES.ORDERS_BY_TECHNICIAN(technicianId), {
+      params: { page, limit },
+    }),
 };

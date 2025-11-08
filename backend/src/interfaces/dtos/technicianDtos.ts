@@ -195,6 +195,7 @@ export interface TechnicianFiltersDto {
   search?: string;
   page?: number | string;
   limit?: number | string;
+  sortBy?: string;
 }
 
 export interface ApplicationFiltersDto {

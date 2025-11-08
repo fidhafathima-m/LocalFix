@@ -18,6 +18,7 @@ import Footer from "../../../components/common/Footer";
 import Header from "../../../components/common/Header";
 import { TechnicianMangementService } from "../../../services/admin/TechnicianManagementService";
 import { RRule } from "rrule";
+import { reviewService } from "../../../services/user/reviewService";
 
 interface Technician {
   _id: string;
@@ -98,6 +99,7 @@ interface DailyAvailability {
 
 interface Review {
   _id: string;
+  id?: string; // Add this to handle both _id and id
   userId: string;
   technicianId: string;
   rating: number;
@@ -106,9 +108,9 @@ interface Review {
   createdAt: string;
   user?: {
     fullName: string;
+    email?: string;
   };
 }
-
 const TechnicianProfile: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,9 +120,21 @@ const TechnicianProfile: React.FC = () => {
   const [weeklyAvailability, setWeeklyAvailability] = useState<
     DailyAvailability[]
   >([]);
-  const [reviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewStats, setReviewStats] = useState<{
+    averageRating: number;
+    totalReviews: number;
+    ratingDistribution: {
+      1: number;
+      2: number;
+      3: number;
+      4: number;
+      5: number;
+    };
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Fetch technician data
   useEffect(() => {
@@ -148,14 +162,11 @@ const TechnicianProfile: React.FC = () => {
             const slotRulesResponse =
               await TechnicianMangementService.getTechnicianSlotRules(id);
 
-            // Check if the response has the expected structure
             if (
               slotRulesResponse.data?.success &&
               slotRulesResponse.data.data?.slotRules
             ) {
               setSlotRules(slotRulesResponse.data.data.slotRules);
-
-              // Generate weekly availability from slot rules
               const availability = generateWeeklyAvailability(
                 slotRulesResponse.data.data.slotRules
               );
@@ -173,6 +184,9 @@ const TechnicianProfile: React.FC = () => {
             setSlotRules([]);
             setWeeklyAvailability([]);
           }
+
+          // Fetch reviews and review stats for this technician
+          await fetchTechnicianReviews(id);
         } else {
           setError("Technician not found");
         }
@@ -186,6 +200,75 @@ const TechnicianProfile: React.FC = () => {
 
     fetchTechnicianData();
   }, [id]);
+
+  // Fetch technician reviews and stats
+  // Fetch technician reviews and stats
+  const fetchTechnicianReviews = async (technicianId: string) => {
+    try {
+      setReviewsLoading(true);
+
+      const statsResponse = await reviewService.getTechnicianReviewStats(
+        technicianId
+      );
+      if (statsResponse.success && statsResponse.data) {
+        setReviewStats(statsResponse.data);
+      }
+
+      const reviewsResponse = await reviewService.getTechnicianReviews(
+        technicianId,
+        1,
+        10
+      );
+      if (reviewsResponse.success && reviewsResponse.data) {
+        const transformedReviews: Review[] = reviewsResponse.data.reviews.map(
+          (review: any) => {
+            // Extract fullName and email from the stringified userId field
+            let userName = "Anonymous User";
+            let userEmail = "";
+
+            if (typeof review.userId === "string") {
+              // Try to extract fullName using regex
+              const fullNameMatch = review.userId.match(
+                /fullName:\s*'([^']+)'/
+              );
+              if (fullNameMatch && fullNameMatch[1]) {
+                userName = fullNameMatch[1];
+              }
+
+              // Extract email using regex
+              const emailMatch = review.userId.match(/email:\s*'([^']+)'/);
+              if (emailMatch && emailMatch[1]) {
+                userEmail = emailMatch[1];
+                // If no fullName was found, use the email username part as fallback
+                if (userName === "Anonymous User") {
+                  userName = emailMatch[1].split("@")[0];
+                }
+              }
+            }
+
+            return {
+              _id: review.id,
+              userId: review.userId,
+              technicianId: review.technicianId,
+              rating: review.rating,
+              comment: review.comment,
+              userName: userName,
+              createdAt: review.createdAt,
+              user: {
+                fullName: userName,
+                email: userEmail,
+              },
+            };
+          }
+        );
+        setReviews(transformedReviews);
+      }
+    } catch (error) {
+      console.error("Error fetching technician reviews:", error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
 
   const generateWeeklyAvailability = (
     rules: SlotRule[]
@@ -376,7 +459,11 @@ const TechnicianProfile: React.FC = () => {
 
   // Calculate rating distribution (mock data for now)
   const getRatingDistribution = () => {
-    // This would normally come from your API
+    if (reviewStats) {
+      return reviewStats.ratingDistribution;
+    }
+
+    // Fallback to mock data if no stats available
     return {
       5: Math.floor((technician?.ratingCount || 0) * 0.8),
       4: Math.floor((technician?.ratingCount || 0) * 0.15),
@@ -426,20 +513,20 @@ const TechnicianProfile: React.FC = () => {
   );
 
   const handleBooking = (
-  technicianId: string,
-  technicianName: string
-): void => {
-  // Get the service name from location state or use the first service
-  const serviceName = location.state?.serviceName || technician?.services[0];
-  
-  navigate(`/booking?technicianId=${technicianId}`, {
-    state: {
-      technicianName: technicianName,
-      serviceName: serviceName, // Pass service name
-      fromProfile: true,
-    },
-  });
-};
+    technicianId: string,
+    technicianName: string
+  ): void => {
+    // Get the service name from location state or use the first service
+    const serviceName = location.state?.serviceName || technician?.services[0];
+
+    navigate(`/booking?technicianId=${technicianId}`, {
+      state: {
+        technicianName: technicianName,
+        serviceName: serviceName, // Pass service name
+        fromProfile: true,
+      },
+    });
+  };
 
   // Loading state
   if (loading) {
@@ -488,6 +575,8 @@ const TechnicianProfile: React.FC = () => {
 
   const ratingDistribution = getRatingDistribution();
   const availabilityStatus = getAvailabilityStatus();
+  const totalReviews = reviewStats?.totalReviews || technician.ratingCount;
+  const averageRating = reviewStats?.averageRating || technician.averageRating;
 
   return (
     <>
@@ -659,7 +748,6 @@ const TechnicianProfile: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Weekly Schedule */}
-              {/* Weekly Schedule */}
               <div>
                 <h3 className="font-semibold mb-4 flex items-center">
                   <CalendarMonthOutlined className="w-4 h-4 mr-2 text-blue-600" />
@@ -823,16 +911,21 @@ const TechnicianProfile: React.FC = () => {
               )}
             </div>
 
-            {technician.ratingCount > 0 ? (
+            {reviewsLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-3 text-gray-600">Loading reviews...</span>
+              </div>
+            ) : totalReviews > 0 ? (
               <>
                 <div className="flex items-center space-x-8 mb-6">
                   <div className="text-center">
                     <div className="text-4xl font-bold mb-1">
-                      {technician.averageRating.toFixed(1)}
+                      {averageRating.toFixed(1)}
                     </div>
-                    {renderStars(Math.round(technician.averageRating))}
+                    {renderStars(Math.round(averageRating))}
                     <div className="text-sm text-gray-600">
-                      {technician.ratingCount} reviews
+                      {totalReviews} reviews
                     </div>
                   </div>
                   <div className="flex-1">
@@ -852,7 +945,7 @@ const TechnicianProfile: React.FC = () => {
                                 (ratingDistribution[
                                   stars as keyof typeof ratingDistribution
                                 ] /
-                                  technician.ratingCount) *
+                                  totalReviews) *
                                 100
                               }%`,
                             }}
@@ -884,6 +977,11 @@ const TechnicianProfile: React.FC = () => {
                                 review.userName ||
                                 "Anonymous User"}
                             </p>
+                            {review.user?.email && (
+                              <p className="text-xs text-gray-500">
+                                {review.user.email}
+                              </p>
+                            )}
                             <div className="flex items-center space-x-2">
                               {renderStars(review.rating)}
                             </div>

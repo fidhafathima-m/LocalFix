@@ -29,7 +29,7 @@ const Services: React.FC = () => {
   const [, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500)
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -42,6 +42,10 @@ const Services: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+
+  // Track if we're using client-side filtering
+  const [isUsingClientSideFiltering, setIsUsingClientSideFiltering] =
+    useState(false);
 
   // Helper function for default icons
   const getDefaultIcon = (serviceName: string): string => {
@@ -60,7 +64,38 @@ const Services: React.FC = () => {
   const loadServices = async (page: number = 1, size: number = pageSize) => {
     try {
       setLoading(true);
-      const response: ServicesResponse = await fetchServices(page, size, debouncedSearchQuery);
+
+      // Map frontend sort values to backend sort values
+      let backendSortBy = "name";
+      let backendSortOrder = "asc";
+
+      switch (sortBy) {
+        case "price-low":
+          backendSortBy = "price";
+          backendSortOrder = "asc";
+          break;
+        case "price-high":
+          backendSortBy = "price";
+          backendSortOrder = "desc";
+          break;
+        case "rating":
+          backendSortBy = "rating";
+          backendSortOrder = "desc";
+          break;
+        case "name":
+        default:
+          backendSortBy = "name";
+          backendSortOrder = "asc";
+          break;
+      }
+
+      const response: ServicesResponse = await fetchServices(
+        page,
+        size,
+        debouncedSearchQuery,
+        backendSortBy,
+        backendSortOrder
+      );
 
       setServices(response.services);
       setTotalItems(response.pagination.totalItems);
@@ -116,11 +151,38 @@ const Services: React.FC = () => {
     loadServices(1, pageSize);
   }, []);
 
-  // Reload services when page or pageSize changes
   useEffect(() => {
-    setCurrentPage(1); // Reset to first page when search changes
-    loadServices(1, pageSize);
-  }, [debouncedSearchQuery, pageSize]);
+    // Determine which filters use client-side vs server-side
+    const hasClientSideOnlyFilters =
+      selectedCategory !== "all" ||
+      priceRange[0] !== 0 ||
+      priceRange[1] !== 5000 ||
+      ratingFilter !== null;
+
+    const hasServerSideFilters = debouncedSearchQuery || sortBy !== "name";
+
+    setIsUsingClientSideFiltering(hasClientSideOnlyFilters);
+
+    if (hasServerSideFilters && !hasClientSideOnlyFilters) {
+      // Server-side loading for search and sort
+      loadServices(currentPage, pageSize);
+    } else if (hasClientSideOnlyFilters) {
+      // Client-side filtering only for specific filters
+      // Don't call loadServices here - we'll use the existing services
+      setCurrentPage(1);
+    } else {
+      // No filters or only server-side filters that need initial load
+      loadServices(currentPage, pageSize);
+    }
+  }, [
+    debouncedSearchQuery,
+    pageSize,
+    currentPage,
+    sortBy,
+    selectedCategory,
+    priceRange,
+    ratingFilter,
+  ]);
 
   // Get icon URLs
   const getServiceIconUrl = (service: Service): string => {
@@ -133,67 +195,68 @@ const Services: React.FC = () => {
   };
 
   // Get price range limits from actual services
-  const minPrice =
-    services.length > 0
-      ? Math.min(...services.map((s) => s.avgBasePrice || 299))
-      : 0;
-  const maxPrice =
-    services.length > 0
-      ? Math.max(...services.map((s) => s.avgBasePrice || 299))
-      : 5000;
+  const minPrice = 0;
+  const maxPrice = 5000;
 
-  // Apply all filters (client-side filtering for now)
-  const filteredServices = services
-    .filter((service) => {
-      // Category filter
-      const categoryMatch =
-        selectedCategory === "all" || service.categoryId === selectedCategory;
+  // Apply client-side filters when needed
+  const filteredServices = isUsingClientSideFiltering
+    ? services.filter((service) => {
+        // Category filter
+        const categoryMatch =
+          selectedCategory === "all" || service.categoryId === selectedCategory;
 
-      // Search filter
-      const searchMatch =
-        service.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        service.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+        // Price filter
+        const servicePrice = service.avgBasePrice || 299;
+        const priceMatch =
+          servicePrice >= priceRange[0] && servicePrice <= priceRange[1];
 
-      // Price filter
-      const servicePrice = service.avgBasePrice || 299;
-      const priceMatch =
-        servicePrice >= priceRange[0] && servicePrice <= priceRange[1];
+        // Rating filter
+        const ratingMatch =
+          ratingFilter === null || (service.rating || 4.5) >= ratingFilter;
 
-      // Rating filter
-      const ratingMatch =
-        ratingFilter === null || (service.rating || 4.5) >= ratingFilter;
+        return categoryMatch && priceMatch && ratingMatch;
+      })
+    : services;
 
-      return categoryMatch && searchMatch && priceMatch && ratingMatch;
-    })
-    .sort((a, b) => {
-      // Sorting
-      switch (sortBy) {
-        case "price-low":
-          return (a.avgBasePrice || 299) - (b.avgBasePrice || 299);
-        case "price-high":
-          return (b.avgBasePrice || 299) - (a.avgBasePrice || 299);
-        case "rating":
-          return (b.rating || 4.5) - (a.rating || 4.5);
-        case "name":
-        default:
-          return a.name.localeCompare(b.name);
-      }
-    });
+  // Calculate display values based on filtering mode
+  // Calculate display values based on filtering mode
+  const displayTotalItems = isUsingClientSideFiltering
+    ? filteredServices.length
+    : totalItems;
+
+  const displayTotalPages = isUsingClientSideFiltering
+    ? Math.ceil(filteredServices.length / pageSize)
+    : totalPages;
+
+  // Get current page items
+  const getCurrentPageServices = () => {
+    if (isUsingClientSideFiltering) {
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      return filteredServices.slice(startIndex, endIndex);
+    } else {
+      return services;
+    }
+  };
+
+  const currentPageServices = getCurrentPageServices();
+
+  // Check if any filter is active (including sorting)
+  const isAnyFilterActive =
+    isUsingClientSideFiltering ||
+    sortBy !== "name" ||
+    debouncedSearchQuery !== "";
 
   // Reset filters
   const resetFilters = () => {
     setPriceRange([minPrice, maxPrice]);
     setRatingFilter(null);
     setSortBy("name");
+    setSelectedCategory("all");
     setSearchQuery("");
+    setIsUsingClientSideFiltering(false);
+    setCurrentPage(1);
   };
-
-  // Check if any filter is active
-  const isAnyFilterActive =
-    priceRange[0] !== minPrice ||
-    priceRange[1] !== maxPrice ||
-    ratingFilter !== null ||
-    searchQuery !== "";
 
   // Handle page change
   const handlePageChange = (newPage: number) => {
@@ -213,7 +276,10 @@ const Services: React.FC = () => {
     const maxVisiblePages = 5;
 
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const endPage = Math.min(
+      displayTotalPages,
+      startPage + maxVisiblePages - 1
+    );
 
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
@@ -250,10 +316,10 @@ const Services: React.FC = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
-                 {/* Show loading indicator when searching */}
+                {/* Show loading indicator when searching */}
                 {searchQuery !== debouncedSearchQuery && (
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-200"></div>
                   </div>
                 )}
               </div>
@@ -271,7 +337,10 @@ const Services: React.FC = () => {
                 return (
                   <button
                     key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
+                    onClick={() => {
+                      setSelectedCategory(category.id);
+                      setCurrentPage(1);
+                    }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
                       selectedCategory === category.id
                         ? "bg-blue-600 text-white"
@@ -315,11 +384,12 @@ const Services: React.FC = () => {
                 <option value={20}>20 per page</option>
                 <option value={50}>50 per page</option>
               </select>
-
-              {/* Sort Dropdown */}
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setCurrentPage(1); // Reset to page 1 when sorting
+                }}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="name">Sort by Name</option>
@@ -327,7 +397,6 @@ const Services: React.FC = () => {
                 <option value="price-high">Price: High to Low</option>
                 <option value="rating">Highest Rated</option>
               </select>
-
               {/* Filter Toggle Button */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -343,7 +412,6 @@ const Services: React.FC = () => {
                   <span className="w-2 h-2 bg-red-400 rounded-full"></span>
                 )}
               </button>
-
               {/* Reset Filters Button */}
               {isAnyFilterActive && (
                 <button
@@ -372,9 +440,13 @@ const Services: React.FC = () => {
                       min={minPrice}
                       max={maxPrice}
                       value={priceRange[0]}
-                      onChange={(e) =>
-                        setPriceRange([parseInt(e.target.value), priceRange[1]])
-                      }
+                      onChange={(e) => {
+                        setPriceRange([
+                          parseInt(e.target.value),
+                          priceRange[1],
+                        ]);
+                        setCurrentPage(1);
+                      }}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                     />
                     <input
@@ -382,9 +454,13 @@ const Services: React.FC = () => {
                       min={minPrice}
                       max={maxPrice}
                       value={priceRange[1]}
-                      onChange={(e) =>
-                        setPriceRange([priceRange[0], parseInt(e.target.value)])
-                      }
+                      onChange={(e) => {
+                        setPriceRange([
+                          priceRange[0],
+                          parseInt(e.target.value),
+                        ]);
+                        setCurrentPage(1);
+                      }}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
@@ -403,9 +479,12 @@ const Services: React.FC = () => {
                     {[4, 3, 2, 1].map((stars) => (
                       <button
                         key={stars}
-                        onClick={() =>
-                          setRatingFilter(ratingFilter === stars ? null : stars)
-                        }
+                        onClick={() => {
+                          setRatingFilter(
+                            ratingFilter === stars ? null : stars
+                          );
+                          setCurrentPage(1);
+                        }}
                         className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${
                           ratingFilter === stars
                             ? "bg-blue-600 text-white border-blue-600"
@@ -428,8 +507,10 @@ const Services: React.FC = () => {
           {/* Results Count */}
           <div className="mb-6 flex justify-between items-center">
             <div className="text-sm text-gray-600">
-              Showing {filteredServices.length} of {totalItems} services
-              {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
+              Showing {Math.min(currentPageServices.length, pageSize)} of{" "}
+              {displayTotalItems} services
+              {displayTotalPages > 1 &&
+                ` (Page ${currentPage} of ${displayTotalPages})`}
             </div>
 
             {/* Loading State */}
@@ -438,7 +519,7 @@ const Services: React.FC = () => {
             )}
           </div>
 
-          {filteredServices.length === 0 ? (
+          {currentPageServices.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">
                 {searchQuery || isAnyFilterActive
@@ -465,7 +546,7 @@ const Services: React.FC = () => {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredServices.map((service) => {
+                {currentPageServices.map((service) => {
                   const serviceIconUrl = getServiceIconUrl(service);
                   const features = service.features || [];
                   const moreFeatures = Math.max(0, features.length - 3);
@@ -554,10 +635,10 @@ const Services: React.FC = () => {
               </div>
 
               {/* Pagination Controls */}
-              {totalPages > 1 && (
+              {displayTotalPages > 1 && (
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="text-sm text-gray-600">
-                    Showing page {currentPage} of {totalPages}
+                    Showing page {currentPage} of {displayTotalPages}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -595,9 +676,9 @@ const Services: React.FC = () => {
                     {/* Next Button */}
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
+                      disabled={currentPage === displayTotalPages}
                       className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${
-                        currentPage === totalPages
+                        currentPage === displayTotalPages
                           ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                           : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300 cursor-pointer"
                       }`}

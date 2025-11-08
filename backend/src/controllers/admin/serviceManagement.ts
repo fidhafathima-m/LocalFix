@@ -236,16 +236,21 @@ export class ServiceController {
     }
   };
 
-  getAllServices = async (req: Request, res: Response): Promise<void> => {
+  // In your service controller
+getAllServices = async (req: Request, res: Response): Promise<void> => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
+    const sortBy = req.query.sortBy as string || 'name'; // Add sortBy parameter
+    const sortOrder = req.query.sortOrder as string || 'asc'; // Add sortOrder parameter
 
     const context = {
       operation: "getAllServices",
       page,
       limit,
       search,
+      sortBy,
+      sortOrder,
       timestamp: new Date().toISOString(),
     };
 
@@ -255,7 +260,9 @@ export class ServiceController {
       const result = await this.serviceService.getAllServices(
         page,
         limit,
-        search
+        search,
+        sortBy,
+        sortOrder // Pass sorting parameters
       );
 
       this.logger.info("All services retrieved successfully", {

@@ -1135,8 +1135,7 @@ export class TechnicianManagementService
           });
 
           // Additional verification - check if the timings match
-          const applicationPattern =
-            application.availability?.weeklyPattern;
+          const applicationPattern = application.availability?.weeklyPattern;
           if (applicationPattern) {
             const mondayTiming = applicationPattern.monday;
             if (mondayTiming && mondayTiming.available) {
@@ -1739,6 +1738,7 @@ export class TechnicianManagementService
       );
     }
   }
+  // In TechnicianManagementService.ts - update getPublicTechnicians method
   async getPublicTechnicians(
     filters: TechnicianFiltersDto
   ): Promise<TechnicianListResponseDto> {
@@ -1755,6 +1755,7 @@ export class TechnicianManagementService
         limit = PAGINATION_DEFAULTS.LIMIT,
         search,
         location,
+        sortBy = "default",
       } = filters;
 
       const repoFilters: TechnicianFilter = {
@@ -1772,35 +1773,86 @@ export class TechnicianManagementService
           { displayName: searchRegex },
           { services: searchRegex },
           { workAreas: searchRegex },
+          { "personalInfo.address.city": searchRegex },
+          { "personalInfo.address.state": searchRegex },
         ];
-      }
-
-      // Location filter for public technicians
-      if (location) {
-        repoFilters.workAreas = { $in: [new RegExp(location as string, "i")] };
       }
 
       const pageNum = Number(page);
       const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
 
-      // Get public technicians with pagination
-      const technicians = await this.technicianRepository.findPublicTechnicians(
-        repoFilters,
-        skip,
-        limitNum
-      );
+      // FIXED: Proper sort options with correct field names and fallbacks
+      let sortOptions: any = {};
 
-      this.logger.info("Get public technicians with pagination", {
+      switch (sortBy) {
+        case "rating":
+          // Sort by rating (highest first), then by number of ratings, then by experience
+          sortOptions = {
+            averageRating: -1,
+            ratingCount: -1,
+            experienceYears: -1,
+            createdAt: -1,
+          };
+          break;
+
+        case "experience":
+          // Sort by experience (highest first), then by rating, then by number of ratings
+          sortOptions = {
+            experienceYears: -1,
+            averageRating: -1,
+            ratingCount: -1,
+            createdAt: -1,
+          };
+          break;
+
+        case "nearby":
+          // For nearby, we need to handle this differently with location data
+          // For now, fall back to default sorting
+          sortOptions = { createdAt: -1 };
+          break;
+
+        case "default":
+        default:
+          // Default: sort by creation date (newest first)
+          sortOptions = { createdAt: -1 };
+          break;
+      }
+
+      this.logger.info("Get public technicians with pagination and sorting", {
         ...context,
         filters: repoFilters,
         skip,
         limit: limitNum,
+        sortOptions,
+        sortBy,
       });
+
+      // Get public technicians with pagination AND sorting
+      const technicians = await this.technicianRepository.findPublicTechnicians(
+        repoFilters,
+        skip,
+        limitNum,
+        sortOptions
+      );
 
       const total = await this.technicianRepository.countPublicTechnicians(
         repoFilters
       );
+
+      // IMPORTANT: Log the actual sort order for debugging
+      this.logger.debug("Technicians returned in sorted order", {
+        ...context,
+        sortBy,
+        technicians: technicians.map((tech) => ({
+          id: tech._id,
+          name: tech.displayName,
+          rating: tech.averageRating,
+          ratingCount: tech.ratingCount,
+          experience: tech.experienceYears,
+        })),
+      });
+
       // Map to DTOs with proper address mapping
       const technicianDtos: TechnicianListDto[] = await Promise.all(
         technicians.map(async (tech: ITechnician) => {
@@ -1818,16 +1870,20 @@ export class TechnicianManagementService
         })
       );
 
-      this.logger.info("Tehcnicians retrieved", {
+      this.logger.info("Technicians retrieved with sorting", {
         ...context,
-        technicians: technicianDtos,
+        techniciansCount: technicianDtos.length,
+        sortBy,
+        sampleRatings: technicianDtos.slice(0, 3).map((t) => ({
+          name: t.displayName,
+          rating: t.averageRating,
+          experience: t.experienceYears,
+        })),
         pagination: {
           page: pageNum,
           limit: limitNum,
           total,
           pages: Math.ceil(total / limitNum),
-          hasNext: pageNum < Math.ceil(total / limitNum),
-          hasPrev: pageNum > 1,
         },
       });
 

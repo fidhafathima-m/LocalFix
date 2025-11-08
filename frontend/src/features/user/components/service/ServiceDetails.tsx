@@ -33,6 +33,20 @@ import {
 import toast from "react-hot-toast";
 import type { GeocodeResult } from "../../../../interface/user/ILocationService";
 import { useDebounce } from "../../../../hooks/useDebounce";
+import { reviewService } from "../../../../services/user/reviewService";
+
+// Add these interfaces at the top with your other interfaces
+interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+}
 
 interface Technician {
   _id: string;
@@ -72,6 +86,8 @@ interface Technician {
   isNearby?: boolean;
   hasLocation?: boolean;
   technicianLocation?: any;
+  // Add review stats as optional
+  reviewStats?: ReviewStats;
 }
 
 interface UserLocation {
@@ -109,7 +125,7 @@ const ServiceDetails: React.FC = () => {
   const location = useLocation();
   const { slug } = useParams<{ slug: string }>();
   const [service, setService] = useState<Service | null>(null);
-  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [, setTechnicians] = useState<Technician[]>([]);
   const [allTechnicians] = useState<Technician[]>([]);
   const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>(
     []
@@ -134,6 +150,9 @@ const ServiceDetails: React.FC = () => {
   >("default");
   const [hasFetchedWithLocation, setHasFetchedWithLocation] = useState(false);
   const [showLocationSetup, setShowLocationSetup] = useState(false);
+
+  // Update the state and add new state for current page technicians
+  const [, setCurrentPageTechnicians] = useState<Technician[]>([]);
 
   // Address form state
   const [addressForm, setAddressForm] = useState<Address>({
@@ -189,120 +208,140 @@ const ServiceDetails: React.FC = () => {
 
   // Handle user location and technician fetching
   // In ServiceDetails.tsx - update the location initialization logic
-useEffect(() => {
-  const initializeLocationAndTechnicians = async () => {
-    if (!service) return;
+  useEffect(() => {
+    const initializeLocationAndTechnicians = async () => {
+      if (!service) return;
 
-    try {
-      // Reset pagination when service changes
-      setPagination((prev) => ({ ...prev, page: 1 }));
+      try {
+        // Reset pagination when service changes
+        setPagination((prev) => ({ ...prev, page: 1 }));
 
-      // If user is logged in, try to get their location
-      if (isLoggedIn && user) {
-        const requireLocation = location.state?.requireLocation;
+        // If user is logged in, try to get their location
+        if (isLoggedIn && user) {
+          const requireLocation = location.state?.requireLocation;
 
-        try {
-          const locationResponse = await LocationService.getUserLocation();
-          
-          // Check if location exists and is valid
-          if (locationResponse.success && locationResponse.data) {
-            const locationData = locationResponse.data;
+          try {
+            const locationResponse = await LocationService.getUserLocation();
 
-            const userLocationData: UserLocation = {
-              lat: locationData.location.coordinates[1],
-              lng: locationData.location.coordinates[0],
-              address: getFormattedAddress(locationData.address),
-              addressComponents: {
+            // Check if location exists and is valid
+            if (locationResponse.success && locationResponse.data) {
+              const locationData = locationResponse.data;
+
+              const userLocationData: UserLocation = {
+                lat: locationData.location.coordinates[1],
+                lng: locationData.location.coordinates[0],
+                address: getFormattedAddress(locationData.address),
+                addressComponents: {
+                  street: locationData.address.street || "",
+                  city: locationData.address.city || "",
+                  state: locationData.address.state || "",
+                  pincode: locationData.address.pincode || "",
+                  landmark: locationData.address.landmark || "",
+                },
+              };
+
+              setUserLocation(userLocationData);
+
+              // Populate address form with existing location data
+              setAddressForm({
                 street: locationData.address.street || "",
                 city: locationData.address.city || "",
                 state: locationData.address.state || "",
                 pincode: locationData.address.pincode || "",
                 landmark: locationData.address.landmark || "",
-              },
-            };
+              });
 
-            setUserLocation(userLocationData);
+              // Fetch technicians with location priority
+              await fetchTechniciansWithLocationPriority(
+                service.name,
+                userLocationData,
+                1
+              );
+              setSortBy("nearby");
+              setHasFetchedWithLocation(true);
 
-            // Populate address form with existing location data
-            setAddressForm({
-              street: locationData.address.street || "",
-              city: locationData.address.city || "",
-              state: locationData.address.state || "",
-              pincode: locationData.address.pincode || "",
-              landmark: locationData.address.landmark || "",
-            });
-
-            // Fetch technicians with location priority
-            await fetchTechniciansWithLocationPriority(
-              service.name,
-              userLocationData,
-              1
-            );
-            setSortBy("nearby");
-            setHasFetchedWithLocation(true);
-
-            if (requireLocation) {
-              navigate(location.pathname, { replace: true, state: {} });
+              if (requireLocation) {
+                navigate(location.pathname, { replace: true, state: {} });
+              }
+              return;
+            } else {
+              // Location doesn't exist but API call was successful
+              console.log("No existing location found for user");
+              if (requireLocation) {
+                setShowLocationSetup(true);
+                navigate(location.pathname, { replace: true, state: {} });
+              }
             }
-            return;
-          } else {
-            // Location doesn't exist but API call was successful
-            console.log("No existing location found for user");
+          } catch (error) {
+            console.error("Error fetching user location:", error);
+            // Don't show error toast for 404 - it's expected for new users
+
             if (requireLocation) {
               setShowLocationSetup(true);
               navigate(location.pathname, { replace: true, state: {} });
             }
           }
-        } catch (error) {
-          console.error("Error fetching user location:", error);
-          // Don't show error toast for 404 - it's expected for new users
-          
-          if (requireLocation) {
-            setShowLocationSetup(true);
-            navigate(location.pathname, { replace: true, state: {} });
-          }
         }
-      }
 
-      // Fallback: fetch technicians without location
-      if (!hasFetchedWithLocation) {
+        // Fallback: fetch technicians without location
+        if (!hasFetchedWithLocation) {
+          await fetchTechniciansForService(service.name, 1);
+        }
+      } catch (error) {
+        console.error("Error initializing technicians:", error);
         await fetchTechniciansForService(service.name, 1);
       }
+    };
+
+    initializeLocationAndTechnicians();
+  }, [
+    service,
+    isLoggedIn,
+    user,
+    location.state,
+    navigate,
+    location.pathname,
+    hasFetchedWithLocation,
+  ]);
+
+  const fetchTechnicianReviewStats = async (
+    technicianId: string
+  ): Promise<ReviewStats | null> => {
+    try {
+      const response = await reviewService.getTechnicianReviewStats(
+        technicianId
+      );
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
     } catch (error) {
-      console.error("Error initializing technicians:", error);
-      await fetchTechniciansForService(service.name, 1);
+      console.error(
+        `Error fetching review stats for technician ${technicianId}:`,
+        error
+      );
+      return null;
     }
   };
 
-  initializeLocationAndTechnicians();
-}, [service, isLoggedIn, user, location.state, navigate, location.pathname, hasFetchedWithLocation]);
-  // Handle page change
-  const handlePageChange = async (newPage: number) => {
-    if (!service) return;
-
+  // Function to fetch review stats for multiple technicians with proper typing
+  const fetchAllTechniciansReviewStats = async (
+    techs: Technician[]
+  ): Promise<Technician[]> => {
     try {
-      setTechniciansLoading(true);
-
-      if (userLocation && sortBy === "nearby") {
-        await fetchTechniciansWithLocationPriority(
-          service.name,
-          userLocation,
-          newPage
-        );
-      } else {
-        await fetchTechniciansForService(service.name, newPage);
-      }
-
-      // Scroll to technicians section
-      const techniciansSection = document.getElementById("technicians-section");
-      if (techniciansSection) {
-        techniciansSection.scrollIntoView({ behavior: "smooth" });
-      }
+      const techniciansWithStats = await Promise.all(
+        techs.map(async (tech) => {
+          const stats = await fetchTechnicianReviewStats(tech._id);
+          return {
+            ...tech,
+            reviewStats: stats || undefined, // Use undefined instead of null to match the optional interface
+          };
+        })
+      );
+      return techniciansWithStats;
     } catch (error) {
-      console.error("Error changing page:", error);
-      toast.error("Failed to load technicians");
-    } finally {
-      setTechniciansLoading(false);
+      console.error("Error fetching review stats:", error);
+      return techs; // Return original technicians if error
     }
   };
 
@@ -330,90 +369,93 @@ useEffect(() => {
   const handleSortChange = async (
     newSort: "default" | "nearby" | "rating" | "experience"
   ) => {
-    if (newSort === "default") {
-      setSortBy("default");
-      await fetchTechniciansForService(service?.name || "", 1);
-      toast.success("Sorting cleared to default order");
-      return;
-    }
+    // Reset to page 1 when changing sort
+    setPagination((prev) => ({ ...prev, page: 1 }));
 
-    if (newSort === "nearby") {
-      if (!isLoggedIn) {
-        toast(
-          (t) => (
-            <div className="text-center">
-              <p className="font-medium mb-2">Login Required</p>
-              <p className="text-sm text-gray-600 mb-3">
-                Please login to see nearby technicians
-              </p>
-              <div className="flex gap-2 justify-center">
-                <button
-                  onClick={() => {
-                    navigate("/login", {
-                      state: {
-                        from: `/service/${slug}`,
-                        requireLocation: true,
-                      },
-                    });
-                    toast.dismiss(t.id);
-                  }}
-                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  Login Now
-                </button>
-                <button
-                  onClick={() => {
-                    setSortBy("rating");
-                    toast.dismiss(t.id);
-                  }}
-                  className="px-3 py-1 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50"
-                >
-                  Continue without
-                </button>
-              </div>
-            </div>
-          ),
-          { duration: 8000 }
-        );
-        return;
-      }
-
-      if (userLocation && service) {
-        setSortBy("nearby");
-        await fetchTechniciansWithLocationPriority(
-          service.name,
-          userLocation,
-          1
-        );
-        toast.success("Showing nearby technicians first");
-      } else {
-        setShowLocationSetup(true);
-      }
-    } else {
+    // Use setTimeout to ensure state updates in correct order
+    setTimeout(() => {
       setSortBy(newSort);
-      toast.success(`Sorted by ${newSort}`);
+    }, 0);
+
+    try {
+      setTechniciansLoading(true);
+
+      if (newSort === "nearby") {
+        if (!isLoggedIn) {
+          toast(
+            (t) => (
+              <div className="text-center">
+                <p className="font-medium mb-2">Login Required</p>
+                <p className="text-sm text-gray-600 mb-3">
+                  Please login to see nearby technicians
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => {
+                      navigate("/login", {
+                        state: {
+                          from: `/service/${slug}`,
+                          requireLocation: true,
+                        },
+                      });
+                      toast.dismiss(t.id);
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    Login Now
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortBy("rating");
+                      toast.dismiss(t.id);
+                    }}
+                    className="px-3 py-1 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50"
+                  >
+                    Continue without
+                  </button>
+                </div>
+              </div>
+            ),
+            { duration: 8000 }
+          );
+          return;
+        }
+
+        if (userLocation && service) {
+          await fetchTechniciansWithLocationPriority(
+            service.name,
+            userLocation,
+            1
+          );
+          toast.success("Showing nearby technicians first");
+        } else {
+          setShowLocationSetup(true);
+          return;
+        }
+      } else {
+        // For other sorting options, fetch with new sort
+        await fetchTechniciansForService(service?.name || "", 1, true);
+
+        if (newSort === "default") {
+          toast.success("Sorting cleared to default order");
+        } else {
+          toast.success(`Sorted by ${newSort}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error changing sort:", error);
+      toast.error("Failed to apply sorting");
+    } finally {
+      setTechniciansLoading(false);
     }
   };
-
   const handleClearSorting = () => {
     setSortBy("default");
-    resetToDefaultOrder();
     toast.success("Sorting cleared to default order");
   };
 
   const handleChangeLocation = () => {
     setShowLocationSetup(true);
-  };
-
-  const resetToDefaultOrder = () => {
-    const techsToFilter = showAllTechnicians ? allTechnicians : technicians;
-    setFilteredTechnicians(techsToFilter);
-  };
-
-  const applyLocalSorting = (sortType: "nearby" | "rating" | "experience") => {
-    const techsToFilter = showAllTechnicians ? allTechnicians : technicians;
-    const sorted = sortTechnicians(techsToFilter, sortType);
-    setFilteredTechnicians(sorted);
   };
 
   const promptForLocation = () => {
@@ -676,6 +718,7 @@ useEffect(() => {
     try {
       setTechniciansLoading(true);
       const toastId = toast.loading("Finding technicians...");
+
       const response = await LocationService.getNearbyTechnicians({
         lat: location.lat,
         lng: location.lng,
@@ -691,7 +734,7 @@ useEffect(() => {
         const techniciansData = response.data.technicians || response.data;
         const paginationData = response.data.pagination;
 
-        const technicians: Technician[] = techniciansData.map((item: any) => ({
+        let technicians: Technician[] = techniciansData.map((item: any) => ({
           ...item,
           displayName: item.displayName || "Technician",
           services: item.services || [],
@@ -708,22 +751,42 @@ useEffect(() => {
           currentLocation: item.currentLocation || null,
         }));
 
-        setTechnicians(technicians);
+        // Fetch review stats for all technicians
+        technicians = await fetchAllTechniciansReviewStats(technicians);
 
-        // Update pagination info
+        // Store all technicians for filtering/sorting
+        setTechnicians(technicians);
+        // Set current page technicians for display
+        setCurrentPageTechnicians(technicians);
+        setFilteredTechnicians(technicians);
+
+        // Update pagination info - use the data from API response
         if (paginationData) {
           setPagination({
             page: paginationData.page || page,
             limit: paginationData.limit || pagination.limit,
             total: paginationData.total || technicians.length,
-            pages:
-              paginationData.pages ||
-              Math.ceil(
-                (paginationData.total || technicians.length) /
-                  (paginationData.limit || pagination.limit)
-              ),
+            pages: paginationData.pages || 1,
             hasNext: paginationData.hasNext || false,
-            hasPrev: paginationData.hasPrev || page > 1,
+            hasPrev: paginationData.hasPrev || false,
+          });
+        } else {
+          // If no pagination data from API, assume we got all technicians
+          // and need to handle pagination client-side
+          const startIndex = (page - 1) * pagination.limit;
+          const endIndex = startIndex + pagination.limit;
+          const paginatedTechnicians = technicians.slice(startIndex, endIndex);
+
+          setCurrentPageTechnicians(paginatedTechnicians);
+          setFilteredTechnicians(paginatedTechnicians);
+
+          setPagination({
+            page,
+            limit: pagination.limit,
+            total: technicians.length,
+            pages: Math.ceil(technicians.length / pagination.limit),
+            hasNext: page < Math.ceil(technicians.length / pagination.limit),
+            hasPrev: page > 1,
           });
         }
 
@@ -741,10 +804,11 @@ useEffect(() => {
     }
   };
 
-  // Original method to fetch technicians
   const fetchTechniciansForService = async (
     serviceName: string,
-    page: number = 1
+    page: number = 1,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    forceRefresh: boolean = false
   ): Promise<void> => {
     try {
       setTechniciansLoading(true);
@@ -765,67 +829,79 @@ useEffect(() => {
 
       const mappedServiceName = serviceNameMap[serviceName] || serviceName;
 
+      // For sorting, we need to fetch ALL technicians and sort them globally
+      // Use a large limit to get all technicians when sorting
+      const effectiveLimit = sortBy !== "default" ? 1000 : pagination.limit;
+      const effectivePage = sortBy !== "default" ? 1 : page;
+
       const response = await TechnicianMangementService.getPublicTechnicians({
         service: mappedServiceName,
-        page,
-        limit: pagination.limit,
+        page: effectivePage,
+        limit: effectiveLimit,
         search: debouncedLocationSearch || undefined,
         location: debouncedLocationSearch || undefined,
+        sortBy: sortBy,
       });
 
-      // Handle different response structures
       if (response && response.data) {
-        // Handle nested data structure (response.data.data)
         const responseData = response.data.data || response.data;
-        const technicians: Technician[] = responseData?.technicians || [];
+        let technicians: Technician[] = responseData?.technicians || [];
         const paginationData = responseData?.pagination;
 
-        setTechnicians(technicians);
+        // Fetch review stats for all technicians
+        technicians = await fetchAllTechniciansReviewStats(technicians);
 
-        // Update pagination info
-        if (paginationData) {
+        // If we're sorting, handle pagination client-side
+        if (sortBy !== "default" && technicians.length > 0) {
+          // Apply client-side sorting as a backup (in case backend sorting fails)
+          technicians = sortTechniciansClientSide(technicians, sortBy);
+
+          // Now paginate the sorted results
+          const startIndex = (page - 1) * pagination.limit;
+          const endIndex = startIndex + pagination.limit;
+          const paginatedTechnicians = technicians.slice(startIndex, endIndex);
+
+          // Set the paginated technicians for display
+          setCurrentPageTechnicians(paginatedTechnicians);
+          setFilteredTechnicians(paginatedTechnicians);
+
+          // Update pagination info
           setPagination({
-            page: paginationData.page || page,
-            limit: paginationData.limit || pagination.limit,
-            total: paginationData.total || technicians.length,
-            pages:
-              paginationData.pages ||
-              Math.ceil(
-                (paginationData.total || technicians.length) /
-                  (paginationData.limit || pagination.limit)
-              ),
-            hasNext: paginationData.hasNext || false,
-            hasPrev: paginationData.hasPrev || page > 1,
-          });
-        } else {
-          // Default pagination if no pagination data
-          setPagination((prev) => ({
-            ...prev,
-            page,
+            page: page,
+            limit: pagination.limit,
             total: technicians.length,
-            pages: Math.ceil(technicians.length / prev.limit),
-            hasNext: page < Math.ceil(technicians.length / prev.limit),
+            pages: Math.ceil(technicians.length / pagination.limit),
+            hasNext: page < Math.ceil(technicians.length / pagination.limit),
             hasPrev: page > 1,
-          }));
+          });
+
+          // Store all technicians for future sorting/pagination
+          setTechnicians(technicians);
+        } else {
+          // Default behavior - backend handles pagination
+          setCurrentPageTechnicians(technicians);
+          setFilteredTechnicians(technicians);
+          setTechnicians(technicians);
+
+          if (paginationData) {
+            setPagination({
+              page: paginationData.page || page,
+              limit: paginationData.limit || pagination.limit,
+              total: paginationData.total || 0,
+              pages: paginationData.pages || 1,
+              hasNext: paginationData.hasNext || false,
+              hasPrev: paginationData.hasPrev || false,
+            });
+          }
         }
-      } else {
-        console.warn("No valid response data structure");
-        setTechnicians([]);
-        setPagination((prev) => ({
-          ...prev,
-          page,
-          total: 0,
-          pages: 0,
-          hasNext: false,
-          hasPrev: false,
-        }));
       }
     } catch (error: any) {
       console.error("ERROR DETAILS:", error);
       console.error("Error message:", error.message);
       console.error("Error stack:", error.stack);
 
-      setTechnicians([]);
+      setCurrentPageTechnicians([]);
+      setFilteredTechnicians([]);
       setPagination((prev) => ({
         ...prev,
         page,
@@ -840,36 +916,53 @@ useEffect(() => {
       setTechniciansLoading(false);
     }
   };
-  // Sort technicians locally
-  const sortTechnicians = (
-    techs: Technician[],
+
+  // Add client-side sorting as backup
+  const sortTechniciansClientSide = (
+    technicians: Technician[],
     sortBy: string
   ): Technician[] => {
-    const sorted = [...techs];
+    const sorted = [...technicians];
+
     switch (sortBy) {
       case "rating":
-        return sorted.sort(
-          (a, b) => (b.averageRating || 0) - (a.averageRating || 0)
-        );
+        return sorted.sort((a, b) => {
+          const ratingA = a.reviewStats?.averageRating || a.averageRating || 0;
+          const ratingB = b.reviewStats?.averageRating || b.averageRating || 0;
+          const countA = a.reviewStats?.totalReviews || a.ratingCount || 0;
+          const countB = b.reviewStats?.totalReviews || b.ratingCount || 0;
+
+          // Sort by rating (highest first)
+          if (ratingB !== ratingA) return ratingB - ratingA;
+          // Then by number of reviews (most first)
+          if (countB !== countA) return countB - countA;
+          // Then by experience (most first)
+          return (b.experienceYears || 0) - (a.experienceYears || 0);
+        });
+
       case "experience":
-        return sorted.sort(
-          (a, b) => (b.experienceYears || 0) - (a.experienceYears || 0)
-        );
+        return sorted.sort((a, b) => {
+          const expA = a.experienceYears || 0;
+          const expB = b.experienceYears || 0;
+          const ratingA = a.reviewStats?.averageRating || a.averageRating || 0;
+          const ratingB = b.reviewStats?.averageRating || b.averageRating || 0;
+
+          // Sort by experience (highest first)
+          if (expB !== expA) return expB - expA;
+          // Then by rating (highest first)
+          if (ratingB !== ratingA) return ratingB - ratingA;
+          // Then by number of reviews
+          const countA = a.reviewStats?.totalReviews || a.ratingCount || 0;
+          const countB = b.reviewStats?.totalReviews || b.ratingCount || 0;
+          return countB - countA;
+        });
+
       default:
         return sorted;
     }
   };
 
-  // Update filtered technicians when sort changes
-  useEffect(() => {
-    if (sortBy === "default") {
-      resetToDefaultOrder();
-    } else {
-      applyLocalSorting(sortBy as "nearby" | "rating" | "experience");
-    }
-  }, [sortBy, technicians, allTechnicians, showAllTechnicians]);
-
-  // Filter technicians based on location search
+  // Update the location search effect to handle pagination properly
   useEffect(() => {
     if (service && debouncedLocationSearch.trim() !== "") {
       const searchTechnicians = async () => {
@@ -904,11 +997,18 @@ useEffect(() => {
         ? workArea
         : "Location not specified";
 
+    // Use real rating from reviewStats if available, otherwise fallback to averageRating
+    const realRating =
+      tech.reviewStats?.averageRating || tech.averageRating || 0;
+    const realRatingCount =
+      tech.reviewStats?.totalReviews || tech.ratingCount || 0;
+
     return {
       id: tech._id,
       name: tech.displayName || "Technician",
       profilePhoto: tech.profilePictureUrl,
-      rating: tech.averageRating || 0,
+      rating: realRating,
+      ratingCount: realRatingCount,
       experience: `${tech.experienceYears || 0} years`,
       specialization,
       shortAddress,
@@ -964,7 +1064,7 @@ useEffect(() => {
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
         <div className="text-sm text-gray-600">
-          Showing {technicians.length} of {pagination.total} technicians
+          Showing {filteredTechnicians.length} of {pagination.total} technicians
           {pagination.pages > 1 &&
             ` (Page ${pagination.page} of ${pagination.pages})`}
         </div>
@@ -1015,36 +1115,40 @@ useEffect(() => {
             <ChevronRightOutlined className="w-4 h-4" />
           </button>
         </div>
-
-        {/* Page Size Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Show:</span>
-          <select
-            value={pagination.limit}
-            onChange={(e) => {
-              const newLimit = Number(e.target.value);
-              setPagination((prev) => ({ ...prev, limit: newLimit, page: 1 }));
-              if (userLocation && sortBy === "nearby") {
-                fetchTechniciansWithLocationPriority(
-                  service?.name || "",
-                  userLocation,
-                  1
-                );
-              } else {
-                fetchTechniciansForService(service?.name || "", 1);
-              }
-            }}
-            className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value={6}>6</option>
-            <option value={12}>12</option>
-            <option value={24}>24</option>
-            <option value={48}>48</option>
-          </select>
-          <span className="text-sm text-gray-600">per page</span>
-        </div>
       </div>
     );
+  };
+
+  // Update the handlePageChange function to properly handle pagination
+  const handlePageChange = async (newPage: number) => {
+    if (!service || newPage < 1 || newPage > pagination.pages) return;
+
+    try {
+      setTechniciansLoading(true);
+
+      // For nearby sorting, use location-based API
+      if (userLocation && sortBy === "nearby") {
+        await fetchTechniciansWithLocationPriority(
+          service.name,
+          userLocation,
+          newPage
+        );
+      } else {
+        // For default, rating, and experience, use regular API
+        await fetchTechniciansForService(service.name, newPage);
+      }
+
+      // Scroll to technicians section
+      const techniciansSection = document.getElementById("technicians-section");
+      if (techniciansSection) {
+        techniciansSection.scrollIntoView({ behavior: "smooth" });
+      }
+    } catch (error) {
+      console.error("Error changing page:", error);
+      toast.error("Failed to load technicians");
+    } finally {
+      setTechniciansLoading(false);
+    }
   };
 
   // Loading state
@@ -1341,7 +1445,10 @@ useEffect(() => {
         )}
 
         {/* Expert Technicians */}
-        <div className="bg-gray-50 border-t border-gray-200">
+        <div
+          className="bg-gray-50 border-t border-gray-200"
+          id="technicians-section"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             {showLocationCTA && !showLocationSetup && (
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -1367,9 +1474,11 @@ useEffect(() => {
               </div>
             )}
 
+            {/* Summary and Controls - MOVED TO TOP */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+              {/* LEFT: Heading and Location */}
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-2xl font-bold text-gray-900">
                   Expert Technicians
                   {userLocation && (
                     <span className="text-blue-600 text-lg ml-2">
@@ -1377,6 +1486,7 @@ useEffect(() => {
                     </span>
                   )}
                 </h2>
+
                 {userLocation && (
                   <button
                     onClick={handleChangeLocation}
@@ -1388,7 +1498,9 @@ useEffect(() => {
                   </button>
                 )}
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
+
+              {/* RIGHT: Sorting Controls */}
+              <div className="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
                 <div className="flex items-center gap-2">
                   <select
                     value={sortBy}
@@ -1485,6 +1597,7 @@ useEffect(() => {
                         key={tech._id}
                         className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
                       >
+                        {/* ... rest of technician card JSX remains the same ... */}
                         <div className="flex items-center gap-3 mb-4">
                           <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                             {displayData.profilePhoto ? (
@@ -1529,7 +1642,7 @@ useEffect(() => {
                                 {displayData.rating.toFixed(1)}
                               </span>
                               <span className="text-sm text-gray-500">
-                                ({tech.ratingCount || 0} reviews)
+                                ({displayData.ratingCount} reviews)
                               </span>
                             </div>
                           </div>
@@ -1575,6 +1688,8 @@ useEffect(() => {
                     );
                   })}
                 </div>
+
+                {/* Pagination Controls at Bottom */}
                 <PaginationControls />
               </>
             ) : (

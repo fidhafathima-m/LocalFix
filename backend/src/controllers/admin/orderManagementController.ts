@@ -200,4 +200,51 @@ export class OrderManagementController {
       res.status(response.statusCode).json(response);
     }
   };
+  getOrdersByTechnician = async (req: Request, res: Response): Promise<void> => {
+    const { technicianId } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
+
+    const context = {
+      operation: "getOrdersByTechnician",
+      technicianId,
+      page,
+      limit,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this.logger.info("Fetching orders by technician", context);
+
+      if (!technicianId) {
+        this.logger.warn("Technician ID is required", context);
+        const response = ResponseHelper.badRequest("Technician ID is required");
+        res.status(response.statusCode).json(response);
+        return;
+      }
+
+      const result = await this.orderService.getOrdersByTechnician(technicianId, page, limit);
+
+      this.logger.info("Technician orders retrieved successfully", {
+        ...context,
+        totalOrders: result.total,
+      });
+
+      const response = ResponseHelper.success(
+        ORDER_MESSAGES.ORDERS_RETRIEVED,
+        result
+      );
+      res.status(response.statusCode).json(response);
+    } catch (error: any) {
+      const errorMessage = error.message || ORDER_MESSAGES.FAILED_FETCH_ORDERS;
+      this.logger.error("Get technician orders controller error", {
+        ...context,
+        error: errorMessage,
+        stack: error.stack,
+      });
+
+      const response = ResponseHelper.error(errorMessage);
+      res.status(response.statusCode).json(response);
+    }
+  };
 }

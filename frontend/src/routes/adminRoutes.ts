@@ -71,5 +71,6 @@ export const ADMIN_ROUTES = {
   ORDER_BY_ID: (orderId: string) => `/admin/orders/${orderId}`,
   ORDER_STATUS: (orderId: string) => `/admin/orders/${orderId}/status`,
   ORDER_STATS: "/admin/orders/stats",
+  ORDERS_BY_TECHNICIAN: (technicianId: string) => `/admin/orders/technician/${technicianId}`,
 
 } as const;

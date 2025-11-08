@@ -134,7 +134,8 @@ export interface ITechnicianManagementRepository {
   findPublicTechnicians(
     filters: TechnicianFilter,
     skip?: number,
-    limit?: number
+    limit?: number,
+    sortOptions?: any
   ): Promise<ITechnician[]>;
 
   countPublicTechnicians(filters: TechnicianFilter): Promise<number>;

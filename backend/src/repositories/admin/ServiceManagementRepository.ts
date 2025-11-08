@@ -47,10 +47,11 @@ export class ServiceRepository implements IServiceRepository {
   async findAll(
     filter: FilterQuery<IService> = {},
     skip: number = 0,
-    limit: number = 10
+    limit: number = 10,
+    sort: any = { name: 1 } // Add sort parameter with default
   ): Promise<IService[]> {
     return await Service.find(filter)
-      .sort({ createdAt: -1 })
+      .sort(sort) // Use the provided sort
       .skip(skip)
       .limit(limit);
   }
@@ -83,21 +84,26 @@ export class ServiceRepository implements IServiceRepository {
     return await Service.countDocuments(filter);
   }
 
-  async search(query: string, limit: number = 10): Promise<IService[]> {
+  async search(
+    query: string, 
+    limit: number = 10, 
+    sort: any = { name: 1 } // Add sort parameter
+  ): Promise<IService[]> {
     return await Service.find({
       $or: [
         { name: { $regex: query, $options: "i" } },
         { description: { $regex: query, $options: "i" } },
       ],
     })
-      .limit(limit)
-      .sort({ createdAt: -1 });
+      .sort(sort) // Use the provided sort
+      .limit(limit);
   }
 
   async searchByCategory(
     categoryId: string | Types.ObjectId,
     query: string,
-    limit: number = 10
+    limit: number = 10,
+    sort: any = { name: 1 } // Add sort parameter
   ): Promise<IService[]> {
     return await Service.find({
       categoryId,
@@ -106,7 +112,7 @@ export class ServiceRepository implements IServiceRepository {
         { description: { $regex: query, $options: "i" } },
       ],
     })
-      .limit(limit)
-      .sort({ createdAt: -1 });
+      .sort(sort) // Use the provided sort
+      .limit(limit);
   }
 }

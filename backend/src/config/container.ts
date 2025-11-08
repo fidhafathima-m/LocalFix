@@ -162,10 +162,6 @@ const userLocationRepository = new UserLocationRepository();
 const userLocationService = new UserLocationService(userLocationRepository);
 const userLocationController = new UserLocationController(userLocationService);
 
-// Booking dependencies
-const bookingRepository = new BookingRepository();
-const bookingService = new BookingService(bookingRepository);
-const bookingController = new BookingController(bookingService);
 
 // Payment dependencies
 const paymentRepository = new PaymentRepository();
@@ -177,6 +173,11 @@ const orderRepository = new OrderRepository();
 const orderService = new OrderService(orderRepository, technicianRepository);
 const orderController = new OrderController(orderService);
 const technicianOrderController = new TechnicianOrderController(orderService);
+
+// Booking dependencies
+const bookingRepository = new BookingRepository();
+const bookingService = new BookingService(bookingRepository, orderRepository);
+const bookingController = new BookingController(bookingService);
 
 // Order managemnet dependencies
 const orderManagementRepository = new OrderManagementRepository();

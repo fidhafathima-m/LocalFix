@@ -1,3 +1,5 @@
+import type { OrderHistory, OrderItem, PaymentInfo } from "../../features/serviceProvider/components/technicianProfile/dashboard/types";
+
 export interface TechnicianOrderUser {
   _id: string;
   fullName: string;
@@ -14,6 +16,7 @@ export interface TechnicianOrderAddress {
   landmark?: string;
 }
 
+
 export interface TechnicianOrder {
   _id: string;
   orderCode: string;
@@ -23,23 +26,35 @@ export interface TechnicianOrder {
   address: TechnicianOrderAddress;
   scheduledAt: string;
   timeSlot: string;
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'refunded' | 'accepted' | 'on_the_way';
+  status:
+    | "pending"
+    | "confirmed"
+    | "in_progress"
+    | "completed"
+    | "cancelled"
+    | "refunded"
+    | "accepted"
+    | "on_the_way";
   totalAmount: number;
-  payment: {
-    method: 'online' | 'cod';
-    amount: number;
-    status: 'pending' | 'paid' | 'failed' | 'refunded';
-    transactionId?: string;
-    paidAt?: string;
-  };
-  history: Array<{
-    status: string;
-    description: string;
-    updatedBy: string;
-    timestamp: string;
-  }>;
+  payment: PaymentInfo;
+  orderItems?: OrderItem[];
+  history: OrderHistory[];
   createdAt: string;
   updatedAt: string;
+  cancellation?: {
+    reason: string;
+    cancelledBy: string;
+    cancelledAt: string;
+    refundAmount?: number;
+  };
+  rescheduleInfo?: {
+    rescheduledAt: string;
+    rescheduledBy: string;
+    previousScheduledAt: string;
+    previousTimeSlot: string;
+    rescheduleCount: number;
+    reason?: string;
+  };
 }
 
 export interface TechnicianOrderListResponse {

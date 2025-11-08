@@ -28,20 +28,30 @@ export class TechnicianManagementController {
   // ========== PUBLIC ROUTES ==========
 
   getPublicTechnicians = async (req: Request, res: Response): Promise<void> => {
-    const { service } = req.query;
+    const { service, page, limit, search, location, sortBy } = req.query;
     const context = {
-      operation: "getPublicTechnicians",
-      serviceFilter: service,
-      timestamp: new Date().toISOString(),
-    };
+    operation: "getPublicTechnicians",
+    serviceFilter: service,
+    page,
+    limit,
+    search,
+    location,
+    sortBy,
+    timestamp: new Date().toISOString(),
+  };
 
     try {
       this.logger.info("Fetching public technicians", context);
 
       const filters: TechnicianFiltersDto = {
-        status: "approved",
-        ...(service && { service: service as string }),
-      };
+      status: "approved",
+      ...(service && { service: service as string }),
+      ...(page && { page: Number(page) }),
+      ...(limit && { limit: Number(limit) }),
+      ...(search && { search: search as string }),
+      ...(location && { location: location as string }),
+      ...(sortBy && { sortBy: sortBy as string }),
+    };
 
       this.logger.debug("Calling service to get public technicians", {
         ...context,

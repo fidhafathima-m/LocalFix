@@ -47,6 +47,16 @@ export class OrderManagementService {
     }
   }
 
+  static async getOrdersByTechnician(technicianId: string, page: number = 1, limit: number = 100) {
+    try {
+      const response = await adminAPI.getOrdersByTechnician(technicianId, page, limit);
+      return this.handleResponse(response);
+    } catch (error: any) {
+      console.error("Error in getOrdersByTechnician:", error);
+      throw this.handleError(error, "Failed to get technician orders");
+    }
+  }
+
   private static handleResponse(response: any) {
     if (response.success === false) {
       throw new Error(response.message || "Operation failed");

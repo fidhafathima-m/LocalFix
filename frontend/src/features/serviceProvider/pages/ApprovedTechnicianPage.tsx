@@ -1,4 +1,4 @@
-import ApprovedTechnician from "../components/technicianProfile/ApprovedTechnician"
+import ApprovedTechnician from "../components/technicianProfile/dashboard/ApprovedTechnician"
 
 const ApprovedTechnicianPage = () => {
   return (

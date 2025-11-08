@@ -97,7 +97,7 @@ const BookingPage: React.FC = () => {
   const [weeklyAvailability, setWeeklyAvailability] = useState<
     DailyAvailability[]
   >([]);
-  
+
   const [problemDescription, setProblemDescription] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
 
@@ -109,28 +109,57 @@ const BookingPage: React.FC = () => {
   const searchParams = new URLSearchParams(location.search);
   const technicianId =
     searchParams.get("technicianId") || location.state?.technicianId;
-  const serviceName =
-    searchParams.get("service") || location.state?.service || "";
-
-    const [technicianName,] = useState(
-  location.state?.technicianName || ""
-);
+    
+    const [technicianName] = useState(location.state?.technicianName || "");
     
     const { breadcrumb, updateBreadcrumb } = useBreadcrumb();
-
-    useEffect(() => {
+    
+    const serviceName =
+      searchParams.get("service") ||
+      location.state?.service ||
+      breadcrumb.serviceName ||
+      "";
+  useEffect(() => {
     if (technician && !breadcrumb.technicianName) {
       updateBreadcrumb({
-        technicianName: technician.displayName
+        technicianName: technician.displayName,
       });
     }
   }, [technician, breadcrumb.technicianName, updateBreadcrumb]);
+
+  // Helper function to check if service is available (case-insensitive and flexible matching)
+  const isServiceAvailable = (service: string): boolean => {
+    if (!technician?.services || !service) return false;
+
+    const availableServices = getSafeServices();
+    const normalizedInput = service.toLowerCase().trim();
+
+    return availableServices.some(
+      (availableService) =>
+        availableService.toLowerCase().trim() === normalizedInput
+    );
+  };
+
+  // Helper function to find the exact service name from available services
+  const findMatchingService = (service: string): string | null => {
+    if (!technician?.services || !service) return null;
+
+    const availableServices = getSafeServices();
+    const normalizedInput = service.toLowerCase().trim();
+
+    const matchedService = availableServices.find(
+      (availableService) =>
+        availableService.toLowerCase().trim() === normalizedInput
+    );
+
+    return matchedService || null;
+  };
 
   // Update breadcrumb when service is selected
   useEffect(() => {
     if (selectedService && !breadcrumb.serviceName) {
       updateBreadcrumb({
-        serviceName: selectedService
+        serviceName: selectedService,
       });
     }
   }, [selectedService, breadcrumb.serviceName, updateBreadcrumb]);
@@ -139,7 +168,17 @@ const BookingPage: React.FC = () => {
   const displayServiceName = breadcrumb.serviceName || serviceName;
   const displayTechnicianName = breadcrumb.technicianName || technicianName;
 
-  // Fetch technician data with slot rules
+  useEffect(() => {
+    if (technician?.services && serviceName) {
+      const matchingService = findMatchingService(serviceName);
+      if (matchingService && selectedService !== matchingService) {
+        setSelectedService(matchingService);
+        console.log("Service pre-selected from breadcrumb:", matchingService);
+      }
+    }
+  }, [technician, serviceName, selectedService]);
+
+  // Update the main service selection useEffect
   useEffect(() => {
     const fetchTechnicianData = async () => {
       if (!technicianId) {
@@ -173,14 +212,29 @@ const BookingPage: React.FC = () => {
         if (technicianData) {
           setTechnician(technicianData);
 
-          // Prefill service if provided
-          if (serviceName && technicianData.services?.includes(serviceName)) {
-            setSelectedService(serviceName);
+          // IMPROVED: Service selection with breadcrumb support
+          if (serviceName && technicianData.services?.length > 0) {
+            const matchingService = findMatchingService(serviceName);
+            if (matchingService) {
+              setSelectedService(matchingService);
+              console.log("Service pre-selected from flow:", matchingService);
+            } else {
+              // If no exact match, use the first available service
+              setSelectedService(technicianData.services[0]);
+              console.log(
+                "Service not available, using first available:",
+                technicianData.services[0]
+              );
+            }
           } else if (technicianData.services?.length > 0) {
             setSelectedService(technicianData.services[0]);
+            console.log(
+              "No service provided, using first available:",
+              technicianData.services[0]
+            );
           }
 
-          // Fetch slot rules separately to get the most up-to-date availability
+          // Rest of your slot rules fetching code...
           try {
             const slotRulesResponse =
               await TechnicianMangementService.getTechnicianSlotRules(
@@ -192,12 +246,9 @@ const BookingPage: React.FC = () => {
               slotRulesResponse.data.data?.slotRules
             ) {
               const slotRules = slotRulesResponse.data.data.slotRules;
-
-              // Generate weekly availability from slot rules
               const availability = generateWeeklyAvailability(slotRules);
               setWeeklyAvailability(availability);
 
-              // Prefill first available date and time
               const firstAvailableDay = availability.find(
                 (day) => day.slots.length > 0
               );
@@ -237,6 +288,17 @@ const BookingPage: React.FC = () => {
       setLoading(false);
     }
   }, [technicianId, isLoggedIn, serviceName]);
+
+  // Add this useEffect to debug service selection
+  useEffect(() => {
+    console.log("Service Selection Debug:", {
+      serviceName,
+      selectedService,
+      technicianServices: technician?.services,
+      isServiceAvailable: serviceName ? isServiceAvailable(serviceName) : false,
+      matchingService: serviceName ? findMatchingService(serviceName) : null,
+    });
+  }, [serviceName, selectedService, technician]);
 
   // Generate weekly availability from slot rules - extend to 30 days
   const generateWeeklyAvailability = (rules: any[]): DailyAvailability[] => {
@@ -492,54 +554,55 @@ const BookingPage: React.FC = () => {
     );
   };
 
+  // Update the phone number population logic
+  useEffect(() => {
+    const fetchUserAddresses = async () => {
+      if (!isLoggedIn) return;
 
-// Update the phone number population logic
-useEffect(() => {
-  const fetchUserAddresses = async () => {
-    if (!isLoggedIn) return;
-
-    try {
-      const response = await userService.getUserAddresses();
-      if (response.success && response.data) {
-        setUserAddresses(response.data.addresses || []);
-
-        // Prefill default address if available
-        const defaultAddress = response.data.addresses?.find(
-          (addr) => addr.isDefault
-        );
-        if (defaultAddress) {
-          setSelectedAddress(defaultAddress.id);
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching user addresses:", err);
-      toast.error("Failed to load saved addresses");
-    }
-  };
-
-  // Set phone number from Redux user data with better handling
-  if (user?.phone) {
-    // Remove any non-digit characters and take only the last 10 digits
-    const cleanPhone = user.phone.replace(/\D/g, "").slice(-10);
-    setPhoneNumber(cleanPhone);
-  } else {
-    // If no phone in Redux, try to fetch fresh user data
-    const fetchUserProfile = async () => {
       try {
-        const profileResponse = await userService.getUserProfile();
-        if (profileResponse.success && profileResponse.data?.user?.phone) {
-          const cleanPhone = profileResponse.data.user.phone.replace(/\D/g, "").slice(-10);
-          setPhoneNumber(cleanPhone);
+        const response = await userService.getUserAddresses();
+        if (response.success && response.data) {
+          setUserAddresses(response.data.addresses || []);
+
+          // Prefill default address if available
+          const defaultAddress = response.data.addresses?.find(
+            (addr) => addr.isDefault
+          );
+          if (defaultAddress) {
+            setSelectedAddress(defaultAddress.id);
+          }
         }
       } catch (err) {
-        console.error("Error fetching user profile:", err);
+        console.error("Error fetching user addresses:", err);
+        toast.error("Failed to load saved addresses");
       }
     };
-    fetchUserProfile();
-  }
 
-  fetchUserAddresses();
-}, [isLoggedIn, user]);
+    // Set phone number from Redux user data with better handling
+    if (user?.phone) {
+      // Remove any non-digit characters and take only the last 10 digits
+      const cleanPhone = user.phone.replace(/\D/g, "").slice(-10);
+      setPhoneNumber(cleanPhone);
+    } else {
+      // If no phone in Redux, try to fetch fresh user data
+      const fetchUserProfile = async () => {
+        try {
+          const profileResponse = await userService.getUserProfile();
+          if (profileResponse.success && profileResponse.data?.user?.phone) {
+            const cleanPhone = profileResponse.data.user.phone
+              .replace(/\D/g, "")
+              .slice(-10);
+            setPhoneNumber(cleanPhone);
+          }
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
+        }
+      };
+      fetchUserProfile();
+    }
+
+    fetchUserAddresses();
+  }, [isLoggedIn, user]);
 
   // Handle navigation to login
   const handleLoginRedirect = () => {
@@ -838,7 +901,6 @@ useEffect(() => {
         </div>
         <div className="max-w-4xl mx-auto px-4 py-8">
           <h1 className="text-3xl font-bold mb-8">Book Your Service</h1>
-
           {/* Technician Info Card */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center justify-between">
@@ -880,7 +942,6 @@ useEffect(() => {
               </div>
             </div>
           </div>
-
           {/* Personal Details - Pre-fill with user data */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center space-x-2 mb-4">
@@ -940,54 +1001,91 @@ useEffect(() => {
               />
             </div>
           </div>
-
-          {/* Service Details - Dynamic services based on technician */}
-          {/* Service Details - Dynamic services based on technician */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center space-x-2 mb-4">
               <ShoppingBagOutlined className="w-5 h-5 text-blue-600" />
               <h2 className="text-lg font-semibold">Service Details</h2>
             </div>
 
-            {/* Service Type - Show as read-only when pre-selected */}
+            {/* Service Type */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Service Type
               </label>
 
-              {/* If service was pre-selected from navigation, show as read-only */}
-              {serviceName && technician?.services?.includes(serviceName) ? (
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={serviceName}
-                    readOnly
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      Pre-selected
-                    </span>
+              {/* Show service selection based on flow */}
+              {serviceName &&
+              selectedService &&
+              isServiceAvailable(serviceName) ? (
+                <div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={selectedService}
+                      readOnly
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        Pre-selected
+                      </span>
+                    </div>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Service type was pre-selected from your previous selection
+                    Service type was pre-selected from your service flow:{" "}
+                    <strong>{serviceName}</strong>
                   </p>
                 </div>
               ) : (
-                /* Allow selection if no service was pre-selected */
-                <select
-                  value={selectedService}
-                  onChange={(e) => setSelectedService(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select service</option>
-                  {getSafeServices().map((service, index) => (
-                    <option key={index} value={service}>
-                      {service}
-                    </option>
-                  ))}
-                </select>
+                /* Service selection dropdown */
+                <div>
+                  <select
+                    value={selectedService}
+                    onChange={(e) => setSelectedService(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select service</option>
+                    {getSafeServices().map((service, index) => (
+                      <option key={index} value={service}>
+                        {service}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Show breadcrumb service as suggestion if available but not selected */}
+                  {serviceName && !selectedService && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Suggested from your flow: <strong>{serviceName}</strong> -
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const matchingService =
+                            findMatchingService(serviceName);
+                          if (matchingService) {
+                            setSelectedService(matchingService);
+                          }
+                        }}
+                        className="text-blue-600 hover:text-blue-700 ml-1 cursor-pointer"
+                      >
+                        Select this service
+                      </button>
+                    </p>
+                  )}
+                </div>
               )}
+
+              {/* Show warning if service name is provided but not available */}
+              {serviceName &&
+                technician?.services &&
+                !isServiceAvailable(serviceName) && (
+                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                    <p className="text-yellow-700 text-sm">
+                      <strong>Note:</strong> "{serviceName}" is not available
+                      with this technician. Please select from the available
+                      services below.
+                    </p>
+                  </div>
+                )}
             </div>
 
             <div className="mb-4">
@@ -1018,7 +1116,6 @@ useEffect(() => {
               />
             </div>
           </div>
-
           {/* Schedule */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center space-x-2 mb-4">
@@ -1115,7 +1212,6 @@ useEffect(() => {
               </div>
             )}
           </div>
-
           {/* Address */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center space-x-2 mb-4">
@@ -1190,7 +1286,6 @@ useEffect(() => {
               </div>
             )}
           </div>
-
           {/* Add Address Modal */}
           <AddAddressModal
             isOpen={showAddAddressModal}
@@ -1198,7 +1293,6 @@ useEffect(() => {
             onSave={handleAddAddress}
             loading={savingAddress}
           />
-
           {/* Action Buttons */}
           <div className="flex space-x-4">
             <button

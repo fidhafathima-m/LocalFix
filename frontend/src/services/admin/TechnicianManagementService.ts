@@ -56,6 +56,7 @@ export class TechnicianMangementService {
     limit?: number;
     search?: string;
     location?: string;
+    sortBy?: string;
   }) {
     try {
       const response = await adminAPI.getPublicTechnicians(filters);

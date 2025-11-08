@@ -10,11 +10,17 @@ import {
   TrackingDetailsDto,
 } from "../interfaces/dtos/bookingDtos";
 import { Types } from "mongoose";
+import { IOrderRepository } from "@/interfaces/repository/user/IOrderRepository";
+import { ITechnicianRepository } from "@/interfaces/repository/technician/ITechnicianRepository";
+import { ITechnician } from "@/interfaces/technician/ITechnician";
 
 export class BookingService implements IBookingService {
   private logger: LoggerService;
 
-  constructor(private bookingRepository: IBookingRepository) {
+  constructor(
+    private bookingRepository: IBookingRepository,
+    private orderRepository: IOrderRepository,
+  ) {
     this.logger = new LoggerService();
   }
 
@@ -408,144 +414,132 @@ export class BookingService implements IBookingService {
     };
   }
   async getTrackingDetails(
-    userId: string,
-    bookingId: string
-  ): Promise<ApiResponse<TrackingDetailsDto>> {
-    const context = {
-      operation: "getTrackingDetails",
-      data: { userId, bookingId },
+  userId: string,
+  bookingId: string
+): Promise<ApiResponse<TrackingDetailsDto>> {
+  const context = {
+    operation: "getTrackingDetails",
+    data: { userId, bookingId },
+  };
+
+  try {
+    this.logger.info("Fetching tracking details", context);
+
+    // Query Order collection
+    const order = await this.orderRepository.findByBookingId(bookingId);
+
+    if (!order) {
+      this.logger.warn("Order not found for tracking", context);
+      return ResponseHelper.notFound("Order not found");
+    }
+
+    // DEBUG: Check what technicianId contains
+    this.logger.debug("Technician data from order", {
+      technicianId: order.technicianId,
+      technicianIdType: typeof order.technicianId,
+      isObject: typeof order.technicianId === 'object',
+      hasId: order.technicianId?._id !== undefined
+    });
+
+    // FIX: Add type guard to check if technician is populated
+    const technician = order.technicianId;
+
+    // Type guard function to check if it's ITechnician
+    const isTechnicianPopulated = (tech: any): tech is ITechnician => {
+      return tech && 
+             typeof tech === 'object' && 
+             '_id' in tech && 
+             'displayName' in tech;
     };
 
-    try {
-      this.logger.info("Fetching tracking details", context);
-
-      const booking = await this.bookingRepository.findById(bookingId);
-
-      if (!booking) {
-        this.logger.warn("Booking not found for tracking", context);
-        return ResponseHelper.notFound("Booking not found");
-      }
-
-      // Extract the actual IDs from the objects
-      const bookingUserId =
-        booking.userId?._id?.toString() || booking.userId?.toString();
-      const bookingTechnicianId =
-        booking.technicianId?._id?.toString() ||
-        booking.technicianId?.toString();
-
-      // Check if user has access to this booking
-      if (bookingUserId !== userId && bookingTechnicianId !== userId) {
-        this.logger.warn(
-          "User not authorized to access tracking for this booking",
-          {
-            ...context,
-            bookingUserId,
-            bookingTechnicianId,
-            requestingUserId: userId,
-          }
-        );
-        return ResponseHelper.forbidden(
-          "Not authorized to access this booking"
-        );
-      }
-
-      const technician = await this.bookingRepository.getTechnicianDetails(
-        bookingTechnicianId
-      );
-
-      if (!technician) {
-        this.logger.warn("Technician not found for booking", context);
-        return ResponseHelper.notFound("Technician details not found");
-      }
-
-      // Get address details
-      const addressId =
-        booking.addressId?._id?.toString() || booking.addressId?.toString();
-      const address = await this.bookingRepository.getAddressDetails(addressId);
-
-      if (!address) {
-        this.logger.warn("Address not found for booking", context);
-        return ResponseHelper.notFound("Address details not found");
-      }
-
-      // Get technician location if available
-      const technicianLocation =
-        await this.bookingRepository.getTechnicianLocation(bookingTechnicianId);
-
-      // Calculate estimated arrival and distance if technician is on the way
-      let estimatedArrival: string | undefined;
-      let distance: number | undefined;
-
-      if (booking.status === "on_the_way" && technicianLocation) {
-        distance = this.calculateDistance(
-          technicianLocation.latitude,
-          technicianLocation.longitude
-        );
-        estimatedArrival = this.calculateEstimatedArrival(distance);
-      }
-
-      const trackingDetails: TrackingDetailsDto = {
-        _id: booking.id.toString(),
-        bookingId: booking.bookingCode,
-        userId: bookingUserId,
-        technicianId: {
-          _id: technician._id.toString(),
-          displayName: technician.displayName,
-          profilePictureUrl: technician.profilePictureUrl,
-          averageRating: technician.averageRating,
-          ratingCount: technician.ratingCount,
-          skills: technician.services || [],
-          phone: technician.phone || "",
-        },
-        serviceName: booking.serviceName,
-        problemDescription: booking.notes,
-        scheduledAt: booking.scheduledAt.toISOString(),
-        timeSlot: booking.timeSlot,
-        address: {
-          label: address.label,
-          street: address.street,
-          city: address.city,
-          state: address.state,
-          pincode: address.pincode,
-          landmark: address.landmark,
-        },
-        status: booking.status as any,
-        amount: booking.totalAmount,
-        estimatedDuration: "1-2 hours",
-        statusHistory: booking.history.map((h: any) => ({
-          status: h.status,
-          timestamp: h.at.toISOString(),
-          description: this.getStatusDescription(h.status, h.reason),
-          updatedBy: h.by as "user" | "technician" | "system",
-        })),
-        technicianLocation: technicianLocation
-          ? {
-              latitude: technicianLocation.latitude,
-              longitude: technicianLocation.longitude,
-              lastUpdated: technicianLocation.lastUpdated.toISOString(),
-            }
-          : undefined,
-        estimatedArrival,
-        distance,
-      };
-
-      this.logger.info("Tracking details retrieved successfully", context);
-
-      return ResponseHelper.success(
-        "Tracking details retrieved successfully",
-        trackingDetails
-      );
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching tracking details", {
-        ...context,
-        error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      return ResponseHelper.error("Failed to fetch tracking details");
+    if (!technician || !isTechnicianPopulated(technician)) {
+      this.logger.warn("Technician data not properly populated in order", context);
+      return ResponseHelper.notFound("Technician details not found");
     }
+
+    // Now TypeScript knows technician is ITechnician
+    // Use order address directly
+    const address = order.address;
+
+    // Get technician location if available
+    const technicianLocation = await this.bookingRepository.getTechnicianLocation(
+      technician._id.toString() // Use the actual technician ID
+    );
+
+    // Calculate estimated arrival and distance if technician is on the way
+    let estimatedArrival: string | undefined;
+    let distance: number | undefined;
+
+    if (order.status === "on_the_way" && technicianLocation) {
+      distance = this.calculateDistance(
+        technicianLocation.latitude,
+        technicianLocation.longitude
+      );
+      estimatedArrival = this.calculateEstimatedArrival(distance);
+    }
+
+    const trackingDetails: TrackingDetailsDto = {
+      _id: order._id.toString(),
+      bookingId: order.bookingId.toString(),
+      userId: order.userId.toString(),
+      technicianId: {
+        _id: technician._id.toString(),
+        displayName: technician.displayName,
+        profilePictureUrl: technician.profilePictureUrl || "",
+        averageRating: technician.averageRating || 0,
+        ratingCount: technician.ratingCount || 0,
+        skills: technician.services || technician.skills || [],
+        phone: technician.phone || "",
+      },
+      serviceName: order.serviceName,
+      problemDescription: order.problemDescription,
+      scheduledAt: order.scheduledAt.toISOString(),
+      timeSlot: order.timeSlot,
+      address: {
+        label: address.label,
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+        landmark: address.landmark,
+      },
+      status: order.status as any,
+      amount: order.totalAmount,
+      estimatedDuration: "1-2 hours",
+      statusHistory: order.history.map((h: any) => ({
+        status: h.status,
+        timestamp: h.timestamp.toISOString(),
+        description: h.description || this.getStatusDescription(h.status, h.reason),
+        updatedBy: h.updatedBy as "user" | "technician" | "system",
+      })),
+      technicianLocation: technicianLocation
+        ? {
+            latitude: technicianLocation.latitude,
+            longitude: technicianLocation.longitude,
+            lastUpdated: technicianLocation.lastUpdated.toISOString(),
+          }
+        : undefined,
+      estimatedArrival,
+      distance,
+    };
+
+    this.logger.info("Tracking details retrieved successfully", context);
+
+    return ResponseHelper.success(
+      "Tracking details retrieved successfully",
+      trackingDetails
+    );
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    this.logger.error("Error fetching tracking details", {
+      ...context,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return ResponseHelper.error("Failed to fetch tracking details");
   }
+}
   async getTechnicianLocation(
     bookingId: string
   ): Promise<ApiResponse<TechnicianLocationDto>> {

@@ -21,4 +21,10 @@ export interface IOrderService {
     orderId: string, 
     updateData: UpdateOrderStatusDto
   ): Promise<OrderResponseDto>;
+
+  getOrdersByTechnician(
+    technicianId: string,
+    page?: number,
+    limit?: number
+  ): Promise<OrderListResponseDto>;
 }

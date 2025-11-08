@@ -23,7 +23,7 @@ export interface OrderResponseDto {
     pincode: string;
     landmark?: string;
   };
-  status: 'pending' | 'accepted' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'refunded';
+  status: 'pending' | 'accepted' | 'confirmed' | 'in_progress' | "on_the_way" | 'completed' | 'cancelled' | 'refunded';
   payment: {
     method: 'online' | 'cod';
     amount: number;

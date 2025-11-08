@@ -322,7 +322,9 @@ export class ServiceService implements IServiceService {
   async getAllServices(
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
+    sortBy: string = 'name',
+    sortOrder: string = 'asc'
   ): Promise<ServiceListResponseDto> {
     const context = {
       operation: 'getAllServices',
@@ -330,7 +332,9 @@ export class ServiceService implements IServiceService {
         page, 
         limit, 
         hasSearch: !!search,
-        searchQuery: search 
+        searchQuery: search,
+        sortBy,
+        sortOrder
       }
     };
 
@@ -341,13 +345,28 @@ export class ServiceService implements IServiceService {
       let services: any[];
       let total: number;
 
+      // Build sort object
+      const sortOptions: any = {};
+      switch (sortBy) {
+        case 'price':
+          sortOptions.avgBasePrice = sortOrder === 'desc' ? -1 : 1;
+          break;
+        case 'rating':
+          sortOptions.rating = sortOrder === 'desc' ? -1 : 1;
+          break;
+        case 'name':
+        default:
+          sortOptions.name = sortOrder === 'desc' ? -1 : 1;
+          break;
+      }
+
       if (search) {
         this.logger.debug('Performing search for services', {
           ...context,
           searchQuery: search
         });
 
-        services = await this.serviceRepository.search(search, limit);
+        services = await this.serviceRepository.search(search, limit, sortOptions);
         total = services.length;
 
         this.logger.debug('Search completed', {
@@ -358,10 +377,11 @@ export class ServiceService implements IServiceService {
         this.logger.debug('Fetching all services with pagination', {
           ...context,
           skip,
-          limit
+          limit,
+          sortOptions
         });
 
-        services = await this.serviceRepository.findAll({}, skip, limit);
+        services = await this.serviceRepository.findAll({}, skip, limit, sortOptions);
         total = await this.serviceRepository.count();
 
         this.logger.debug('Services retrieved from repository', {

@@ -37,6 +37,7 @@ export interface ServiceTracking {
 }
 
 export interface StatusHistory {
+  _id?: string;
   status: string;
   timestamp: string;
   description: string;

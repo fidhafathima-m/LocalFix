@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { CreateServiceData, UpdateServiceData } from "../../interface/admin/IAdminApi";
+import type {
+  CreateServiceData,
+  UpdateServiceData,
+} from "../../interface/admin/IAdminApi";
 import { adminAPI } from "../common/adminApi";
 
 export class ServiceManagementService {
@@ -29,10 +32,18 @@ export class ServiceManagementService {
   static async getAllServices(
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
+    sortBy?: string,
+    sortOrder?: string
   ) {
     try {
-      const response = await adminAPI.getAllServices(page, limit, search);
+      const response = await adminAPI.getAllServices(
+        page,
+        limit,
+        search,
+        sortBy,
+        sortOrder
+      );
       return this.handleResponse(response);
     } catch (error: any) {
       console.error("Error getting all services:", error);

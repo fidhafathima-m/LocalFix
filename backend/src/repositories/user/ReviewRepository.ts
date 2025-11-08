@@ -24,15 +24,20 @@ export class ReviewRepository implements IReviewRepository {
   }
 
   async findById(reviewId: string): Promise<IReview | null> {
-    return await Review.findById(new Types.ObjectId(reviewId)).exec();
+    return await Review.findById(new Types.ObjectId(reviewId))
+      .populate('userId', 'fullName email') // Add populate here too if needed
+      .exec();
   }
 
   async findByOrderId(orderId: string): Promise<IReview | null> {
-    return await Review.findOne({ orderId: new Types.ObjectId(orderId) }).exec();
+    return await Review.findOne({ orderId: new Types.ObjectId(orderId) })
+      .populate('userId', 'fullName email')
+      .exec();
   }
 
   async findByUserId(userId: string): Promise<IReview[]> {
     return await Review.find({ userId: new Types.ObjectId(userId) })
+      .populate('userId', 'fullName email')
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -46,6 +51,7 @@ export class ReviewRepository implements IReviewRepository {
     
     const [reviews, totalCount] = await Promise.all([
       Review.find({ technicianId: new Types.ObjectId(technicianId) })
+        .populate('userId', 'fullName email') // Use the correct model name - just 'User'
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -56,50 +62,49 @@ export class ReviewRepository implements IReviewRepository {
     return { reviews, totalCount };
   }
 
-  // repositories/ReviewRepository.ts - Update the getTechnicianStats method
-async getTechnicianStats(technicianId: string): Promise<{
-  averageRating: number;
-  totalReviews: number;
-  ratingDistribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
-}> {
-  const result = await Review.aggregate([
-    { $match: { technicianId: new Types.ObjectId(technicianId) } },
-    {
-      $group: {
-        _id: null,
-        averageRating: { $avg: "$rating" },
-        totalReviews: { $sum: 1 },
-        ratingDistribution: {
-          $push: "$rating"
+  async getTechnicianStats(technicianId: string): Promise<{
+    averageRating: number;
+    totalReviews: number;
+    ratingDistribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
+  }> {
+    const result = await Review.aggregate([
+      { $match: { technicianId: new Types.ObjectId(technicianId) } },
+      {
+        $group: {
+          _id: null,
+          averageRating: { $avg: "$rating" },
+          totalReviews: { $sum: 1 },
+          ratingDistribution: {
+            $push: "$rating"
+          }
         }
       }
+    ]);
+
+    // Initialize with all zeros
+    const distribution: { 1: number; 2: number; 3: number; 4: number; 5: number } = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0
+    };
+
+    if (result.length > 0) {
+      // Count each rating
+      result[0].ratingDistribution.forEach((rating: number) => {
+        if (rating >= 1 && rating <= 5) {
+          distribution[rating as keyof typeof distribution]++;
+        }
+      });
     }
-  ]);
 
-  // Initialize with all zeros
-  const distribution: { 1: number; 2: number; 3: number; 4: number; 5: number } = {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0
-  };
-
-  if (result.length > 0) {
-    // Count each rating
-    result[0].ratingDistribution.forEach((rating: number) => {
-      if (rating >= 1 && rating <= 5) {
-        distribution[rating as keyof typeof distribution]++;
-      }
-    });
+    return {
+      averageRating: result.length > 0 ? Math.round(result[0].averageRating * 10) / 10 : 0,
+      totalReviews: result.length > 0 ? result[0].totalReviews : 0,
+      ratingDistribution: distribution
+    };
   }
-
-  return {
-    averageRating: result.length > 0 ? Math.round(result[0].averageRating * 10) / 10 : 0,
-    totalReviews: result.length > 0 ? result[0].totalReviews : 0,
-    ratingDistribution: distribution
-  };
-}
 
   async existsForOrder(orderId: string): Promise<boolean> {
     const count = await Review.countDocuments({ orderId: new Types.ObjectId(orderId) });
