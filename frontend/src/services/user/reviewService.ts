@@ -40,6 +40,8 @@ export interface ReviewStatsResponse {
     4: number;
     5: number;
   };
+  flaggedReviews: number;
+  fiveStarReviews: number
 }
 
 export interface ApiResponse<T> {
@@ -147,13 +149,14 @@ export const reviewService = {
   getTechnicianReviews: async (
     technicianId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
+    currentUserId?: string 
   ): Promise<ApiResponse<ReviewListResponse>> => {
     try {
       const response = await api.get<ApiResponse<ReviewListResponse>>(
         USER_PROFILE_ROUTES.REVIEW_TECHNICIAN(technicianId),
         {
-          params: { page, limit },
+          params: { page, limit, currentUserId },
         }
       );
       return response.data;
@@ -187,6 +190,22 @@ export const reviewService = {
       return response.data;
     } catch (error: unknown) {
       console.error("Error checking review permission:", error);
+      throw error;
+    }
+  },
+  reportReview: async (reviewId: string, reportData: {
+    reason: string;
+    reportedBy: string;
+    additionalInfo?: string;
+  }): Promise<ApiResponse<{ reportId: string }>> => {
+    try {
+      const response = await api.post<ApiResponse<{ reportId: string }>>(
+        `/user/reviews/${reviewId}/report`,
+        reportData
+      );
+      return response.data;
+    } catch (error: unknown) {
+      console.error("Error reporting review:", error);
       throw error;
     }
   },

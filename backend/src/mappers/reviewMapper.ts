@@ -1,6 +1,7 @@
 // mappers/reviewMapper.ts
 import { Types } from "mongoose";
 import { IReview } from "../models/ReviewSchema";
+import { PopulatedUser, ReviewWithUserReport } from "../interfaces/repository/user/IReviewRepository";
 import {
   ReviewResponseDto,
   CreateReviewRequestDto,
@@ -12,24 +13,52 @@ interface CreateReviewModelData extends CreateReviewRequestDto {
   technicianId: string;
 }
 
+function isPopulatedUser(userId: any): userId is PopulatedUser {
+  return userId && typeof userId === 'object' && 'fullName' in userId;
+}
+
 export class ReviewMapper {
-  static toDto(review: IReview): ReviewResponseDto {
+  // Update toDto to handle both IReview and ReviewWithUserReport
+  static toDto(review: IReview | ReviewWithUserReport): ReviewResponseDto {
+    let userName = "Anonymous User";
+    let userEmail = "";
+    let userIdString = "";
+
+    // Use type guard to safely check the type
+    if (isPopulatedUser(review.userId)) {
+      // userId is a populated user object
+      userName = review.userId.fullName || "Anonymous User";
+      userEmail = review.userId.email || "";
+      userIdString = review.userId._id.toString();
+    } else {
+      // userId is a string or ObjectId
+      userIdString = review.userId?.toString() || "";
+    }
+
     return {
       id: review._id.toString(),
       orderId: review.orderId.toString(),
-      userId: review.userId.toString(),
+      userId: userIdString,
       technicianId: review.technicianId.toString(),
       rating: review.rating,
       comment: review.comment,
+      status: review.status,
       createdAt: review.createdAt.toISOString(),
       updatedAt: review.updatedAt.toISOString(),
+      userReported: (review as ReviewWithUserReport).userReported || false,
+      user: {
+        fullName: userName,
+        email: userEmail,
+      },
     };
   }
 
-  static toDtoList(reviews: IReview[]): ReviewResponseDto[] {
+  // Update toDtoList to handle both types
+  static toDtoList(reviews: (IReview | ReviewWithUserReport)[]): ReviewResponseDto[] {
     return reviews.map((review) => this.toDto(review));
   }
 
+  // Keep existing methods unchanged
   static toCreateModel(data: CreateReviewModelData): Partial<IReview> {
     return {
       orderId: new Types.ObjectId(data.orderId),

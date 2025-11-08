@@ -56,6 +56,9 @@ import { OrderManagementController } from "../controllers/admin/orderManagementC
 import { ReviewRepository } from "../repositories/user/ReviewRepository";
 import { ReviewService } from "../services/ReviewService";
 import { ReviewController } from "../controllers/user/reviewController";
+import { ReviewManagementService } from "../services/ReviewMangementService";
+import { ReviewManagementController } from "../controllers/admin/reviewManagementController";
+import { ReviewManagementRepository } from "../repositories/admin/ReviewManagementRepository";
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
@@ -193,6 +196,11 @@ const reviewRepository = new ReviewRepository();
 const reviewService = new ReviewService(reviewRepository);
 const reviewController = new ReviewController(reviewService, reviewRepository);
 
+// Review managemnet dependencies
+const reviewManagementRepository = new ReviewManagementRepository();
+const reviewMangementService = new ReviewManagementService(reviewManagementRepository)
+const reviewManagementController = new ReviewManagementController(reviewMangementService);
+
 export {
   userManagementController,
   userManagementService,
@@ -243,5 +251,8 @@ export {
   orderManagementController,
   reviewRepository,
   reviewService,
-  reviewController
+  reviewController,
+  reviewManagementRepository,
+  reviewMangementService,
+  reviewManagementController
 };

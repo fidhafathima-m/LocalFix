@@ -94,4 +94,8 @@ router.get("/reviews/can-review/:orderId", protect, (req, res) =>
   reviewController.canUserReviewOrder(req, res)
 );
 
+router.post("/reviews/:reviewId/report", protect, (req, res) =>
+  reviewController.reportReview(req, res)
+);
+
 export default router;

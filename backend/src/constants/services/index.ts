@@ -8,3 +8,4 @@ export * from "./categoryManagement";
 export * from "./serviceManagement";
 export * from "./itemManagement";
 export * from "./orderManagement";
+export * from "./reviewManagement";

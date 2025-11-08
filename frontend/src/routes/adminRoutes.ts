@@ -73,4 +73,11 @@ export const ADMIN_ROUTES = {
   ORDER_STATS: "/admin/orders/stats",
   ORDERS_BY_TECHNICIAN: (technicianId: string) => `/admin/orders/technician/${technicianId}`,
 
+  // Review routes
+  REVIEWS: "/admin/reviews",
+  REVIEW_BY_ID: (reviewId: string) => `/admin/reviews/${reviewId}`,
+  REVIEW_STATS: "/admin/reviews/stats",
+  REVIEW_UPDATE_STATUS: (reviewId: string) => `/admin/reviews/${reviewId}/status`,
+  REVIEW_FLAG: (reviewId: string) => `/admin/reviews/${reviewId}/flag`,
+
 } as const;

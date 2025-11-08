@@ -8,6 +8,11 @@ import {
 } from "../../dtos/reviewDtos";
 import { ApiResponse } from "../../../utils/responseHelper";
 
+export interface ReportReviewRequest {
+  reason: string;
+  additionalInfo?: string;
+}
+
 export interface IReviewService {
   createReview(
     userId: string,
@@ -42,4 +47,9 @@ export interface IReviewService {
   ): Promise<ApiResponse<ReviewStatsResponseDto>>;
 
   canUserReviewOrder(userId: string, orderId: string): Promise<boolean>;
+  reportReview(
+    userId: string,
+    reviewId: string,
+    reportData: ReportReviewRequest
+  ): Promise<ApiResponse<{ reportId: string }>>;
 }

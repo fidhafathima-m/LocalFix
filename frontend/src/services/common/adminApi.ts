@@ -22,9 +22,11 @@ import type {
   UserResponse,
   UsersResponse,
 } from "../../interface/admin/IAdminApi";
+import type { Review, ReviewsResponse } from "../../interface/admin/IReview";
 import { ADMIN_ROUTES } from "../../routes/adminRoutes";
 import type { Technician } from "../../store/slices/adminSlice";
 import api from "../../utils/axiosConfig";
+import type { ReviewStatsResponse } from "../user/reviewService";
 
 export const adminAPI = {
   // Users
@@ -293,4 +295,34 @@ getAllServices: (
     api.get<ApiResponse<OrdersResponse>>(ADMIN_ROUTES.ORDERS_BY_TECHNICIAN(technicianId), {
       params: { page, limit },
     }),
+
+    getReviews: (
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    rating?: string,
+    status?: string,
+    service?: string
+  ) =>
+    api.get<ApiResponse<ReviewsResponse>>(ADMIN_ROUTES.REVIEWS, {
+      params: { page, limit, search, rating, status, service },
+    }),
+
+  getReviewStats: () =>
+    api.get<ApiResponse<ReviewStatsResponse>>(ADMIN_ROUTES.REVIEW_STATS),
+
+  updateReviewStatus: (reviewId: string, status: string) =>
+    api.patch<ApiResponse<{ review: Review }>>(
+      ADMIN_ROUTES.REVIEW_UPDATE_STATUS(reviewId),
+      { status }
+    ),
+
+  flagReview: (reviewId: string, reason?: string) =>
+    api.patch<ApiResponse<{ review: Review }>>(
+      ADMIN_ROUTES.REVIEW_FLAG(reviewId),
+      { reason }
+    ),
+
+  deleteReview: (reviewId: string) =>
+    api.delete<ApiResponse<void>>(ADMIN_ROUTES.REVIEW_BY_ID(reviewId)),
 };

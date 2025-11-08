@@ -1,6 +1,6 @@
 // services/ReviewService.ts
 import { IReviewRepository } from "../interfaces/repository/user/IReviewRepository";
-import { IReviewService } from "../interfaces/services/user/IReviewService";
+import { IReviewService, ReportReviewRequest } from "../interfaces/services/user/IReviewService";
 import { ResponseHelper } from "../utils/responseHelper";
 import { LoggerService } from "../services/LoggerService";
 import {
@@ -279,7 +279,7 @@ export class ReviewService implements IReviewService {
   async getTechnicianReviews(
     technicianId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ApiResponse<ReviewListResponseDto>> {
     const context = {
       operation: "getTechnicianReviews",
@@ -399,4 +399,71 @@ export class ReviewService implements IReviewService {
   async canUserReviewOrder(userId: string, orderId: string): Promise<boolean> {
     return await this.reviewRepository.canUserReviewOrder(userId, orderId);
   }
+   async reportReview(
+  userId: string,
+  reviewId: string,
+  reportData: ReportReviewRequest
+): Promise<ApiResponse<{ reportId: string }>> {
+  const context = {
+    operation: "reportReview",
+    data: { userId, reviewId, reason: reportData.reason },
+  };
+
+  try {
+    this.logger.info("Reporting review", context);
+
+    // Check if review exists
+    const review = await this.reviewRepository.findById(reviewId);
+    if (!review) {
+      this.logger.warn("Review not found for reporting", context);
+      return ResponseHelper.notFound("Review not found");
+    }
+
+    // Check if user is trying to report their own review
+    if (review.userId.toString() === userId) {
+      this.logger.warn("User cannot report their own review", context);
+      return ResponseHelper.badRequest("You cannot report your own review");
+    }
+
+    // Validate reason
+    if (!reportData.reason || reportData.reason.trim().length === 0) {
+      this.logger.warn("Empty reason provided for report", context);
+      return ResponseHelper.badRequest("Reason is required");
+    }
+
+    // Prepare report data
+    const reportDataForRepo = {
+      reason: reportData.reason,
+      reportedBy: userId,
+      additionalInfo: reportData.additionalInfo,
+      reportedAt: new Date(),
+    };
+
+    // Save the report
+    const result = await this.reviewRepository.reportReview(reviewId, reportDataForRepo);
+
+    this.logger.info("Review reported successfully", {
+      ...context,
+      reportId: result.reportId,
+    });
+
+    return ResponseHelper.success("Review reported successfully. Our team will review it shortly.", {
+      reportId: result.reportId,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    this.logger.error("Error reporting review", {
+      ...context,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
+    // Check if it's an "already reported" error and return appropriate response
+    if (errorMessage.includes("already reported")) {
+      return ResponseHelper.badRequest("You have already reported this review");
+    }
+    
+    return ResponseHelper.error("Failed to report review");
+  }
+}
 }

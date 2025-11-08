@@ -13,12 +13,18 @@ import {
   PersonOutlineOutlined,
   ScheduleOutlined,
   ChevronRightOutlined,
+  FlagCircleOutlined,
+  InfoOutlined,
 } from "@mui/icons-material";
 import Footer from "../../../components/common/Footer";
 import Header from "../../../components/common/Header";
 import { TechnicianMangementService } from "../../../services/admin/TechnicianManagementService";
 import { RRule } from "rrule";
 import { reviewService } from "../../../services/user/reviewService";
+import Swal from "sweetalert2";
+import toast from "react-hot-toast";
+import { useAppSelector } from "../../../hooks/redux";
+import { selectAccessToken, selectUser } from "../../../store/slices/authSlice";
 
 interface Technician {
   _id: string;
@@ -97,15 +103,18 @@ interface DailyAvailability {
   isToday: boolean;
 }
 
+// Update your Review interface in the frontend
 interface Review {
   _id: string;
-  id?: string; // Add this to handle both _id and id
+  id?: string;
   userId: string;
   technicianId: string;
   rating: number;
   comment: string;
   userName: string;
   createdAt: string;
+  status?: "published" | "flagged" | "pending"; // Add status
+  userReported?: boolean; // Add this field
   user?: {
     fullName: string;
     email?: string;
@@ -117,6 +126,10 @@ const TechnicianProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [technician, setTechnician] = useState<Technician | null>(null);
   const [, setSlotRules] = useState<SlotRule[]>([]);
+
+  const user = useAppSelector(selectUser);
+  const accessToken = useAppSelector(selectAccessToken);
+
   const [weeklyAvailability, setWeeklyAvailability] = useState<
     DailyAvailability[]
   >([]);
@@ -201,8 +214,6 @@ const TechnicianProfile: React.FC = () => {
     fetchTechnicianData();
   }, [id]);
 
-  // Fetch technician reviews and stats
-  // Fetch technician reviews and stats
   const fetchTechnicianReviews = async (technicianId: string) => {
     try {
       setReviewsLoading(true);
@@ -214,20 +225,38 @@ const TechnicianProfile: React.FC = () => {
         setReviewStats(statsResponse.data);
       }
 
+      // Pass current user ID to get report status
+      const currentUserId = user?._id;
       const reviewsResponse = await reviewService.getTechnicianReviews(
         technicianId,
         1,
-        10
+        10,
+        currentUserId // Pass current user ID
       );
+
       if (reviewsResponse.success && reviewsResponse.data) {
-        const transformedReviews: Review[] = reviewsResponse.data.reviews.map(
-          (review: any) => {
-            // Extract fullName and email from the stringified userId field
+        const transformedReviews: Review[] = reviewsResponse.data.reviews
+          .filter((review: any) => review.status !== "flagged") // Hide flagged reviews from public
+          .map((review: any) => {
+            // Extract user information properly
             let userName = "Anonymous User";
             let userEmail = "";
 
-            if (typeof review.userId === "string") {
-              // Try to extract fullName using regex
+            // Check if user data is available in the response
+            if (review.userId && typeof review.userId === "object") {
+              // If userId is a populated user object
+              userName =
+                review.userId.fullName ||
+                review.userId.name ||
+                "Anonymous User";
+              userEmail = review.userId.email || "";
+            } else if (review.user) {
+              // If there's a separate user field
+              userName =
+                review.user.fullName || review.user.name || "Anonymous User";
+              userEmail = review.user.email || "";
+            } else if (typeof review.userId === "string") {
+              // Fallback: Try to extract from stringified field (old method)
               const fullNameMatch = review.userId.match(
                 /fullName:\s*'([^']+)'/
               );
@@ -235,11 +264,9 @@ const TechnicianProfile: React.FC = () => {
                 userName = fullNameMatch[1];
               }
 
-              // Extract email using regex
               const emailMatch = review.userId.match(/email:\s*'([^']+)'/);
               if (emailMatch && emailMatch[1]) {
                 userEmail = emailMatch[1];
-                // If no fullName was found, use the email username part as fallback
                 if (userName === "Anonymous User") {
                   userName = emailMatch[1].split("@")[0];
                 }
@@ -247,26 +274,127 @@ const TechnicianProfile: React.FC = () => {
             }
 
             return {
-              _id: review.id,
-              userId: review.userId,
+              _id: review.id || review._id, // Use both possible ID fields
+              userId: review.userId?._id || review.userId, // Handle both object and string
               technicianId: review.technicianId,
               rating: review.rating,
               comment: review.comment,
               userName: userName,
               createdAt: review.createdAt,
+              status: review.status,
+              userReported: review.userReported || false, // Add userReported flag
               user: {
                 fullName: userName,
                 email: userEmail,
               },
             };
-          }
-        );
+          });
         setReviews(transformedReviews);
       }
     } catch (error) {
       console.error("Error fetching technician reviews:", error);
     } finally {
       setReviewsLoading(false);
+    }
+  };
+
+  const handleReportReview = async (reviewId: string) => {
+    try {
+      // Check if user is logged in
+      if (!user || !accessToken) {
+        toast.error("Please log in to report reviews");
+        return;
+      }
+
+      // Show confirmation dialog
+      const result = await Swal.fire({
+        title: "Report Review",
+        text: "Please select why you are reporting this review",
+        icon: "warning",
+        input: "select",
+        inputOptions: {
+          inappropriate: "Inappropriate Content",
+          fake: "Fake Review",
+          personal_attack: "Personal Attack",
+          confidential: "Confidential Information",
+          irrelevant: "Irrelevant Content",
+          other: "Other Reason",
+        },
+        inputPlaceholder: "Select a reason",
+        showCancelButton: true,
+        confirmButtonText: "Report",
+        cancelButtonText: "Cancel",
+        inputValidator: (value) => {
+          if (!value) {
+            return "Please select a reason";
+          }
+        },
+      });
+
+      if (result.isConfirmed) {
+        // Call the report review API
+        const response = await reviewService.reportReview(reviewId, {
+          reason: result.value,
+          reportedBy: user._id,
+          additionalInfo: "",
+        });
+
+        if (response.success) {
+          toast.success(
+            "Thank you for your report. Our team will review it shortly."
+          );
+
+          // Update the local state to mark this review as reported by current user
+          setReviews((prevReviews) =>
+            prevReviews.map((review) =>
+              review._id === reviewId
+                ? { ...review, userReported: true }
+                : review
+            )
+          );
+        } else {
+          // Handle API response error (not exception)
+          if (response.message?.includes("already reported")) {
+            toast.error("You have already reported this review.");
+            // Still update the UI state since we know it's already reported
+            setReviews((prevReviews) =>
+              prevReviews.map((review) =>
+                review._id === reviewId
+                  ? { ...review, userReported: true }
+                  : review
+              )
+            );
+          } else {
+            throw new Error(response.message || "Failed to report review");
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("Error reporting review:", error);
+      console.error("Error details:", {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        stack: error?.stack,
+      });
+
+      const errorMessage = error?.message || "";
+      const responseMessage = error?.response?.data?.message || "";
+      const fullMessage = errorMessage + responseMessage;
+
+      if (fullMessage.includes("already reported")) {
+        toast.error("You have already reported this review.");
+        // Update UI state even on error since we know it's already reported
+        setReviews((prevReviews) =>
+          prevReviews.map((review) =>
+            review._id === reviewId ? { ...review, userReported: true } : review
+          )
+        );
+      } else if (error?.response?.status === 401) {
+        toast.error("Your session has expired. Please log in again.");
+      } else {
+        toast.error("Failed to report review. Please try again.");
+      }
     }
   };
 
@@ -457,10 +585,12 @@ const TechnicianProfile: React.FC = () => {
     );
   };
 
-  // Calculate rating distribution (mock data for now)
   const getRatingDistribution = () => {
     if (reviewStats) {
-      return reviewStats.ratingDistribution;
+      // Filter out flagged reviews from stats
+      const filteredDistribution = { ...reviewStats.ratingDistribution };
+      // You might want to adjust this based on how your backend handles flagged reviews in stats
+      return filteredDistribution;
     }
 
     // Fallback to mock data if no stats available
@@ -527,6 +657,27 @@ const TechnicianProfile: React.FC = () => {
       },
     });
   };
+
+  const CommunityGuidelinesNotice = () => (
+    <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+      <div className="flex items-start space-x-2">
+        <InfoOutlined className="w-4 h-4 text-blue-600 mt-0.5" />
+        <div>
+          <p className="text-sm text-blue-900 font-medium">
+            Community Guidelines
+          </p>
+          <p className="text-xs text-blue-800 mt-1">
+            • Flagged reviews are hidden from public view
+            <br />
+            • You can report inappropriate content using the flag icon
+            <br />
+            • Orange highlight indicates reviews you've reported
+            <br />• Our team reviews all reports within 24 hours
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 
   // Loading state
   if (loading) {
@@ -910,6 +1061,7 @@ const TechnicianProfile: React.FC = () => {
                 </button>
               )}
             </div>
+            <CommunityGuidelinesNotice />
 
             {reviewsLoading ? (
               <div className="flex justify-center items-center py-8">
@@ -962,14 +1114,50 @@ const TechnicianProfile: React.FC = () => {
                     ))}
                   </div>
                 </div>
-
                 {reviews.length > 0 ? (
                   <div className="space-y-4">
                     {reviews.slice(0, 3).map((review) => (
                       <div
                         key={review._id}
-                        className="border-t border-gray-200 pt-4"
+                        className={`border-t border-gray-200 pt-4 relative ${
+                          review.userReported
+                            ? "bg-orange-50 border-orange-200 rounded-lg p-4"
+                            : ""
+                        }`}
                       >
+                        {/* Report Button - Show different states */}
+                        {user && review.userId !== user._id && (
+                          <button
+                            onClick={() => handleReportReview(review._id)}
+                            disabled={review.userReported}
+                            className={`absolute top-4 right-0 transition-colors ${
+                              review.userReported
+                                ? "text-orange-500 cursor-not-allowed"
+                                : "text-gray-400 hover:text-red-500"
+                            }`}
+                            title={
+                              review.userReported
+                                ? "You have already reported this review"
+                                : "Report this review"
+                            }
+                          >
+                            <FlagCircleOutlined className="w-4 h-4" />
+                            {review.userReported && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+                            )}
+                          </button>
+                        )}
+
+                        {/* Reported Badge - Show if current user has reported */}
+                        {review.userReported && (
+                          <div className="mb-2">
+                            <div className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium">
+                              <FlagCircleOutlined className="w-3 h-3 mr-1" />
+                              Reported by you
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between mb-2">
                           <div>
                             <p className="font-medium">

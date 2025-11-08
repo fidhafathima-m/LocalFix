@@ -20,6 +20,7 @@ import categoryManagementRoutes from "./routes/admin/categoryManagementRoutes";
 import serviceMangementRoutes from "./routes/admin/serviceManagementRoutes";
 import itemManagementRoutes from "./routes/admin/itemManagementRoutes";
 import orderManagementRoutes from "./routes/admin/orderManagementRoutes";
+import reviewManagementRoutes from "./routes/admin/reviewManagemnetRoutes";
 
 import pubicUserRoutes from "./routes/publicUserRoutes";
 import userProfileRoutes from "./routes/user/userProfileRoutes"
@@ -59,6 +60,7 @@ app.use("/api/admin/categories", categoryManagementRoutes);
 app.use("/api/admin/services", serviceMangementRoutes);
 app.use("/api/admin/items", itemManagementRoutes);
 app.use("/api/admin/orders", orderManagementRoutes);
+app.use("/api/admin/reviews", reviewManagementRoutes);
 
 // technciian routes
 app.use("/api/technician-application", technicianRoutes);

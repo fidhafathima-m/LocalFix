@@ -17,10 +17,15 @@ export interface ReviewResponseDto {
   technicianId: string;
   rating: number;
   comment: string;
+  status: "published" | "flagged" | "pending";
   createdAt: string;
   updatedAt: string;
+  userReported?: boolean; // Add this
+  user?: { // Add user info for populated data
+    fullName: string;
+    email?: string;
+  };
 }
-
 export interface ReviewListResponseDto {
   reviews: ReviewResponseDto[];
   totalCount: number;
@@ -32,4 +37,14 @@ export interface ReviewStatsResponseDto {
   averageRating: number;
   totalReviews: number;
   ratingDistribution: Record<1 | 2 | 3 | 4 | 5, number>;
+}
+
+export interface ReportReviewRequestDto {
+  reason: string;
+  additionalInfo?: string;
+}
+
+export interface ReportReviewResponseDto {
+  reportId: string;
+  message: string;
 }

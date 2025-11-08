@@ -1,5 +1,34 @@
 // interfaces/repository/user/IReviewRepository.ts
+import { Types } from "mongoose";
 import { IReview } from "../../../models/ReviewSchema";
+
+export interface ReportReviewData {
+  reason: string;
+  reportedBy: string;
+  additionalInfo?: string;
+  reportedAt: Date;
+}
+
+export interface PopulatedUser {
+  _id: Types.ObjectId;
+  fullName: string;
+  email?: string;
+}
+
+export interface ReviewWithUserReport {
+  _id: Types.ObjectId;
+  orderId: Types.ObjectId;
+  userId: Types.ObjectId | PopulatedUser; // Can be ObjectId or populated user
+  technicianId: Types.ObjectId;
+  rating: number;
+  comment: string;
+  status: "published" | "flagged" | "pending";
+  flagReason?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  __v: number;
+  userReported: boolean;
+}
 
 export interface IReviewRepository {
   create(reviewData: Partial<IReview>): Promise<IReview>;
@@ -11,8 +40,9 @@ export interface IReviewRepository {
   findByTechnicianId(
     technicianId: string,
     page?: number,
-    limit?: number
-  ): Promise<{ reviews: IReview[]; totalCount: number }>;
+    limit?: number,
+    currentUserId?: string
+  ): Promise<{ reviews: ReviewWithUserReport[]; totalCount: number }>;
    getTechnicianStats(technicianId: string): Promise<{
     averageRating: number;
     totalReviews: number;
@@ -20,4 +50,8 @@ export interface IReviewRepository {
   }>;
   existsForOrder(orderId: string): Promise<boolean>;
   canUserReviewOrder(userId: string, orderId: string): Promise<boolean>;
+   reportReview(
+    reviewId: string,
+    reportData: ReportReviewData
+  ): Promise<{ reportId: string }>;
 }

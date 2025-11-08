@@ -1,6 +1,6 @@
 // controllers/user/reviewController.ts
 import { Response } from "express";
-import { IReviewService } from "../../interfaces/services/user/IReviewService";
+import { IReviewService, ReportReviewRequest } from "../../interfaces/services/user/IReviewService";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
 import {
@@ -346,6 +346,57 @@ getOrderReview = async (req: AuthRequest, res: Response): Promise<void> => {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       this.logger.error("Check review permission controller error", {
+        ...context,
+        error: error.message,
+        stack: error.stack,
+      });
+
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  };
+  reportReview = async (req: AuthRequest, res: Response): Promise<void> => {
+    const userId = req.user?.id;
+    const { reviewId } = req.params;
+    const reportData: ReportReviewRequest = req.body;
+
+    const context = {
+      operation: "reportReview",
+      userId,
+      reviewId,
+      reason: reportData.reason,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this.logger.info("Reporting review", context);
+
+      if (!userId) {
+        this.logger.warn("Report review failed - authentication required", context);
+        const errorResponse = ResponseHelper.unauthorized("Authentication required");
+        res.status(errorResponse.statusCode).json(errorResponse);
+        return;
+      }
+
+      // Validate required fields
+      if (!reportData.reason || reportData.reason.trim().length === 0) {
+        this.logger.warn("Report review failed - reason required", context);
+        const errorResponse = ResponseHelper.badRequest("Reason is required");
+        res.status(errorResponse.statusCode).json(errorResponse);
+        return;
+      }
+
+      const result = await this.reviewService.reportReview(
+        userId,
+        reviewId,
+        reportData
+      );
+
+      this.logger.info("Review reported successfully", context);
+
+      res.status(result.statusCode).json(result);
+    } catch (error: any) {
+      this.logger.error("Report review controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

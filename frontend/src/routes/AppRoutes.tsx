@@ -160,6 +160,9 @@ const OrderManagement = lazy(
 const ViewOrder = lazy(
   () => import("../features/admin/components/orderManagement/ViewOrder")
 );
+const ReviewManagement = lazy(
+  () => import("../features/admin/components/reviewManagement/ReviewManagement")
+);
 
 const AppRoutes = () => {
   return (
@@ -337,6 +340,14 @@ const AppRoutes = () => {
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <ViewOrder />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/reviews-management"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <ReviewManagement />
                 </ProtectedRoute>
               }
             />
