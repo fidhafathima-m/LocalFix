@@ -55,6 +55,7 @@ import { TechnicianAvailabilityService } from "./AvailabilityService";
 import { RRule } from "rrule";
 import { LoggerService } from "./LoggerService";
 import { error } from "winston";
+import { INotificationService } from "@/interfaces/services/INotificationService";
 
 interface DocumentInfo {
   url: string;
@@ -110,10 +111,15 @@ export class TechnicianManagementService
 {
   private technicianRepository: ITechnicianManagementRepository;
   private logger: LoggerService;
+  private notificationService: INotificationService;
 
-  constructor(technicianRepository: ITechnicianManagementRepository) {
+  constructor(
+    technicianRepository: ITechnicianManagementRepository,
+    notificationService: INotificationService,
+  ) {
     this.technicianRepository = technicianRepository;
     this.logger = new LoggerService();
+    this.notificationService = notificationService;
   }
 
   private formatApplicationDocuments(documents: unknown): FormattedDocuments {
@@ -1361,6 +1367,13 @@ export class TechnicianManagementService
         ...context,
         emailSent,
       });
+
+      if (technician) {
+        await this.notificationService.createApplicationApprovedNotification(
+          technician._id.toString(),
+          application.personal?.fullName || "Technician"
+        );
+      }
 
       return ResponseHelper.success(
         `${TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_APPROVED}${emailMessage}`,

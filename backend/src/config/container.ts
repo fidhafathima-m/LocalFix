@@ -62,6 +62,9 @@ import { ReviewManagementRepository } from "../repositories/admin/ReviewManageme
 import { PaymentManagementRepository } from "../repositories/admin/PaymentManagementRepository";
 import { PaymentManagementService } from "../services/paymentManagementService";
 import { PaymentManagementController } from "../controllers/admin/paymentManagementController";
+import { NotificationRepository } from "../repositories/NotificationRepository";
+import { NotificationService } from "../services/NotificationService";
+import { NotificationController } from "../controllers/INotificationController";
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
@@ -75,10 +78,16 @@ const publicUserManagementController = new PublicUserController(
   userManagementService
 );
 
+// Notification dependencies
+const notificationRepository = new NotificationRepository();
+const notificationService = new NotificationService(notificationRepository);
+const notificationController = new NotificationController(notificationService);
+
 // Technician Management Dependencies
 const technicianManagementRepository = new TechnicianManagementRepository();
 const technicianManagementService = new TechnicianManagementService(
-  technicianManagementRepository
+  technicianManagementRepository,
+  notificationService
 );
 const technicianManagementController = new TechnicianManagementController(
   technicianManagementService
@@ -168,7 +177,6 @@ const userLocationRepository = new UserLocationRepository();
 const userLocationService = new UserLocationService(userLocationRepository);
 const userLocationController = new UserLocationController(userLocationService);
 
-
 // Payment dependencies
 const paymentRepository = new PaymentRepository();
 const paymentService = new PaymentService(paymentRepository);
@@ -176,7 +184,11 @@ const paymentController = new PaymentController(paymentService);
 
 // Order dependencies
 const orderRepository = new OrderRepository();
-const orderService = new OrderService(orderRepository, technicianRepository);
+const orderService = new OrderService(
+  orderRepository,
+  technicianRepository,
+  notificationService
+);
 const orderController = new OrderController(orderService);
 const technicianOrderController = new TechnicianOrderController(orderService);
 
@@ -201,13 +213,21 @@ const reviewController = new ReviewController(reviewService, reviewRepository);
 
 // Review managemnet dependencies
 const reviewManagementRepository = new ReviewManagementRepository();
-const reviewMangementService = new ReviewManagementService(reviewManagementRepository)
-const reviewManagementController = new ReviewManagementController(reviewMangementService);
+const reviewMangementService = new ReviewManagementService(
+  reviewManagementRepository
+);
+const reviewManagementController = new ReviewManagementController(
+  reviewMangementService
+);
 
 // Payment dependencies
 const paymentManagementRepository = new PaymentManagementRepository();
-const paymentManagementService = new PaymentManagementService(paymentManagementRepository);
-const paymentManagementController = new PaymentManagementController(paymentManagementService);
+const paymentManagementService = new PaymentManagementService(
+  paymentManagementRepository
+);
+const paymentManagementController = new PaymentManagementController(
+  paymentManagementService
+);
 
 export {
   userManagementController,
@@ -266,4 +286,7 @@ export {
   paymentManagementRepository,
   paymentManagementService,
   paymentManagementController,
+  notificationRepository,
+  notificationService,
+  notificationController,
 };

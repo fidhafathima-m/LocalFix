@@ -30,6 +30,8 @@ import technicianOrderRoutes from "./routes/technician/technicianOrderRoutes";
 import paymentRoutes from "./routes/user/paymentRoutes";
 import orderRoutes from "./routes/user/orderRoutes";
 
+import notificationRoutes from "./routes/notificationRoutes";
+
 connectDB();
 
 const app: Application = express();
@@ -76,6 +78,7 @@ app.use("/api/user", userProfileRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 
 app.get("/", (req: Request, res: Response) => {

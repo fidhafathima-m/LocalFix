@@ -15,6 +15,7 @@ import {
   MessageOutlined,
   AddOutlined,
   CameraAltOutlined,
+  CloseOutlined,
 } from "@mui/icons-material";
 import Header from "../../../../components/common/Header";
 import Footer from "../../../../components/common/Footer";
@@ -26,8 +27,10 @@ import type {
   Address,
   AddressFormData,
 } from "../../../../interface/user/IUserApi";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { EditAddressModal } from "./modals/EditAddressModal";
+import type { Notification } from "../../../../interface/user/INotification";
+import { NotificationService } from "../../../../services/notificationService";
 
 interface UserData {
   _id: string;
@@ -60,6 +63,8 @@ const UserProfile: React.FC = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   // Real user data state
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -89,6 +94,150 @@ const UserProfile: React.FC = () => {
   });
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
+  // notification
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+  // Check if we should scroll to notifications
+  const shouldScrollToNotifications = 
+    location.hash === '#notifications' || 
+    location.state?.scrollTo === 'notifications';
+  
+  if (shouldScrollToNotifications && notificationsRef.current) {
+    setTimeout(() => {
+      notificationsRef.current?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 300);
+  }
+}, [location]);
+
+  useEffect(() => {
+    if (userData?._id) {
+      loadUserNotifications();
+    }
+  }, [userData?._id]);
+
+  const loadUserNotifications = async () => {
+  try {
+    setNotificationsLoading(true);
+    console.log("Loading notifications for user:", userData?._id);
+    
+    const notificationsData = await NotificationService.getNotifications(
+      userData!._id
+    );
+    
+    console.log("Notifications received:", notificationsData);
+    setNotifications(notificationsData);
+    
+  } catch (err: any) {
+    console.error("Failed to load notifications:", err);
+    console.error("Error details:", err.response?.data);
+    // Show error to user
+    toast.error("Failed to load notifications");
+  } finally {
+    setNotificationsLoading(false);
+  }
+};
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      await NotificationService.markAsRead(notificationId);
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif._id === notificationId ? { ...notif, isRead: true } : notif
+        )
+      );
+    } catch (err: any) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await NotificationService.markAllAsRead(userData!._id);
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, isRead: true }))
+      );
+      toast.success("All notifications marked as read");
+    } catch (err: any) {
+      console.error("Failed to mark all notifications as read:", err);
+      toast.error("Failed to mark all notifications as read");
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "payment_success":
+        return (
+          <CheckCircleOutlineOutlined className="w-5 h-5 text-green-600" />
+        );
+      case "booking_confirmed":
+        return <CheckCircleOutlineOutlined className="w-5 h-5 text-blue-600" />;
+      case "booking_cancelled":
+        return <CloseOutlined className="w-5 h-5 text-red-500" />;
+      case "booking_rescheduled":
+        return <EditOutlined className="w-5 h-5 text-orange-500" />;
+      case "technician_assigned":
+        return <FmdGoodOutlined className="w-5 h-5 text-purple-600" />;
+      case "service_completed":
+        return (
+          <CheckCircleOutlineOutlined className="w-5 h-5 text-green-600" />
+        );
+      case "reminder":
+        return (
+          <NotificationsNoneOutlined className="w-5 h-5 text-yellow-500" />
+        );
+      default:
+        return <NotificationsNoneOutlined className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const getNotificationBgColor = (type: string) => {
+    switch (type) {
+      case "payment_success":
+        return "bg-green-100";
+      case "booking_confirmed":
+        return "bg-blue-100";
+      case "booking_cancelled":
+        return "bg-red-100";
+      case "booking_rescheduled":
+        return "bg-orange-100";
+      case "technician_assigned":
+        return "bg-purple-100";
+      case "service_completed":
+        return "bg-green-100";
+      case "reminder":
+        return "bg-yellow-100";
+      default:
+        return "bg-gray-100";
+    }
+  };
+
+  const formatNotificationDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor(diffInHours * 60);
+      return diffInMinutes < 1 ? "Just now" : `${diffInMinutes} minutes ago`;
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)} hours ago`;
+    } else if (diffInHours < 48) {
+      return "Yesterday";
+    } else {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+  };
 
   const handleChangePassword = async () => {
     try {
@@ -173,8 +322,6 @@ const UserProfile: React.FC = () => {
   ];
 
   const reviews: any[] = []; // Empty for now - no reviews yet
-
-  const notifications: any[] = []; // Empty for now - under development
 
   const faqs = [
     {
@@ -899,7 +1046,7 @@ const UserProfile: React.FC = () => {
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center space-x-2">
                         <div>
-                        <FmdGoodOutlined className="w-5 h-5 text-blue-600" />
+                          <FmdGoodOutlined className="w-5 h-5 text-blue-600" />
                           <span className="font-semibold">{address.label}</span>
                           {address.isDefault && (
                             <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
@@ -1150,45 +1297,107 @@ const UserProfile: React.FC = () => {
             )}
           </div>
 
-          {/* Notifications */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          {/* Notifications - Real Implementation */}
+          <div 
+          className="bg-white rounded-lg shadow-sm p-6 mb-6" 
+          id="notifications"
+          ref={notificationsRef}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Notifications</h2>
-              <button className="text-sm text-blue-600 hover:underline">
-                Mark all as read
-              </button>
-            </div>
-            {notifications.length > 0 ? (
-              <div className="space-y-3">
-                {notifications.map((notification, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg"
+              <div className="flex items-center space-x-2">
+                {notifications.some((n) => !n.isRead) && (
+                  <button
+                    onClick={markAllNotificationsAsRead}
+                    className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer"
                   >
-                    {notification.icon}
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-800">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {notification.time}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                    Mark all as read
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer"
+                >
+                  {showNotifications ? "Hide" : "Show All"}
+                </button>
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <NotificationsNoneOutlined className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">No notifications</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  You'll see notifications about your bookings here
+            </div>
+
+            {notificationsLoading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-500 text-sm mt-2">
+                  Loading notifications...
                 </p>
               </div>
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-8">
+                <NotificationsNoneOutlined className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">No notifications yet</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  You'll see important updates about your bookings here
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Show only 3 notifications by default, or all if expanded */}
+                {(showNotifications
+                  ? notifications
+                  : notifications.slice(0, 3)
+                ).map((notification) => (
+                  <div
+                    key={notification._id}
+                    className={`flex items-start gap-3 p-4 rounded-lg border ${
+                      notification.isRead
+                        ? "bg-white border-gray-100"
+                        : "bg-blue-50 border-blue-200"
+                    } relative cursor-pointer hover:shadow-sm transition-all duration-200`}
+                    onClick={() =>
+                      !notification.isRead &&
+                      markNotificationAsRead(notification._id)
+                    }
+                  >
+                    <div
+                      className={`p-2 rounded-full ${getNotificationBgColor(
+                        notification.type
+                      )}`}
+                    >
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1">
+                      <p
+                        className={`font-medium ${
+                          notification.isRead
+                            ? "text-gray-800"
+                            : "text-gray-900"
+                        }`}
+                      >
+                        {notification.title}
+                      </p>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {notification.message}
+                      </p>
+                      <p className="text-gray-400 text-xs mt-2">
+                        {formatNotificationDate(notification.createdAt)}
+                      </p>
+                    </div>
+                    {!notification.isRead && (
+                      <div className="absolute right-4 top-4 w-2 h-2 bg-blue-600 rounded-full"></div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Show "View All" button if there are more than 3 notifications */}
+                {!showNotifications && notifications.length > 3 && (
+                  <button
+                    onClick={() => setShowNotifications(true)}
+                    className="w-full text-center py-3 text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
+                  >
+                    View all {notifications.length} notifications
+                  </button>
+                )}
+              </div>
             )}
-            <button className="w-full mt-4 py-2 text-sm text-blue-600 hover:underline">
-              View All Notifications
-            </button>
           </div>
 
           {/* Support & Help */}

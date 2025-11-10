@@ -16,6 +16,8 @@ import { technicianOrderService } from "../../../../../services/technician/techn
 import Header from "../../../../../components/common/Header";
 import Footer from "../../../../../components/common/Footer";
 import RatingsTab from "./tabs/RatingsTab";
+import NotificationSection from "./tabs/NotificationsTab";
+import { NotificationService } from "../../../../../services/notificationService";
 
 interface DashboardData {
   overview: {
@@ -55,7 +57,42 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     reason?: string;
     suspendedAt?: string;
   }>({});
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const navigate = useNavigate();
+
+  // Handle URL parameters for tab navigation
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    
+    if (tabParam && ['overview', 'orders', 'earnings', 'profile', 'ratings', 'notifications'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, []);
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    
+    // Update URL without page reload
+    const newUrl = `${window.location.pathname}?tab=${tabId}`;
+    window.history.pushState({}, '', newUrl);
+
+    // If switching to notifications tab and there are unread notifications, mark them as read
+    if (tabId === 'notifications' && unreadNotificationCount > 0) {
+      markNotificationsAsRead();
+    }
+  };
+
+  const markNotificationsAsRead = async () => {
+    try {
+      if (dashboardData?.profile?._id) {
+        await NotificationService.markAllAsRead(dashboardData.profile._id);
+        setUnreadNotificationCount(0);
+      }
+    } catch (error) {
+      console.error("Failed to mark notifications as read:", error);
+    }
+  };
 
   useEffect(() => {
     const loadTechnicianData = async () => {
@@ -131,6 +168,11 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           suspensionReason: profile.suspensionReason,
           suspendedAt: profile.suspendedAt,
         });
+
+        // Load unread notification count
+        if (profile._id) {
+          loadUnreadNotificationCount(profile._id);
+        }
       } catch (err) {
         console.error("Failed to load technician data:", err);
         setError(
@@ -146,22 +188,39 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     loadTechnicianData();
   }, []);
 
+  const loadUnreadNotificationCount = async (technicianId: string) => {
+    try {
+      const count = await NotificationService.getUnreadCount(technicianId);
+      setUnreadNotificationCount(count);
+    } catch (error) {
+      console.error("Failed to load unread notification count:", error);
+    }
+  };
+
+  // Refresh notification count when tab changes or when orders are updated
   useEffect(() => {
-    const loadOrders = async () => {
-      if (activeTab === "overview" || activeTab === "orders") {
-        try {
-          setOrdersLoading(true);
-          const response = await technicianOrderService.getTechnicianOrders(
-            1,
-            10
-          );
+    if (dashboardData?.profile?._id) {
+      loadUnreadNotificationCount(dashboardData.profile._id);
+    }
+  }, [activeTab, dashboardData?.profile?._id]);
 
-          if (response.success) {
-            const loadedOrders = response.data.orders || [];
-            setOrders(loadedOrders);
+  useEffect(() => {
+  const loadOrders = async () => {
+    if (activeTab === "overview" || activeTab === "orders") {
+      try {
+        setOrdersLoading(true);
+        const response = await technicianOrderService.getTechnicianOrders(
+          1,
+          10
+        );
 
-            // Calculate stats from loaded orders
-            const newStats = calculateStats(loadedOrders, profile);
+        if (response.success) {
+          const loadedOrders = response.data.orders || [];
+          setOrders(loadedOrders);
+
+          // Calculate stats from loaded orders - use profile from dashboardData
+          if (dashboardData) {
+            const newStats = calculateStats(loadedOrders, dashboardData.profile);
 
             // Update dashboard data with calculated stats
             setDashboardData((prev) =>
@@ -176,18 +235,19 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                 : null
             );
           }
-        } catch (error) {
-          console.error("Failed to load orders:", error);
-        } finally {
-          setOrdersLoading(false);
         }
+      } catch (error) {
+        console.error("Failed to load orders:", error);
+      } finally {
+        setOrdersLoading(false);
       }
-    };
-
-    if (!isSuspended) {
-      loadOrders();
     }
-  }, [activeTab, isSuspended]);
+  };
+
+  if (!isSuspended && dashboardData?.profile?._id) { // Only load if we have a profile ID
+    loadOrders();
+  }
+}, [activeTab, isSuspended, dashboardData?.profile?._id]); // Only depend on profile ID, not entire dashboardData
 
   const getEmptyDashboardData = (): DashboardData => {
     return {
@@ -243,45 +303,50 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     };
   };
 
-  const calculateStats = (orders: TechnicianOrder[], profile: TechnicianProfile) => {
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  const calculateStats = (
+    orders: TechnicianOrder[],
+    profile: TechnicianProfile
+  ) => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
 
-  const completedOrders =
-    orders?.filter((order) => order.status === "completed") || [];
+    const completedOrders =
+      orders?.filter((order) => order.status === "completed") || [];
 
-  // Filter completed orders for current month
-  const monthlyCompletedOrders = completedOrders.filter((order) => {
-    try {
-      const orderDate = new Date(order.scheduledAt || order.createdAt);
-      return (
-        orderDate.getMonth() === currentMonth &&
-        orderDate.getFullYear() === currentYear
-      );
-    } catch {
-      return false;
-    }
-  });
+    // Filter completed orders for current month
+    const monthlyCompletedOrders = completedOrders.filter((order) => {
+      try {
+        const orderDate = new Date(order.scheduledAt || order.createdAt);
+        return (
+          orderDate.getMonth() === currentMonth &&
+          orderDate.getFullYear() === currentYear
+        );
+      } catch {
+        return false;
+      }
+    });
 
-  return {
-    upcomingOrders:
-      orders?.filter((order) =>
-        ["pending", "accepted", "in_progress", "on_the_way"].includes(
-          order.status
-        )
-      ).length || 0,
-    totalJobs: completedOrders.length,
-    monthlyEarnings: monthlyCompletedOrders.reduce(
-      (total, order) => total + (order.totalAmount || 0),
-      0
-    ),
-    averageRating: profile?.averageRating || 0, // Use profile rating as fallback
+    return {
+      upcomingOrders:
+        orders?.filter((order) =>
+          ["pending", "accepted", "in_progress", "on_the_way"].includes(
+            order.status
+          )
+        ).length || 0,
+      totalJobs: completedOrders.length,
+      monthlyEarnings: monthlyCompletedOrders.reduce(
+        (total, order) => total + (order.totalAmount || 0),
+        0
+      ),
+      averageRating: profile?.averageRating || 0, // Use profile rating as fallback
+    };
   };
-};
 
   const renderTabContent = () => {
     if (!dashboardData) return null;
+
+    const { profile } = dashboardData;
 
     const tabProps = {
       dashboardData,
@@ -329,7 +394,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           throw error;
         }
       },
-      setActiveTab
+      setActiveTab: handleTabChange,
     };
 
     switch (activeTab) {
@@ -361,6 +426,15 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         return (
           <DisabledOverlay tab="ratings" isSuspended={isSuspended}>
             <RatingsTab {...tabProps} />
+          </DisabledOverlay>
+        );
+      case "notifications":
+        return (
+          <DisabledOverlay tab="notifications" isSuspended={isSuspended}>
+            <NotificationSection
+              technicianId={profile._id}
+              isSuspended={isSuspended}
+            />
           </DisabledOverlay>
         );
 
@@ -504,12 +578,16 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                 { id: "ratings", label: "Ratings" },
                 { id: "settings", label: "Settings" },
                 { id: "messages", label: "Messages" },
-                { id: "notifications", label: "Notifications" },
+                { 
+                  id: "notifications", 
+                  label: "Notifications",
+                  badge: unreadNotificationCount > 0 ? unreadNotificationCount : null
+                },
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-4 text-sm font-medium whitespace-nowrap ${
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`px-4 py-4 text-sm font-medium whitespace-nowrap relative ${
                     activeTab === tab.id
                       ? "text-blue-600 border-b-2 border-blue-600"
                       : "text-gray-500 hover:text-gray-700"
@@ -520,7 +598,14 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                   }`}
                   disabled={isSuspended && tab.id !== "profile"}
                 >
-                  {tab.label}
+                  <span className="flex items-center">
+                    {tab.label}
+                    {tab.badge && (
+                      <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                        {tab.badge > 9 ? '9+' : tab.badge}
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))}
             </nav>

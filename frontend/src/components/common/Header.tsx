@@ -5,6 +5,8 @@ import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { NotificationService } from "../../services/notificationService";
+import { NotificationsNoneOutlined } from "@mui/icons-material";
 
 interface HeaderProps {
   isApproved?: boolean;
@@ -18,6 +20,7 @@ const Header: React.FC<HeaderProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const dispatch = useAppDispatch();
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
@@ -45,6 +48,30 @@ const Header: React.FC<HeaderProps> = ({
       element.scrollIntoView({ behavior: "smooth" });
       closeMobileMenu();
     }
+  };
+
+  useEffect(() => {
+    if (user?._id) {
+      loadUnreadNotificationCount();
+    }
+  }, [user?._id]);
+
+  const loadUnreadNotificationCount = async () => {
+    try {
+      const count = await NotificationService.getUnreadCount(user!._id);
+      setNotificationCount(count);
+    } catch (err) {
+      console.error("Failed to load notification count:", err);
+    }
+  };
+
+  const handleNotificationClick = () => {
+    if (userType === "serviceProvider") {
+      navigate("/technician/dashboard?tab=notifications");
+    } else {
+      navigate("/my-profile#notifications");
+    }
+    closeMobileMenu();
   };
 
   const handleLogout = async () => {
@@ -177,6 +204,19 @@ const Header: React.FC<HeaderProps> = ({
             >
               My Orders
             </a>,
+            <button
+              key="notifications"
+              onClick={handleNotificationClick}
+              className="relative px-3 hover:text-blue-600 transition-colors cursor-pointer flex items-center"
+              title="Notifications"
+            >
+              <NotificationsNoneOutlined className="w-5 h-5" />
+              {notificationCount > 0 && (
+                <span className="absolute -top-2 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                  {notificationCount > 9 ? "9+" : notificationCount}
+                </span>
+              )}
+            </button>,
             <a
               key="profile"
               href="/my-profile"
@@ -185,6 +225,7 @@ const Header: React.FC<HeaderProps> = ({
             >
               Profile
             </a>,
+
             <button
               key="logout"
               onClick={handleLogout}
@@ -430,7 +471,7 @@ const Header: React.FC<HeaderProps> = ({
         }`}
       >
         <div
-          className="absolute inset-0 bg-black bg-opacity-30 backdrop-blur-sm"
+          className="absolute inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm"
           onClick={closeMobileMenu}
         ></div>
         <div
