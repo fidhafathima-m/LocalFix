@@ -21,13 +21,14 @@ import serviceMangementRoutes from "./routes/admin/serviceManagementRoutes";
 import itemManagementRoutes from "./routes/admin/itemManagementRoutes";
 import orderManagementRoutes from "./routes/admin/orderManagementRoutes";
 import reviewManagementRoutes from "./routes/admin/reviewManagemnetRoutes";
+import paymentManagementRoutes from "./routes/admin/paymentManagementRoutes";
 
 import pubicUserRoutes from "./routes/publicUserRoutes";
 import userProfileRoutes from "./routes/user/userProfileRoutes"
 import bookingRoutes from "./routes/user/bookingRoutes";
 import technicianOrderRoutes from "./routes/technician/technicianOrderRoutes";
 import paymentRoutes from "./routes/user/paymentRoutes";
-import orderRoutes from "./routes/user/orderRoutes"
+import orderRoutes from "./routes/user/orderRoutes";
 
 connectDB();
 
@@ -61,6 +62,7 @@ app.use("/api/admin/services", serviceMangementRoutes);
 app.use("/api/admin/items", itemManagementRoutes);
 app.use("/api/admin/orders", orderManagementRoutes);
 app.use("/api/admin/reviews", reviewManagementRoutes);
+app.use("/api/admin/payments", paymentManagementRoutes);
 
 // technciian routes
 app.use("/api/technician-application", technicianRoutes);

@@ -9,3 +9,4 @@ export * from "./serviceManagement";
 export * from "./itemManagement";
 export * from "./orderManagement";
 export * from "./reviewManagement";
+export * from "./paymentManagement";

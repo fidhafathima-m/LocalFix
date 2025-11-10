@@ -17,6 +17,7 @@ export interface IPayment extends Document {
   rawResponse: any;
   createdAt: Date;
   updatedAt: Date;
+  orderCode?: string;
 }
 
 const PaymentSchema = new Schema<IPayment>({

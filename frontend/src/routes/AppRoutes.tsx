@@ -158,10 +158,13 @@ const OrderManagement = lazy(
   () => import("../features/admin/pages/OrderManagemnetPage")
 );
 const ViewOrder = lazy(
-  () => import("../features/admin/components/orderManagement/ViewOrder")
+  () => import("../features/admin/pages/OrderManagemnetPage")
 );
 const ReviewManagement = lazy(
-  () => import("../features/admin/components/reviewManagement/ReviewManagement")
+  () => import("../features/admin/pages/ReviewManagementPage")
+);
+const PaymentsManagement = lazy(
+  () => import("../features/admin/pages/PaymentManagementPage")
 );
 
 const AppRoutes = () => {
@@ -348,6 +351,14 @@ const AppRoutes = () => {
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <ReviewManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/payments-management"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <PaymentsManagement />
                 </ProtectedRoute>
               }
             />

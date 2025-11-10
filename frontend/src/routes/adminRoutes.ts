@@ -80,4 +80,11 @@ export const ADMIN_ROUTES = {
   REVIEW_UPDATE_STATUS: (reviewId: string) => `/admin/reviews/${reviewId}/status`,
   REVIEW_FLAG: (reviewId: string) => `/admin/reviews/${reviewId}/flag`,
 
+  // Payments
+  PAYMENTS: "/admin/payments",
+  PAYMENT_BY_ID: (paymentId: string) => `/admin/payments/${paymentId}`,
+  PAYMENT_STATS: "/admin/payments/stats",
+  PAYMENT_REFUND: (paymentId: string) => `/admin/payments/${paymentId}/refund`,
+  PAYMENT_EXPORT: "/admin/payments/export",
+
 } as const;

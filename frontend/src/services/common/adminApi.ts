@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
   ApiResponse,
   ApplicationsResponse,
@@ -22,6 +23,7 @@ import type {
   UserResponse,
   UsersResponse,
 } from "../../interface/admin/IAdminApi";
+import type { IPayment, PaymentsResponse, PaymentStatsResponse } from "../../interface/admin/IPayment";
 import type { Review, ReviewsResponse } from "../../interface/admin/IReview";
 import { ADMIN_ROUTES } from "../../routes/adminRoutes";
 import type { Technician } from "../../store/slices/adminSlice";
@@ -325,4 +327,39 @@ getAllServices: (
 
   deleteReview: (reviewId: string) =>
     api.delete<ApiResponse<void>>(ADMIN_ROUTES.REVIEW_BY_ID(reviewId)),
+
+  // Payments
+  getPayments: (
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    status?: string,
+    startDate?: string,
+    endDate?: string
+  ) =>
+    api.get<ApiResponse<PaymentsResponse>>(ADMIN_ROUTES.PAYMENTS, {
+      params: { page, limit, search, status, startDate, endDate },
+    }),
+
+  getPaymentById: (paymentId: string) =>
+    api.get<ApiResponse<{ payment: IPayment }>>(
+      ADMIN_ROUTES.PAYMENT_BY_ID(paymentId)
+    ),
+
+  getPaymentStats: () =>
+    api.get<ApiResponse<PaymentStatsResponse>>(ADMIN_ROUTES.PAYMENT_STATS),
+
+  processRefund: (paymentId: string, reason?: string) =>
+    api.post<ApiResponse<void>>(
+      ADMIN_ROUTES.PAYMENT_REFUND(paymentId),
+      { reason }
+    ),
+
+  exportPayments: (format: 'csv' | 'excel' = 'csv', filters?: any) =>
+    api.get<Blob>(ADMIN_ROUTES.PAYMENT_EXPORT, {
+      params: { format, ...filters },
+      responseType: 'blob',
+    }),
 };
+
+
