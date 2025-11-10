@@ -31,6 +31,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { EditAddressModal } from "./modals/EditAddressModal";
 import type { Notification } from "../../../../interface/user/INotification";
 import { NotificationService } from "../../../../services/notificationService";
+import { useNotification } from "../../../../context/notificationContext/NotificationContext";
 
 interface UserData {
   _id: string;
@@ -65,6 +66,8 @@ const UserProfile: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  const { refreshNotificationCount, markAllAsRead: contextMarkAllAsRead } = useNotification();
 
   // Real user data state
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -152,6 +155,9 @@ const UserProfile: React.FC = () => {
           notif._id === notificationId ? { ...notif, isRead: true } : notif
         )
       );
+      
+      // Refresh the notification count in header
+      refreshNotificationCount();
     } catch (err: any) {
       console.error("Failed to mark notification as read:", err);
     }
@@ -163,6 +169,10 @@ const UserProfile: React.FC = () => {
       setNotifications((prev) =>
         prev.map((notif) => ({ ...notif, isRead: true }))
       );
+      
+      // Use the context function to update the header badge
+      contextMarkAllAsRead();
+      
       toast.success("All notifications marked as read");
     } catch (err: any) {
       console.error("Failed to mark all notifications as read:", err);

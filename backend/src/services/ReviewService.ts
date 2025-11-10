@@ -1,6 +1,8 @@
-// services/ReviewService.ts
 import { IReviewRepository } from "../interfaces/repository/user/IReviewRepository";
-import { IReviewService, ReportReviewRequest } from "../interfaces/services/user/IReviewService";
+import {
+  IReviewService,
+  ReportReviewRequest,
+} from "../interfaces/services/user/IReviewService";
 import { ResponseHelper } from "../utils/responseHelper";
 import { LoggerService } from "../services/LoggerService";
 import {
@@ -12,11 +14,15 @@ import {
 } from "../interfaces/dtos/reviewDtos";
 import { ReviewMapper } from "../mappers/reviewMapper";
 import { ApiResponse } from "../utils/responseHelper";
+import { INotificationService } from "../interfaces/services/INotificationService";
 
 export class ReviewService implements IReviewService {
   private logger: LoggerService;
 
-  constructor(private reviewRepository: IReviewRepository) {
+  constructor(
+    private reviewRepository: IReviewRepository,
+    private notificationService: INotificationService
+  ) {
     this.logger = new LoggerService();
   }
 
@@ -82,6 +88,12 @@ export class ReviewService implements IReviewService {
         reviewId: newReview._id.toString(),
       });
 
+      // NOTIFICATION: Notify technician about new review
+      await this.notifyTechnicianAboutNewReview(newReview, order);
+
+      // NOTIFICATION: Notify user that review was submitted successfully
+      await this.notifyUserAboutReviewSubmission(userId, order.serviceName);
+
       const reviewDto = ReviewMapper.toDto(newReview);
       return ResponseHelper.success("Review submitted successfully", reviewDto);
     } catch (error) {
@@ -123,12 +135,18 @@ export class ReviewService implements IReviewService {
       }
 
       // Validate rating if provided
-      if (reviewData.rating && (reviewData.rating < 1 || reviewData.rating > 5)) {
+      if (
+        reviewData.rating &&
+        (reviewData.rating < 1 || reviewData.rating > 5)
+      ) {
         return ResponseHelper.badRequest("Rating must be between 1 and 5");
       }
 
       const updateModel = ReviewMapper.toUpdateModel(reviewData);
-      const updatedReview = await this.reviewRepository.update(reviewId, updateModel);
+      const updatedReview = await this.reviewRepository.update(
+        reviewId,
+        updateModel
+      );
 
       if (!updatedReview) {
         this.logger.error("Failed to update review in repository", context);
@@ -136,6 +154,11 @@ export class ReviewService implements IReviewService {
       }
 
       this.logger.info("Review updated successfully", context);
+
+      // NOTIFICATION: Notify technician if rating changed
+      if (reviewData.rating && reviewData.rating !== existingReview.rating) {
+        await this.notifyTechnicianAboutReviewUpdate(updatedReview);
+      }
 
       const reviewDto = ReviewMapper.toDto(updatedReview);
       return ResponseHelper.success("Review updated successfully", reviewDto);
@@ -185,6 +208,9 @@ export class ReviewService implements IReviewService {
 
       this.logger.info("Review deleted successfully", context);
 
+      // NOTIFICATION: Notify technician about review deletion
+      await this.notifyTechnicianAboutReviewDeletion(existingReview);
+
       const reviewDto = ReviewMapper.toDto(existingReview);
       return ResponseHelper.success("Review deleted successfully", reviewDto);
     } catch (error) {
@@ -199,7 +225,9 @@ export class ReviewService implements IReviewService {
     }
   }
 
-  async getReviewById(reviewId: string): Promise<ApiResponse<ReviewResponseDto>> {
+  async getReviewById(
+    reviewId: string
+  ): Promise<ApiResponse<ReviewResponseDto>> {
     const context = {
       operation: "getReviewById",
       data: { reviewId },
@@ -231,7 +259,9 @@ export class ReviewService implements IReviewService {
     }
   }
 
-  async getUserReviews(userId: string): Promise<ApiResponse<ReviewListResponseDto>> {
+  async getUserReviews(
+    userId: string
+  ): Promise<ApiResponse<ReviewListResponseDto>> {
     const context = {
       operation: "getUserReviews",
       data: { userId },
@@ -279,7 +309,7 @@ export class ReviewService implements IReviewService {
   async getTechnicianReviews(
     technicianId: string,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 10
   ): Promise<ApiResponse<ReviewListResponseDto>> {
     const context = {
       operation: "getTechnicianReviews",
@@ -289,11 +319,12 @@ export class ReviewService implements IReviewService {
     try {
       this.logger.info("Fetching technician reviews", context);
 
-      const { reviews, totalCount } = await this.reviewRepository.findByTechnicianId(
-        technicianId,
-        page,
-        limit
-      );
+      const { reviews, totalCount } =
+        await this.reviewRepository.findByTechnicianId(
+          technicianId,
+          page,
+          limit
+        );
 
       if (!reviews || reviews.length === 0) {
         this.logger.info("No reviews found for technician", context);
@@ -332,7 +363,9 @@ export class ReviewService implements IReviewService {
     }
   }
 
-  async getOrderReview(orderId: string): Promise<ApiResponse<ReviewResponseDto> | null> {
+  async getOrderReview(
+    orderId: string
+  ): Promise<ApiResponse<ReviewResponseDto> | null> {
     const context = {
       operation: "getOrderReview",
       data: { orderId },
@@ -375,7 +408,9 @@ export class ReviewService implements IReviewService {
     try {
       this.logger.info("Fetching technician review stats", context);
 
-      const stats = await this.reviewRepository.getTechnicianStats(technicianId);
+      const stats = await this.reviewRepository.getTechnicianStats(
+        technicianId
+      );
 
       this.logger.info("Technician review stats retrieved successfully", {
         ...context,
@@ -383,7 +418,10 @@ export class ReviewService implements IReviewService {
         totalReviews: stats.totalReviews,
       });
 
-      return ResponseHelper.success("Review stats retrieved successfully", stats);
+      return ResponseHelper.success(
+        "Review stats retrieved successfully",
+        stats
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
@@ -399,71 +437,441 @@ export class ReviewService implements IReviewService {
   async canUserReviewOrder(userId: string, orderId: string): Promise<boolean> {
     return await this.reviewRepository.canUserReviewOrder(userId, orderId);
   }
-   async reportReview(
-  userId: string,
-  reviewId: string,
-  reportData: ReportReviewRequest
-): Promise<ApiResponse<{ reportId: string }>> {
-  const context = {
-    operation: "reportReview",
-    data: { userId, reviewId, reason: reportData.reason },
-  };
 
-  try {
-    this.logger.info("Reporting review", context);
-
-    // Check if review exists
-    const review = await this.reviewRepository.findById(reviewId);
-    if (!review) {
-      this.logger.warn("Review not found for reporting", context);
-      return ResponseHelper.notFound("Review not found");
-    }
-
-    // Check if user is trying to report their own review
-    if (review.userId.toString() === userId) {
-      this.logger.warn("User cannot report their own review", context);
-      return ResponseHelper.badRequest("You cannot report your own review");
-    }
-
-    // Validate reason
-    if (!reportData.reason || reportData.reason.trim().length === 0) {
-      this.logger.warn("Empty reason provided for report", context);
-      return ResponseHelper.badRequest("Reason is required");
-    }
-
-    // Prepare report data
-    const reportDataForRepo = {
-      reason: reportData.reason,
-      reportedBy: userId,
-      additionalInfo: reportData.additionalInfo,
-      reportedAt: new Date(),
+  async reportReview(
+    userId: string,
+    reviewId: string,
+    reportData: ReportReviewRequest
+  ): Promise<ApiResponse<{ reportId: string }>> {
+    const context = {
+      operation: "reportReview",
+      data: { userId, reviewId, reason: reportData.reason },
     };
 
-    // Save the report
-    const result = await this.reviewRepository.reportReview(reviewId, reportDataForRepo);
+    try {
+      this.logger.info("Reporting review", context);
 
-    this.logger.info("Review reported successfully", {
-      ...context,
-      reportId: result.reportId,
-    });
+      // Check if review exists
+      const review = await this.reviewRepository.findById(reviewId);
+      if (!review) {
+        this.logger.warn("Review not found for reporting", context);
+        return ResponseHelper.notFound("Review not found");
+      }
 
-    return ResponseHelper.success("Review reported successfully. Our team will review it shortly.", {
-      reportId: result.reportId,
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    this.logger.error("Error reporting review", {
-      ...context,
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    
-    // Check if it's an "already reported" error and return appropriate response
-    if (errorMessage.includes("already reported")) {
-      return ResponseHelper.badRequest("You have already reported this review");
+      // Check if user is trying to report their own review
+      if (review.userId.toString() === userId) {
+        this.logger.warn("User cannot report their own review", context);
+        return ResponseHelper.badRequest("You cannot report your own review");
+      }
+
+      // Validate reason
+      if (!reportData.reason || reportData.reason.trim().length === 0) {
+        this.logger.warn("Empty reason provided for report", context);
+        return ResponseHelper.badRequest("Reason is required");
+      }
+
+      // Prepare report data
+      const reportDataForRepo = {
+        reason: reportData.reason,
+        reportedBy: userId,
+        additionalInfo: reportData.additionalInfo,
+        reportedAt: new Date(),
+      };
+
+      // Save the report
+      const result = await this.reviewRepository.reportReview(
+        reviewId,
+        reportDataForRepo
+      );
+
+      this.logger.info("Review reported successfully", {
+        ...context,
+        reportId: result.reportId,
+      });
+
+      // NOTIFICATION: Notify admin about reported review
+      await this.notifyAdminAboutReportedReview(
+        review,
+        reportData.reason,
+        userId
+      );
+
+      // NOTIFICATION: Notify user that report was submitted
+      await this.notifyUserAboutReportSubmission(userId);
+
+      // NOTIFICATION: Notify review author if someone reported their review (optional)
+      await this.notifyReviewAuthorAboutReport(review, reportData.reason);
+
+      return ResponseHelper.success(
+        "Review reported successfully. Our team will review it shortly.",
+        {
+          reportId: result.reportId,
+        }
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error reporting review", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      // Check if it's an "already reported" error and return appropriate response
+      if (errorMessage.includes("already reported")) {
+        return ResponseHelper.badRequest(
+          "You have already reported this review"
+        );
+      }
+
+      return ResponseHelper.error("Failed to report review");
     }
-    
-    return ResponseHelper.error("Failed to report review");
   }
-}
+
+  // ==================== NOTIFICATION METHODS ====================
+
+  private async notifyTechnicianAboutNewReview(
+    review: any,
+    order: any
+  ): Promise<void> {
+    try {
+      const context = {
+        operation: "notifyTechnicianAboutNewReview",
+        reviewId: review._id.toString(),
+        technicianId: review.technicianId.toString(),
+        rating: review.rating,
+      };
+
+      this.logger.info(
+        "Sending new review notification to technician",
+        context
+      );
+
+      // Get user details for personalized notification
+      const UserModel = (await import("../models/UserSchema")).default;
+      const user = await UserModel.findById(review.userId);
+
+      const customerName = user?.fullName || "A customer";
+
+      await this.notificationService.createRatingReceivedNotification(
+        review.technicianId.toString(),
+        review.rating,
+        customerName
+      );
+
+      this.logger.info(
+        "New review notification sent to technician successfully",
+        context
+      );
+    } catch (error) {
+      // Don't fail the review creation if notification fails
+      this.logger.error(
+        "Failed to send new review notification to technician",
+        {
+          reviewId: review._id.toString(),
+          technicianId: review.technicianId.toString(),
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      );
+    }
+  }
+
+  private async notifyUserAboutReviewSubmission(
+    userId: string,
+    serviceName: string
+  ): Promise<void> {
+    try {
+      const context = {
+        operation: "notifyUserAboutReviewSubmission",
+        userId,
+        serviceName,
+      };
+
+      this.logger.info(
+        "Sending review submission confirmation to user",
+        context
+      );
+
+      await this.notificationService.createNotification({
+        userId,
+        userType: "customer",
+        type: "system",
+        title: "Review Submitted Successfully",
+        message: `Thank you for reviewing your ${serviceName} service. Your feedback helps us improve our services.`,
+        priority: "low",
+        data: {
+          serviceType: serviceName,
+          action: "review_submitted",
+        },
+      });
+
+      this.logger.info(
+        "Review submission confirmation sent to user successfully",
+        context
+      );
+    } catch (error) {
+      this.logger.error(
+        "Failed to send review submission confirmation to user",
+        {
+          userId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      );
+    }
+  }
+
+  private async notifyTechnicianAboutReviewUpdate(review: any): Promise<void> {
+    try {
+      const context = {
+        operation: "notifyTechnicianAboutReviewUpdate",
+        reviewId: review._id.toString(),
+        technicianId: review.technicianId.toString(),
+        newRating: review.rating,
+      };
+
+      this.logger.info(
+        "Sending review update notification to technician",
+        context
+      );
+
+      await this.notificationService.createNotification({
+        userId: review.technicianId.toString(),
+        userType: "technician",
+        type: "rating_received",
+        title: "Review Updated",
+        message: `A customer updated their review and gave you a ${review.rating}-star rating.`,
+        priority: "medium",
+        data: {
+          reviewId: review._id.toString(),
+          rating: review.rating,
+          action: "review_updated",
+        },
+      });
+
+      this.logger.info(
+        "Review update notification sent to technician successfully",
+        context
+      );
+    } catch (error) {
+      this.logger.error(
+        "Failed to send review update notification to technician",
+        {
+          reviewId: review._id.toString(),
+          technicianId: review.technicianId.toString(),
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      );
+    }
+  }
+
+  private async notifyTechnicianAboutReviewDeletion(
+    review: any
+  ): Promise<void> {
+    try {
+      const context = {
+        operation: "notifyTechnicianAboutReviewDeletion",
+        reviewId: review._id.toString(),
+        technicianId: review.technicianId.toString(),
+      };
+
+      this.logger.info(
+        "Sending review deletion notification to technician",
+        context
+      );
+
+      await this.notificationService.createNotification({
+        userId: review.technicianId.toString(),
+        userType: "technician",
+        type: "system",
+        title: "Review Deleted",
+        message: "A customer has deleted their review for your service.",
+        priority: "low",
+        data: {
+          reviewId: review._id.toString(),
+          action: "review_deleted",
+        },
+      });
+
+      this.logger.info(
+        "Review deletion notification sent to technician successfully",
+        context
+      );
+    } catch (error) {
+      this.logger.error(
+        "Failed to send review deletion notification to technician",
+        {
+          reviewId: review._id.toString(),
+          technicianId: review.technicianId.toString(),
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      );
+    }
+  }
+
+  private async notifyAdminAboutReportedReview(
+    review: any,
+    reason: string,
+    reportedBy: string
+  ): Promise<void> {
+    try {
+      const context = {
+        operation: "notifyAdminAboutReportedReview",
+        reviewId: review._id.toString(),
+        reportedBy,
+      };
+
+      this.logger.info(
+        "Sending reported review notification to admin",
+        context
+      );
+
+      // Get admin users
+      await this.notificationService.createNotification({
+        userId: "admin",
+        userType: "admin",
+        type: "system",
+        title: "Review Reported",
+        message: `A review has been reported for violating community guidelines. Reason: ${reason}`,
+        priority: "high",
+        data: {
+          reviewId: review._id.toString(),
+          reportedBy,
+          reason,
+          action: "review_reported",
+        },
+      });
+
+      this.logger.info(
+        "Reported review notification sent to admin successfully",
+        context
+      );
+    } catch (error) {
+      this.logger.error(
+        "Failed to send reported review notification to admin",
+        {
+          reviewId: review._id.toString(),
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      );
+    }
+  }
+
+  private async notifyUserAboutReportSubmission(userId: string): Promise<void> {
+    try {
+      const context = {
+        operation: "notifyUserAboutReportSubmission",
+        userId,
+      };
+
+      this.logger.info(
+        "Sending report submission confirmation to user",
+        context
+      );
+
+      await this.notificationService.createNotification({
+        userId,
+        userType: "customer",
+        type: "system",
+        title: "Report Submitted",
+        message:
+          "Thank you for reporting this review. Our team will investigate and take appropriate action.",
+        priority: "medium",
+        data: {
+          action: "report_submitted",
+        },
+      });
+
+      this.logger.info(
+        "Report submission confirmation sent to user successfully",
+        context
+      );
+    } catch (error) {
+      this.logger.error(
+        "Failed to send report submission confirmation to user",
+        {
+          userId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      );
+    }
+  }
+
+  private async notifyReviewAuthorAboutReport(
+    review: any,
+    reason: string
+  ): Promise<void> {
+    try {
+      const context = {
+        operation: "notifyReviewAuthorAboutReport",
+        reviewId: review._id.toString(),
+        authorId: review.userId.toString(),
+      };
+
+      this.logger.info("Sending report notification to review author", context);
+
+      await this.notificationService.createNotification({
+        userId: review.userId.toString(),
+        userType: "customer",
+        type: "system",
+        title: "Your Review Was Reported",
+        message: `Your review has been reported for: ${reason}. Our team will review it shortly.`,
+        priority: "medium",
+        data: {
+          reviewId: review._id.toString(),
+          reason,
+          action: "review_reported",
+        },
+      });
+
+      this.logger.info(
+        "Report notification sent to review author successfully",
+        context
+      );
+    } catch (error) {
+      this.logger.error("Failed to send report notification to review author", {
+        reviewId: review._id.toString(),
+        authorId: review.userId.toString(),
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  async notifyTechnicianAboutMilestone(
+    technicianId: string,
+    milestone: string
+  ): Promise<void> {
+    try {
+      const context = {
+        operation: "notifyTechnicianAboutMilestone",
+        technicianId,
+        milestone,
+      };
+
+      this.logger.info("Sending milestone notification to technician", context);
+
+      await this.notificationService.createNotification({
+        userId: technicianId,
+        userType: "technician",
+        type: "system",
+        title: "Milestone Achieved!",
+        message: `Congratulations! You've reached a new milestone: ${milestone}`,
+        priority: "medium",
+        data: {
+          milestone,
+          action: "milestone_achieved",
+        },
+      });
+
+      this.logger.info(
+        "Milestone notification sent to technician successfully",
+        context
+      );
+    } catch (error) {
+      this.logger.error("Failed to send milestone notification to technician", {
+        technicianId,
+        milestone,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
 }

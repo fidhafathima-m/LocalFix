@@ -1,8 +1,6 @@
-// interfaces/repository/admin/IReviewRepository.ts
 import { IReview } from "@/models/ReviewSchema";
 import { Types } from "mongoose";
 
-// Create a standalone interface for populated review data
 export interface ReviewWithDetails {
   // Base review fields
   _id: Types.ObjectId;
@@ -16,8 +14,7 @@ export interface ReviewWithDetails {
   createdAt: Date;
   updatedAt: Date;
   __v: number;
-  
-  // Additional populated fields
+
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -50,7 +47,9 @@ export interface ReviewStats {
 }
 
 export interface IReviewRepository {
-  findAllWithDetails(filters: GetReviewsFilter): Promise<{ reviews: ReviewWithDetails[]; total: number }>;
+  findAllWithDetails(
+    filters: GetReviewsFilter
+  ): Promise<{ reviews: ReviewWithDetails[]; total: number }>;
   findByIdWithDetails(reviewId: string): Promise<ReviewWithDetails | null>;
   findById(reviewId: string): Promise<IReview | null>;
   updateStatus(reviewId: string, status: string): Promise<IReview | null>;

@@ -115,7 +115,7 @@ export class TechnicianManagementService
 
   constructor(
     technicianRepository: ITechnicianManagementRepository,
-    notificationService: INotificationService,
+    notificationService: INotificationService
   ) {
     this.technicianRepository = technicianRepository;
     this.logger = new LoggerService();
@@ -261,7 +261,6 @@ export class TechnicianManagementService
         }
       );
     } catch (error: unknown) {
-      console.error("Get technicians error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to fetch technicians", {
@@ -329,7 +328,6 @@ export class TechnicianManagementService
         }
       );
     } catch (error: unknown) {
-      console.error("Get technician error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to fetch technician", {
@@ -790,7 +788,6 @@ export class TechnicianManagementService
         this.logger.debug("Clearing suspension data for approval", context);
       }
 
-      // Update technician status - pass status separately and updateData for additional fields
       const technician = await this.technicianRepository.updateTechnicianStatus(
         id,
         status,
@@ -872,7 +869,6 @@ export class TechnicianManagementService
         }
       );
     } catch (error: unknown) {
-      console.error("Update technician status error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to update technician status", {
@@ -905,7 +901,6 @@ export class TechnicianManagementService
         stats
       );
     } catch (error: unknown) {
-      console.error("Get technician stats error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to fetch technician statistics", {
@@ -996,7 +991,6 @@ export class TechnicianManagementService
         }
       );
     } catch (error: unknown) {
-      console.error("Get pending applications error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to fetch pending applications", {
@@ -1110,7 +1104,6 @@ export class TechnicianManagementService
           locationCoordinates,
         });
       }
-      // In approveApplication method, replace the availability verification part:
       if (technician && application.availability) {
         try {
           // Convert application availability format to technician availability format
@@ -1183,8 +1176,6 @@ export class TechnicianManagementService
             "CRITICAL ERROR in availability transfer:",
             availabilityError
           );
-          // Don't fail the entire approval process due to availability issues
-          // but log it clearly for debugging
         }
       } else {
       }
@@ -1383,7 +1374,6 @@ export class TechnicianManagementService
         }
       );
     } catch (error: unknown) {
-      console.error("Approve application error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to approve technician", {
@@ -1448,7 +1438,6 @@ export class TechnicianManagementService
       emergencyService: applicationAvailability.emergencyService || false,
       afterHoursService: applicationAvailability.afterHoursService || false,
       weeklyPattern: weeklyPattern,
-      // Store the original availability data for proper processing
       originalAvailability: availability,
     };
 
@@ -1581,7 +1570,6 @@ export class TechnicianManagementService
         }
       );
     } catch (error: unknown) {
-      console.error("Reject application error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to reject technician", {
@@ -1651,7 +1639,6 @@ export class TechnicianManagementService
         }
       );
     } catch (error: unknown) {
-      console.error("Get application error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to fetch application by id", {
@@ -1684,7 +1671,6 @@ export class TechnicianManagementService
         stats
       );
     } catch (error: unknown) {
-      console.error("Get application stats error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to fetch application stats", {
@@ -1738,7 +1724,6 @@ export class TechnicianManagementService
         }
       );
     } catch (error: unknown) {
-      console.error("Get technician by application error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       this.logger.error("Failed to fetch technician by application id", {
@@ -1751,7 +1736,6 @@ export class TechnicianManagementService
       );
     }
   }
-  // In TechnicianManagementService.ts - update getPublicTechnicians method
   async getPublicTechnicians(
     filters: TechnicianFiltersDto
   ): Promise<TechnicianListResponseDto> {
@@ -1795,7 +1779,6 @@ export class TechnicianManagementService
       const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
 
-      // FIXED: Proper sort options with correct field names and fallbacks
       let sortOptions: any = {};
 
       switch (sortBy) {
@@ -1853,7 +1836,6 @@ export class TechnicianManagementService
         repoFilters
       );
 
-      // IMPORTANT: Log the actual sort order for debugging
       this.logger.debug("Technicians returned in sorted order", {
         ...context,
         sortBy,
@@ -1976,7 +1958,6 @@ export class TechnicianManagementService
         }
       );
     } catch (error) {
-      console.error("Get public technician service error:", error);
       this.logger.error("Failed to get public technicians by id", {
         ...context,
         error: error,

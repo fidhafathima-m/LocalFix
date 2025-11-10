@@ -68,7 +68,6 @@ export class PaymentMapper {
       serviceName = "Service not available";
     }
 
-    // Use orderCode from payment if available, otherwise fallback
     const orderId = payment.orderCode || "Order not found";
 
     const result = {
@@ -93,7 +92,7 @@ export class PaymentMapper {
       type: payment.type,
       serviceName,
       orderId,
-      bookingCode, // Add booking code separately
+      bookingCode,
       status: payment.status,
       initiatedAt: payment.initiatedAt
         ? payment.initiatedAt.toISOString()
@@ -108,7 +107,6 @@ export class PaymentMapper {
         : new Date().toISOString(),
     };
 
-    // Only add address if we have data
     if (addressData) {
       return {
         ...result,
@@ -120,15 +118,12 @@ export class PaymentMapper {
   }
 
   toPaymentResponseDtoFromAggregation(payment: any): PaymentResponseDto {
-    // For aggregation results, the fields are already flattened
     return {
       id: payment._id ? payment._id.toString() : payment.id || "unknown-id",
       bookingId: payment.bookingId
         ? payment.bookingId.toString()
         : "unknown-booking",
-      userId: payment.userId
-        ? payment.userId.toString()
-        : "unknown-user",
+      userId: payment.userId ? payment.userId.toString() : "unknown-user",
       userName: payment.userName || "Unknown User",
       userEmail: payment.userEmail || "Unknown Email",
       paymentProvider: payment.paymentProvider,
@@ -175,7 +170,6 @@ export class PaymentMapper {
   ): PaymentListResponseDto {
     return {
       payments: payments.map((payment) => {
-        // Check if this is an aggregation result (has flattened fields)
         if (payment.userName || payment.userEmail || payment.serviceName) {
           return this.toPaymentResponseDtoFromAggregation(payment);
         } else {

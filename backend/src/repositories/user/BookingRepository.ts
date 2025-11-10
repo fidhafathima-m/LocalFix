@@ -144,7 +144,7 @@ export class BookingRepository implements IBookingRepository {
         return false;
       }
 
-      // Also check if there's no existing booking for this slot (prevent double booking)
+      // check if there's no existing booking for this slot (prevent double booking)
       const existingBooking = await Booking.findOne({
         technicianId: new Types.ObjectId(technicianId),
         scheduledAt: {
@@ -228,11 +228,7 @@ export class BookingRepository implements IBookingRepository {
     longitude: number;
     lastUpdated: Date;
   } | null> {
-    // In a real app, this would fetch from a real-time location service
-    // For demo purposes, return mock data
     try {
-      // Check if there's a real location service available
-      // For now, return mock data when technician is active
       const technician = await this.getTechnicianDetails(technicianId);
 
       if (technician && technician.isActive) {

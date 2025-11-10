@@ -42,7 +42,6 @@ export class UserLocationRepository implements IUserLocationRepository {
     const [userLongitude, userLatitude] = userCoordinates;
 
     try {
-      // Use JavaScript-based approach instead of complex aggregation
       const query: any = {
         status: "approved",
         "currentLocation.coordinates": {

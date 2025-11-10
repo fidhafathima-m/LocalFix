@@ -1,4 +1,3 @@
-// mappers/reviewMapper.ts
 import { ReviewResponseDto } from "@/interfaces/services/admin/IReviewManagementService";
 import { ReviewWithDetails } from "../interfaces/repository/admin/IReviewRepository";
 

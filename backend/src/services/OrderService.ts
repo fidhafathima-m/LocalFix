@@ -122,7 +122,6 @@ export class OrderService implements IOrderService {
     }
   }
 
-  // In your OrderService.ts - update the createOrderFromBooking method
   async createOrderFromBooking(
     bookingId: string,
     paymentData: {
@@ -141,7 +140,6 @@ export class OrderService implements IOrderService {
     try {
       this.logger.info("Creating/updating order from booking", context);
 
-      // FIRST: Check if an order already exists for this booking
       const existingOrder = await this.orderRepository.findByBookingId(
         bookingId
       );
@@ -149,7 +147,6 @@ export class OrderService implements IOrderService {
       let order;
 
       if (existingOrder) {
-        // UPDATE existing order for payment retry
         this.logger.info("Updating existing order for payment retry", {
           ...context,
           existingOrderId: existingOrder._id.toString(),
@@ -173,7 +170,7 @@ export class OrderService implements IOrderService {
           orderId: order._id.toString(),
         });
       } else {
-        // CREATE new order (original logic)
+        // CREATE new order
         this.logger.info("Creating new order from booking", context);
         order = await this.orderRepository.createFromBooking(
           bookingId,
@@ -501,10 +498,8 @@ export class OrderService implements IOrderService {
         "Order updated successfully, now triggering notifications"
       );
 
-      // ALWAYS trigger user notifications regardless of who updated
       await this.notifyUserAboutOrderStatusChange(updatedOrder, status);
 
-      // Only trigger technician notifications if technician updated
       if (updatedBy === "technician") {
         await this.notifyTechnicianAboutOrderStatusChange(updatedOrder, status);
       }
@@ -572,21 +567,19 @@ export class OrderService implements IOrderService {
       return ResponseHelper.error("Failed to fetch order stats");
     }
   }
-  // In your OrderService.ts file
   private async checkTechnicianAvailability(
     technicianId: string,
     date: string,
     timeSlot: string,
-    excludeOrderId?: string // Add this parameter
+    excludeOrderId?: string
   ): Promise<boolean> {
     try {
-      // Check if there are any conflicting orders for the same technician at the same time
       const conflictingOrders =
         await this.orderRepository.findConflictingOrders(
           technicianId,
           date,
           timeSlot,
-          excludeOrderId // Pass the order ID to exclude
+          excludeOrderId
         );
 
       return conflictingOrders.length === 0;
@@ -671,7 +664,7 @@ export class OrderService implements IOrderService {
         order.technicianId.toString(),
         newDate,
         newTimeSlot,
-        orderId // Pass the current order ID to exclude it from conflict check
+        orderId
       );
 
       if (!isAvailable) {
@@ -684,12 +677,11 @@ export class OrderService implements IOrderService {
         );
       }
 
-      // FIX: Pass "user" as the enum value, not the user ID
       const updatedOrder = await this.orderRepository.rescheduleOrder(
         orderId,
         newDate,
         newTimeSlot,
-        "user" // Use enum value, not user ID
+        "user"
       );
 
       if (!updatedOrder) {
@@ -749,7 +741,6 @@ export class OrderService implements IOrderService {
       return null;
     }
   }
-  // In your OrderService.ts - add this method
   async getOrderByBookingId(
     userId: string,
     bookingId: string
@@ -797,7 +788,6 @@ export class OrderService implements IOrderService {
       return ResponseHelper.error("Failed to fetch order");
     }
   }
-  // In your OrderService.ts - add this method
   async updateOrderPayment(
     orderId: string,
     paymentData: {
@@ -888,7 +878,6 @@ export class OrderService implements IOrderService {
     }
   }
 
-  // Add this method to your OrderService
   private async notifyTechnicianAboutOrderStatusChange(
     order: any,
     newStatus: string
@@ -973,7 +962,6 @@ export class OrderService implements IOrderService {
       );
     }
   }
-  // In OrderService - update these methods with better logging
   private async notifyUserAboutOrderStatusChange(
     order: any,
     newStatus: string
@@ -1031,7 +1019,6 @@ export class OrderService implements IOrderService {
         type: notificationType,
       });
 
-      // ACTUALLY CREATE THE NOTIFICATION
       const notification = await this.notificationService.createNotification({
         userId: order.userId.toString(),
         userType: "customer",

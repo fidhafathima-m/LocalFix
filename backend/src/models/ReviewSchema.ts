@@ -1,4 +1,3 @@
-// models/ReviewSchema.ts - Updated
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IReview extends Document {

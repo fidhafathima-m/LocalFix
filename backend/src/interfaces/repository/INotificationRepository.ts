@@ -1,4 +1,3 @@
-// src/interfaces/repository/INotificationRepository.ts
 import { FilterQuery, Types } from "mongoose";
 import { INotification } from "../../interfaces/notification/INotification";
 import { CreateNotificationDto } from "../../interfaces/dtos/notificationDtos";

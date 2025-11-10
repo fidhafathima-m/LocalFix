@@ -6,7 +6,7 @@ import {
 } from "../../interfaces/admin/IPaymentManagement";
 import { IPaymentRepository } from "../../interfaces/repository/admin/IPaymentRepository";
 import PaymentSchema from "../../models/PaymentSchema";
-import OrderSchema from "../../models/OrderSchema"; // Import OrderSchema
+import OrderSchema from "../../models/OrderSchema";
 
 export class PaymentManagementRepository implements IPaymentRepository {
   async create(paymentData: IPaymentCreate): Promise<IPayment> {
@@ -34,7 +34,6 @@ export class PaymentManagementRepository implements IPaymentRepository {
     skip: number = 0,
     limit: number = 10
   ): Promise<IPayment[]> {
-    // First get payments with populated booking and user data
     const payments = await PaymentSchema.find(filter)
       .populate("userId", "fullName email phone")
       .populate({
@@ -60,7 +59,6 @@ export class PaymentManagementRepository implements IPaymentRepository {
           { orderCode: 1 }
         ).exec();
 
-        // Add orderCode to the payment object
         const paymentWithOrder = payment.toObject();
         if (order) {
           paymentWithOrder.orderCode = order.orderCode;
@@ -281,11 +279,11 @@ export class PaymentManagementRepository implements IPaymentRepository {
           rawResponse: 1,
           createdAt: 1,
           updatedAt: 1,
-          // Properly extract user data from the array
+          // extract user data from the array
           userName: { $arrayElemAt: ["$user.fullName", 0] },
           userEmail: { $arrayElemAt: ["$user.email", 0] },
           userPhone: { $arrayElemAt: ["$user.phone", 0] },
-          // Properly extract booking data from the array
+          // extract booking data from the array
           bookingCode: { $arrayElemAt: ["$booking.bookingCode", 0] },
           serviceName: { $arrayElemAt: ["$booking.serviceName", 0] },
           // Extract order data
@@ -317,7 +315,6 @@ export class PaymentManagementRepository implements IPaymentRepository {
       { $sort: { createdAt: -1 } },
     ]);
 
-    // Convert _id to id for frontend consistency
     const transformedPayments = payments.map((payment) => ({
       ...payment,
       id: payment._id.toString(),

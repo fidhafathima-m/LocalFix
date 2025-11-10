@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Update your ReviewManagement component
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -40,7 +39,7 @@ const ReviewManagement: React.FC = () => {
     fiveStarReviews: 0,
   });
   const [loading, setLoading] = useState(true);
-  
+
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -58,7 +57,7 @@ const ReviewManagement: React.FC = () => {
         statusFilter !== "all" ? statusFilter : undefined,
         serviceFilter !== "all" ? serviceFilter : undefined
       );
-      
+
       if (response.data.success && response.data.data) {
         setReviews(response.data.data.reviews);
         setTotalCount(response.data.data.total);
@@ -188,7 +187,8 @@ const ReviewManagement: React.FC = () => {
               </button>
               <h1 className="text-2xl font-bold mb-1">Review Management</h1>
               <p className="text-gray-600">
-                Manage customer reviews and ratings for technicians and services.
+                Manage customer reviews and ratings for technicians and
+                services.
               </p>
             </div>
 
@@ -209,7 +209,9 @@ const ReviewManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Average Rating</p>
-                  <p className="text-xl font-bold">{stats.averageRating.toFixed(1)}/5.0</p>
+                  <p className="text-xl font-bold">
+                    {stats.averageRating.toFixed(1)}/5.0
+                  </p>
                 </div>
               </div>
               <div className="bg-red-50 p-4 rounded-lg flex items-start">
@@ -284,10 +286,18 @@ const ReviewManagement: React.FC = () => {
                     >
                       <option value="all">All Services</option>
                       <option value="AC Repair">AC Repair</option>
-                      <option value="Washing Machine Repair">Washing Machine Repair</option>
-                      <option value="Refrigerator Repair">Refrigerator Repair</option>
-                      <option value="Plumbing Services">Plumbing Services</option>
-                      <option value="Electrical Services">Electrical Services</option>
+                      <option value="Washing Machine Repair">
+                        Washing Machine Repair
+                      </option>
+                      <option value="Refrigerator Repair">
+                        Refrigerator Repair
+                      </option>
+                      <option value="Plumbing Services">
+                        Plumbing Services
+                      </option>
+                      <option value="Electrical Services">
+                        Electrical Services
+                      </option>
                     </select>
                     <ExpandMoreOutlined className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
                   </div>
@@ -300,9 +310,14 @@ const ReviewManagement: React.FC = () => {
               <div className="p-6">
                 {reviews.length === 0 ? (
                   <div className="text-center py-8">
-                    {searchQuery || ratingFilter !== "all" || statusFilter !== "all" || serviceFilter !== "all" ? (
+                    {searchQuery ||
+                    ratingFilter !== "all" ||
+                    statusFilter !== "all" ||
+                    serviceFilter !== "all" ? (
                       <div>
-                        <p className="text-gray-500 mb-2">No reviews found matching your criteria</p>
+                        <p className="text-gray-500 mb-2">
+                          No reviews found matching your criteria
+                        </p>
                         <button
                           onClick={() => {
                             setSearchQuery("");
@@ -328,11 +343,14 @@ const ReviewManagement: React.FC = () => {
                         customerEmail={review.customerEmail}
                         customerPhone={review.customerPhone}
                         rating={review.rating}
-                        date={new Date(review.createdAt).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
+                        date={new Date(review.createdAt).toLocaleDateString(
+                          "en-GB",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )}
                         status={review.status}
                         service={review.service}
                         technician={review.technicianName}
@@ -405,6 +423,6 @@ const ReviewManagement: React.FC = () => {
       </div>
     </>
   );
-}
+};
 
 export default ReviewManagement;

@@ -1,6 +1,8 @@
-// controllers/user/reviewController.ts
 import { Response } from "express";
-import { IReviewService, ReportReviewRequest } from "../../interfaces/services/user/IReviewService";
+import {
+  IReviewService,
+  ReportReviewRequest,
+} from "../../interfaces/services/user/IReviewService";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
 import {
@@ -22,7 +24,7 @@ export class ReviewController {
     reviewRepository: IReviewRepository
   ) {
     this.reviewService = reviewService;
-    this.reviewRepository = reviewRepository
+    this.reviewRepository = reviewRepository;
     this.logger = new LoggerService();
   }
 
@@ -41,8 +43,13 @@ export class ReviewController {
       this.logger.info("Creating new review", context);
 
       if (!userId) {
-        this.logger.warn("Create review failed - authentication required", context);
-        const errorResponse = ResponseHelper.unauthorized("Authentication required");
+        this.logger.warn(
+          "Create review failed - authentication required",
+          context
+        );
+        const errorResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
@@ -83,13 +90,22 @@ export class ReviewController {
       this.logger.info("Updating review", context);
 
       if (!userId) {
-        this.logger.warn("Update review failed - authentication required", context);
-        const errorResponse = ResponseHelper.unauthorized("Authentication required");
+        this.logger.warn(
+          "Update review failed - authentication required",
+          context
+        );
+        const errorResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
 
-      const result = await this.reviewService.updateReview(userId, reviewId, reviewData);
+      const result = await this.reviewService.updateReview(
+        userId,
+        reviewId,
+        reviewData
+      );
 
       this.logger.info("Review updated successfully", context);
 
@@ -121,8 +137,13 @@ export class ReviewController {
       this.logger.info("Deleting review", context);
 
       if (!userId) {
-        this.logger.warn("Delete review failed - authentication required", context);
-        const errorResponse = ResponseHelper.unauthorized("Authentication required");
+        this.logger.warn(
+          "Delete review failed - authentication required",
+          context
+        );
+        const errorResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
@@ -186,8 +207,13 @@ export class ReviewController {
       this.logger.info("Fetching user reviews", context);
 
       if (!userId) {
-        this.logger.warn("Get user reviews failed - authentication required", context);
-        const errorResponse = ResponseHelper.unauthorized("Authentication required");
+        this.logger.warn(
+          "Get user reviews failed - authentication required",
+          context
+        );
+        const errorResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
@@ -212,7 +238,10 @@ export class ReviewController {
     }
   };
 
-  getTechnicianReviews = async (req: AuthRequest, res: Response): Promise<void> => {
+  getTechnicianReviews = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { technicianId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -228,7 +257,11 @@ export class ReviewController {
     try {
       this.logger.info("Fetching technician reviews", context);
 
-      const result = await this.reviewService.getTechnicianReviews(technicianId, page, limit);
+      const result = await this.reviewService.getTechnicianReviews(
+        technicianId,
+        page,
+        limit
+      );
 
       this.logger.info("Technician reviews retrieved successfully", {
         ...context,
@@ -248,46 +281,53 @@ export class ReviewController {
     }
   };
 
-  // In your ReviewController - update getOrderReview method
-getOrderReview = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { orderId } = req.params;
+  getOrderReview = async (req: AuthRequest, res: Response): Promise<void> => {
+    const { orderId } = req.params;
 
-  const context = {
-    operation: "getOrderReview",
-    orderId,
-    timestamp: new Date().toISOString(),
+    const context = {
+      operation: "getOrderReview",
+      orderId,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this.logger.info("Fetching review for order", context);
+
+      const review = await this.reviewRepository.findByOrderId(orderId);
+
+      if (!review) {
+        this.logger.info("No review found for order", context);
+        const response = ResponseHelper.success(
+          "No review found for this order",
+          null
+        );
+        res.status(response.statusCode).json(response);
+        return;
+      }
+
+      this.logger.info("Order review retrieved successfully", context);
+
+      const reviewDto = ReviewMapper.toDto(review);
+      const response = ResponseHelper.success(
+        "Review retrieved successfully",
+        reviewDto
+      );
+      res.status(response.statusCode).json(response);
+    } catch (error: any) {
+      this.logger.error("Get order review controller error", {
+        ...context,
+        error: error.message,
+        stack: error.stack,
+      });
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
   };
 
-  try {
-    this.logger.info("Fetching review for order", context);
-
-    const review = await this.reviewRepository.findByOrderId(orderId);
-
-    if (!review) {
-      this.logger.info("No review found for order", context);
-      // Return 200 with success: false instead of 404
-      const response = ResponseHelper.success("No review found for this order", null);
-      res.status(response.statusCode).json(response);
-      return;
-    }
-
-    this.logger.info("Order review retrieved successfully", context);
-
-    const reviewDto = ReviewMapper.toDto(review);
-    const response = ResponseHelper.success("Review retrieved successfully", reviewDto);
-    res.status(response.statusCode).json(response);
-  } catch (error: any) {
-    this.logger.error("Get order review controller error", {
-      ...context,
-      error: error.message,
-      stack: error.stack,
-    });
-    const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
-    res.status(errorResponse.statusCode).json(errorResponse);
-  }
-};
-
-  getTechnicianReviewStats = async (req: AuthRequest, res: Response): Promise<void> => {
+  getTechnicianReviewStats = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { technicianId } = req.params;
 
     const context = {
@@ -299,9 +339,14 @@ getOrderReview = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       this.logger.info("Fetching technician review stats", context);
 
-      const result = await this.reviewService.getTechnicianReviewStats(technicianId);
+      const result = await this.reviewService.getTechnicianReviewStats(
+        technicianId
+      );
 
-      this.logger.info("Technician review stats retrieved successfully", context);
+      this.logger.info(
+        "Technician review stats retrieved successfully",
+        context
+      );
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
@@ -316,7 +361,10 @@ getOrderReview = async (req: AuthRequest, res: Response): Promise<void> => {
     }
   };
 
-  canUserReviewOrder = async (req: AuthRequest, res: Response): Promise<void> => {
+  canUserReviewOrder = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const userId = req.user?.id;
     const { orderId } = req.params;
 
@@ -331,17 +379,28 @@ getOrderReview = async (req: AuthRequest, res: Response): Promise<void> => {
       this.logger.info("Checking if user can review order", context);
 
       if (!userId) {
-        this.logger.warn("Check review permission failed - authentication required", context);
-        const errorResponse = ResponseHelper.unauthorized("Authentication required");
+        this.logger.warn(
+          "Check review permission failed - authentication required",
+          context
+        );
+        const errorResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
 
-      const canReview = await this.reviewService.canUserReviewOrder(userId, orderId);
+      const canReview = await this.reviewService.canUserReviewOrder(
+        userId,
+        orderId
+      );
 
-      const response = ResponseHelper.success("Review permission checked successfully", {
-        canReview,
-      });
+      const response = ResponseHelper.success(
+        "Review permission checked successfully",
+        {
+          canReview,
+        }
+      );
 
       res.status(response.statusCode).json(response);
     } catch (error: any) {
@@ -372,8 +431,13 @@ getOrderReview = async (req: AuthRequest, res: Response): Promise<void> => {
       this.logger.info("Reporting review", context);
 
       if (!userId) {
-        this.logger.warn("Report review failed - authentication required", context);
-        const errorResponse = ResponseHelper.unauthorized("Authentication required");
+        this.logger.warn(
+          "Report review failed - authentication required",
+          context
+        );
+        const errorResponse = ResponseHelper.unauthorized(
+          "Authentication required"
+        );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }

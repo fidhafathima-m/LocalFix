@@ -267,8 +267,6 @@ export class BookingService implements IBookingService {
     }
   }
 
-  // BookingService.ts - Add this method
-  // In your BookingService.ts - update the updateBooking method
   async updateBooking(
     userId: string,
     bookingId: string,
@@ -282,7 +280,6 @@ export class BookingService implements IBookingService {
     try {
       this.logger.info("Updating booking", context);
 
-      // First, verify the booking exists and user has access
       const existingBooking = await this.bookingRepository.findById(bookingId);
 
       if (!existingBooking) {
@@ -302,7 +299,6 @@ export class BookingService implements IBookingService {
         );
       }
 
-      // UPDATED: Allow updates for pending, cancelled, AND accepted status for payment retry
       const allowedStatuses = ["pending", "cancelled", "accepted"];
       if (!allowedStatuses.includes(existingBooking.status)) {
         this.logger.warn("Booking cannot be updated in current status", {
@@ -534,7 +530,6 @@ export class BookingService implements IBookingService {
         return ResponseHelper.notFound("Order not found");
       }
 
-      // DEBUG: Check what technicianId contains
       this.logger.debug("Technician data from order", {
         technicianId: order.technicianId,
         technicianIdType: typeof order.technicianId,
@@ -542,7 +537,6 @@ export class BookingService implements IBookingService {
         hasId: order.technicianId?._id !== undefined,
       });
 
-      // FIX: Add type guard to check if technician is populated
       const technician = order.technicianId;
 
       // Type guard function to check if it's ITechnician
@@ -563,14 +557,12 @@ export class BookingService implements IBookingService {
         return ResponseHelper.notFound("Technician details not found");
       }
 
-      // Now TypeScript knows technician is ITechnician
-      // Use order address directly
       const address = order.address;
 
       // Get technician location if available
       const technicianLocation =
         await this.bookingRepository.getTechnicianLocation(
-          technician._id.toString() // Use the actual technician ID
+          technician._id.toString()
         );
 
       // Calculate estimated arrival and distance if technician is on the way
@@ -721,7 +713,7 @@ export class BookingService implements IBookingService {
   private calculateDistance(lat: number, lng: number): number {
     // Mock distance calculation - in real app, use Haversine formula
     // or Google Maps Distance Matrix API
-    return Math.random() * 10 + 1; // Random distance between 1-11 km
+    return Math.random() * 10 + 1;
   }
 
   private calculateEstimatedArrival(distance: number): string {

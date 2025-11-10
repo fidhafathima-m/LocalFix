@@ -1,4 +1,3 @@
-// src/models/NotificationSchema.ts
 import mongoose, { Schema, Document, Types } from "mongoose";
 import { INotification } from "../interfaces/notification/INotification";
 
@@ -69,7 +68,6 @@ const NotificationSchema = new Schema<INotificationDocument>(
   }
 );
 
-// Index for efficient queries
 NotificationSchema.index({ userId: 1, createdAt: -1 });
 NotificationSchema.index({ userId: 1, isRead: 1 });
 

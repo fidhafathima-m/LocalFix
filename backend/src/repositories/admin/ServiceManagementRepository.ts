@@ -48,12 +48,9 @@ export class ServiceRepository implements IServiceRepository {
     filter: FilterQuery<IService> = {},
     skip: number = 0,
     limit: number = 10,
-    sort: any = { name: 1 } // Add sort parameter with default
+    sort: any = { name: 1 }
   ): Promise<IService[]> {
-    return await Service.find(filter)
-      .sort(sort) // Use the provided sort
-      .skip(skip)
-      .limit(limit);
+    return await Service.find(filter).sort(sort).skip(skip).limit(limit);
   }
 
   async update(
@@ -85,9 +82,9 @@ export class ServiceRepository implements IServiceRepository {
   }
 
   async search(
-    query: string, 
-    limit: number = 10, 
-    sort: any = { name: 1 } // Add sort parameter
+    query: string,
+    limit: number = 10,
+    sort: any = { name: 1 }
   ): Promise<IService[]> {
     return await Service.find({
       $or: [
@@ -95,7 +92,7 @@ export class ServiceRepository implements IServiceRepository {
         { description: { $regex: query, $options: "i" } },
       ],
     })
-      .sort(sort) // Use the provided sort
+      .sort(sort)
       .limit(limit);
   }
 
@@ -103,7 +100,7 @@ export class ServiceRepository implements IServiceRepository {
     categoryId: string | Types.ObjectId,
     query: string,
     limit: number = 10,
-    sort: any = { name: 1 } // Add sort parameter
+    sort: any = { name: 1 }
   ): Promise<IService[]> {
     return await Service.find({
       categoryId,
@@ -112,7 +109,7 @@ export class ServiceRepository implements IServiceRepository {
         { description: { $regex: query, $options: "i" } },
       ],
     })
-      .sort(sort) // Use the provided sort
+      .sort(sort)
       .limit(limit);
   }
 }

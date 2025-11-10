@@ -1,4 +1,3 @@
-// interfaces/dtos/reviewDtos.ts
 export interface CreateReviewRequestDto {
   orderId: string;
   rating: number;

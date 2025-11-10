@@ -108,7 +108,6 @@ export class UserLocationController {
   }
 
   // Get user location
-  // In UserLocationController - update getUserLocation method
   async getUserLocation(req: AuthRequest, res: Response): Promise<void> {
     const userId = req.user?.id;
     const context = {
@@ -151,7 +150,6 @@ export class UserLocationController {
           serviceResult: result,
         });
 
-        // Return 200 with success: false instead of 404
         res.status(200).json({
           success: false,
           message: result.message || "Location not found",

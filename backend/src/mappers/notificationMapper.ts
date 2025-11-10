@@ -1,4 +1,3 @@
-// src/mappers/notificationMapper.ts
 import { INotification } from "../interfaces/notification/INotification";
 import { NotificationResponseDto, NotificationListResponseDto } from "../interfaces/dtos/notificationDtos";
 

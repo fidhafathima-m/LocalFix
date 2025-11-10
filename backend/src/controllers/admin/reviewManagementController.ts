@@ -1,4 +1,3 @@
-// controllers/adminReviewController.ts
 import { Request, Response } from "express";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { REVIEW_MESSAGES } from "../../constants";

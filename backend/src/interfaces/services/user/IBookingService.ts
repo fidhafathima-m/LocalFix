@@ -26,7 +26,6 @@ export interface IBookingService {
     page?: number,
     limit?: number
   ): Promise<ApiResponse<BookingListResponseDto>>;
-  // IBookingService.ts - Add this method signature
   updateBooking(
     userId: string,
     bookingId: string,

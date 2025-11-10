@@ -13,7 +13,6 @@ export class OrderRepository implements IOrderRepository {
     paymentData: any
   ): Promise<IOrder | null> {
     try {
-      // Find the booking with proper population
       const booking = await Booking.findById(bookingId)
         .populate("userId")
         .populate("technicianId")
@@ -278,13 +277,11 @@ export class OrderRepository implements IOrderRepository {
       monthlyEarnings,
     };
   }
-  // In your OrderRepository.ts file
-  // In your OrderRepository.ts file
   async rescheduleOrder(
     orderId: string,
     newDate: string,
     newTimeSlot: string,
-    updatedBy: string // This should be "user", "technician", or "system"
+    updatedBy: string
   ): Promise<IOrder | null> {
     try {
       const order = await Order.findById(orderId);
@@ -298,20 +295,18 @@ export class OrderRepository implements IOrderRepository {
       order.scheduledAt = new Date(newDate);
       order.timeSlot = newTimeSlot;
 
-      // Add to history - FIX: Use proper enum value
       order.history.push({
         status: order.status,
         description: `Order rescheduled from ${oldScheduledAt.toLocaleDateString()} ${oldTimeSlot} to ${new Date(
           newDate
         ).toLocaleDateString()} ${newTimeSlot}`,
-        updatedBy: "user" as "user" | "technician" | "system", // FIX: Use enum value, not user ID
+        updatedBy: "user" as "user" | "technician" | "system",
         timestamp: new Date(),
       });
 
-      // Update reschedule info - store the actual user ID here
       order.rescheduleInfo = {
         rescheduledAt: new Date(),
-        rescheduledBy: updatedBy, // This can store the user ID
+        rescheduledBy: updatedBy,
         previousScheduledAt: oldScheduledAt,
         previousTimeSlot: oldTimeSlot,
         rescheduleCount: (order.rescheduleInfo?.rescheduleCount || 0) + 1,
@@ -346,16 +341,15 @@ export class OrderRepository implements IOrderRepository {
       });
     } catch (error) {
       console.error("Error updating booking schedule:", error);
-      // Don't throw error here as order reschedule should still succeed
+      // Don't throw error as order reschedule should still succeed
     }
   }
 
-  // In your OrderRepository.ts file
   async findConflictingOrders(
     technicianId: string,
     date: string,
     timeSlot: string,
-    excludeOrderId?: string // Add this parameter to exclude current order
+    excludeOrderId?: string
   ): Promise<IOrder[]> {
     try {
       const scheduledAt = new Date(date);
@@ -382,7 +376,6 @@ export class OrderRepository implements IOrderRepository {
       return [];
     }
   }
-  // In OrderRepository.ts
   async findByBookingId(bookingId: string): Promise<IOrderPopulated | null> {
     return await Order.findOne({ bookingId: new Types.ObjectId(bookingId) })
       .populate<{ technicianId: ITechnician }>(
@@ -392,65 +385,63 @@ export class OrderRepository implements IOrderRepository {
       .populate<{ userId: IUser }>("userId", "fullName email phone")
       .exec();
   }
-  // In your OrderRepository.ts - add this method
-async updatePaymentDetails(
-  orderId: string,
-  paymentData: {
-    method: "online" | "cod";
-    amount: number;
-    status: "pending" | "paid" | "failed";
-    transactionId?: string;
-    paidAt?: Date;
-  }
-): Promise<IOrder | null> {
-  try {
-    const updateData: any = {
-      "payment.method": paymentData.method,
-      "payment.amount": paymentData.amount,
-      "payment.status": paymentData.status,
-      "payment.paidAt": paymentData.paidAt || new Date(),
-      totalAmount: paymentData.amount,
-      updatedAt: new Date(),
-    };
-
-    if (paymentData.transactionId) {
-      updateData["payment.transactionId"] = paymentData.transactionId;
+  async updatePaymentDetails(
+    orderId: string,
+    paymentData: {
+      method: "online" | "cod";
+      amount: number;
+      status: "pending" | "paid" | "failed";
+      transactionId?: string;
+      paidAt?: Date;
     }
+  ): Promise<IOrder | null> {
+    try {
+      const updateData: any = {
+        "payment.method": paymentData.method,
+        "payment.amount": paymentData.amount,
+        "payment.status": paymentData.status,
+        "payment.paidAt": paymentData.paidAt || new Date(),
+        totalAmount: paymentData.amount,
+        updatedAt: new Date(),
+      };
 
-    // Also update order status based on payment status
-    let orderStatus = "pending";
-    if (paymentData.status === "paid") {
-      orderStatus = "confirmed";
-    } else if (paymentData.status === "failed") {
-      orderStatus = "cancelled";
+      if (paymentData.transactionId) {
+        updateData["payment.transactionId"] = paymentData.transactionId;
+      }
+
+      let orderStatus = "pending";
+      if (paymentData.status === "paid") {
+        orderStatus = "confirmed";
+      } else if (paymentData.status === "failed") {
+        orderStatus = "cancelled";
+      }
+
+      updateData.status = orderStatus;
+
+      // Add to history
+      const historyEntry = {
+        status: orderStatus,
+        description: `Payment ${paymentData.status} via ${paymentData.method}`,
+        updatedBy: "system",
+        timestamp: new Date(),
+      };
+
+      const updatedOrder = await Order.findByIdAndUpdate(
+        new Types.ObjectId(orderId),
+        {
+          $set: updateData,
+          $push: { history: historyEntry },
+        },
+        { new: true }
+      )
+        .populate("userId", "fullName email phone")
+        .populate("technicianId", "displayName profilePictureUrl services")
+        .exec();
+
+      return updatedOrder;
+    } catch (error) {
+      console.error("Error updating payment details:", error);
+      return null;
     }
-
-    updateData.status = orderStatus;
-
-    // Add to history
-    const historyEntry = {
-      status: orderStatus,
-      description: `Payment ${paymentData.status} via ${paymentData.method}`,
-      updatedBy: "system",
-      timestamp: new Date(),
-    };
-
-    const updatedOrder = await Order.findByIdAndUpdate(
-      new Types.ObjectId(orderId),
-      {
-        $set: updateData,
-        $push: { history: historyEntry },
-      },
-      { new: true }
-    )
-      .populate("userId", "fullName email phone")
-      .populate("technicianId", "displayName profilePictureUrl services")
-      .exec();
-
-    return updatedOrder;
-  } catch (error) {
-    console.error("Error updating payment details:", error);
-    return null;
   }
-}
 }

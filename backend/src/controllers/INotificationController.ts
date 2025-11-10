@@ -1,4 +1,3 @@
-// src/controllers/NotificationController.ts
 import { Request, Response } from "express";
 import { INotificationService } from "../interfaces/services/INotificationService";
 import { ResponseHelper } from "../utils/responseHelper";

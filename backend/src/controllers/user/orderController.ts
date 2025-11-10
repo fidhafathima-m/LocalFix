@@ -162,7 +162,6 @@ export class OrderController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
-  // In your OrderController.ts file
   rescheduleOrder = async (req: AuthRequest, res: Response): Promise<void> => {
     const userId = req.user?.id;
     const { orderId } = req.params;
@@ -321,7 +320,6 @@ export class OrderController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
-  // In your OrderController.ts - add this method
   getOrderByBookingId = async (
     req: AuthRequest,
     res: Response
@@ -370,7 +368,6 @@ export class OrderController {
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
-  // In your OrderController.ts - add this method
   updateOrderPayment = async (
     req: AuthRequest,
     res: Response

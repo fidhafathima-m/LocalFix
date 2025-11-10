@@ -1,4 +1,3 @@
-// src/routes/notificationRoutes.ts
 import { notificationController } from "../config/container";
 import { Router } from "express";
 

@@ -1,4 +1,3 @@
-// interfaces/review/IReview.ts
 import { Types } from "mongoose";
 
 export interface IReview {

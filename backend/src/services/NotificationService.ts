@@ -1,4 +1,3 @@
-// src/services/NotificationService.ts
 import { INotificationService } from "../interfaces/services/INotificationService";
 import { INotificationRepository } from "../interfaces/repository/INotificationRepository";
 import {
@@ -277,33 +276,41 @@ export class NotificationService implements INotificationService {
       },
     });
   }
-async createBookingConfirmedNotification(userId: string, serviceType: string, date: string): Promise<NotificationResponseDto> {
-  return this.createNotification({
-    userId,
-    userType: "customer",
-    type: "booking_confirmed",
-    title: "Booking Confirmed!",
-    message: `Your ${serviceType} booking for ${date} has been confirmed.`,
-    priority: "medium",
-    data: {
-      serviceType,
-      date
-    }
-  });
-}
+  async createBookingConfirmedNotification(
+    userId: string,
+    serviceType: string,
+    date: string
+  ): Promise<NotificationResponseDto> {
+    return this.createNotification({
+      userId,
+      userType: "customer",
+      type: "booking_confirmed",
+      title: "Booking Confirmed!",
+      message: `Your ${serviceType} booking for ${date} has been confirmed.`,
+      priority: "medium",
+      data: {
+        serviceType,
+        date,
+      },
+    });
+  }
 
-async createServiceReminderNotification(userId: string, serviceType: string, date: string): Promise<NotificationResponseDto> {
-  return this.createNotification({
-    userId,
-    userType: "customer",
-    type: "reminder",
-    title: "Service Reminder",
-    message: `Reminder: Your ${serviceType} service is scheduled for tomorrow (${date}).`,
-    priority: "medium",
-    data: {
-      serviceType,
-      date
-    }
-  });
-}
+  async createServiceReminderNotification(
+    userId: string,
+    serviceType: string,
+    date: string
+  ): Promise<NotificationResponseDto> {
+    return this.createNotification({
+      userId,
+      userType: "customer",
+      type: "reminder",
+      title: "Service Reminder",
+      message: `Reminder: Your ${serviceType} service is scheduled for tomorrow (${date}).`,
+      priority: "medium",
+      data: {
+        serviceType,
+        date,
+      },
+    });
+  }
 }

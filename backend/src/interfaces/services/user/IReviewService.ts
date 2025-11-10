@@ -1,4 +1,3 @@
-// interfaces/services/user/IReviewService.ts
 import {
   CreateReviewRequestDto,
   UpdateReviewRequestDto,

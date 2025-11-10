@@ -1,4 +1,3 @@
-// interfaces/services/admin/IAdminReviewService.ts
 export interface ReviewStatsResponse {
   totalReviews: number;
   averageRating: number;

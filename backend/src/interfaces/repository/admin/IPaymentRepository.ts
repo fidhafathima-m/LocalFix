@@ -1,5 +1,9 @@
 import { FilterQuery, Types } from "mongoose";
-import { IPayment, IPaymentCreate, IPaymentUpdate } from "../../admin/IPaymentManagement";
+import {
+  IPayment,
+  IPaymentCreate,
+  IPaymentUpdate,
+} from "../../admin/IPaymentManagement";
 
 export interface IPaymentRepository {
   create(paymentData: IPaymentCreate): Promise<IPayment>;

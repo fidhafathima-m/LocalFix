@@ -1,4 +1,3 @@
-// src/interfaces/dtos/notificationDtos.ts
 import { Types } from "mongoose";
 
 export interface CreateNotificationDto {

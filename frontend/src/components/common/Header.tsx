@@ -5,8 +5,8 @@ import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { NotificationService } from "../../services/notificationService";
 import { NotificationsNoneOutlined } from "@mui/icons-material";
+import { useNotification } from "../../context/notificationContext/NotificationContext";
 
 interface HeaderProps {
   isApproved?: boolean;
@@ -20,7 +20,8 @@ const Header: React.FC<HeaderProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
+
+  const { notificationCount } = useNotification();
 
   const dispatch = useAppDispatch();
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
@@ -49,23 +50,7 @@ const Header: React.FC<HeaderProps> = ({
       closeMobileMenu();
     }
   };
-
-  useEffect(() => {
-    if (user?._id) {
-      loadUnreadNotificationCount();
-    }
-  }, [user?._id]);
-
-  const loadUnreadNotificationCount = async () => {
-    try {
-      const count = await NotificationService.getUnreadCount(user!._id);
-      setNotificationCount(count);
-    } catch (err) {
-      console.error("Failed to load notification count:", err);
-    }
-  };
-
-  const handleNotificationClick = () => {
+ const handleNotificationClick = () => {
     if (userType === "serviceProvider") {
       navigate("/technician/dashboard?tab=notifications");
     } else {

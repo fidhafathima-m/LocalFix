@@ -1,7 +1,9 @@
-// mappers/reviewMapper.ts
 import { Types } from "mongoose";
 import { IReview } from "../models/ReviewSchema";
-import { PopulatedUser, ReviewWithUserReport } from "../interfaces/repository/user/IReviewRepository";
+import {
+  PopulatedUser,
+  ReviewWithUserReport,
+} from "../interfaces/repository/user/IReviewRepository";
 import {
   ReviewResponseDto,
   CreateReviewRequestDto,
@@ -14,24 +16,20 @@ interface CreateReviewModelData extends CreateReviewRequestDto {
 }
 
 function isPopulatedUser(userId: any): userId is PopulatedUser {
-  return userId && typeof userId === 'object' && 'fullName' in userId;
+  return userId && typeof userId === "object" && "fullName" in userId;
 }
 
 export class ReviewMapper {
-  // Update toDto to handle both IReview and ReviewWithUserReport
   static toDto(review: IReview | ReviewWithUserReport): ReviewResponseDto {
     let userName = "Anonymous User";
     let userEmail = "";
     let userIdString = "";
 
-    // Use type guard to safely check the type
     if (isPopulatedUser(review.userId)) {
-      // userId is a populated user object
       userName = review.userId.fullName || "Anonymous User";
       userEmail = review.userId.email || "";
       userIdString = review.userId._id.toString();
     } else {
-      // userId is a string or ObjectId
       userIdString = review.userId?.toString() || "";
     }
 
@@ -53,12 +51,12 @@ export class ReviewMapper {
     };
   }
 
-  // Update toDtoList to handle both types
-  static toDtoList(reviews: (IReview | ReviewWithUserReport)[]): ReviewResponseDto[] {
+  static toDtoList(
+    reviews: (IReview | ReviewWithUserReport)[]
+  ): ReviewResponseDto[] {
     return reviews.map((review) => this.toDto(review));
   }
 
-  // Keep existing methods unchanged
   static toCreateModel(data: CreateReviewModelData): Partial<IReview> {
     return {
       orderId: new Types.ObjectId(data.orderId),

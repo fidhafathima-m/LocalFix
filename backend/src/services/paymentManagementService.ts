@@ -201,7 +201,6 @@ export class PaymentManagementService implements IPaymentService {
         throw new Error(PAYMENT_MESSAGES.PAYMENT_NOT_FOUND);
       }
 
-      // Simplified logic - only allow refund for successful payments
       if (payment.status !== "success") {
         this.logger.warn("Refund failed - payment not successful", {
           ...context,
@@ -227,7 +226,7 @@ export class PaymentManagementService implements IPaymentService {
         providerOrderId: payment.providerOrderId,
       });
 
-      // Here you would typically integrate with your payment provider's refund API
+      // Here would typically integrate with your payment provider's refund API
       // For example: Razorpay refund API call
     } catch (error: any) {
       this.logger.error("Process refund error", {
@@ -325,7 +324,6 @@ export class PaymentManagementService implements IPaymentService {
   }
 
   private convertToExcel(payments: any[]): Buffer {
-    // Simplified - in real implementation, use exceljs or similar library
     const csvData = this.convertToCSV(payments);
     return Buffer.from(csvData, "utf-8");
   }

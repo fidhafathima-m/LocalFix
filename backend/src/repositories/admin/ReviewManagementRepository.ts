@@ -1,29 +1,35 @@
-// repository/ReviewRepository.ts
 import { FilterQuery, Types } from "mongoose";
-import { IReviewRepository, ReviewWithDetails, GetReviewsFilter, ReviewStats } from "../../interfaces/repository/admin/IReviewRepository";
+import {
+  IReviewRepository,
+  ReviewWithDetails,
+  GetReviewsFilter,
+  ReviewStats,
+} from "../../interfaces/repository/admin/IReviewRepository";
 import Review, { IReview } from "../../models/ReviewSchema";
 import UserSchema from "../../models/UserSchema";
 import { Technician } from "../../models/technician/TechnicianSchema";
 import { Service } from "../../models/category/serviceSchema";
 
 export class ReviewManagementRepository implements IReviewRepository {
-  async findByIdWithDetails(reviewId: string): Promise<ReviewWithDetails | null> {
+  async findByIdWithDetails(
+    reviewId: string
+  ): Promise<ReviewWithDetails | null> {
     const review = await Review.findById(reviewId)
       .populate({
         path: "orderId",
-        select: "serviceName userId technicianId", // Only select needed fields
+        select: "serviceName userId technicianId",
         populate: [
-          { 
-            path: "userId", 
-            model: UserSchema, 
-            select: "fullName email phone" 
+          {
+            path: "userId",
+            model: UserSchema,
+            select: "fullName email phone",
           },
-          { 
-            path: "technicianId", 
-            model: Technician, 
-            select: "name" 
-          }
-        ]
+          {
+            path: "technicianId",
+            model: Technician,
+            select: "name",
+          },
+        ],
       })
       .lean();
 
@@ -42,56 +48,56 @@ export class ReviewManagementRepository implements IReviewRepository {
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
       __v: review.__v,
-      // Additional fields
       customerName: (review as any).orderId?.userId?.fullName || "Unknown",
       customerEmail: (review as any).orderId?.userId?.email || "Unknown",
       customerPhone: (review as any).orderId?.userId?.phone || "Unknown",
       service: (review as any).orderId?.serviceName || "Unknown Service",
-      technicianName: (review as any).orderId?.technicianId?.name || "Unknown Technician",
+      technicianName:
+        (review as any).orderId?.technicianId?.name || "Unknown Technician",
     };
 
     return populatedReview;
   }
 
-  async findAllWithDetails(filters: GetReviewsFilter): Promise<{ reviews: ReviewWithDetails[]; total: number }> {
+  async findAllWithDetails(
+    filters: GetReviewsFilter
+  ): Promise<{ reviews: ReviewWithDetails[]; total: number }> {
     const page = filters.page || 1;
     const limit = filters.limit || 10;
     const skip = (page - 1) * limit;
 
     // Build query
     const query: FilterQuery<IReview> = {};
-    
+
     if (filters.rating) {
       query.rating = filters.rating;
     }
-    
+
     if (filters.status) {
       query.status = filters.status;
     }
 
     if (filters.search) {
-      query.$or = [
-        { comment: { $regex: filters.search, $options: "i" } },
-      ];
+      query.$or = [{ comment: { $regex: filters.search, $options: "i" } }];
     }
 
     // Get reviews with population
     const reviews = await Review.find(query)
       .populate({
         path: "orderId",
-        select: "serviceName userId technicianId", // Only select needed fields
+        select: "serviceName userId technicianId",
         populate: [
-          { 
-            path: "userId", 
-            model: UserSchema, 
-            select: "fullName email phone" 
+          {
+            path: "userId",
+            model: UserSchema,
+            select: "fullName email phone",
           },
-          { 
-            path: "technicianId", 
-            model: Technician, 
-            select: "name" 
-          }
-        ]
+          {
+            path: "technicianId",
+            model: Technician,
+            select: "name",
+          },
+        ],
       })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -99,37 +105,41 @@ export class ReviewManagementRepository implements IReviewRepository {
       .lean();
 
     // Transform data with explicit typing
-    const reviewsWithDetails: ReviewWithDetails[] = reviews.map((review: any) => ({
-      _id: review._id,
-      orderId: review.orderId,
-      userId: review.userId,
-      technicianId: review.technicianId,
-      rating: review.rating,
-      comment: review.comment,
-      status: review.status,
-      flagReason: review.flagReason,
-      createdAt: review.createdAt,
-      updatedAt: review.updatedAt,
-      __v: review.__v,
-      // Additional fields
-      customerName: review.orderId?.userId?.fullName || "Unknown",
-      customerEmail: review.orderId?.userId?.email || "Unknown",
-      customerPhone: review.orderId?.userId?.phone || "Unknown",
-      service: review.orderId?.serviceName || "Unknown Service",
-      technicianName: review.orderId?.technicianId?.name || "Unknown Technician",
-    }));
+    const reviewsWithDetails: ReviewWithDetails[] = reviews.map(
+      (review: any) => ({
+        _id: review._id,
+        orderId: review.orderId,
+        userId: review.userId,
+        technicianId: review.technicianId,
+        rating: review.rating,
+        comment: review.comment,
+        status: review.status,
+        flagReason: review.flagReason,
+        createdAt: review.createdAt,
+        updatedAt: review.updatedAt,
+        __v: review.__v,
+        customerName: review.orderId?.userId?.fullName || "Unknown",
+        customerEmail: review.orderId?.userId?.email || "Unknown",
+        customerPhone: review.orderId?.userId?.phone || "Unknown",
+        service: review.orderId?.serviceName || "Unknown Service",
+        technicianName:
+          review.orderId?.technicianId?.name || "Unknown Technician",
+      })
+    );
 
     const total = await Review.countDocuments(query);
 
     return { reviews: reviewsWithDetails, total };
   }
 
-  // ... rest of your methods remain the same
   async findById(reviewId: string): Promise<IReview | null> {
     return await Review.findById(reviewId);
   }
 
-  async updateStatus(reviewId: string, status: string): Promise<IReview | null> {
+  async updateStatus(
+    reviewId: string,
+    status: string
+  ): Promise<IReview | null> {
     return await Review.findByIdAndUpdate(
       reviewId,
       { status },
@@ -140,9 +150,9 @@ export class ReviewManagementRepository implements IReviewRepository {
   async flagReview(reviewId: string, reason?: string): Promise<IReview | null> {
     return await Review.findByIdAndUpdate(
       reviewId,
-      { 
+      {
         status: "flagged",
-        flagReason: reason 
+        flagReason: reason,
       },
       { new: true, runValidators: true }
     );
@@ -157,17 +167,17 @@ export class ReviewManagementRepository implements IReviewRepository {
     const totalReviews = await Review.countDocuments();
     const flaggedReviews = await Review.countDocuments({ status: "flagged" });
     const fiveStarReviews = await Review.countDocuments({ rating: 5 });
-    
+
     // Calculate average rating
     const ratingResult = await Review.aggregate([
       {
         $group: {
           _id: null,
-          averageRating: { $avg: "$rating" }
-        }
-      }
+          averageRating: { $avg: "$rating" },
+        },
+      },
     ]);
-    
+
     const averageRating = ratingResult[0]?.averageRating || 0;
 
     // Calculate rating distribution
@@ -175,13 +185,13 @@ export class ReviewManagementRepository implements IReviewRepository {
       {
         $group: {
           _id: "$rating",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    ratingDistribution.forEach(item => {
+    ratingDistribution.forEach((item) => {
       distribution[item._id as keyof typeof distribution] = item.count;
     });
 
@@ -192,33 +202,33 @@ export class ReviewManagementRepository implements IReviewRepository {
           from: "orders",
           localField: "orderId",
           foreignField: "_id",
-          as: "order"
-        }
+          as: "order",
+        },
       },
       {
-        $unwind: "$order"
+        $unwind: "$order",
       },
       {
         $lookup: {
           from: "services",
           localField: "order.serviceId",
           foreignField: "_id",
-          as: "service"
-        }
+          as: "service",
+        },
       },
       {
-        $unwind: "$service"
+        $unwind: "$service",
       },
       {
         $group: {
           _id: "$service.name",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     const serviceDistribution: Record<string, number> = {};
-    serviceDistributionResult.forEach(item => {
+    serviceDistributionResult.forEach((item) => {
       serviceDistribution[item._id] = item.count;
     });
 

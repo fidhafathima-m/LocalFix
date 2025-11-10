@@ -13,8 +13,8 @@ export interface PaymentResponseDto {
   currency: string;
   type: 'service' | 'subscription' | 'spare_part';
   serviceName?: string;
-  orderId: string;        // Order Code from Orders collection
-  bookingCode?: string;   // Booking Code from Booking collection
+  orderId: string;        
+  bookingCode?: string;  
   status: 'initiated' | 'pending' | 'success' | 'failed' | 'refunded';
   initiatedAt: string;
   confirmedAt?: string;

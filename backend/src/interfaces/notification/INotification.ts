@@ -1,4 +1,3 @@
-// src/interfaces/notification/INotification.ts
 import { Types } from "mongoose";
 
 // Base interface for database operations

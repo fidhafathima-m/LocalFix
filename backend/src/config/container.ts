@@ -208,7 +208,7 @@ const orderManagementController = new OrderManagementController(
 
 // Review dependencies
 const reviewRepository = new ReviewRepository();
-const reviewService = new ReviewService(reviewRepository);
+const reviewService = new ReviewService(reviewRepository, notificationService);
 const reviewController = new ReviewController(reviewService, reviewRepository);
 
 // Review managemnet dependencies
