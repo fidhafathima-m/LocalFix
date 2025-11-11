@@ -8,6 +8,7 @@ export interface CreateNotificationDto {
   message: string;
   data?: Record<string, any>;
   priority?: "low" | "medium" | "high";
+  actionUrl?: string
 }
 
 export interface NotificationResponseDto {
