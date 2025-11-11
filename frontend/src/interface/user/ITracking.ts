@@ -28,9 +28,9 @@ export interface ServiceTracking {
   estimatedDuration: string;
   statusHistory: StatusHistory[];
   technicianLocation?: {
-    latitude: number;
-    longitude: number;
-    lastUpdated: string;
+    latitude?: number;
+    longitude?: number;
+    lastUpdated?: string;
   };
   estimatedArrival?: string;
   distance?: number;

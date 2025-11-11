@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -19,6 +20,10 @@ import Footer from "../../../../components/common/Footer";
 import { trackingService } from "../../../../services/user/trackingService";
 import toast from "react-hot-toast";
 import type { ServiceTracking } from "../../../../interface/user/ITracking";
+import { useTechnicianLocation } from "../../../../hooks/useTechnicianLocation";
+import LiveMap from "../../../../components/common/LiveMap";
+import { useGeocodedAddress } from "../../../../hooks/useGeocodedAddress";
+import { useSocket } from "../../../../context/SocketContext";
 
 const ServiceTrackingComponent: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +33,63 @@ const ServiceTrackingComponent: React.FC = () => {
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { socket } = useSocket();
+  const [orderId, setOrderId] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (trackingData?._id) {
+      setOrderId(trackingData._id);
+      console.log("🔑 Using orderId for tracking:", trackingData._id);
+    }
+  }, [trackingData]);
+
+  const {
+    technicianLocation,
+    isTracking,
+    locationHistory,
+    isConnected,
+    error,
+  } = useTechnicianLocation(orderId, trackingData?.technicianId?._id);
+
+  const { coordinates: serviceCoordinates } = useGeocodedAddress(
+    trackingData?.address || null
+  );
+
+  const getDistanceFromTechnician = (
+    technicianLocation: { lat: number; lng: number },
+    userLocation: { lat: number; lng: number }
+  ): string => {
+    const R = 6371; // Earth's radius in km
+    const dLat = ((userLocation.lat - technicianLocation.lat) * Math.PI) / 180;
+    const dLon = ((userLocation.lng - technicianLocation.lng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((technicianLocation.lat * Math.PI) / 180) *
+        Math.cos((userLocation.lat * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)} meters`;
+    } else {
+      return `${distance.toFixed(1)} km`;
+    }
+  };
+  
+
+  // Add this useEffect to log errors
+  useEffect(() => {
+    if (error) {
+      console.error("❌ Tracking error:", error);
+      toast.error(`Tracking error: ${error}`);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    console.log("🔍 OrderId state changed:", orderId);
+  }, [orderId]);
 
   useEffect(() => {
     if (bookingId) {
@@ -44,6 +106,11 @@ const ServiceTrackingComponent: React.FC = () => {
 
       if (response.success && response.data) {
         setTrackingData(response.data);
+        // Set orderId immediately when data is received
+        if (response.data._id) {
+          setOrderId(response.data._id);
+          console.log("🎯 OrderId set from tracking data:", response.data._id);
+        }
       } else {
         toast.error("Failed to fetch tracking details");
         navigate("/orders");
@@ -87,6 +154,14 @@ const ServiceTrackingComponent: React.FC = () => {
       month: "long",
       day: "numeric",
     });
+  };
+
+  const userLocation = {
+    lat: serviceCoordinates?.lat || 10.8505,
+    lng: serviceCoordinates?.lng || 76.2711,
+    street: trackingData?.address.street,
+    city: trackingData?.address.city,
+    label: trackingData?.address.label,
   };
 
   const formatTime = (dateString: string) => {
@@ -221,14 +296,12 @@ const ServiceTrackingComponent: React.FC = () => {
             Refresh
           </button>
         </div>
-
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Tracking Service</h1>
           <span className="text-sm text-gray-600">
             Booking ID: {trackingData.bookingId}
           </span>
         </div>
-
         {/* Service Details */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold mb-6">Service Details</h2>
@@ -317,7 +390,6 @@ const ServiceTrackingComponent: React.FC = () => {
             </div>
           </div>
         </div>
-
         {/* Service Status Timeline */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold mb-6">Service Status</h2>
@@ -460,33 +532,141 @@ const ServiceTrackingComponent: React.FC = () => {
             })()}
           </div>
         </div>
-
         {/* Live Tracking */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Live Tracking</h2>
-          <div className="bg-blue-50 rounded-lg h-64 flex flex-col items-center justify-center mb-4">
-            <NavigationOutlined className="w-12 h-12 text-blue-600 mb-3" />
-            <p className="text-gray-600">
-              {trackingData.status === "on_the_way"
-                ? "Live tracking active"
-                : "Live tracking will start when technician is on the way"}
-            </p>
-          </div>
-          <div className="flex items-start gap-3 bg-gray-50 rounded-lg p-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <LocationOnOutlined className="w-5 h-5 text-blue-600" />
+        {/* Enhanced Debug Panel */}
+        {/* <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <h3 className="font-semibold text-red-800 mb-2">
+            🚨 LIVE TRACKING DEBUG
+          </h3>
+          <div className="text-sm text-red-700 space-y-1">
+            <div>
+              <strong>Order ID:</strong> {orderId || "NOT SET"}
             </div>
             <div>
-              <div className="font-semibold">
-                {trackingData.address.street}, {trackingData.address.city}
-              </div>
-              <div className="text-sm text-gray-600">
-                {trackingData.address.label}
-              </div>
+              <strong>Technician ID:</strong>{" "}
+              {trackingData?.technicianId?._id || "Not found"}
+            </div>
+            <div>
+              <strong>Socket Connected:</strong>{" "}
+              {isConnected ? "✅ Yes" : "❌ No"}
+            </div>
+            <div>
+              <strong>Tracking Active:</strong>{" "}
+              {isTracking ? "✅ Yes" : "❌ No"}
+            </div>
+            <div>
+              <strong>Technician Location:</strong>{" "}
+              {technicianLocation
+                ? `✅ ${technicianLocation.lat.toFixed(
+                    4
+                  )}, ${technicianLocation.lng.toFixed(4)}`
+                : "❌ No location"}
+            </div>
+            <div>
+              <strong>Location Updates:</strong> {locationHistory.length}
+            </div>
+            <div>
+              <strong>Expected Room:</strong> order-{orderId}
+            </div>
+            <div>
+              <strong>Actual Backend Room:</strong> booking-{orderId} ❌
             </div>
           </div>
-        </div>
 
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => {
+                if (socket && orderId) {
+                  socket.emit("check-room", { orderId });
+                  console.log(
+                    "🔍 Checking ACTUAL room status for order:",
+                    orderId
+                  );
+                }
+              }}
+              className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+            >
+              Check Room Status
+            </button>
+
+            <button
+              onClick={() => {
+                console.log("📊 CURRENT STATE:", {
+                  orderId,
+                  technicianId: trackingData?.technicianId?._id,
+                  technicianLocation,
+                  isTracking,
+                  isConnected,
+                  socketReady: !!socket,
+                  locationHistoryCount: locationHistory.length,
+                  expectedRoom: orderId ? `order-${orderId}` : "undefined",
+                  actualBackendRoom: orderId
+                    ? `booking-${orderId}`
+                    : "undefined", // This is the problem!
+                });
+              }}
+              className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
+            >
+              Log Full State
+            </button>
+          </div>
+        </div> */}
+        {trackingData.status === "on_the_way" && (
+          <div className="space-y-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <NavigationOutlined className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-green-800">
+                    Technician is on the way!
+                  </h3>
+                  <p className="text-sm text-green-700">
+                    {trackingData.technicianId.displayName} is coming to your
+                    location
+                  </p>
+                </div>
+              </div>
+            </div>
+            {/* Live Map */}
+            <LiveMap
+              technicianLocation={technicianLocation}
+              userLocation={{
+                // CHANGED: destination -> userLocation
+                lat: serviceCoordinates?.lat || 10.8505,
+                lng: serviceCoordinates?.lng || 76.2711,
+                street: trackingData.address.street,
+                city: trackingData.address.city,
+                label: trackingData.address.label,
+              }}
+              isTracking={isTracking}
+              locationHistory={locationHistory}
+              interactive={true}
+            />
+            {/* Distance Info */}
+            <div className="flex items-start gap-3 bg-gray-50 rounded-lg p-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <LocationOnOutlined className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="font-semibold">
+                  {trackingData.address.street}, {trackingData.address.city}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {trackingData.address.label}
+                </div>
+            {technicianLocation && (
+              <div className="text-sm text-red-900 mt-1">
+                {getDistanceFromTechnician(technicianLocation, userLocation)}{" "}
+                away
+              </div>
+            )}
+              </div>
+
+            </div>
+          </div>
+        )}
         {/* Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button

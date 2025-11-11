@@ -17,10 +17,20 @@ export interface TechnicianOrderAddress {
 }
 
 
+// In your IOrderService.ts or types file
 export interface TechnicianOrder {
   _id: string;
   orderCode: string;
   userId: TechnicianOrderUser | string;
+  technicianId: {  // Add this property
+    _id: string;
+    displayName: string;
+    profilePictureUrl?: string;
+    averageRating: number;
+    ratingCount: number;
+    skills: string[];
+    phone?: string;
+  } | string; // Can be object (populated) or string ID
   serviceName: string;
   problemDescription: string;
   address: TechnicianOrderAddress;
