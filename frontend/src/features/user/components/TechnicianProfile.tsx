@@ -103,7 +103,6 @@ interface DailyAvailability {
   isToday: boolean;
 }
 
-// Update your Review interface in the frontend
 interface Review {
   _id: string;
   id?: string;
@@ -113,8 +112,8 @@ interface Review {
   comment: string;
   userName: string;
   createdAt: string;
-  status?: "published" | "flagged" | "pending"; // Add status
-  userReported?: boolean; // Add this field
+  status?: "published" | "flagged" | "pending";
+  userReported?: boolean;
   user?: {
     fullName: string;
     email?: string;
@@ -277,22 +276,21 @@ const TechnicianProfile: React.FC = () => {
             }
 
             // Check if this review is reported by current user
-            // First check API response, then fallback to localStorage cache
             const userReportedFromAPI = review.userReported || false;
             const userReportedFromCache = cachedReportedReviews.includes(
               review.id || review._id
             );
 
             return {
-              _id: review.id || review._id, // Use both possible ID fields
-              userId: review.userId?._id || review.userId, // Handle both object and string
+              _id: review.id || review._id,
+              userId: review.userId?._id || review.userId,
               technicianId: review.technicianId,
               rating: review.rating,
               comment: review.comment,
               userName: userName,
               createdAt: review.createdAt,
               status: review.status,
-              userReported: userReportedFromAPI || userReportedFromCache, // Combine both sources
+              userReported: userReportedFromAPI || userReportedFromCache,
               user: {
                 fullName: userName,
                 email: userEmail,
@@ -308,10 +306,8 @@ const TechnicianProfile: React.FC = () => {
     }
   };
 
-  // Add this useEffect to sync reported reviews on component mount
   useEffect(() => {
     if (reviews.length > 0 && user) {
-      // Update reviews with cached reported status
       const cachedReportedReviews = getCachedReportedReviews();
       setReviews((prevReviews) =>
         prevReviews.map((review) => ({
@@ -357,7 +353,6 @@ const TechnicianProfile: React.FC = () => {
       });
 
       if (result.isConfirmed) {
-        // Call the report review API
         const response = await reviewService.reportReview(reviewId, {
           reason: result.value,
           reportedBy: user._id,
@@ -369,7 +364,6 @@ const TechnicianProfile: React.FC = () => {
             "Thank you for your report. Our team will review it shortly."
           );
 
-          // Update the local state to mark this review as reported by current user
           setReviews((prevReviews) =>
             prevReviews.map((review) =>
               review._id === reviewId
@@ -378,7 +372,6 @@ const TechnicianProfile: React.FC = () => {
             )
           );
 
-          // Also store in localStorage as fallback
           const reportedReviews = getCachedReportedReviews();
           if (!reportedReviews.includes(reviewId)) {
             reportedReviews.push(reviewId);
@@ -388,7 +381,6 @@ const TechnicianProfile: React.FC = () => {
             );
           }
         } else {
-          // Handle API response error (not exception)
           if (response.message?.includes("already reported")) {
             toast.error("You have already reported this review.");
             // Still update the UI state since we know it's already reported
@@ -447,8 +439,6 @@ const TechnicianProfile: React.FC = () => {
     }
   };
 
-  // Add this helper function
-  // Update this helper function to be more specific to current user if needed
   const getCachedReportedReviews = (): string[] => {
     try {
       const cached = localStorage.getItem("reportedReviews");
@@ -653,7 +643,6 @@ const TechnicianProfile: React.FC = () => {
     if (reviewStats) {
       // Filter out flagged reviews from stats
       const filteredDistribution = { ...reviewStats.ratingDistribution };
-      // You might want to adjust this based on how your backend handles flagged reviews in stats
       return filteredDistribution;
     }
 
@@ -716,7 +705,7 @@ const TechnicianProfile: React.FC = () => {
     navigate(`/booking?technicianId=${technicianId}`, {
       state: {
         technicianName: technicianName,
-        serviceName: serviceName, // Pass service name
+        serviceName: serviceName,
         fromProfile: true,
       },
     });
@@ -975,7 +964,7 @@ const TechnicianProfile: React.FC = () => {
                       .filter((dayInfo) => dayInfo.slots.length > 0)
                       .map((dayInfo, index) => (
                         <div
-                          key={`day-${dayInfo.date.getTime()}-${index}`} // Fixed: Use timestamp for unique key
+                          key={`day-${dayInfo.date.getTime()}-${index}`}
                           className={`flex items-center justify-between p-3 rounded-lg border ${
                             dayInfo.isToday
                               ? "bg-blue-50 border-blue-200"
@@ -1005,7 +994,7 @@ const TechnicianProfile: React.FC = () => {
                                 <div
                                   key={`slot-${dayInfo.date.getTime()}-${rangeIndex}-${
                                     range.start
-                                  }-${range.end}`} // Fixed: More specific key
+                                  }-${range.end}`}
                                   className={`text-sm ${
                                     dayInfo.isToday
                                       ? "text-blue-600"

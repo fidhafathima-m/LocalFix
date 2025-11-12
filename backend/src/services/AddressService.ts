@@ -156,7 +156,7 @@ export class AddressService implements IAddressService {
         ...context,
         addressModel: {
           ...addressModel,
-          userId: addressModel.userId, // userId is already in context
+          userId: addressModel.userId,
         },
       });
 

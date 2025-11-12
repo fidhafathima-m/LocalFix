@@ -54,7 +54,7 @@ const OverviewTab: React.FC<TabProps> = ({
         const reviewsResponse = await reviewService.getTechnicianReviews(
           dashboardData.profile._id, 
           1, 
-          5 // Fetch more reviews to calculate average
+          5 
         );
 
         if (reviewsResponse.success && reviewsResponse.data) {
@@ -118,7 +118,6 @@ const OverviewTab: React.FC<TabProps> = ({
   const displayAverageRating = calculatedAverageRating > 0 ? calculatedAverageRating : (overview.averageRating || 0);
 
   const renderOrdersSection = () => {
-    // ... existing orders section code remains the same ...
     if (ordersLoading) {
       return (
         <div className="text-center py-8">

@@ -1,4 +1,3 @@
-// components/common/LiveMap.tsx
 import React, { useEffect, useRef, useState } from "react";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -35,7 +34,7 @@ interface LiveMapProps {
     accuracy?: number;
     timestamp: Date;
   }[];
-  interactive?: boolean; // Add this prop to control interactivity
+  interactive?: boolean; // to control interactivity
 }
 
 const LiveMap: React.FC<LiveMapProps> = ({
@@ -84,15 +83,14 @@ const LiveMap: React.FC<LiveMapProps> = ({
       // Create map with disabled interactions
       const map = L.map(mapRef.current, {
         // Disable all interactions
-        dragging: interactive, // Only allow dragging if interactive is true
+        dragging: interactive, 
         touchZoom: interactive,
         scrollWheelZoom: interactive,
         doubleClickZoom: interactive,
         boxZoom: interactive,
         keyboard: interactive,
-        zoomControl: interactive, // Show zoom controls only if interactive
+        zoomControl: interactive, 
         
-        // Additional options for better static view
         closePopupOnClick: false,
         bounceAtZoomLimits: false
       }).setView([userLocation.lat, userLocation.lng], 13);
@@ -103,7 +101,6 @@ const LiveMap: React.FC<LiveMapProps> = ({
         maxZoom: 19,
       }).addTo(map);
 
-      // Add USER location marker - make it non-draggable
       const userMarker = L.marker([userLocation.lat, userLocation.lng], {
         icon: userLocationIcon,
         draggable: false // Prevent marker dragging
@@ -163,7 +160,7 @@ const LiveMap: React.FC<LiveMapProps> = ({
     map.eachLayer((layer) => {
       if (layer instanceof L.Marker) {
         const latLng = layer.getLatLng();
-        // Keep only the user location marker (remove technician markers)
+        // Keep only the user location marker 
         if (Math.abs(latLng.lat - userLocation.lat) > 0.001 || 
             Math.abs(latLng.lng - userLocation.lng) > 0.001) {
           map.removeLayer(layer);

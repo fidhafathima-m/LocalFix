@@ -62,7 +62,6 @@ const RatingsTab: React.FC<TabProps> = ({ dashboardData, isSuspended }) => {
             const userData = null;
 
             if (review.userId && typeof review.userId === 'string') {
-              // Try to extract fullName using regex (fallback for stringified data)
               const fullNameMatch = review.userId.match(/fullName:\s*'([^']+)'/);
               if (fullNameMatch && fullNameMatch[1]) {
                 userName = fullNameMatch[1];

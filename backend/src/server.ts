@@ -8,9 +8,7 @@ import { stream } from './utils/logger';
 import { requestLogger } from "./middleware/requestLoger";
 import { errorHandler } from "./middleware/errorHandler";
 import http from "http";
-import { Server as SocketIOServer } from "socket.io";
 
-// Import your routes...
 import userAuth from "./routes/userRoutes";
 import userRoutes from "./routes/admin/userManagementRoutes";
 import adminTechnicianRoutes from "./routes/admin/technicianManagementRoutes";
@@ -54,7 +52,6 @@ app.use(
 
 app.use("/uploads", express.static("uploads"));
 
-// Your existing routes...
 app.use("/api/auth", userAuth);
 app.use("/api/admin/users", userRoutes);
 app.use("/api/admin/technicians", adminTechnicianRoutes);
@@ -83,7 +80,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-// Use server.listen instead of app.listen - FIXED
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Socket.IO server running on port ${PORT}`);

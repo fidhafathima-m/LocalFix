@@ -64,8 +64,9 @@ export const adminAPI = {
     endDate: string
   ) =>
     api.get<ApiResponse<{ user: User }>>(
-      ADMIN_ROUTES.PUBLIC_AVAILABILITY(technicianId), {
-        params: {startDate, endDate}
+      ADMIN_ROUTES.PUBLIC_AVAILABILITY(technicianId),
+      {
+        params: { startDate, endDate },
       }
     ),
 
@@ -185,7 +186,6 @@ export const adminAPI = {
       }
     ),
 
-  // In your adminAPI file
   getAllServices: (
     page: number = 1,
     limit: number = 10,

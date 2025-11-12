@@ -24,7 +24,9 @@ const OrdersTab: React.FC<TabProps> = ({
 }) => {
   const { socket } = useSocket();
   const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
-  const [isSharingLocation, setIsSharingLocation] = useState<{ [key: string]: boolean }>({});
+  const [isSharingLocation, setIsSharingLocation] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const technicianProfile = useAppSelector(selectTechnicianProfile);
   const authUser = useAppSelector(selectUser);
@@ -286,9 +288,9 @@ const OrdersTab: React.FC<TabProps> = ({
         typeof order.technicianId === "object" &&
         order.technicianId !== null
       ) {
-        return order.technicianId._id; // It's an object with _id
+        return order.technicianId._id;
       } else if (typeof order.technicianId === "string") {
-        return order.technicianId; // It's already a string ID
+        return order.technicianId;
       }
 
       return null;
@@ -381,14 +383,14 @@ const OrdersTab: React.FC<TabProps> = ({
           },
           {
             enableHighAccuracy: true,
-            timeout: 15000, // Increased timeout
-            maximumAge: 30000, // Accept locations up to 30 seconds old
+            timeout: 15000,
+            maximumAge: 30000,
           }
         );
 
         // Store watchId to stop later
         setLocationWatchId(watchId);
-        setIsSharingLocation(prev => ({ ...prev, [orderId]: true }));
+        setIsSharingLocation((prev) => ({ ...prev, [orderId]: true }));
 
         toast.success("Location sharing started! Customer can now track you.");
       },
@@ -423,13 +425,12 @@ const OrdersTab: React.FC<TabProps> = ({
       },
       {
         enableHighAccuracy: true,
-        timeout: 15000, // Increased timeout
-        maximumAge: 60000, // Accept locations up to 1 minute old
+        timeout: 15000,
+        maximumAge: 60000,
       }
     );
   };
 
-  // Add function to restart location sharing
   const handleRestartLocationSharing = async (orderId: string) => {
     const order = orders.find((o) => o._id === orderId);
     const orderCode = order?.orderCode || orderId;
@@ -461,7 +462,9 @@ const OrdersTab: React.FC<TabProps> = ({
     if (result.isConfirmed) {
       try {
         await startLocationSharing(orderId);
-        toast.success("Location sharing restarted! Customer can now track you again.");
+        toast.success(
+          "Location sharing restarted! Customer can now track you again."
+        );
       } catch (error) {
         toast.error("Failed to restart location sharing. Please try again.");
         console.error(error);
@@ -469,7 +472,6 @@ const OrdersTab: React.FC<TabProps> = ({
     }
   };
 
-  // Add this helper function
   const showLocationPermissionInstructions = () => {
     Swal.fire({
       title: "Location Permission Required",
@@ -506,7 +508,7 @@ const OrdersTab: React.FC<TabProps> = ({
       setLocationWatchId(null);
     }
 
-    setIsSharingLocation(prev => ({ ...prev, [orderId]: false }));
+    setIsSharingLocation((prev) => ({ ...prev, [orderId]: false }));
 
     if (socket && technicianId) {
       socket.emit("technician-location-stop", {
@@ -556,13 +558,6 @@ const OrdersTab: React.FC<TabProps> = ({
       }
     );
   };
-
-  // Debug: Log technician ID when component mounts
-  useEffect(() => {
-    console.log("🔧 Technician ID from Redux:", technicianId);
-    console.log("🔧 Technician Profile:", technicianProfile);
-    console.log("🔧 Auth User:", authUser);
-  }, [technicianId, technicianProfile, authUser]);
 
   if (ordersLoading) {
     return (
@@ -729,7 +724,9 @@ const OrdersTab: React.FC<TabProps> = ({
                         </button>
                       ) : (
                         <button
-                          onClick={() => handleRestartLocationSharing(order._id)}
+                          onClick={() =>
+                            handleRestartLocationSharing(order._id)
+                          }
                           className="bg-blue-500 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-600 transition-colors"
                         >
                           Share Location Again
@@ -737,7 +734,7 @@ const OrdersTab: React.FC<TabProps> = ({
                       )}
                     </div>
                   )}
-                  
+
                   {/* Pending -> Accept/Decline */}
                   {order.status === "pending" && (
                     <>

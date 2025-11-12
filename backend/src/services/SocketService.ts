@@ -5,7 +5,7 @@ import { ITechnicianLocationShare } from "@/interfaces/common/ILocationTracking"
 export class SocketService {
   private io: Server;
   private locationService: LocationTrackingService;
-  private activeConnections: Map<string, string> = new Map(); // socketId -> technicianId
+  private activeConnections: Map<string, string> = new Map(); 
 
   constructor(server: any) {
     this.io = new Server(server, {
@@ -21,21 +21,12 @@ export class SocketService {
 
   private setupSocketHandlers(): void {
     this.io.on("connection", (socket) => {
-      console.log("User connected:", socket.id);
 
-      // Change ALL booking-{id} to order-{id}
       socket.on(
         "technician-location-share",
         async (data: ITechnicianLocationShare) => {
           try {
             const { technicianId, orderId, location } = data;
-
-            console.log("📍 BACKEND: Received technician-location-share:", {
-              technicianId,
-              orderId,
-              location,
-              socketId: socket.id,
-            });
 
             // Store connection mapping
             this.activeConnections.set(socket.id, technicianId);
@@ -48,21 +39,11 @@ export class SocketService {
             );
 
             if (result.success) {
-              console.log(
-                "📍 BACKEND: Successfully stored location in database"
-              );
-
-              const roomName = `order-${orderId}`; // CHANGED: booking- to order-
+              const roomName = `order-${orderId}`; 
 
               // Get room info
               const room = this.io.sockets.adapter.rooms.get(roomName);
               const roomSize = room ? room.size : 0;
-
-              console.log("📍 BACKEND: Room status:", {
-                room: roomName,
-                clientsInRoom: roomSize,
-                roomMembers: room ? Array.from(room) : [],
-              });
 
               // Broadcast to ALL clients in the room
               this.io.to(roomName).emit("technician-location-update", {
@@ -73,15 +54,10 @@ export class SocketService {
                 },
                 isActive: true,
               });
-
-              console.log(
-                "📍 BACKEND: Location broadcast completed to room:",
-                roomName
-              );
             }
           } catch (error) {
             console.error(
-              "❌ BACKEND: Error in technician-location-share:",
+              "BACKEND: Error in technician-location-share:",
               error
             );
             socket.emit("location-error", {
@@ -96,11 +72,7 @@ export class SocketService {
         "technician-location-update",
         async (data: ITechnicianLocationShare) => {
           const { technicianId, orderId, location } = data;
-          const roomName = `order-${orderId}`; // CHANGED: booking- to order-
-
-          console.log("📍 BACKEND: Broadcasting update to room:", {
-            room: roomName,
-          });
+          const roomName = `order-${orderId}`; 
 
           this.io.to(roomName).emit("technician-location-update", {
             technicianId,
@@ -117,24 +89,16 @@ export class SocketService {
         "join-tracking",
         (data: { orderId: string; userId: string }) => {
           const { orderId, userId } = data;
-          const roomName = `order-${orderId}`; // CHANGED: booking- to order-
+          const roomName = `order-${orderId}`; 
           socket.join(roomName);
-          console.log(`User ${userId} joined tracking for order ${orderId}`);
         }
       );
 
       socket.on("check-room", (data: { orderId: string }) => {
         const { orderId } = data;
-        const roomName = `order-${orderId}`; // CHANGED: booking- to order-
+        const roomName = `order-${orderId}`; 
         const room = this.io.sockets.adapter.rooms.get(roomName);
         const roomSize = room ? room.size : 0;
-
-        console.log("🏠 BACKEND: Room check:", {
-          room: roomName,
-          clientsInRoom: roomSize,
-          clientSocketId: socket.id,
-        });
-
         socket.emit("room-status", {
           room: roomName,
           clientsInRoom: roomSize,
@@ -164,9 +128,6 @@ export class SocketService {
               timestamp: new Date(),
             });
 
-            console.log(
-              `Technician ${technicianId} stopped sharing location for booking ${orderId}`
-            );
           } catch (error) {
             console.error("Error in technician-location-stop:", error);
             socket.emit("location-error", {
@@ -177,14 +138,11 @@ export class SocketService {
       );
 
       socket.on("disconnect", () => {
-        console.log("User disconnected:", socket.id);
 
         // Clean up disconnected technicians
         const technicianId = this.activeConnections.get(socket.id);
         if (technicianId) {
           this.activeConnections.delete(socket.id);
-          // Note: We don't automatically stop location sharing on disconnect
-          // to handle temporary connection losses
         }
       });
     });

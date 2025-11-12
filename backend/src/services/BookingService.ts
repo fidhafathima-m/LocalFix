@@ -711,8 +711,7 @@ export class BookingService implements IBookingService {
 
   // Helper methods for location calculations
   private calculateDistance(lat: number, lng: number): number {
-    // Mock distance calculation - in real app, use Haversine formula
-    // or Google Maps Distance Matrix API
+    // Mock distance calculation
     return Math.random() * 10 + 1;
   }
 

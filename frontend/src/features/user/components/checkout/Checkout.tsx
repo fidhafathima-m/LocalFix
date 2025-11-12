@@ -76,35 +76,37 @@ const Checkout: React.FC = () => {
   const user = useAppSelector(selectUser);
 
   useEffect(() => {
-  // Prevent access to checkout if coming from payment success
-  const navigationEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
-  if (navigationEntries.length > 0) {
-    const navType = navigationEntries[0].type;
-    
-    // If user is coming via back/forward navigation, redirect
-    if (navType === 'back_forward' && !location.state) {
-      navigate("/services", { replace: true });
-      return;
-    }
-  }
+    // Prevent access to checkout if coming from payment success
+    const navigationEntries = performance.getEntriesByType(
+      "navigation"
+    ) as PerformanceNavigationTiming[];
+    if (navigationEntries.length > 0) {
+      const navType = navigationEntries[0].type;
 
-  // Replace history entry to prevent back navigation to checkout
-  window.history.replaceState({ canGoBack: true }, "", window.location.href);
-  
-  // Handle browser back button
-  const handlePopState = (event: PopStateEvent) => {
-    // If state indicates we can go back, redirect to services
-    if (event.state?.canGoBack) {
-      navigate("/services", { replace: true });
+      // If user is coming via back/forward navigation, redirect
+      if (navType === "back_forward" && !location.state) {
+        navigate("/services", { replace: true });
+        return;
+      }
     }
-  };
 
-  window.addEventListener("popstate", handlePopState);
-  
-  return () => {
-    window.removeEventListener("popstate", handlePopState);
-  };
-}, [navigate, location.state]);
+    // Replace history entry to prevent back navigation to checkout
+    window.history.replaceState({ canGoBack: true }, "", window.location.href);
+
+    // Handle browser back button
+    const handlePopState = (event: PopStateEvent) => {
+      // If state indicates we can go back, redirect to services
+      if (event.state?.canGoBack) {
+        navigate("/services", { replace: true });
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [navigate, location.state]);
 
   // Load Razorpay script
   useEffect(() => {
@@ -353,7 +355,6 @@ const Checkout: React.FC = () => {
 
       const razorpayInstance = new window.Razorpay(options);
 
-      // In Checkout component - update the payment.failed handler
       razorpayInstance.on("payment.failed", function (response: any) {
         console.error("Payment failed:", response.error);
 
@@ -383,7 +384,7 @@ const Checkout: React.FC = () => {
             pricing,
             error: errorMessage,
             bookingId,
-            razorpayError: response.error, // Pass the full error object
+            razorpayError: response.error,
           },
           replace: true,
         });

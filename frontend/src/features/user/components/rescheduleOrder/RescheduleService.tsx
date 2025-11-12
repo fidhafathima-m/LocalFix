@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowBackIosNewOutlined,
   BuildOutlined,
@@ -7,137 +7,143 @@ import {
   AccessTimeOutlined,
   HomeOutlined,
   PersonOutlined,
-} from '@mui/icons-material'
-import Header from '../../../../components/common/Header'
-import Footer from '../../../../components/common/Footer'
-import { TechnicianMangementService } from '../../../../services/admin/TechnicianManagementService'
-import toast from 'react-hot-toast'
-import { RRule } from 'rrule'
-import { orderService } from '../../../../services/user/orderService'
+} from "@mui/icons-material";
+import Header from "../../../../components/common/Header";
+import Footer from "../../../../components/common/Footer";
+import { TechnicianMangementService } from "../../../../services/admin/TechnicianManagementService";
+import toast from "react-hot-toast";
+import { RRule } from "rrule";
+import { orderService } from "../../../../services/user/orderService";
 
 interface LocationState {
-  orderId: string
-  bookingId: string
-  orderCode: string
-  serviceName: string
-  problemDescription: string
-  currentDate: string
-  currentTimeSlot: string
+  orderId: string;
+  bookingId: string;
+  orderCode: string;
+  serviceName: string;
+  problemDescription: string;
+  currentDate: string;
+  currentTimeSlot: string;
   address: {
-    street: string
-    city: string
-    state: string
-    pincode: string
-    landmark?: string
-  }
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    landmark?: string;
+  };
   technician: {
-    _id: string
-    displayName: string
-    profilePictureUrl?: string
-  }
+    _id: string;
+    displayName: string;
+    profilePictureUrl?: string;
+  };
 }
 
 interface SlotRule {
-  _id: string
-  name: string
-  rruleString: string
-  startTime: string
-  endTime: string
-  slotDurationMinutes: number
-  isActive: boolean
-  effectiveFrom: string
-  effectiveTo?: string
+  _id: string;
+  name: string;
+  rruleString: string;
+  startTime: string;
+  endTime: string;
+  slotDurationMinutes: number;
+  isActive: boolean;
+  effectiveFrom: string;
+  effectiveTo?: string;
 }
 
 interface AvailableSlot {
-  date: string
-  dateObj: Date
-  dayName: string
-  timeSlots: string[]
-  isToday: boolean
+  date: string;
+  dateObj: Date;
+  dayName: string;
+  timeSlots: string[];
+  isToday: boolean;
 }
 
 const RescheduleService: React.FC = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const orderData = location.state as LocationState
+  const navigate = useNavigate();
+  const location = useLocation();
+  const orderData = location.state as LocationState;
 
-  const [selectedDate, setSelectedDate] = useState<string>('')
-  const [selectedTime, setSelectedTime] = useState<string>('')
-  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([])
-  const [loading, setLoading] = useState(false)
-  const [fetchingSlots, setFetchingSlots] = useState(false)
-  const [, setSlotRules] = useState<SlotRule[]>([])
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetchingSlots, setFetchingSlots] = useState(false);
+  const [, setSlotRules] = useState<SlotRule[]>([]);
 
   // Fetch technician slot rules and generate availability
   useEffect(() => {
     const fetchTechnicianAvailability = async () => {
       if (!orderData) {
-        toast.error('No order data found')
-        navigate('/my-orders')
-        return
+        toast.error("No order data found");
+        navigate("/my-orders");
+        return;
       }
 
       try {
-        setFetchingSlots(true)
-        
-        // Fetch slot rules for the technician
-        const slotRulesResponse = await TechnicianMangementService.getTechnicianSlotRules(
-          orderData.technician._id
-        )
+        setFetchingSlots(true);
 
-        if (slotRulesResponse.data?.success && slotRulesResponse.data.data?.slotRules) {
-          const rules = slotRulesResponse.data.data.slotRules
-          setSlotRules(rules)
-          
+        // Fetch slot rules for the technician
+        const slotRulesResponse =
+          await TechnicianMangementService.getTechnicianSlotRules(
+            orderData.technician._id
+          );
+
+        if (
+          slotRulesResponse.data?.success &&
+          slotRulesResponse.data.data?.slotRules
+        ) {
+          const rules = slotRulesResponse.data.data.slotRules;
+          setSlotRules(rules);
+
           // Generate availability from slot rules
-          const availability = generateAvailabilityFromSlotRules(rules)
-          setAvailableSlots(availability)
-          
+          const availability = generateAvailabilityFromSlotRules(rules);
+          setAvailableSlots(availability);
+
           // Set initial selected date to first available date
           if (availability.length > 0) {
-            setSelectedDate(availability[0].date)
+            setSelectedDate(availability[0].date);
             if (availability[0].timeSlots.length > 0) {
-              setSelectedTime(availability[0].timeSlots[0])
+              setSelectedTime(availability[0].timeSlots[0]);
             }
           }
         } else {
-          toast.error('No availability data found for this technician')
-          setAvailableSlots([])
+          toast.error("No availability data found for this technician");
+          setAvailableSlots([]);
         }
       } catch (error) {
-        console.error('Error fetching technician availability:', error)
-        toast.error('Failed to load technician availability')
-        setAvailableSlots([])
+        console.error("Error fetching technician availability:", error);
+        toast.error("Failed to load technician availability");
+        setAvailableSlots([]);
       } finally {
-        setFetchingSlots(false)
+        setFetchingSlots(false);
       }
-    }
+    };
 
-    fetchTechnicianAvailability()
-  }, [orderData, navigate])
+    fetchTechnicianAvailability();
+  }, [orderData, navigate]);
 
-  const generateAvailabilityFromSlotRules = (rules: SlotRule[]): AvailableSlot[] => {
-    const availableSlots: AvailableSlot[] = []
-    const today = new Date()
-    
+  const generateAvailabilityFromSlotRules = (
+    rules: SlotRule[]
+  ): AvailableSlot[] => {
+    const availableSlots: AvailableSlot[] = [];
+    const today = new Date();
+
     // Get next 14 days for better availability options
     for (let i = 1; i <= 14; i++) {
-      const date = new Date()
-      date.setDate(today.getDate() + i)
-      
-      // Skip if it's Sunday (day 0) or if we want to exclude weekends
-      if (date.getDay() === 0) continue
+      const date = new Date();
+      date.setDate(today.getDate() + i);
 
-      const dateString = date.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      })
-      
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' })
-      const timeSlots = getTimeSlotsForDate(rules, date)
-      
+      // Skip if it's Sunday (day 0) or if we want to exclude weekends
+      if (date.getDay() === 0) continue;
+
+      const dateString = date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+
+      const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+      const timeSlots = getTimeSlotsForDate(rules, date);
+
       // Only include dates that have available time slots
       if (timeSlots.length > 0) {
         availableSlots.push({
@@ -145,27 +151,27 @@ const RescheduleService: React.FC = () => {
           dateObj: date,
           dayName,
           timeSlots,
-          isToday: i === 1
-        })
+          isToday: i === 1,
+        });
       }
     }
 
-    return availableSlots
-  }
+    return availableSlots;
+  };
 
   const getTimeSlotsForDate = (rules: SlotRule[], date: Date): string[] => {
-    const slots: string[] = []
-    const activeRules = rules.filter(rule => rule.isActive)
+    const slots: string[] = [];
+    const activeRules = rules.filter((rule) => rule.isActive);
 
-    activeRules.forEach(rule => {
+    activeRules.forEach((rule) => {
       try {
         // Parse the RRule and check if it occurs on this date
-        const rrule = RRule.fromString(rule.rruleString)
+        const rrule = RRule.fromString(rule.rruleString);
         const occurrences = rrule.between(
           new Date(date.getFullYear(), date.getMonth(), date.getDate()),
           new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
           true
-        )
+        );
 
         // If this rule applies to the current date, generate time slots
         if (occurrences.length > 0) {
@@ -173,47 +179,51 @@ const RescheduleService: React.FC = () => {
             rule.startTime,
             rule.endTime,
             rule.slotDurationMinutes
-          )
-          slots.push(...timeSlots)
+          );
+          slots.push(...timeSlots);
         }
       } catch (error) {
-        console.error('Error processing slot rule:', error)
+        console.error("Error processing slot rule:", error);
       }
-    })
+    });
 
     // Remove duplicates and sort
-    return [...new Set(slots)].sort()
-  }
+    return [...new Set(slots)].sort();
+  };
 
   const generateTimeSlots = (
     startTime: string,
     endTime: string,
     durationMinutes: number
   ): string[] => {
-    const slots: string[] = []
+    const slots: string[] = [];
 
-    const [startHour, startMinute] = startTime.split(':').map(Number)
-    const [endHour, endMinute] = endTime.split(':').map(Number)
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    let currentHour = startHour
-    let currentMinute = startMinute
+    let currentHour = startHour;
+    let currentMinute = startMinute;
 
     while (
       currentHour < endHour ||
       (currentHour === endHour && currentMinute < endMinute)
     ) {
-      const slotStart = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`
-      
+      const slotStart = `${currentHour
+        .toString()
+        .padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
+
       // Calculate end time
-      let slotEndHour = currentHour
-      let slotEndMinute = currentMinute + durationMinutes
+      let slotEndHour = currentHour;
+      let slotEndMinute = currentMinute + durationMinutes;
 
       while (slotEndMinute >= 60) {
-        slotEndHour++
-        slotEndMinute -= 60
+        slotEndHour++;
+        slotEndMinute -= 60;
       }
 
-      const slotEnd = `${slotEndHour.toString().padStart(2, '0')}:${slotEndMinute.toString().padStart(2, '0')}`
+      const slotEnd = `${slotEndHour
+        .toString()
+        .padStart(2, "0")}:${slotEndMinute.toString().padStart(2, "0")}`;
 
       // Check if slot ends before or at the end time
       if (
@@ -221,107 +231,112 @@ const RescheduleService: React.FC = () => {
         (slotEndHour === endHour && slotEndMinute <= endMinute)
       ) {
         // Format for display (convert to 12-hour format)
-        const formattedSlot = formatTimeSlot(slotStart, slotEnd)
-        slots.push(formattedSlot)
+        const formattedSlot = formatTimeSlot(slotStart, slotEnd);
+        slots.push(formattedSlot);
       }
 
       // Move to next slot
-      currentMinute += durationMinutes
+      currentMinute += durationMinutes;
       while (currentMinute >= 60) {
-        currentHour++
-        currentMinute -= 60
+        currentHour++;
+        currentMinute -= 60;
       }
     }
 
-    return slots
-  }
+    return slots;
+  };
 
   const formatTimeSlot = (start: string, end: string): string => {
     const formatTimeTo12Hour = (time: string): string => {
-      const [hours, minutes] = time.split(':').map(Number)
-      const period = hours >= 12 ? 'PM' : 'AM'
-      const displayHours = hours % 12 || 12
-      return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`
-    }
+      const [hours, minutes] = time.split(":").map(Number);
+      const period = hours >= 12 ? "PM" : "AM";
+      const displayHours = hours % 12 || 12;
+      return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
+    };
 
-    return `${formatTimeTo12Hour(start)} - ${formatTimeTo12Hour(end)}`
-  }
+    return `${formatTimeTo12Hour(start)} - ${formatTimeTo12Hour(end)}`;
+  };
 
   const handleDateSelect = (date: string) => {
-    setSelectedDate(date)
+    setSelectedDate(date);
     // Auto-select first time slot for the selected date
-    const selectedDateData = availableSlots.find(slot => slot.date === date)
+    const selectedDateData = availableSlots.find((slot) => slot.date === date);
     if (selectedDateData && selectedDateData.timeSlots.length > 0) {
-      setSelectedTime(selectedDateData.timeSlots[0])
+      setSelectedTime(selectedDateData.timeSlots[0]);
     } else {
-      setSelectedTime('')
+      setSelectedTime("");
     }
-  }
+  };
 
   const formatDisplayDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    })
-  }
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   const formatDisplayTimeSlot = (timeSlot: string) => {
-    return timeSlot
-  }
+    return timeSlot;
+  };
 
   const getTimeSlotsForSelectedDate = (): string[] => {
-    const selectedDateData = availableSlots.find(slot => slot.date === selectedDate)
-    return selectedDateData?.timeSlots || []
-  }
+    const selectedDateData = availableSlots.find(
+      (slot) => slot.date === selectedDate
+    );
+    return selectedDateData?.timeSlots || [];
+  };
 
-  // In your RescheduleService component
-const handleConfirmReschedule = async () => {
-  if (!selectedDate || !selectedTime || !orderData) {
-    toast.error('Please select both date and time');
-    return;
-  }
-
-  try {
-    setLoading(true);
-    
-    // Convert selected date to ISO format
-    const selectedDateData = availableSlots.find(slot => slot.date === selectedDate);
-    if (!selectedDateData) {
-      toast.error('Invalid date selected');
+  const handleConfirmReschedule = async () => {
+    if (!selectedDate || !selectedTime || !orderData) {
+      toast.error("Please select both date and time");
       return;
     }
 
-    const scheduledAt = selectedDateData.dateObj.toISOString();
+    try {
+      setLoading(true);
 
-    // Call the reschedule API
-    const response = await orderService.rescheduleOrder(
-      orderData.orderId,
-      scheduledAt,
-      selectedTime
-    );
+      // Convert selected date to ISO format
+      const selectedDateData = availableSlots.find(
+        (slot) => slot.date === selectedDate
+      );
+      if (!selectedDateData) {
+        toast.error("Invalid date selected");
+        return;
+      }
 
-    if (response.success) {
-      toast.success('Service rescheduled successfully!');
-      navigate('/reschedule-success', { 
-        state: { 
-          orderCode: orderData.orderCode,
-          newDate: selectedDate,
-          newTime: selectedTime
-        }
-      });
-    } else {
-      toast.error(response.message || 'Failed to reschedule service');
+      const scheduledAt = selectedDateData.dateObj.toISOString();
+
+      // Call the reschedule API
+      const response = await orderService.rescheduleOrder(
+        orderData.orderId,
+        scheduledAt,
+        selectedTime
+      );
+
+      if (response.success) {
+        toast.success("Service rescheduled successfully!");
+        navigate("/reschedule-success", {
+          state: {
+            orderCode: orderData.orderCode,
+            newDate: selectedDate,
+            newTime: selectedTime,
+          },
+        });
+      } else {
+        toast.error(response.message || "Failed to reschedule service");
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Error rescheduling order:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to reschedule service"
+      );
+    } finally {
+      setLoading(false);
     }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error('Error rescheduling order:', error);
-    toast.error(error.response?.data?.message || 'Failed to reschedule service');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   if (!orderData) {
     return (
@@ -346,7 +361,7 @@ const handleConfirmReschedule = async () => {
         </main>
         <Footer />
       </div>
-    )
+    );
   }
 
   return (
@@ -360,13 +375,13 @@ const handleConfirmReschedule = async () => {
           <ArrowBackIosNewOutlined className="w-5 h-5 mr-2" />
           Back to Orders
         </Link>
-        
+
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h1 className="text-2xl font-bold mb-2">Reschedule Service</h1>
           <p className="text-gray-600 mb-8">
             Select a new date and time for your service
           </p>
-          
+
           {/* Order Details Card */}
           <div className="bg-blue-50 rounded-lg p-4 mb-6">
             <div className="flex items-start space-x-4">
@@ -378,9 +393,9 @@ const handleConfirmReschedule = async () => {
                   {orderData.serviceName}
                 </h3>
                 <p className="text-gray-600 text-sm mb-4">
-                  {orderData.problemDescription || 'Standard service'}
+                  {orderData.problemDescription || "Standard service"}
                 </p>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Current Date */}
                   <div className="flex items-center space-x-3">
@@ -392,7 +407,7 @@ const handleConfirmReschedule = async () => {
                       </p>
                     </div>
                   </div>
-                  
+
                   {/* Current Time Slot */}
                   <div className="flex items-center space-x-3">
                     <AccessTimeOutlined className="w-5 h-5 text-gray-500" />
@@ -403,32 +418,39 @@ const handleConfirmReschedule = async () => {
                       </p>
                     </div>
                   </div>
-                  
+
                   {/* Service Address */}
                   <div className="flex items-center space-x-3 md:col-span-2">
                     <HomeOutlined className="w-5 h-5 text-gray-500" />
                     <div>
                       <p className="text-xs text-gray-500">Service Address</p>
                       <p className="font-medium">
-                        {orderData.address.street}, {orderData.address.city}, {orderData.address.state} - {orderData.address.pincode}
-                        {orderData.address.landmark && ` (${orderData.address.landmark})`}
+                        {orderData.address.street}, {orderData.address.city},{" "}
+                        {orderData.address.state} - {orderData.address.pincode}
+                        {orderData.address.landmark &&
+                          ` (${orderData.address.landmark})`}
                       </p>
                     </div>
                   </div>
-                  
+
                   {/* Technician */}
                   <div className="flex items-center space-x-3">
                     <PersonOutlined className="w-5 h-5 text-gray-500" />
                     <div>
                       <p className="text-xs text-gray-500">Technician</p>
-                      <p className="font-medium">{orderData.technician.displayName}</p>
+                      <p className="font-medium">
+                        {orderData.technician.displayName}
+                      </p>
                     </div>
                   </div>
-                  
+
                   {/* Order ID */}
                   <div className="md:col-span-2">
                     <p className="text-xs text-gray-500">
-                      Order ID: <span className="font-medium text-gray-700">{orderData.orderCode}</span>
+                      Order ID:{" "}
+                      <span className="font-medium text-gray-700">
+                        {orderData.orderCode}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -453,14 +475,17 @@ const handleConfirmReschedule = async () => {
                 <CalendarTodayOutlined className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-600 mb-2">No available slots found</p>
                 <p className="text-sm text-gray-500">
-                  This technician doesn't have any available slots in the next two weeks.
+                  This technician doesn't have any available slots in the next
+                  two weeks.
                 </p>
               </div>
             ) : (
               <>
                 {/* Date Selection */}
                 <div className="mb-6">
-                  <h4 className="font-medium mb-3 text-gray-700">Select Date</h4>
+                  <h4 className="font-medium mb-3 text-gray-700">
+                    Select Date
+                  </h4>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
                     {availableSlots.map((slot) => (
                       <button
@@ -468,13 +493,15 @@ const handleConfirmReschedule = async () => {
                         onClick={() => handleDateSelect(slot.date)}
                         disabled={fetchingSlots}
                         className={`px-3 py-3 rounded-lg border text-sm font-medium transition-colors flex flex-col items-center ${
-                          selectedDate === slot.date 
-                            ? 'bg-blue-50 border-blue-500 text-blue-700' 
-                            : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                        } ${fetchingSlots ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          selectedDate === slot.date
+                            ? "bg-blue-50 border-blue-500 text-blue-700"
+                            : "border-gray-200 hover:border-gray-300 text-gray-700"
+                        } ${
+                          fetchingSlots ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         <span className="font-semibold text-xs mb-1">
-                          {slot.date.split(' ')[0]} {slot.date.split(' ')[1]}
+                          {slot.date.split(" ")[0]} {slot.date.split(" ")[1]}
                         </span>
                         <span className="text-xs text-gray-500">
                           {slot.dayName.substring(0, 3)}
@@ -502,9 +529,9 @@ const handleConfirmReschedule = async () => {
                             key={time}
                             onClick={() => setSelectedTime(time)}
                             className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
-                              selectedTime === time 
-                                ? 'bg-blue-50 border-blue-500 text-blue-700' 
-                                : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                              selectedTime === time
+                                ? "bg-blue-50 border-blue-500 text-blue-700"
+                                : "border-gray-200 hover:border-gray-300 text-gray-700"
                             }`}
                           >
                             {time}
@@ -513,7 +540,9 @@ const handleConfirmReschedule = async () => {
                       </div>
                     ) : (
                       <div className="text-center py-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-gray-600">No time slots available for this date</p>
+                        <p className="text-gray-600">
+                          No time slots available for this date
+                        </p>
                       </div>
                     )}
                   </div>
@@ -524,7 +553,9 @@ const handleConfirmReschedule = async () => {
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-semibold text-green-800 mb-1">Selected Slot</h4>
+                        <h4 className="font-semibold text-green-800 mb-1">
+                          Selected Slot
+                        </h4>
                         <p className="text-green-700">
                           {selectedDate} • {selectedTime}
                         </p>
@@ -542,7 +573,7 @@ const handleConfirmReschedule = async () => {
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3 pt-4 border-t">
             <button
-              onClick={() => navigate('/orders')}
+              onClick={() => navigate("/orders")}
               disabled={loading}
               className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 cursor-pointer"
             >
@@ -550,7 +581,9 @@ const handleConfirmReschedule = async () => {
             </button>
             <button
               onClick={handleConfirmReschedule}
-              disabled={loading || !selectedDate || !selectedTime || fetchingSlots}
+              disabled={
+                loading || !selectedDate || !selectedTime || fetchingSlots
+              }
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
             >
               {loading ? (
@@ -559,7 +592,7 @@ const handleConfirmReschedule = async () => {
                   Rescheduling...
                 </>
               ) : (
-                'Confirm Reschedule'
+                "Confirm Reschedule"
               )}
             </button>
           </div>
@@ -567,7 +600,7 @@ const handleConfirmReschedule = async () => {
       </main>
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default RescheduleService
+export default RescheduleService;

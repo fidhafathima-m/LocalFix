@@ -71,7 +71,6 @@ const AvailabilityPreferences = () => {
           profileResponse.data?.profile ||
           profileResponse.data?.data;
 
-        // Try to fetch REAL availability data
         let availabilityData = [];
         let slotRulesData = [];
 
@@ -79,7 +78,10 @@ const AvailabilityPreferences = () => {
           // Fetch actual availability records
           const availabilityResponse =
             await TechnicianService.getTechnicianAvailability();
-            console.log("Availability data by technician: ", availabilityResponse);
+          console.log(
+            "Availability data by technician: ",
+            availabilityResponse
+          );
           if (availabilityResponse.success) {
             availabilityData = availabilityResponse.data?.availability || [];
           }
@@ -543,7 +545,6 @@ const AvailabilityPreferences = () => {
     }));
   };
   // Toggle tomorrow's availability
-  // Update the handleTomorrowToggle function
   const handleTomorrowToggle = async (makeUnavailable: boolean) => {
     try {
       setUpdatingTomorrow(true);
@@ -635,8 +636,6 @@ const AvailabilityPreferences = () => {
     }
   };
 
-  // Update the getStatusDisplay function to ensure proper toggle state
-  // Update the getStatusDisplay function
   const getStatusDisplay = () => {
     const tomorrowInfo = getTomorrowInfo();
 

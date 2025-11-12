@@ -165,7 +165,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         },
       };
 
-      // Only update fields that are provided
       if (updateData.personalInfo?.fullName !== undefined) {
         updatePayload.personalInfo.fullName = updateData.personalInfo?.fullName;
       }
@@ -389,10 +388,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         "UPDATE AVAILABILITY - Starting update for technician:",
         technicianId
       );
-      console.log(
-        "UPDATE AVAILABILITY - Update data:",
-        JSON.stringify(updateData, null, 2)
-      );
 
       const technician = await this.technicianRepository.findByUserId(
         technicianId
@@ -400,7 +395,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const user = await this.userRepository.findById(technicianId);
 
       if (!technician || !user) {
-        console.log("UPDATE AVAILABILITY - Technician or user not found");
         return ResponseHelper.notFound(
           TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
         );
@@ -423,17 +417,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           isAvailable: updateData.availability.isAvailable,
           weeklyPattern: updateData.availability.weeklyPattern,
         };
-
-        console.log(
-          "UPDATE AVAILABILITY - Setting weekly pattern:",
-          updateData.availability.weeklyPattern
-        );
       }
-
-      console.log(
-        "UPDATE AVAILABILITY - Updating technician with data:",
-        updateDataForRepo
-      );
 
       // Update technician with the new data
       const updatedTechnician =
@@ -451,20 +435,12 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      console.log(
-        "UPDATE AVAILABILITY - Technician profile updated successfully"
-      );
-
       // Process slot rules and availability records if availability data is provided
       if (updateData.availability) {
         try {
-          console.log("UPDATE AVAILABILITY - Processing availability data...");
           await this.processAvailabilityData(
             technicianId,
             updateData.availability
-          );
-          console.log(
-            "UPDATE AVAILABILITY - Availability data processed successfully"
           );
         } catch (availabilityError) {
           console.error(
@@ -478,8 +454,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         updatedTechnician,
         user
       );
-
-      console.log("UPDATE AVAILABILITY - Update completed successfully");
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.AVAILABILITY_UPDATED,
@@ -591,29 +565,17 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
             await slotRule.save();
             createdRulesCount++;
-
-            console.log(
-              `Created slot rule for ${day}: ${dayData.startTime} - ${dayData.endTime}`
-            );
           } catch (error) {
             console.error(`Error creating slot rule for ${day}:`, error);
           }
         }
       }
 
-      console.log(
-        `Created ${createdRulesCount} slot rules for technician ${technicianId}`
-      );
-
       // Delete existing availability records
       const deleteResult = await TechnicianAvailability.deleteMany({
         technicianId: technicianObjectId,
         date: { $gte: startDate, $lte: endDate },
       });
-
-      console.log(
-        `Deleted ${deleteResult.deletedCount} old availability records`
-      );
 
       // Get active slot rules and generate availability records
       const activeSlotRules = await SlotRule.find({
@@ -649,24 +611,12 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           );
         }
       }
-
-      console.log(
-        `Created ${totalRecordsCreated} new availability records for technician ${technicianId}`
-      );
-
-      // Log the actual availability pattern that was set
-      const availableDays = days.filter((day) => weeklyPattern[day]?.available);
-      console.log(
-        `Technician ${technicianId} availability set for days:`,
-        availableDays
-      );
     } catch (error) {
       console.error("Error in processAvailabilityData:", error);
       throw error;
     }
   }
 
-  // Add this helper method to generate time slots
   private generateTimeSlotsForDate(
     date: Date,
     startTime: string,
@@ -1216,7 +1166,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     try {
       this.logger.info("Handling technician unavailability", context);
 
-      // Use repository pattern - get orders through OrderService
       const orders = await this.orderService.getOrdersByTechnicianAndDate(
         technicianId,
         unavailableDate
@@ -1242,7 +1191,6 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
           this.logger.info("Processing order for cancellation", orderContext);
 
-          // Use repository pattern - update status through OrderService
           const updatedOrder = await this.orderService.updateOrderStatus(
             order._id.toString(),
             "cancelled",

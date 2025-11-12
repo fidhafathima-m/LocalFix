@@ -370,7 +370,6 @@ export class TechnicianManagementService
       );
       let finalAvailability = availabilityData;
       if (technician.availability?.weeklyPattern) {
-        console.log("DEBUG - Preserving original weeklyPattern");
         finalAvailability = {
           ...availabilityData,
           weeklyPattern: technician.availability.weeklyPattern,
@@ -526,11 +525,6 @@ export class TechnicianManagementService
       // Format documents
       const documents = getDocuments(technician, application || undefined);
 
-      console.log("CONVERT - Original technician availability:", {
-        hasAvailability: !!technician.availability,
-        weeklyPattern: technician.availability?.weeklyPattern,
-      });
-
       // Create the admin technician view
       const adminTechnician: IAdminTechnician = {
         _id: technician._id,
@@ -568,12 +562,6 @@ export class TechnicianManagementService
         suspensionReason: technician.suspensionReason,
         suspendedAt: technician.suspendedAt,
       };
-      console.log("DEBUG - Final admin technician availability:", {
-        hasWeeklyPattern: !!adminTechnician.availability?.weeklyPattern,
-        availabilityKeys: adminTechnician.availability
-          ? Object.keys(adminTechnician.availability)
-          : "none",
-      });
       this.logger.debug(
         "Successfully converted technician to admin view",
         context
@@ -1823,7 +1811,6 @@ export class TechnicianManagementService
 
         case "nearby":
           // For nearby, we need to handle this differently with location data
-          // For now, fall back to default sorting
           sortOptions = { createdAt: -1 };
           break;
 
@@ -2107,29 +2094,17 @@ export class TechnicianManagementService
 
             await slotRule.save();
             createdRulesCount++;
-
-            console.log(
-              `Created slot rule for ${day}: ${dayData.startTime} - ${dayData.endTime}`
-            );
           } catch (error) {
             console.error(`Error creating slot rule for ${day}:`, error);
           }
         }
       }
 
-      console.log(
-        `Created ${createdRulesCount} slot rules for technician ${technicianId}`
-      );
-
       // Delete existing availability records
       const deleteResult = await TechnicianAvailability.deleteMany({
         technicianId: technicianObjectId,
         date: { $gte: startDate, $lte: endDate },
       });
-
-      console.log(
-        `Deleted ${deleteResult.deletedCount} old availability records`
-      );
 
       // Get active slot rules and generate availability records
       const activeSlotRules = await SlotRule.find({
@@ -2165,17 +2140,6 @@ export class TechnicianManagementService
           );
         }
       }
-
-      console.log(
-        `Created ${totalRecordsCreated} new availability records for technician ${technicianId}`
-      );
-
-      // Log the actual availability pattern that was set
-      const availableDays = days.filter((day) => weeklyPattern[day]?.available);
-      console.log(
-        `Technician ${technicianId} availability set for days:`,
-        availableDays
-      );
     } catch (error) {
       console.error("Error in processAvailabilityData:", error);
       throw error;
@@ -2297,99 +2261,103 @@ export class TechnicianManagementService
     }
   }
 
-  // Add this to your TechnicianManagementService
-async getTechnicianPublicAvailability(
-  technicianId: string,
-  startDate?: string,
-  endDate?: string
-): Promise<any> {
-  const context = {
-    operation: "getTechnicianPublicAvailability",
-    technicianId,
-    startDate,
-    endDate,
-    timestamp: new Date().toISOString(),
-  };
+  async getTechnicianPublicAvailability(
+    technicianId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<any> {
+    const context = {
+      operation: "getTechnicianPublicAvailability",
+      technicianId,
+      startDate,
+      endDate,
+      timestamp: new Date().toISOString(),
+    };
 
-  try {
-    this.logger.info("Fetching public technician availability", context);
+    try {
+      this.logger.info("Fetching public technician availability", context);
 
-    // First verify technician exists and is approved
-    const technician = await this.technicianRepository.findTechnicianById(
-      technicianId
-    );
-
-    if (!technician || technician.status !== "approved") {
-      this.logger.warn("Technician not found or not approved", context);
-      return ResponseHelper.notFound("Technician not found");
-    }
-
-    // Default to next 7 days if no dates provided
-    const start = startDate ? new Date(startDate) : new Date();
-    const end = endDate ? new Date(endDate) : new Date();
-    end.setDate(end.getDate() + 7);
-
-    const availability =
-      await this.technicianRepository.getUpcomingAvailabilityProfile(
-        technicianId,
-        start,
-        end
+      // First verify technician exists and is approved
+      const technician = await this.technicianRepository.findTechnicianById(
+        technicianId
       );
 
-    // Format the availability for frontend display
-    const formattedAvailability = this.formatAvailabilityForDisplay(availability);
-
-    this.logger.info(
-      `Found public availability for ${availability.length} days`,
-      {
-        ...context,
-        availabilityCount: availability.length,
+      if (!technician || technician.status !== "approved") {
+        this.logger.warn("Technician not found or not approved", context);
+        return ResponseHelper.notFound("Technician not found");
       }
-    );
 
-    return ResponseHelper.success("Availability retrieved successfully", {
-      availability: formattedAvailability,
-    });
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    this.logger.error("Failed to fetch public availability", {
-      ...context,
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return ResponseHelper.error("Failed to retrieve availability");
+      // Default to next 7 days if no dates provided
+      const start = startDate ? new Date(startDate) : new Date();
+      const end = endDate ? new Date(endDate) : new Date();
+      end.setDate(end.getDate() + 7);
+
+      const availability =
+        await this.technicianRepository.getUpcomingAvailabilityProfile(
+          technicianId,
+          start,
+          end
+        );
+
+      // Format the availability for frontend display
+      const formattedAvailability =
+        this.formatAvailabilityForDisplay(availability);
+
+      this.logger.info(
+        `Found public availability for ${availability.length} days`,
+        {
+          ...context,
+          availabilityCount: availability.length,
+        }
+      );
+
+      return ResponseHelper.success("Availability retrieved successfully", {
+        availability: formattedAvailability,
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Failed to fetch public availability", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return ResponseHelper.error("Failed to retrieve availability");
+    }
   }
-}
 
-private formatAvailabilityForDisplay(availabilityRecords: any[]): any[] {
-  return availabilityRecords.map(record => {
-    const availableSlots = record.timeSlots
-      .filter((slot: any) => slot.status === "available")
-      .map((slot: any) => ({
-        start: slot.start instanceof Date 
-          ? slot.start.toTimeString().substring(0, 5)
-          : new Date(slot.start).toTimeString().substring(0, 5),
-        end: slot.end instanceof Date
-          ? slot.end.toTimeString().substring(0, 5)
-          : new Date(slot.end).toTimeString().substring(0, 5),
-      }));
+  private formatAvailabilityForDisplay(availabilityRecords: any[]): any[] {
+    return availabilityRecords.map((record) => {
+      const availableSlots = record.timeSlots
+        .filter((slot: any) => slot.status === "available")
+        .map((slot: any) => ({
+          start:
+            slot.start instanceof Date
+              ? slot.start.toTimeString().substring(0, 5)
+              : new Date(slot.start).toTimeString().substring(0, 5),
+          end:
+            slot.end instanceof Date
+              ? slot.end.toTimeString().substring(0, 5)
+              : new Date(slot.end).toTimeString().substring(0, 5),
+        }));
 
-    return {
-      date: record.date,
-      dayName: new Date(record.date).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase(),
-      slots: availableSlots,
-      isToday: this.isToday(new Date(record.date))
-    };
-  });
-}
+      return {
+        date: record.date,
+        dayName: new Date(record.date)
+          .toLocaleDateString("en-US", { weekday: "long" })
+          .toLowerCase(),
+        slots: availableSlots,
+        isToday: this.isToday(new Date(record.date)),
+      };
+    });
+  }
 
-private isToday(date: Date): boolean {
-  const today = new Date();
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  );
-}
+  private isToday(date: Date): boolean {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  }
 }

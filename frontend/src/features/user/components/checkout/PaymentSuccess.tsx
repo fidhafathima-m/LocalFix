@@ -46,19 +46,18 @@ const PaymentSuccess: React.FC = () => {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const currentUser = useAppSelector(selectUser);
 
-   useEffect(() => {
+  useEffect(() => {
     // Replace the current entry in history stack
     window.history.replaceState(null, "", window.location.href);
-    
+
     // Handle browser back button
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handlePopState = (event: PopStateEvent) => {
-      // Navigate to orders page when back button is pressed
       navigate("/orders", { replace: true });
     };
 
     window.addEventListener("popstate", handlePopState);
-    
+
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
@@ -97,11 +96,13 @@ const PaymentSuccess: React.FC = () => {
   const getInvoiceData = () => {
     return {
       ...state,
-      user: currentUser ? {
-        fullName: currentUser.fullName || "Customer",
-        phoneNumber: currentUser.phone || "Phone not available",
-        email: currentUser.email || "Email not available"
-      } : undefined
+      user: currentUser
+        ? {
+            fullName: currentUser.fullName || "Customer",
+            phoneNumber: currentUser.phone || "Phone not available",
+            email: currentUser.email || "Email not available",
+          }
+        : undefined,
     };
   };
 
@@ -118,8 +119,8 @@ const PaymentSuccess: React.FC = () => {
               Order Information Not Found
             </h1>
             <p className="text-gray-600 mb-6">
-              We couldn't retrieve your order details. Please check your
-              orders page.
+              We couldn't retrieve your order details. Please check your orders
+              page.
             </p>
             <Link
               to="/orders"

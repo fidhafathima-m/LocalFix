@@ -1,4 +1,3 @@
-// context/notificationContext/NotificationContext.tsx
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { NotificationService } from '../../services/notificationService';
 
@@ -12,7 +11,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 interface NotificationProviderProps {
   children: ReactNode;
-  userId?: string; // Make userId optional or get it from auth
+  userId?: string; 
 }
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ 

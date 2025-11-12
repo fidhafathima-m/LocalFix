@@ -154,7 +154,7 @@ export interface ITechnician extends Document {
   skills?: SkillsInfo;
   certifications?: string[];
 
-  // Availability & Work Preferences - UPDATED STRUCTURE
+  // Availability & Work Preferences
   availability?: AvailabilityInfo;
   workAreas: string[];
   serviceRadiusKm?: number;

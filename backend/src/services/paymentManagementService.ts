@@ -226,8 +226,7 @@ export class PaymentManagementService implements IPaymentService {
         providerOrderId: payment.providerOrderId,
       });
 
-      // Here would typically integrate with your payment provider's refund API
-      // For example: Razorpay refund API call
+      // Here would Razorpay refund API call - to be implemet
     } catch (error: any) {
       this.logger.error("Process refund error", {
         ...context,
@@ -264,8 +263,7 @@ export class PaymentManagementService implements IPaymentService {
         data = Buffer.from(csvData, "utf-8");
         filename = `payments-${new Date().toISOString().split("T")[0]}.csv`;
       } else {
-        // For Excel, you would use a library like exceljs
-        // This is a simplified version
+        // simplified excel
         const excelData = this.convertToExcel(payments);
         data = excelData;
         filename = `payments-${new Date().toISOString().split("T")[0]}.xlsx`;

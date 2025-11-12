@@ -30,11 +30,9 @@ export const useTechnicianLocation = (
 
   useEffect(() => {
     if (!socket || !isConnected || !orderId) {
-      console.log("❌ Socket not ready:", { socket: !!socket, isConnected, orderId });
+      console.log("Socket not ready:", { socket: !!socket, isConnected, orderId });
       return;
     }
-
-    console.log('🔗 USER: Joining tracking room:', { orderId, technicianId });
 
     // Join the tracking room
     socket.emit("join-tracking", { 
@@ -49,7 +47,6 @@ export const useTechnicianLocation = (
       location: TechnicianLocation;
       isActive: boolean;
     }) => {
-      console.log("📍 USER: Location update received:", data);
       
       // Convert timestamp if it's a string
       const locationData = {
@@ -76,7 +73,7 @@ export const useTechnicianLocation = (
       orderId: string;
       timestamp: Date;
     }) => {
-      console.log("🛑 USER: Location tracking ended:", data);
+      console.log("USER: Location tracking ended:", data);
       setIsTracking(false);
       setTechnicianLocation(null);
     };
@@ -89,7 +86,7 @@ export const useTechnicianLocation = (
 
     // Listen for general errors
     const handleError = (error: unknown) => {
-      console.error("❌ USER: Socket error:", error);
+      console.error("USER: Socket error:", error);
       setError("Socket connection error");
     };
 
@@ -101,7 +98,7 @@ export const useTechnicianLocation = (
 
     // Debug listeners for specific events
     socket.on("connect", () => {
-      console.log("✅ USER: Socket connected");
+      console.log("USER: Socket connected");
     });
 
     socket.on("disconnect", (reason: unknown) => {
@@ -110,7 +107,6 @@ export const useTechnicianLocation = (
     });
 
     return () => {
-      console.log("🧹 USER: Cleaning up socket listeners");
       socket.off("technician-location-update", handleLocationUpdate);
       socket.off("technician-location-ended", handleLocationEnded);
       socket.off("connect_error", handleConnectError);

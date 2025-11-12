@@ -35,7 +35,6 @@ import type { GeocodeResult } from "../../../../interface/user/ILocationService"
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { reviewService } from "../../../../services/user/reviewService";
 
-// Add these interfaces at the top with your other interfaces
 interface ReviewStats {
   averageRating: number;
   totalReviews: number;
@@ -86,7 +85,6 @@ interface Technician {
   isNearby?: boolean;
   hasLocation?: boolean;
   technicianLocation?: any;
-  // Add review stats as optional
   reviewStats?: ReviewStats;
 }
 
@@ -141,7 +139,6 @@ const ServiceDetails: React.FC = () => {
   const user = useAppSelector(selectUser);
   const isLoggedIn = useAppSelector(selectIsLoggedIn);
 
-  // New state for location features
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -151,7 +148,6 @@ const ServiceDetails: React.FC = () => {
   const [hasFetchedWithLocation, setHasFetchedWithLocation] = useState(false);
   const [showLocationSetup, setShowLocationSetup] = useState(false);
 
-  // Update the state and add new state for current page technicians
   const [, setCurrentPageTechnicians] = useState<Technician[]>([]);
 
   // Address form state
@@ -207,7 +203,6 @@ const ServiceDetails: React.FC = () => {
   }, [slug]);
 
   // Handle user location and technician fetching
-  // In ServiceDetails.tsx - update the location initialization logic
   useEffect(() => {
     const initializeLocationAndTechnicians = async () => {
       if (!service) return;
@@ -334,7 +329,7 @@ const ServiceDetails: React.FC = () => {
           const stats = await fetchTechnicianReviewStats(tech._id);
           return {
             ...tech,
-            reviewStats: stats || undefined, // Use undefined instead of null to match the optional interface
+            reviewStats: stats || undefined,
           };
         })
       );
@@ -962,7 +957,6 @@ const ServiceDetails: React.FC = () => {
     }
   };
 
-  // Update the location search effect to handle pagination properly
   useEffect(() => {
     if (service && debouncedLocationSearch.trim() !== "") {
       const searchTechnicians = async () => {
@@ -997,7 +991,6 @@ const ServiceDetails: React.FC = () => {
         ? workArea
         : "Location not specified";
 
-    // Use real rating from reviewStats if available, otherwise fallback to averageRating
     const realRating =
       tech.reviewStats?.averageRating || tech.averageRating || 0;
     const realRatingCount =
@@ -1119,7 +1112,6 @@ const ServiceDetails: React.FC = () => {
     );
   };
 
-  // Update the handlePageChange function to properly handle pagination
   const handlePageChange = async (newPage: number) => {
     if (!service || newPage < 1 || newPage > pagination.pages) return;
 

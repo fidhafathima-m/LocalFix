@@ -965,7 +965,6 @@ export class OrderService implements IOrderService {
       );
     }
   }
-  // In your OrderService - update the notifyUserAboutOrderStatusChange method
   private async notifyUserAboutOrderStatusChange(
     order: any,
     newStatus: string

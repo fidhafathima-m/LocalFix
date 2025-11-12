@@ -1,4 +1,3 @@
-// src/services/common/notificationService.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { Notification } from "../interface/user/INotification";
@@ -11,7 +10,11 @@ export class NotificationService {
     limit: number = 20
   ): Promise<Notification[]> {
     try {
-      const response = await notificationAPI.getNotifications(userId, page, limit);
+      const response = await notificationAPI.getNotifications(
+        userId,
+        page,
+        limit
+      );
       const result = this.handleResponse(response);
       return result.notifications || [];
     } catch (error: any) {
@@ -29,7 +32,9 @@ export class NotificationService {
     }
   }
 
-  static async markAllAsRead(userId: string): Promise<{ success: boolean; message: string }> {
+  static async markAllAsRead(
+    userId: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const response = await notificationAPI.markAllAsRead(userId);
       return this.handleResponse(response);

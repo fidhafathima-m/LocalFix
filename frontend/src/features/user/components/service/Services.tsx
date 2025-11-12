@@ -168,7 +168,6 @@ const Services: React.FC = () => {
       loadServices(currentPage, pageSize);
     } else if (hasClientSideOnlyFilters) {
       // Client-side filtering only for specific filters
-      // Don't call loadServices here - we'll use the existing services
       setCurrentPage(1);
     } else {
       // No filters or only server-side filters that need initial load
@@ -218,7 +217,6 @@ const Services: React.FC = () => {
       })
     : services;
 
-  // Calculate display values based on filtering mode
   // Calculate display values based on filtering mode
   const displayTotalItems = isUsingClientSideFiltering
     ? filteredServices.length

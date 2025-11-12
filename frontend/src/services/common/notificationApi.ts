@@ -1,4 +1,3 @@
-// src/services/common/notificationApi.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { 
   NotificationListResponse,

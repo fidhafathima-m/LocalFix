@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import io from "socket.io-client";
 
-// Define the Socket type based on the return type of io()
 type SocketType = ReturnType<typeof io>;
 
 interface SocketContextType {
@@ -41,7 +40,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       
       const newSocket = io(socketUrl, {
         transports: ["websocket", "polling"],
-        timeout: 30000, // Increased timeout
+        timeout: 30000, 
         autoConnect: true,
         forceNew: false,
         reconnection: true,

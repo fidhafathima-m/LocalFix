@@ -47,7 +47,6 @@ const LeaveReview: React.FC = () => {
     }
   }, [orderId]);
 
-  // LeaveReview.tsx - Update the fetchOrderAndReviewDetails function
   const fetchOrderAndReviewDetails = async () => {
     try {
       setLoading(true);
@@ -63,7 +62,6 @@ const LeaveReview: React.FC = () => {
         if (foundOrder) {
           setOrder(foundOrder);
 
-          // Check for existing review - handle 404 gracefully
           try {
             const reviewResponse = await reviewService.getOrderReview(orderId!);
 
@@ -83,7 +81,7 @@ const LeaveReview: React.FC = () => {
             setMode("create");
           }
 
-          // Check location state for mode (in case of direct navigation)
+          // Check location state for mode
           const locationState = location.state as LeaveReviewLocationState;
           if (locationState?.mode) {
             setMode(locationState.mode);
@@ -204,14 +202,14 @@ const LeaveReview: React.FC = () => {
       const response = await reviewService.deleteReview(existingReviewId);
 
       if (response.success) {
-        toast.success("Your review has been deleted.")
+        toast.success("Your review has been deleted.");
         navigate("/orders");
       } else {
-        toast.error(response.message || "Failed to delete review")
+        toast.error(response.message || "Failed to delete review");
       }
     } catch (error: any) {
       console.error("Error deleting review:", error);
-      toast.error(error.response?.data?.message || "Failed to delete review")
+      toast.error(error.response?.data?.message || "Failed to delete review");
     } finally {
       setSubmitting(false);
     }

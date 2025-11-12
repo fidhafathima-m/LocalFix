@@ -190,11 +190,9 @@ export const ApplicationForm: React.FC = () => {
   const [, setPreview] = useState<string | null>(null);
 
   // Form data state
-  // Replace your current formData state initialization with this:
   const [formData, setFormData] = useState<FormDataState>(() => {
-    // Initialize with proper user data synchronization
     const initialData: FormDataState = {
-      // Step 1: Personal Information - Ensure user data is properly set
+      // Step 1: Personal Information
       fullName: user?.fullName || "",
       phoneNumber: user?.phone || "",
       email: user?.email || "",
@@ -249,7 +247,6 @@ export const ApplicationForm: React.FC = () => {
     return initialData;
   });
 
-  // Add this useEffect to properly sync user data when component mounts
   useEffect(() => {
     if (user && !hasRestoredFromLocalStorage && !existingApplicationData) {
       setFormData((prev) => ({
@@ -318,7 +315,6 @@ export const ApplicationForm: React.FC = () => {
     hasRestoredFromLocalStorage,
   ]);
 
-  // Add this to your ApplicationForm component
   useEffect(() => {
     // Check if we're in edit mode and have a specific step to jump to
     const isEditMode = localStorage.getItem("isEditMode") === "true";
@@ -396,7 +392,6 @@ export const ApplicationForm: React.FC = () => {
     };
   }, []);
 
-  // In the populateFormWithExistingData function, replace the availability section:
   const populateFormWithExistingData = (appData: ApplicationData) => {
     if (!appData) {
       console.error("No application data provided for population");
@@ -428,7 +423,7 @@ export const ApplicationForm: React.FC = () => {
 
       setFormData((prev) => ({
         ...prev,
-        // Personal Information - Ensure user data takes precedence
+        // Personal Information
         fullName: user?.fullName || personalInfo.fullName || prev.fullName,
         phoneNumber:
           user?.phone || personalInfo.phoneNumber || prev.phoneNumber,
@@ -436,7 +431,6 @@ export const ApplicationForm: React.FC = () => {
         dateOfBirth: personalInfo.dateOfBirth || prev.dateOfBirth,
         gender: personalInfo.gender || prev.gender,
 
-        // Rest of the fields remain the same...
         idType: appData.identity?.idType || prev.idType,
         idNumber: appData.identity?.idNumber || prev.idNumber,
         address: {
@@ -886,7 +880,6 @@ export const ApplicationForm: React.FC = () => {
     user?.applicationStatus,
   ]);
   // Fetch saved application from backend
-  // In the fetchSavedApplication useEffect, replace the availability section:
   useEffect(() => {
     const fetchSavedApplication = async () => {
       if (!applicationId || !user?._id || hasRestoredFromLocalStorage) return;
@@ -966,7 +959,6 @@ export const ApplicationForm: React.FC = () => {
   };
 
   // Save formData locally on every change
-  // In the localStorage backup useEffect, replace the availability section:
   useEffect(() => {
     if (applicationId) {
       const backup = localStorage.getItem(`techApp-${applicationId}`);

@@ -28,6 +28,10 @@ import toast from "react-hot-toast";
 import { RRule } from "rrule";
 import type { AddressFormData } from "../../../../interface/user/IUserApi";
 import { useBreadcrumb } from "../../../../hooks/useBreadcrumb";
+import {
+  validateBookingStep,
+  validatePhoneNumber,
+} from "../../../../validation/utils/bookingValidationUtils";
 
 interface Technician {
   _id: string;
@@ -132,7 +136,7 @@ const BookingPage: React.FC = () => {
     }
   }, [technician, breadcrumb.technicianName, updateBreadcrumb]);
 
-  // Helper function to check if service is available (case-insensitive and flexible matching)
+  // Helper function to check if service is available
   const isServiceAvailable = (service: string): boolean => {
     if (!technician?.services || !service) return false;
 
@@ -202,6 +206,16 @@ const BookingPage: React.FC = () => {
   // Update the breadcrumb display
   const displayServiceName = breadcrumb.serviceName || serviceName;
   const displayTechnicianName = breadcrumb.technicianName || technicianName;
+
+  const isFormValid =
+    selectedService &&
+    selectedBrand &&
+    problemDescription.trim().length >= 10 &&
+    selectedDate &&
+    selectedTime &&
+    validatePhoneNumber(phoneNumber) &&
+    (!usesSavedAddress || selectedAddress) &&
+    !dateError;
 
   useEffect(() => {
     if (technician?.services && serviceName) {
@@ -283,7 +297,6 @@ const BookingPage: React.FC = () => {
               const availability = generateWeeklyAvailability(slotRules);
               setWeeklyAvailability(availability);
 
-              // NEW: Get the next available date considering current time
               const nextAvailableDate = getNextAvailableDate();
 
               if (nextAvailableDate && !selectedDate) {
@@ -540,7 +553,6 @@ const BookingPage: React.FC = () => {
     return getAvailableTimeSlotsForDate(selectedDate);
   };
 
-  // Handle date change with validation
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
     setSelectedTime("");
@@ -629,7 +641,6 @@ const BookingPage: React.FC = () => {
     );
   };
 
-  // Update the phone number population logic
   useEffect(() => {
     const fetchUserAddresses = async () => {
       if (!isLoggedIn) return;
@@ -725,59 +736,55 @@ const BookingPage: React.FC = () => {
     // Clear previous errors
     setBrandError(null);
     setProblemDescriptionError(null);
+    setDateError(null);
 
-    // Validate service type
-    if (!selectedService) {
-      toast.error("Please select a service type");
+    // 1. Validate service details using the validation utility
+    const serviceValidation = validateBookingStep("service-details", {
+      selectedService,
+      selectedBrand,
+      problemDescription,
+    });
+
+    if (!serviceValidation.success && serviceValidation.errors) {
+      // Set individual field errors
+      if (serviceValidation.errors.selectedService) {
+        toast.error(serviceValidation.errors.selectedService);
+      }
+      if (serviceValidation.errors.selectedBrand) {
+        setBrandError(serviceValidation.errors.selectedBrand);
+        toast.error(serviceValidation.errors.selectedBrand);
+      }
+      if (serviceValidation.errors.problemDescription) {
+        setProblemDescriptionError(serviceValidation.errors.problemDescription);
+        toast.error(serviceValidation.errors.problemDescription);
+      }
       return;
     }
 
-    // Validate brand
-    if (!selectedBrand) {
-      setBrandError("Please select a brand");
-      toast.error("Please select a brand");
+    // 2. Validate schedule using the validation utility
+    const scheduleValidation = validateBookingStep("schedule", {
+      selectedDate,
+      selectedTime,
+    });
+
+    if (!scheduleValidation.success && scheduleValidation.errors) {
+      if (scheduleValidation.errors.selectedDate) {
+        setDateError(scheduleValidation.errors.selectedDate);
+        toast.error(scheduleValidation.errors.selectedDate);
+      }
+      if (scheduleValidation.errors.selectedTime) {
+        toast.error(scheduleValidation.errors.selectedTime);
+      }
       return;
     }
 
-    // Validate problem description
-    if (!problemDescription.trim()) {
-      setProblemDescriptionError("Please describe the problem");
-      toast.error("Please describe the problem");
+    // 4. Validate phone number
+    if (!validatePhoneNumber(phoneNumber)) {
+      toast.error("Please enter a valid 10-digit phone number");
       return;
     }
 
-    // Validate problem description length (optional - you can adjust this)
-    if (problemDescription.trim().length < 10) {
-      setProblemDescriptionError(
-        "Please provide more details about the problem (minimum 10 characters)"
-      );
-      toast.error("Please provide more details about the problem");
-      return;
-    }
-
-    // Validate date and time
-    if (!selectedDate || !selectedTime) {
-      toast.error("Please select date and time");
-      return;
-    }
-
-    // Validate that selected date is available
-    const selectedDay = weeklyAvailability.find(
-      (day) => day.formattedDate === selectedDate
-    );
-    if (!selectedDay || selectedDay.slots.length === 0) {
-      toast.error("Please select an available date");
-      return;
-    }
-
-    // Validate that selected time is available
-    const availableTimeSlots = getAvailableTimeSlotsForSelectedDate();
-    if (!availableTimeSlots.includes(selectedTime)) {
-      toast.error("Please select an available time slot");
-      return;
-    }
-
-    // Validate address
+    // 5. Validate address
     if (usesSavedAddress && !selectedAddress) {
       toast.error("Please select an address");
       return;
@@ -793,12 +800,12 @@ const BookingPage: React.FC = () => {
       return;
     }
 
-    // Navigate to checkout with all booking data
+    // All validations passed - navigate to checkout
     navigate("/checkout", {
       state: {
         technician,
         service: selectedService,
-        brand: selectedBrand, // Add brand to checkout data
+        brand: selectedBrand,
         date: selectedDate,
         time: selectedTime,
         address: address,
@@ -1091,11 +1098,12 @@ const BookingPage: React.FC = () => {
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-                {phoneNumber.length !== 10 && phoneNumber.length > 0 && (
-                  <p className="text-red-500 text-xs mt-1">
-                    Please enter a valid 10-digit phone number
-                  </p>
-                )}
+                {!validatePhoneNumber(phoneNumber) &&
+                  phoneNumber.length > 0 && (
+                    <p className="text-red-500 text-xs mt-1">
+                      Please enter a valid 10-digit phone number
+                    </p>
+                  )}
               </div>
             </div>
             <div>
@@ -1234,7 +1242,8 @@ const BookingPage: React.FC = () => {
                 value={problemDescription}
                 onChange={(e) => {
                   setProblemDescription(e.target.value);
-                  if (problemDescriptionError && e.target.value.trim()) {
+                  // Clear error when user starts typing
+                  if (problemDescriptionError) {
                     setProblemDescriptionError(null);
                   }
                 }}
@@ -1249,7 +1258,7 @@ const BookingPage: React.FC = () => {
               )}
               <p className="text-xs text-gray-500 mt-1">
                 Please provide details about the issue to help the technician
-                prepare (atleast 10 letters)
+                prepare (minimum 10 characters)
               </p>
             </div>
           </div>
@@ -1447,16 +1456,7 @@ const BookingPage: React.FC = () => {
             </button>
             <button
               onClick={handleContinueToCheckout}
-              disabled={
-                !selectedDate ||
-                !selectedTime ||
-                !selectedService ||
-                !selectedBrand ||
-                !problemDescription.trim() ||
-                (usesSavedAddress && !selectedAddress) ||
-                dateError !== null ||
-                problemDescription.trim().length < 10
-              }
+              disabled={!isFormValid}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer transition-colors"
             >
               Continue to Checkout

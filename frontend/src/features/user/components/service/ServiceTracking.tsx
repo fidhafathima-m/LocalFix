@@ -77,19 +77,13 @@ const ServiceTrackingComponent: React.FC = () => {
       return `${distance.toFixed(1)} km`;
     }
   };
-  
 
-  // Add this useEffect to log errors
   useEffect(() => {
     if (error) {
-      console.error("❌ Tracking error:", error);
+      console.error("Tracking error:", error);
       toast.error(`Tracking error: ${error}`);
     }
   }, [error]);
-
-  useEffect(() => {
-    console.log("🔍 OrderId state changed:", orderId);
-  }, [orderId]);
 
   useEffect(() => {
     if (bookingId) {
@@ -579,7 +573,7 @@ const ServiceTrackingComponent: React.FC = () => {
                 if (socket && orderId) {
                   socket.emit("check-room", { orderId });
                   console.log(
-                    "🔍 Checking ACTUAL room status for order:",
+                    "Checking ACTUAL room status for order:",
                     orderId
                   );
                 }
@@ -591,7 +585,7 @@ const ServiceTrackingComponent: React.FC = () => {
 
             <button
               onClick={() => {
-                console.log("📊 CURRENT STATE:", {
+                console.log("CURRENT STATE:", {
                   orderId,
                   technicianId: trackingData?.technicianId?._id,
                   technicianLocation,
@@ -602,7 +596,7 @@ const ServiceTrackingComponent: React.FC = () => {
                   expectedRoom: orderId ? `order-${orderId}` : "undefined",
                   actualBackendRoom: orderId
                     ? `booking-${orderId}`
-                    : "undefined", // This is the problem!
+                    : "undefined", 
                 });
               }}
               className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
@@ -633,7 +627,6 @@ const ServiceTrackingComponent: React.FC = () => {
             <LiveMap
               technicianLocation={technicianLocation}
               userLocation={{
-                // CHANGED: destination -> userLocation
                 lat: serviceCoordinates?.lat || 10.8505,
                 lng: serviceCoordinates?.lng || 76.2711,
                 street: trackingData.address.street,
@@ -656,14 +649,16 @@ const ServiceTrackingComponent: React.FC = () => {
                 <div className="text-sm text-gray-600">
                   {trackingData.address.label}
                 </div>
-            {technicianLocation && (
-              <div className="text-sm text-red-900 mt-1">
-                {getDistanceFromTechnician(technicianLocation, userLocation)}{" "}
-                away
+                {technicianLocation && (
+                  <div className="text-sm text-red-900 mt-1">
+                    {getDistanceFromTechnician(
+                      technicianLocation,
+                      userLocation
+                    )}{" "}
+                    away
+                  </div>
+                )}
               </div>
-            )}
-              </div>
-
             </div>
           </div>
         )}

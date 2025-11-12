@@ -1,4 +1,3 @@
-// components/technician/ShareLocationPrompt.tsx
 import React from "react";
 import { LocationOn, Close } from "@mui/icons-material";
 

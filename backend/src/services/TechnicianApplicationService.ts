@@ -346,7 +346,6 @@ export class TechnicianApplicationService
         stepsCompleted: application.stepsCompleted,
       });
 
-      // ... rest of your existing saveStep method remains the same
       const processedStepData: StepData = { ...stepData };
 
       // Parse JSON fields
@@ -1158,7 +1157,6 @@ export class TechnicianApplicationService
       }
 
       // Extract service areas and work radius from application data
-      // Use type assertion since the application form has different structure
       const applicationAvailability = application.availability as any;
       const serviceAreas =
         applicationAvailability?.serviceAreas ||

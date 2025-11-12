@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// PaymentRetry.tsx - Updated with proper booking data fetching
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -94,26 +93,21 @@ const PaymentRetry: React.FC = () => {
   const location = useLocation();
   const user = useAppSelector(selectUser);
 
-  // Replace the fetchCompleteBookingData function with this version
-  // Replace the fetchCompleteBookingData function with this version
   const fetchCompleteBookingData = async (bookingId: string) => {
     try {
       setLoading(true);
 
-      // FIRST: Check if we have technician data in the location state from failed orders
       const state = location.state as PaymentRetryState;
 
       if (state?.bookingData?.technician) {
         console.log(
           "Using technician data from location state (failed orders)"
         );
-        // We have complete technician data from the failed orders list
         const bookingResponse = await bookingService.getBookingById(bookingId);
 
         if (bookingResponse.success && bookingResponse.data) {
           const booking = bookingResponse.data;
 
-          // Use the technician data from location state (which has the full details)
           const technician = state.bookingData.technician;
 
           // Fetch user address to populate the address
@@ -423,7 +417,6 @@ const PaymentRetry: React.FC = () => {
   };
 
   // Create or update booking record
-  // In PaymentRetry.tsx - Update createBookingRecord method
   const createBookingRecord = async (): Promise<string> => {
     if (!validateBookingData()) {
       throw new Error("Invalid booking data");
@@ -837,9 +830,6 @@ const PaymentRetry: React.FC = () => {
 
     return null;
   };
-
-  // Rest of the component remains the same...
-  // [Keep all the existing functions: handleAddAddress, validateBookingData, getSelectedAddress, createBookingRecord, initializeRazorpayPayment, handleRazorpayPayment, handleCashOnDelivery, handlePaymentRetry, formatDisplayDate, formatDisplayTime, getErrorDetails]
 
   // Update loading state
   if (loading) {
