@@ -109,6 +109,15 @@ export interface ITechnician {
   profilePictureUrl?: string;
   createdAt: Date;
   updatedAt: Date;
+  availability?: {
+    weeklyPattern: {
+      [key: string]: {
+        available: boolean;
+        startTime: string;
+        endTime: string;
+      };
+    };
+  };
 }
 
 export interface ITechnicianApplication {
@@ -140,7 +149,7 @@ export interface ITechnicianApplication {
     workRadius?: string;
     languages?: string[];
   };
-   availability: {
+  availability: {
     serviceAreas: string[];
     workRadius: string;
     weeklyPattern: WeeklyPattern;

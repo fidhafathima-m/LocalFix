@@ -75,6 +75,37 @@ const Checkout: React.FC = () => {
   const location = useLocation();
   const user = useAppSelector(selectUser);
 
+  useEffect(() => {
+  // Prevent access to checkout if coming from payment success
+  const navigationEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+  if (navigationEntries.length > 0) {
+    const navType = navigationEntries[0].type;
+    
+    // If user is coming via back/forward navigation, redirect
+    if (navType === 'back_forward' && !location.state) {
+      navigate("/services", { replace: true });
+      return;
+    }
+  }
+
+  // Replace history entry to prevent back navigation to checkout
+  window.history.replaceState({ canGoBack: true }, "", window.location.href);
+  
+  // Handle browser back button
+  const handlePopState = (event: PopStateEvent) => {
+    // If state indicates we can go back, redirect to services
+    if (event.state?.canGoBack) {
+      navigate("/services", { replace: true });
+    }
+  };
+
+  window.addEventListener("popstate", handlePopState);
+  
+  return () => {
+    window.removeEventListener("popstate", handlePopState);
+  };
+}, [navigate, location.state]);
+
   // Load Razorpay script
   useEffect(() => {
     const loadRazorpayScript = () => {
@@ -251,6 +282,7 @@ const Checkout: React.FC = () => {
 
                 toast.success("Payment successful! Booking confirmed.");
                 navigate("/payment-success", {
+                  replace: true,
                   state: {
                     bookingId,
                     technician: bookingData!.technician,
@@ -275,6 +307,7 @@ const Checkout: React.FC = () => {
                 );
                 toast.error("Payment verification failed. Please try again.");
                 navigate("/payment-failed", {
+                  replace: true,
                   state: {
                     bookingId,
                     error: "Payment verification failed",
@@ -287,6 +320,7 @@ const Checkout: React.FC = () => {
             console.error("Payment verification error:", error);
             toast.error("Payment verification failed");
             navigate("/payment-failed", {
+              replace: true,
               state: {
                 bookingId,
                 error: "Payment verification error",
@@ -392,6 +426,7 @@ const Checkout: React.FC = () => {
 
       toast.success("Booking confirmed! Pay when service is complete.");
       navigate("/payment-success", {
+        replace: true,
         state: {
           bookingId,
           technician: bookingData!.technician,

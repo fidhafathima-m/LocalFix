@@ -69,7 +69,7 @@ export interface WeeklyPattern {
 }
 
 export interface AvailabilityInfo {
-  isAvailable: boolean;
+  isAvailable?: boolean;
   weeklyPattern?: WeeklyPattern;
   availableWeeks?: number[];
 }

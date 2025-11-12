@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   CheckCircleOutlineOutlined,
   PlaceOutlined,
@@ -41,9 +41,28 @@ export interface PaymentSuccessState {
 
 const PaymentSuccess: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const state = location.state as PaymentSuccessState;
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const currentUser = useAppSelector(selectUser);
+
+   useEffect(() => {
+    // Replace the current entry in history stack
+    window.history.replaceState(null, "", window.location.href);
+    
+    // Handle browser back button
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const handlePopState = (event: PopStateEvent) => {
+      // Navigate to orders page when back button is pressed
+      navigate("/orders", { replace: true });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [navigate]);
 
   // Format date for display
   const formatDisplayDate = (dateString: string) => {
@@ -96,17 +115,17 @@ const PaymentSuccess: React.FC = () => {
               <CheckCircleOutlineOutlined className="w-12 h-12 text-gray-400" />
             </div>
             <h1 className="text-2xl font-bold mb-4">
-              Booking Information Not Found
+              Order Information Not Found
             </h1>
             <p className="text-gray-600 mb-6">
-              We couldn't retrieve your booking details. Please check your
-              bookings page.
+              We couldn't retrieve your order details. Please check your
+              orders page.
             </p>
             <Link
-              to="/bookings"
+              to="/orders"
               className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
             >
-              View My Bookings
+              View My Orders
             </Link>
           </div>
         </main>

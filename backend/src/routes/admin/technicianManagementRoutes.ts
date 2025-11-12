@@ -13,6 +13,10 @@ router.get(
   "/public/:id",
   technicianManagementController.getPublicTechnicianById
 );
+router.get(
+  "/public/:technicianId/availability",
+  technicianManagementController.getTechnicianPublicAvailability
+);
 
 router.get(
   "/",

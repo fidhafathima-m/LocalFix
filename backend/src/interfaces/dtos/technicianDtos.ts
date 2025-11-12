@@ -1,3 +1,5 @@
+import { AvailabilityInfo } from "../technician/ITechnician";
+
 // Base DTO interfaces
 export interface BaseResponseDto {
   success: boolean;
@@ -59,7 +61,8 @@ export interface TechnicianDetailDto {
   serviceRadiusKm: number;
   personalInfo: PersonalInfoDto;
   documents: DocumentDto[];
-  availability?: Record<string, any>;
+  availability?: AvailabilityInfo;
+  availabilityRecords?: any[];
   suspensionReason?: string;
   suspendedAt?: Date;
   createdAt: Date;
@@ -80,7 +83,7 @@ export interface AddressDto {
   city: string;
   state: string;
   pincode: string;
-  landmark?: string
+  landmark?: string;
 }
 
 export interface DocumentDto {

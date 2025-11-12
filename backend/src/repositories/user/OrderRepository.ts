@@ -444,4 +444,33 @@ export class OrderRepository implements IOrderRepository {
       return null;
     }
   }
+  async getOrdersByTechnicianAndDate(
+    technicianId: string, 
+    date: Date
+  ): Promise<IOrder[]> {
+    try {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const orders = await Order.find({
+        technicianId: new Types.ObjectId(technicianId),
+        scheduledAt: {
+          $gte: startOfDay,
+          $lte: endOfDay
+        },
+        status: { $in: ['confirmed', 'accepted', 'scheduled'] }
+      })
+      .populate("userId", "fullName email phone")
+      .populate("technicianId", "displayName profilePictureUrl services")
+      .exec();
+
+      return orders;
+    } catch (error) {
+      console.error('Error fetching orders by technician and date:', error);
+      return [];
+    }
+  }
 }

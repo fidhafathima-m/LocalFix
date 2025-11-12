@@ -235,6 +235,69 @@ class EmailService implements IEmailService {
 
     return await this.sendEmail({ to: technicianEmail, subject, html });
   }
+   async sendTechnicianUnavailableNotification(
+    customerEmail: string,
+    customerName: string,
+    technicianName: string,
+    serviceDate: string,
+    serviceType: string,
+    orderId: string
+  ): Promise<boolean> {
+    const subject = `Service Update: Your ${serviceType} appointment needs rescheduling`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .info-box { background: #fff; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #667eea; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Service Appointment Update</h1>
+            <p>Important information about your scheduled service</p>
+          </div>
+          <div class="content">
+            <h2>Dear ${customerName},</h2>
+            <p>We regret to inform you that your technician <strong>${technicianName}</strong> is unexpectedly unavailable for your scheduled service.</p>
+            
+            <div class="info-box">
+              <p><strong>Service Details:</strong></p>
+              <p>Service Type: ${serviceType}</p>
+              <p>Scheduled Date: ${serviceDate}</p>
+              <p>Order ID: ${orderId}</p>
+            </div>
+
+            <p><strong>What happens next?</strong></p>
+            <ul>
+              <li>Your order has been cancelled</li>
+              <li>If you paid online, a full refund will be processed within 3-5 business days</li>
+              <li>Our team will contact you shortly to help reschedule with another available technician</li>
+              <li>You can also book a new appointment through our app/website</li>
+            </ul>
+
+            <p>We sincerely apologize for this inconvenience and appreciate your understanding.</p>
+
+            <p><strong>Need immediate assistance?</strong><br>
+            Contact our support team at ${process.env.SUPPORT_EMAIL} or call ${process.env.SUPPORT_PHONE}</p>
+          </div>
+          <div class="footer">
+            <p>&copy; 2024 LocalFix. All rights reserved.</p>
+            <p>This is an automated message, please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await this.sendEmail({ to: customerEmail, subject, html });
+  }
 }
 
 export const emailService = new EmailService();

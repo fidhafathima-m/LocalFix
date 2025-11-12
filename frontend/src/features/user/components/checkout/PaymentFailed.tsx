@@ -1,4 +1,5 @@
-import React from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   HighlightOffOutlined,
@@ -13,6 +14,9 @@ interface PaymentFailedState {
   bookingId?: string;
   error?: string;
   errorCode?: string;
+  bookingData?: any;
+  pricing?: any;
+  razorpayError?: any;
 }
 
 const PaymentFailed: React.FC = () => {
@@ -20,11 +24,44 @@ const PaymentFailed: React.FC = () => {
   const navigate = useNavigate();
   const state = location.state as PaymentFailedState;
 
+  // Prevent back navigation to checkout/payment pages
+  useEffect(() => {
+    // Redirect if accessed directly without state
+    if (!state) {
+      navigate("/services", { replace: true });
+      return;
+    }
+
+    // Replace current history entry to prevent back navigation
+    window.history.replaceState(null, "", window.location.href);
+
+    // Handle browser back button - redirect to services
+    const handlePopState = () => {
+      navigate("/services", { replace: true });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [state, navigate]);
+
   const handleTryAgain = () => {
-    const state = location.state as PaymentFailedState;
-    if (state?.bookingId) {
-      // Navigate back to checkout with the same booking data
+    if (state?.bookingData) {
+      // Navigate to retry payment with all booking data
+      navigate("/checkout", {
+        replace: true, // Use replace to avoid adding to history
+        state: {
+          ...state.bookingData,
+          retry: true,
+          previousError: state.error,
+        },
+      });
+    } else if (state?.bookingId) {
+      // Navigate to retry payment page with booking ID
       navigate("/retry-payment", {
+        replace: true,
         state: {
           bookingId: state.bookingId,
           error: state.error,
@@ -32,7 +69,7 @@ const PaymentFailed: React.FC = () => {
       });
     } else {
       // Go back to services page if no specific booking
-      navigate("/services");
+      navigate("/services", { replace: true });
     }
   };
 
@@ -40,18 +77,65 @@ const PaymentFailed: React.FC = () => {
     const supportMessage = `Payment Failed - Booking: ${
       state?.bookingId || "N/A"
     } - Error: ${state?.error || "Unknown error"}`;
+    
+    // You can integrate with your support system here
     console.log("Contact support with:", supportMessage);
-    alert(
-      "Support team will contact you shortly regarding the payment failure."
+    
+    // Example: Open email client
+    const subject = encodeURIComponent("Payment Failed - Support Required");
+    const body = encodeURIComponent(
+      `Hello Support Team,\n\nI encountered a payment failure with the following details:\n\nBooking ID: ${state?.bookingId || "N/A"}\nError: ${state?.error || "Unknown error"}\nError Code: ${state?.errorCode || "N/A"}\n\nPlease assist me with this issue.\n\nThank you.`
     );
+    
+    window.open(`mailto:support@localfix.com?subject=${subject}&body=${body}`);
+  };
+
+  const handleGoToServices = () => {
+    navigate("/services", { replace: true });
   };
 
   const getErrorMessage = () => {
     if (state?.error) {
       return state.error;
     }
+    
+    if (state?.razorpayError?.description) {
+      return state.razorpayError.description;
+    }
+    
     return "Your payment could not be processed at this time.";
   };
+
+  const getDetailedErrorInfo = () => {
+    if (state?.razorpayError) {
+      return {
+        code: state.razorpayError.code,
+        description: state.razorpayError.description,
+        source: state.razorpayError.source,
+        step: state.razorpayError.step,
+        reason: state.razorpayError.reason,
+      };
+    }
+    return null;
+  };
+
+  // Show loading while checking state
+  if (!state) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-12">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Redirecting...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const detailedError = getDetailedErrorInfo();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -64,15 +148,38 @@ const PaymentFailed: React.FC = () => {
             </div>
             <h1 className="text-3xl font-bold mb-2">Payment Failed</h1>
             <p className="text-gray-600 mb-2">{getErrorMessage()}</p>
+            
             {state?.bookingId && (
               <p className="text-sm text-gray-500">
                 Booking ID: <span className="font-mono">{state.bookingId}</span>
               </p>
             )}
+            
             {state?.errorCode && (
               <p className="text-sm text-gray-500 mt-1">
                 Error Code: <span className="font-mono">{state.errorCode}</span>
               </p>
+            )}
+
+            {/* Detailed Razorpay Error Information */}
+            {detailedError && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg text-left w-full">
+                <h3 className="font-semibold text-sm mb-2">Error Details:</h3>
+                <div className="text-xs text-gray-600 space-y-1">
+                  {detailedError.code && (
+                    <p>Code: {detailedError.code}</p>
+                  )}
+                  {detailedError.step && (
+                    <p>Step: {detailedError.step}</p>
+                  )}
+                  {detailedError.reason && (
+                    <p>Reason: {detailedError.reason}</p>
+                  )}
+                  {detailedError.source && (
+                    <p>Source: {detailedError.source}</p>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 
@@ -128,7 +235,7 @@ const PaymentFailed: React.FC = () => {
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
             >
               <AutorenewOutlined className="w-5 h-5" />
-              Try Again
+              Try Payment Again
             </button>
 
             <button
@@ -146,6 +253,19 @@ const PaymentFailed: React.FC = () => {
               <ReceiptLongOutlined className="w-5 h-5" />
               Go to Orders
             </Link>
+
+            <button
+              onClick={handleGoToServices}
+              className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+            >
+              Back to Services
+            </button>
+          </div>
+
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-700 text-center">
+              💡 <strong>Tip:</strong> If the issue persists, try using a different payment method or contact your bank.
+            </p>
           </div>
         </div>
       </main>

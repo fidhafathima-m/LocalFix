@@ -79,6 +79,7 @@ const AvailabilityPreferences = () => {
           // Fetch actual availability records
           const availabilityResponse =
             await TechnicianService.getTechnicianAvailability();
+            console.log("Availability data by technician: ", availabilityResponse);
           if (availabilityResponse.success) {
             availabilityData = availabilityResponse.data?.availability || [];
           }
@@ -542,30 +543,32 @@ const AvailabilityPreferences = () => {
     }));
   };
   // Toggle tomorrow's availability
-  const handleTomorrowToggle = async (available: boolean) => {
+  // Update the handleTomorrowToggle function
+  const handleTomorrowToggle = async (makeUnavailable: boolean) => {
     try {
       setUpdatingTomorrow(true);
 
-      // Update the weekly pattern for tomorrow's specific day
       const tomorrowInfo = getTomorrowInfo();
       const tomorrowDay = tomorrowInfo.dayName;
+
+      const newAvailability = !makeUnavailable;
 
       const updatedWeeklyPattern = {
         ...formData.availability.weeklyPattern,
         [tomorrowDay]: {
           ...formData.availability.weeklyPattern[tomorrowDay],
-          available: available,
+          available: newAvailability,
         },
       };
 
-      // Update local state immediately for better UX
+      // Update local state immediately
       setFormData((prev) => ({
         ...prev,
         availability: {
           ...prev.availability,
           weeklyPattern: updatedWeeklyPattern,
         },
-        tomorrowAvailable: available, // Update this immediately
+        tomorrowAvailable: newAvailability,
       }));
 
       const updateData = {
@@ -581,7 +584,6 @@ const AvailabilityPreferences = () => {
       const response = await TechnicianService.updateAvailability(updateData);
 
       if (response.success) {
-        // State already updated above for immediate feedback
         if (profile) {
           setProfile({
             ...profile,
@@ -592,33 +594,40 @@ const AvailabilityPreferences = () => {
           });
         }
 
-        toast.success(
-          `You are now ${available ? "available" : "unavailable"} for ${
-            tomorrowInfo.formattedDate
-          }`
-        );
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const action = newAvailability ? "available" : "unavailable";
+
+        // Show appropriate message based on action
+        if (!newAvailability) {
+          toast.success(
+            `You are now unavailable for ${tomorrowInfo.formattedDate}. Any scheduled orders will be cancelled and customers will be notified.`
+          );
+        } else {
+          toast.success(
+            `You are now available for ${tomorrowInfo.formattedDate}`
+          );
+        }
       } else {
         // Revert state if API call failed
         setFormData((prev) => ({
           ...prev,
           availability: {
             ...prev.availability,
-            weeklyPattern: formData.availability.weeklyPattern, // Revert to original
+            weeklyPattern: formData.availability.weeklyPattern,
           },
-          tomorrowAvailable: !available, // Revert toggle
+          tomorrowAvailable: !newAvailability,
         }));
         toast.error("Failed to update tomorrow's availability");
       }
     } catch (error) {
       console.error("Error updating tomorrow's availability:", error);
-      // Revert state on error
       setFormData((prev) => ({
         ...prev,
         availability: {
           ...prev.availability,
-          weeklyPattern: formData.availability.weeklyPattern, // Revert to original
+          weeklyPattern: formData.availability.weeklyPattern,
         },
-        tomorrowAvailable: !available, // Revert toggle
+        tomorrowAvailable: formData.tomorrowAvailable,
       }));
       toast.error("Failed to update availability");
     } finally {
@@ -627,6 +636,7 @@ const AvailabilityPreferences = () => {
   };
 
   // Update the getStatusDisplay function to ensure proper toggle state
+  // Update the getStatusDisplay function
   const getStatusDisplay = () => {
     const tomorrowInfo = getTomorrowInfo();
 
@@ -659,7 +669,9 @@ const AvailabilityPreferences = () => {
                   {tomorrowInfo.formattedDate}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  This will update your {tomorrowInfo.dayName} schedule
+                  {currentTomorrowAvailable
+                    ? "You're accepting orders for tomorrow"
+                    : "You're unavailable tomorrow. Any scheduled orders will be cancelled automatically."}
                 </p>
               </div>
               <div className="flex items-center space-x-3">
@@ -671,9 +683,7 @@ const AvailabilityPreferences = () => {
                   {currentTomorrowAvailable ? "Available" : "Unavailable"}
                 </span>
                 <button
-                  onClick={() =>
-                    handleTomorrowToggle(!currentTomorrowAvailable)
-                  }
+                  onClick={() => handleTomorrowToggle(currentTomorrowAvailable)}
                   disabled={updatingTomorrow || !formData.isAvailable}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                     currentTomorrowAvailable ? "bg-green-500" : "bg-gray-300"

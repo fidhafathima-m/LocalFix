@@ -23,7 +23,11 @@ import type {
   UserResponse,
   UsersResponse,
 } from "../../interface/admin/IAdminApi";
-import type { IPayment, PaymentsResponse, PaymentStatsResponse } from "../../interface/admin/IPayment";
+import type {
+  IPayment,
+  PaymentsResponse,
+  PaymentStatsResponse,
+} from "../../interface/admin/IPayment";
 import type { Review, ReviewsResponse } from "../../interface/admin/IReview";
 import { ADMIN_ROUTES } from "../../routes/adminRoutes";
 import type { Technician } from "../../store/slices/adminSlice";
@@ -53,6 +57,16 @@ export const adminAPI = {
   getPublicUserById: (userId: string) =>
     api.get<ApiResponse<{ user: User }>>(
       ADMIN_ROUTES.PUBLIC_USER_BY_ID(userId)
+    ),
+  getTechnicianPublicAvailability: (
+    technicianId: string,
+    startDate: string,
+    endDate: string
+  ) =>
+    api.get<ApiResponse<{ user: User }>>(
+      ADMIN_ROUTES.PUBLIC_AVAILABILITY(technicianId), {
+        params: {startDate, endDate}
+      }
     ),
 
   // Technicians
@@ -171,23 +185,23 @@ export const adminAPI = {
       }
     ),
 
- // In your adminAPI file
-getAllServices: (
-  page: number = 1, 
-  limit: number = 10, 
-  search?: string,
-  sortBy?: string,
-  sortOrder?: string
-) =>
-  api.get<ApiResponse<ServicesResponse>>(ADMIN_ROUTES.SERVICES, {
-    params: { 
-      page, 
-      limit, 
-      search,
-      sortBy,
-      sortOrder 
-    },
-  }),
+  // In your adminAPI file
+  getAllServices: (
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    sortBy?: string,
+    sortOrder?: string
+  ) =>
+    api.get<ApiResponse<ServicesResponse>>(ADMIN_ROUTES.SERVICES, {
+      params: {
+        page,
+        limit,
+        search,
+        sortBy,
+        sortOrder,
+      },
+    }),
 
   getServiceById: (serviceId: string) =>
     api.get<ApiResponse<{ service: Service }>>(
@@ -293,12 +307,19 @@ getAllServices: (
       ADMIN_ROUTES.ORDER_STATUS(orderId),
       { status, reason }
     ),
-    getOrdersByTechnician: (technicianId: string, page: number = 1, limit: number = 100) =>
-    api.get<ApiResponse<OrdersResponse>>(ADMIN_ROUTES.ORDERS_BY_TECHNICIAN(technicianId), {
-      params: { page, limit },
-    }),
+  getOrdersByTechnician: (
+    technicianId: string,
+    page: number = 1,
+    limit: number = 100
+  ) =>
+    api.get<ApiResponse<OrdersResponse>>(
+      ADMIN_ROUTES.ORDERS_BY_TECHNICIAN(technicianId),
+      {
+        params: { page, limit },
+      }
+    ),
 
-    getReviews: (
+  getReviews: (
     page: number = 1,
     limit: number = 10,
     search?: string,
@@ -350,16 +371,13 @@ getAllServices: (
     api.get<ApiResponse<PaymentStatsResponse>>(ADMIN_ROUTES.PAYMENT_STATS),
 
   processRefund: (paymentId: string, reason?: string) =>
-    api.post<ApiResponse<void>>(
-      ADMIN_ROUTES.PAYMENT_REFUND(paymentId),
-      { reason }
-    ),
+    api.post<ApiResponse<void>>(ADMIN_ROUTES.PAYMENT_REFUND(paymentId), {
+      reason,
+    }),
 
-  exportPayments: (format: 'csv' | 'excel' = 'csv', filters?: any) =>
+  exportPayments: (format: "csv" | "excel" = "csv", filters?: any) =>
     api.get<Blob>(ADMIN_ROUTES.PAYMENT_EXPORT, {
       params: { format, ...filters },
-      responseType: 'blob',
+      responseType: "blob",
     }),
 };
-
-

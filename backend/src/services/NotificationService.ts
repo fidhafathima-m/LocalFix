@@ -313,4 +313,46 @@ export class NotificationService implements INotificationService {
       },
     });
   }
+  async createTechnicianUnavailableNotification(
+    customerId: string,
+    technicianName: string,
+    serviceType: string,
+    scheduledDate: string,
+    orderId: string
+  ): Promise<NotificationResponseDto> {
+    return this.createNotification({
+      userId: customerId,
+      userType: "customer",
+      type: "technician_unavailable",
+      title: "Service Cancelled",
+      message: `Your ${serviceType} service with ${technicianName} on ${scheduledDate} has been cancelled due to technician unavailability. We will contact you to reschedule.`,
+      priority: "high",
+      data: {
+        orderId,
+        serviceType,
+        scheduledDate,
+        technicianName,
+        reason: "technician_unavailable"
+      },
+    });
+  }
+
+  async createAvailabilityChangeImpactNotification(
+    technicianId: string,
+    cancelledOrdersCount: number,
+    date: string
+  ): Promise<NotificationResponseDto> {
+    return this.createNotification({
+      userId: technicianId,
+      userType: "technician",
+      type: "availability_change_impact",
+      title: "Orders Cancelled",
+      message: `${cancelledOrdersCount} order(s) for ${date} have been cancelled due to your unavailability. Customers have been notified.`,
+      priority: "medium",
+      data: {
+        cancelledOrdersCount,
+        date,
+      },
+    });
+  }
 }

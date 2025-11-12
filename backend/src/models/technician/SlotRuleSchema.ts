@@ -100,6 +100,7 @@ const SlotRuleSchema = new Schema<ISlotRule>(
 );
 
 // Instance methods
+// Update in your SlotRuleSchema
 SlotRuleSchema.methods.generateSlotsForDate = function (
   date: Date
 ): ITimeSlot[] {
@@ -124,8 +125,8 @@ SlotRuleSchema.methods.generateSlotsForDate = function (
     if (currentSlotEnd > dayEnd) break;
 
     slots.push({
-      start: new Date(currentSlotStart),
-      end: new Date(currentSlotEnd),
+      start: new Date(currentSlotStart), // This should be a Date object
+      end: new Date(currentSlotEnd), // This should be a Date object
       status: "available",
     });
 

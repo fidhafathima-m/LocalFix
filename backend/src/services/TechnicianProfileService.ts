@@ -33,23 +33,38 @@ import {
 import { TechnicianProfileMapper } from "../mappers/technicianProfileMappers";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import { RRule } from "rrule";
+import { LoggerService } from "./LoggerService";
+import { IOrderService } from "@/interfaces/services/user/IOrderService";
+import { IEmailService } from "@/interfaces/services/IEmailService";
+import { INotificationService } from "@/interfaces/services/INotificationService";
 
 export class TechnicianProfileService implements ITechnicianProfileService {
   private technicianRepository: ITechnicianRepository;
   private technicianProfileRepository: ITechnicianProfileRepository;
   private userRepository: IUserRepository;
   private userAddressRepository: IUserAddressRepository;
+  private logger: LoggerService;
+  private orderService: IOrderService;
+  private emailService: IEmailService;
+  private notificationService: INotificationService;
 
   constructor(
     technicianRepository: ITechnicianRepository,
     technicianProfileRepository: ITechnicianProfileRepository,
     userRepository: IUserRepository,
-    userAddressRepository: IUserAddressRepository
+    userAddressRepository: IUserAddressRepository,
+    orderService: IOrderService,
+    emailService: IEmailService,
+    notificationService: INotificationService
   ) {
     this.technicianRepository = technicianRepository;
     this.technicianProfileRepository = technicianProfileRepository;
     this.userRepository = userRepository;
     this.userAddressRepository = userAddressRepository;
+    this.logger = new LoggerService();
+    this.orderService = orderService;
+    this.emailService = emailService;
+    this.notificationService = notificationService;
   }
 
   async getTechnicianProfile(
@@ -365,242 +380,335 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     }
   }
 
- async updateAvailabilityPreferences(
-  technicianId: string,
-  updateData: AvailabilityPreferencesUpdateDto
-): Promise<TechnicianProfileResponseDto> {
-  try {
-    const technician = await this.technicianRepository.findByUserId(
-      technicianId
-    );
-    const user = await this.userRepository.findById(technicianId);
-
-    if (!technician || !user) {
-      return ResponseHelper.notFound(
-        TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+  async updateAvailabilityPreferences(
+    technicianId: string,
+    updateData: AvailabilityPreferencesUpdateDto
+  ): Promise<TechnicianProfileResponseDto> {
+    try {
+      console.log(
+        "UPDATE AVAILABILITY - Starting update for technician:",
+        technicianId
       );
-    }
+      console.log(
+        "UPDATE AVAILABILITY - Update data:",
+        JSON.stringify(updateData, null, 2)
+      );
 
-    // Extract work areas and service radius
-    const workAreas = updateData.workAreas || updateData.serviceAreas || [];
-    const serviceRadiusKm =
-      updateData.serviceRadiusKm || updateData.workRadius || 10;
+      const technician = await this.technicianRepository.findByUserId(
+        technicianId
+      );
+      const user = await this.userRepository.findById(technicianId);
 
-    // Build update payload
-    const updateDataForRepo: Partial<ITechnician> = {
-      workAreas: workAreas,
-      serviceRadiusKm: serviceRadiusKm,
-    };
+      if (!technician || !user) {
+        console.log("UPDATE AVAILABILITY - Technician or user not found");
+        return ResponseHelper.notFound(
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+        );
+      }
 
-    // Add availability preferences if provided
-    if (updateData.availability) {
-      updateDataForRepo.availability = {
-        isAvailable: updateData.availability.isAvailable,
-        weeklyPattern: updateData.availability.weeklyPattern, // Changed from weeklyAvailability
+      // Extract work areas and service radius
+      const workAreas = updateData.workAreas || updateData.serviceAreas || [];
+      const serviceRadiusKm =
+        updateData.serviceRadiusKm || updateData.workRadius || 10;
+
+      // Build update payload
+      const updateDataForRepo: Partial<ITechnician> = {
+        workAreas: workAreas,
+        serviceRadiusKm: serviceRadiusKm,
       };
-    }
 
-    console.log("Updating availability with data:", updateDataForRepo);
+      // Add availability preferences if provided
+      if (updateData.availability) {
+        updateDataForRepo.availability = {
+          isAvailable: updateData.availability.isAvailable,
+          weeklyPattern: updateData.availability.weeklyPattern,
+        };
 
-    // Update technician with the new data
-    const updatedTechnician =
-      await this.technicianProfileRepository.updateTechnician(
-        technician._id!.toString(),
+        console.log(
+          "UPDATE AVAILABILITY - Setting weekly pattern:",
+          updateData.availability.weeklyPattern
+        );
+      }
+
+      console.log(
+        "UPDATE AVAILABILITY - Updating technician with data:",
         updateDataForRepo
       );
 
-    if (!updatedTechnician) {
-      console.error("Failed to update technician work preferences");
+      // Update technician with the new data
+      const updatedTechnician =
+        await this.technicianProfileRepository.updateTechnician(
+          technician._id!.toString(),
+          updateDataForRepo
+        );
+
+      if (!updatedTechnician) {
+        console.error(
+          "UPDATE AVAILABILITY - Failed to update technician work preferences"
+        );
+        return ResponseHelper.error(
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
+        );
+      }
+
+      console.log(
+        "UPDATE AVAILABILITY - Technician profile updated successfully"
+      );
+
+      // Process slot rules and availability records if availability data is provided
+      if (updateData.availability) {
+        try {
+          console.log("UPDATE AVAILABILITY - Processing availability data...");
+          await this.processAvailabilityData(
+            technicianId,
+            updateData.availability
+          );
+          console.log(
+            "UPDATE AVAILABILITY - Availability data processed successfully"
+          );
+        } catch (availabilityError) {
+          console.error(
+            "UPDATE AVAILABILITY - Error processing availability data:",
+            availabilityError
+          );
+        }
+      }
+
+      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+        updatedTechnician,
+        user
+      );
+
+      console.log("UPDATE AVAILABILITY - Update completed successfully");
+
+      return ResponseHelper.success(
+        TECHNICIAN_PROFILE_MESSAGES.AVAILABILITY_UPDATED,
+        {
+          profile: profileDto,
+        }
+      );
+    } catch (error: unknown) {
+      console.error("UPDATE AVAILABILITY - Error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
         TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
       );
     }
-
-    // Process slot rules and availability records if availability data is provided
-    if (updateData.availability) {
-      try {
-        await this.processAvailabilityData(
-          technicianId,
-          updateData.availability
-        );
-      } catch (availabilityError) {
-        console.error(
-          "Error processing availability data:",
-          availabilityError
-        );
-        // Don't fail the entire request if availability processing fails
-        // Just log the error and continue
-      }
-    }
-
-    const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-      updatedTechnician,
-      user
-    );
-
-    return ResponseHelper.success(
-      TECHNICIAN_PROFILE_MESSAGES.AVAILABILITY_UPDATED,
-      {
-        profile: profileDto,
-      }
-    );
-  } catch (error: unknown) {
-    console.error("Update availability preferences error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    return ResponseHelper.error(
-      TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
-    );
   }
-}
   private async processAvailabilityData(
-  technicianId: string,
-  availabilityData: {
-    isAvailable: boolean;
-    weeklyPattern?: {
-      [key: string]: {
-        available: boolean;
-        startTime: string;
-        endTime: string;
+    technicianId: string,
+    availabilityData: {
+      isAvailable: boolean;
+      weeklyPattern?: {
+        [key: string]: {
+          available: boolean;
+          startTime: string;
+          endTime: string;
+        };
       };
-    };
-    availableWeeks?: number[];
-  }
-): Promise<void> {
-  try {
-    const SlotRule = require("../models/technician/SlotRuleSchema").default;
-    const TechnicianAvailability =
-      require("../models/technician/TechnicianAvailabilitySchema").default;
-
-    const technicianObjectId = new Types.ObjectId(technicianId);
-
-    if (!availabilityData.weeklyPattern) {
-      return;
+      availableWeeks?: number[];
     }
+  ): Promise<void> {
+    try {
+      const SlotRule = require("../models/technician/SlotRuleSchema").default;
+      const TechnicianAvailability =
+        require("../models/technician/TechnicianAvailabilitySchema").default;
 
-    const weeklyPattern = availabilityData.weeklyPattern;
+      const technicianObjectId = new Types.ObjectId(technicianId);
 
-    const durationMonths = 3;
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + durationMonths);
+      if (!availabilityData.weeklyPattern) {
+        return;
+      }
 
-    // Deactivate existing slot rules
-    await SlotRule.updateMany(
-      {
+      const weeklyPattern = availabilityData.weeklyPattern;
+
+      const durationMonths = 3;
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + durationMonths);
+
+      // Deactivate existing slot rules
+      await SlotRule.updateMany(
+        {
+          technicianId: technicianObjectId,
+          isActive: true,
+        },
+        {
+          $set: { isActive: false },
+        }
+      );
+
+      const days = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ];
+      const dayMap: { [key: string]: any } = {
+        monday: RRule.MO,
+        tuesday: RRule.TU,
+        wednesday: RRule.WE,
+        thursday: RRule.TH,
+        friday: RRule.FR,
+        saturday: RRule.SA,
+        sunday: RRule.SU,
+      };
+
+      let createdRulesCount = 0;
+
+      for (const day of days) {
+        const dayData = weeklyPattern[day];
+
+        if (dayData && dayData.available) {
+          try {
+            // Create simple weekly RRule for this specific day
+            const rule = new RRule({
+              freq: RRule.WEEKLY,
+              byweekday: [dayMap[day]],
+              dtstart: startDate,
+              until: endDate,
+            });
+
+            const slotRule = new SlotRule({
+              technicianId: technicianObjectId,
+              name: `${
+                day.charAt(0).toUpperCase() + day.slice(1)
+              } Availability`,
+              rruleString: rule.toString(),
+              startTime: dayData.startTime,
+              endTime: dayData.endTime,
+              slotDurationMinutes: 60,
+              bookingBufferBeforeMinutes: 0,
+              bookingBufferAfterMinutes: 0,
+              maxBookingsPerSlot: 1,
+              effectiveFrom: startDate,
+              isActive: true,
+            });
+
+            await slotRule.save();
+            createdRulesCount++;
+
+            console.log(
+              `Created slot rule for ${day}: ${dayData.startTime} - ${dayData.endTime}`
+            );
+          } catch (error) {
+            console.error(`Error creating slot rule for ${day}:`, error);
+          }
+        }
+      }
+
+      console.log(
+        `Created ${createdRulesCount} slot rules for technician ${technicianId}`
+      );
+
+      // Delete existing availability records
+      const deleteResult = await TechnicianAvailability.deleteMany({
+        technicianId: technicianObjectId,
+        date: { $gte: startDate, $lte: endDate },
+      });
+
+      console.log(
+        `Deleted ${deleteResult.deletedCount} old availability records`
+      );
+
+      // Get active slot rules and generate availability records
+      const activeSlotRules = await SlotRule.find({
         technicianId: technicianObjectId,
         isActive: true,
-      },
-      {
-        $set: { isActive: false },
-      }
-    );
+      });
 
-    const days = [
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-      "sunday",
-    ];
-    const dayMap: { [key: string]: any } = {
-      monday: RRule.MO,
-      tuesday: RRule.TU,
-      wednesday: RRule.WE,
-      thursday: RRule.TH,
-      friday: RRule.FR,
-      saturday: RRule.SA,
-      sunday: RRule.SU,
-    };
+      let totalRecordsCreated = 0;
 
-    let createdRulesCount = 0;
-
-    for (const day of days) {
-      const dayData = weeklyPattern[day];
-
-      if (dayData && dayData.available) {
+      for (const slotRule of activeSlotRules) {
         try {
-          // Create simple weekly RRule for this specific day
-          const rule = new RRule({
-            freq: RRule.WEEKLY,
-            byweekday: [dayMap[day]],
-            dtstart: startDate,
-            until: endDate,
-          });
+          const rrule = RRule.fromString(slotRule.rruleString);
+          const occurrences = rrule.between(startDate, endDate, true);
 
-          const slotRule = new SlotRule({
-            technicianId: technicianObjectId,
-            name: `${day.charAt(0).toUpperCase() + day.slice(1)} Availability`,
-            rruleString: rule.toString(),
-            startTime: dayData.startTime,
-            endTime: dayData.endTime,
-            slotDurationMinutes: 60,
-            bookingBufferBeforeMinutes: 0,
-            bookingBufferAfterMinutes: 0,
-            maxBookingsPerSlot: 1,
-            effectiveFrom: startDate,
-            isActive: true,
-          });
+          for (const occurrence of occurrences) {
+            const timeSlots = slotRule.generateSlotsForDate(occurrence);
 
-          await slotRule.save();
-          createdRulesCount++;
-        } catch (error) {
-          console.error(`Error creating slot rule for ${day}:`, error);
+            const availabilityRecord = new TechnicianAvailability({
+              technicianId: technicianObjectId,
+              date: occurrence,
+              timeSlots: timeSlots,
+              isRecurring: true,
+              slotRuleId: slotRule._id,
+            });
+
+            await availabilityRecord.save();
+            totalRecordsCreated++;
+          }
+        } catch (ruleError) {
+          console.error(
+            `Error processing slot rule ${slotRule.name}:`,
+            ruleError
+          );
         }
       }
+
+      console.log(
+        `Created ${totalRecordsCreated} new availability records for technician ${technicianId}`
+      );
+
+      // Log the actual availability pattern that was set
+      const availableDays = days.filter((day) => weeklyPattern[day]?.available);
+      console.log(
+        `Technician ${technicianId} availability set for days:`,
+        availableDays
+      );
+    } catch (error) {
+      console.error("Error in processAvailabilityData:", error);
+      throw error;
     }
-
-    console.log(`Created ${createdRulesCount} slot rules`);
-
-    // The rest of the method remains the same...
-    // Delete existing availability records
-    const deleteResult = await TechnicianAvailability.deleteMany({
-      technicianId: technicianObjectId,
-      date: { $gte: startDate, $lte: endDate },
-    });
-
-    console.log(`Deleted ${deleteResult.deletedCount} old availability records`);
-
-    // Get active slot rules and generate availability records
-    const activeSlotRules = await SlotRule.find({
-      technicianId: technicianObjectId,
-      isActive: true,
-    });
-
-    let totalRecordsCreated = 0;
-
-    for (const slotRule of activeSlotRules) {
-      try {
-        const rrule = RRule.fromString(slotRule.rruleString);
-        const occurrences = rrule.between(startDate, endDate, true);
-
-        for (const occurrence of occurrences) {
-          const timeSlots = slotRule.generateSlotsForDate(occurrence);
-
-          const availabilityRecord = new TechnicianAvailability({
-            technicianId: technicianObjectId,
-            date: occurrence,
-            timeSlots: timeSlots,
-            isRecurring: true,
-            slotRuleId: slotRule._id,
-          });
-
-          await availabilityRecord.save();
-          totalRecordsCreated++;
-        }
-      } catch (ruleError) {
-        console.error(`Error processing slot rule ${slotRule.name}:`, ruleError);
-      }
-    }
-
-    console.log(`Created ${totalRecordsCreated} new availability records`);
-  } catch (error) {
-    console.error("Error in processAvailabilityData:", error);
-    throw error;
   }
-}
+
+  // Add this helper method to generate time slots
+  private generateTimeSlotsForDate(
+    date: Date,
+    startTime: string,
+    endTime: string,
+    slotDurationMinutes: number
+  ): any[] {
+    const timeSlots = [];
+
+    // Parse start and end times
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
+
+    const startDateTime = new Date(date);
+    startDateTime.setHours(startHour, startMinute, 0, 0);
+
+    const endDateTime = new Date(date);
+    endDateTime.setHours(endHour, endMinute, 0, 0);
+
+    let currentTime = new Date(startDateTime);
+
+    while (currentTime < endDateTime) {
+      const slotEnd = new Date(
+        currentTime.getTime() + slotDurationMinutes * 60000
+      );
+
+      // Don't create slots that extend beyond the end time
+      if (slotEnd > endDateTime) {
+        break;
+      }
+
+      timeSlots.push({
+        start: new Date(currentTime),
+        end: new Date(slotEnd),
+        status: "available",
+        isBooked: false,
+      });
+
+      currentTime = slotEnd;
+    }
+
+    return timeSlots;
+  }
 
   private formatTimeToString(date: Date): string {
     return date.toTimeString().slice(0, 5); // Returns "HH:MM" format
@@ -1062,6 +1170,11 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         technicianId: new Types.ObjectId(technicianId),
       }).sort({ date: 1 });
 
+      this.logger.info(
+        "Availability Data from technciian",
+        availabilityRecords
+      );
+
       return availabilityRecords;
     } catch (error) {
       console.error(
@@ -1088,6 +1201,117 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     } catch (error) {
       console.error("Error fetching slot rules from repository:", error);
       return [];
+    }
+  }
+
+  private async handleTechnicianUnavailability(
+    technicianId: string,
+    unavailableDate: Date
+  ): Promise<void> {
+    const context = {
+      operation: "handleTechnicianUnavailability",
+      data: { technicianId, unavailableDate },
+    };
+
+    try {
+      this.logger.info("Handling technician unavailability", context);
+
+      // Use repository pattern - get orders through OrderService
+      const orders = await this.orderService.getOrdersByTechnicianAndDate(
+        technicianId,
+        unavailableDate
+      );
+
+      if (orders.length === 0) {
+        this.logger.info("No orders found for the specified date", context);
+        return;
+      }
+
+      this.logger.info(`Found ${orders.length} orders to process`, {
+        ...context,
+        orderCount: orders.length,
+      });
+
+      // Process each order
+      for (const order of orders) {
+        try {
+          const orderContext = {
+            ...context,
+            orderId: order._id.toString(),
+          };
+
+          this.logger.info("Processing order for cancellation", orderContext);
+
+          // Use repository pattern - update status through OrderService
+          const updatedOrder = await this.orderService.updateOrderStatus(
+            order._id.toString(),
+            "cancelled",
+            "system",
+            "Technician unavailable"
+          );
+
+          if (updatedOrder.success) {
+            // Get customer details from populated order
+            const customer = order.userId as any;
+
+            // Send email notification
+            if (customer?.email) {
+              await this.emailService.sendTechnicianUnavailableNotification(
+                customer.email,
+                customer.fullName || "Customer",
+                (order.technicianId as any)?.displayName || "Technician",
+                new Date(order.scheduledAt).toLocaleDateString(),
+                order.serviceName,
+                order._id.toString()
+              );
+            }
+
+            // Create in-app notification
+            await this.notificationService.createTechnicianUnavailableNotification(
+              customer._id.toString(),
+              (order.technicianId as any)?.displayName || "Technician",
+              order.serviceName,
+              new Date(order.scheduledAt).toLocaleDateString(),
+              order._id.toString()
+            );
+
+            this.logger.info("Order processed successfully", orderContext);
+          }
+        } catch (orderError) {
+          this.logger.error("Error processing order", {
+            ...context,
+            orderId: order._id.toString(),
+            error:
+              orderError instanceof Error
+                ? orderError.message
+                : "Unknown error",
+          });
+          // Continue with other orders even if one fails
+        }
+      }
+
+      // Notify technician about the impact
+      if (orders.length > 0) {
+        await this.notificationService.createAvailabilityChangeImpactNotification(
+          technicianId,
+          orders.length,
+          unavailableDate.toLocaleDateString()
+        );
+      }
+
+      this.logger.info("Technician unavailability handled successfully", {
+        ...context,
+        processedOrders: orders.length,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error handling technician unavailability", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      // Don't throw error to avoid breaking the main availability update
     }
   }
 }

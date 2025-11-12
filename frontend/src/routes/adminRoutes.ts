@@ -6,6 +6,9 @@ export const ADMIN_ROUTES = {
 
   PUBLIC_USER_PROFILE: "/public/user/profile",
   PUBLIC_USER_BY_ID: (userId: string) => `/public/user/${userId}`,
+  PUBLIC_AVAILABILITY: (
+    technicianId: string,
+  ) => `/admin/technicians/public/${technicianId}/availability`,
 
   // Technician routes
   TECHNICIANS: "/admin/technicians",
@@ -66,18 +69,20 @@ export const ADMIN_ROUTES = {
   SET_DEFAULT_ADDRESS: (addressId: string) =>
     `/user/addresses/${addressId}/default`,
 
-   // Orders
+  // Orders
   ORDERS: "/admin/orders",
   ORDER_BY_ID: (orderId: string) => `/admin/orders/${orderId}`,
   ORDER_STATUS: (orderId: string) => `/admin/orders/${orderId}/status`,
   ORDER_STATS: "/admin/orders/stats",
-  ORDERS_BY_TECHNICIAN: (technicianId: string) => `/admin/orders/technician/${technicianId}`,
+  ORDERS_BY_TECHNICIAN: (technicianId: string) =>
+    `/admin/orders/technician/${technicianId}`,
 
   // Review routes
   REVIEWS: "/admin/reviews",
   REVIEW_BY_ID: (reviewId: string) => `/admin/reviews/${reviewId}`,
   REVIEW_STATS: "/admin/reviews/stats",
-  REVIEW_UPDATE_STATUS: (reviewId: string) => `/admin/reviews/${reviewId}/status`,
+  REVIEW_UPDATE_STATUS: (reviewId: string) =>
+    `/admin/reviews/${reviewId}/status`,
   REVIEW_FLAG: (reviewId: string) => `/admin/reviews/${reviewId}/flag`,
 
   // Payments
@@ -86,5 +91,4 @@ export const ADMIN_ROUTES = {
   PAYMENT_STATS: "/admin/payments/stats",
   PAYMENT_REFUND: (paymentId: string) => `/admin/payments/${paymentId}/refund`,
   PAYMENT_EXPORT: "/admin/payments/export",
-
 } as const;

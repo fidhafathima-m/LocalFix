@@ -2,12 +2,15 @@ import { IOrderRepository } from "../interfaces/repository/user/IOrderRepository
 import { ResponseHelper, ApiResponse } from "../utils/responseHelper";
 import { LoggerService } from "../services/LoggerService";
 import {
+  IOrder,
   OrderListResponseDto,
   OrderResponseDto,
 } from "@/interfaces/user/IOrder";
 import { IOrderService } from "@/interfaces/services/user/IOrderService";
 import { ITechnicianRepository } from "@/interfaces/repository/technician/ITechnicianRepository";
 import { INotificationService } from "@/interfaces/services/INotificationService";
+import OrderSchema from "@/models/OrderSchema";
+import { Types } from "mongoose";
 
 export class OrderService implements IOrderService {
   private logger: LoggerService;
@@ -962,104 +965,104 @@ export class OrderService implements IOrderService {
       );
     }
   }
- // In your OrderService - update the notifyUserAboutOrderStatusChange method
-private async notifyUserAboutOrderStatusChange(
-  order: any,
-  newStatus: string
-): Promise<void> {
-  try {
-    const context = {
-      operation: "notifyUserAboutOrderStatusChange",
-      orderId: order._id.toString(),
-      userId: order.userId.toString(),
-      newStatus,
-    };
-
-    this.logger.info("=== NOTIFY USER START ===", context);
-
-    let notificationTitle = "";
-    let notificationMessage = "";
-    let notificationType = "";
-    let actionUrl = "";
-    let priority: "low" | "medium" | "high" = "medium";
-
-    switch (newStatus) {
-      case "confirmed":
-        notificationTitle = "Booking Confirmed!";
-        notificationMessage = `Your ${order.serviceName} booking has been confirmed.`;
-        notificationType = "booking_confirmed";
-        break;
-      case "accepted":
-        notificationTitle = "Technician Assigned";
-        notificationMessage = `A technician has been assigned to your ${order.serviceName} service.`;
-        notificationType = "technician_assigned";
-        break;
-      case "on_the_way":
-        notificationTitle = "🚗 Technician is on the way!";
-        notificationMessage = `Your technician ${order.technicianId?.displayName} is coming to your location. Tap to track live location.`;
-        notificationType = "on_the_way";
-        actionUrl = `/tracking/${order.orderId}`;
-        priority = "high";
-        break;
-      case "in_progress":
-        notificationTitle = "Service In Progress";
-        notificationMessage = `Your ${order.serviceName} service has started.`;
-        notificationType = "service_in_progress";
-        break;
-      case "completed":
-        notificationTitle = "Service Completed";
-        notificationMessage = `Your ${order.serviceName} service has been completed successfully.`;
-        notificationType = "service_completed";
-        break;
-      case "cancelled":
-        notificationTitle = "Booking Cancelled";
-        notificationMessage = `Your ${order.serviceName} booking has been cancelled.`;
-        notificationType = "booking_cancelled";
-        break;
-      default:
-        this.logger.info("No notification for status:", newStatus);
-        return;
-    }
-
-    this.logger.info("Creating user notification:", {
-      title: notificationTitle,
-      message: notificationMessage,
-      type: notificationType,
-      actionUrl,
-    });
-
-    await this.notificationService.createNotification({
-      userId: order.userId.toString(),
-      userType: "customer",
-      type: notificationType,
-      title: notificationTitle,
-      message: notificationMessage,
-      priority,
-      actionUrl,
-      data: {
+  // In your OrderService - update the notifyUserAboutOrderStatusChange method
+  private async notifyUserAboutOrderStatusChange(
+    order: any,
+    newStatus: string
+  ): Promise<void> {
+    try {
+      const context = {
+        operation: "notifyUserAboutOrderStatusChange",
         orderId: order._id.toString(),
-        bookingId: order.bookingId.toString(),
-        serviceType: order.serviceName,
+        userId: order.userId.toString(),
         newStatus,
-        technicianName: order.technicianId?.displayName || "Technician",
-        trackingEnabled: newStatus === "on_the_way",
-        liveLocationUrl: `/tracking/${order.orderId}`,
-      },
-    });
+      };
 
-    this.logger.info("=== NOTIFICATION CREATED SUCCESSFULLY ===", {
-      userId: order.userId.toString(),
-    });
-  } catch (error) {
-    this.logger.error("=== NOTIFICATION CREATION FAILED ===", {
-      orderId: order._id.toString(),
-      userId: order.userId.toString(),
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+      this.logger.info("=== NOTIFY USER START ===", context);
+
+      let notificationTitle = "";
+      let notificationMessage = "";
+      let notificationType = "";
+      let actionUrl = "";
+      let priority: "low" | "medium" | "high" = "medium";
+
+      switch (newStatus) {
+        case "confirmed":
+          notificationTitle = "Booking Confirmed!";
+          notificationMessage = `Your ${order.serviceName} booking has been confirmed.`;
+          notificationType = "booking_confirmed";
+          break;
+        case "accepted":
+          notificationTitle = "Technician Assigned";
+          notificationMessage = `A technician has been assigned to your ${order.serviceName} service.`;
+          notificationType = "technician_assigned";
+          break;
+        case "on_the_way":
+          notificationTitle = "🚗 Technician is on the way!";
+          notificationMessage = `Your technician ${order.technicianId?.displayName} is coming to your location. Tap to track live location.`;
+          notificationType = "on_the_way";
+          actionUrl = `/tracking/${order.orderId}`;
+          priority = "high";
+          break;
+        case "in_progress":
+          notificationTitle = "Service In Progress";
+          notificationMessage = `Your ${order.serviceName} service has started.`;
+          notificationType = "service_in_progress";
+          break;
+        case "completed":
+          notificationTitle = "Service Completed";
+          notificationMessage = `Your ${order.serviceName} service has been completed successfully.`;
+          notificationType = "service_completed";
+          break;
+        case "cancelled":
+          notificationTitle = "Booking Cancelled";
+          notificationMessage = `Your ${order.serviceName} booking has been cancelled.`;
+          notificationType = "booking_cancelled";
+          break;
+        default:
+          this.logger.info("No notification for status:", newStatus);
+          return;
+      }
+
+      this.logger.info("Creating user notification:", {
+        title: notificationTitle,
+        message: notificationMessage,
+        type: notificationType,
+        actionUrl,
+      });
+
+      await this.notificationService.createNotification({
+        userId: order.userId.toString(),
+        userType: "customer",
+        type: notificationType,
+        title: notificationTitle,
+        message: notificationMessage,
+        priority,
+        actionUrl,
+        data: {
+          orderId: order._id.toString(),
+          bookingId: order.bookingId.toString(),
+          serviceType: order.serviceName,
+          newStatus,
+          technicianName: order.technicianId?.displayName || "Technician",
+          trackingEnabled: newStatus === "on_the_way",
+          liveLocationUrl: `/tracking/${order.orderId}`,
+        },
+      });
+
+      this.logger.info("=== NOTIFICATION CREATED SUCCESSFULLY ===", {
+        userId: order.userId.toString(),
+      });
+    } catch (error) {
+      this.logger.error("=== NOTIFICATION CREATION FAILED ===", {
+        orderId: order._id.toString(),
+        userId: order.userId.toString(),
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
-}
 
-// Remove the sendPushNotification method entirely
+  // Remove the sendPushNotification method entirely
   private async notifyUserAboutPayment(
     order: any,
     paymentStatus: string
@@ -1115,6 +1118,40 @@ private async notifyUserAboutOrderStatusChange(
         userId: order.userId.toString(),
         error: error instanceof Error ? error.message : "Unknown error",
       });
+    }
+  }
+  async getOrdersByTechnicianAndDate(
+    technicianId: string,
+    date: Date
+  ): Promise<IOrder[]> {
+    const context = {
+      operation: "getOrdersByTechnicianAndDate",
+      data: { technicianId, date },
+    };
+
+    try {
+      this.logger.info("Fetching orders by technician and date", context);
+
+      const orders = await this.orderRepository.getOrdersByTechnicianAndDate(
+        technicianId,
+        date
+      );
+
+      this.logger.info("Orders retrieved successfully", {
+        ...context,
+        orderCount: orders.length,
+      });
+
+      return orders;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this.logger.error("Error fetching orders by technician and date", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return [];
     }
   }
 }

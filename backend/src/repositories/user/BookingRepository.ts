@@ -129,9 +129,25 @@ export class BookingRepository implements IBookingRepository {
 
       // Check if the requested time slot is available
       const isSlotAvailable = availability.timeSlots.some((slot) => {
-        // Convert slot times to comparable format
-        const slotStart = this.parseTimeToMinutes(slot.start);
-        const slotEnd = this.parseTimeToMinutes(slot.end);
+        // Handle both Date objects and string formats
+        let slotStart: number;
+        let slotEnd: number;
+
+        if (slot.start instanceof Date) {
+          // If start is a Date object, extract time in minutes
+          slotStart = slot.start.getHours() * 60 + slot.start.getMinutes();
+        } else {
+          // If start is a string, parse it
+          slotStart = this.parseTimeToMinutes(slot.start as string);
+        }
+
+        if (slot.end instanceof Date) {
+          // If end is a Date object, extract time in minutes
+          slotEnd = slot.end.getHours() * 60 + slot.end.getMinutes();
+        } else {
+          // If end is a string, parse it
+          slotEnd = this.parseTimeToMinutes(slot.end as string);
+        }
 
         return (
           slot.status === "available" &&
@@ -144,7 +160,7 @@ export class BookingRepository implements IBookingRepository {
         return false;
       }
 
-      // check if there's no existing booking for this slot (prevent double booking)
+      // Check if there's no existing booking for this slot (prevent double booking)
       const existingBooking = await Booking.findOne({
         technicianId: new Types.ObjectId(technicianId),
         scheduledAt: {

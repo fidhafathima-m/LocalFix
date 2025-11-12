@@ -17,4 +17,12 @@ export interface IEmailService {
     newStatus: string,
     reason?: string
   ): Promise<boolean>;
+  sendTechnicianUnavailableNotification(
+    customerEmail: string,
+    customerName: string,
+    technicianName: string,
+    serviceDate: string,
+    serviceType: string,
+    orderId: string
+  ): Promise<boolean>;
 }

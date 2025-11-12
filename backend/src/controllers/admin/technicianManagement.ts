@@ -30,28 +30,28 @@ export class TechnicianManagementController {
   getPublicTechnicians = async (req: Request, res: Response): Promise<void> => {
     const { service, page, limit, search, location, sortBy } = req.query;
     const context = {
-    operation: "getPublicTechnicians",
-    serviceFilter: service,
-    page,
-    limit,
-    search,
-    location,
-    sortBy,
-    timestamp: new Date().toISOString(),
-  };
+      operation: "getPublicTechnicians",
+      serviceFilter: service,
+      page,
+      limit,
+      search,
+      location,
+      sortBy,
+      timestamp: new Date().toISOString(),
+    };
 
     try {
       this.logger.info("Fetching public technicians", context);
 
       const filters: TechnicianFiltersDto = {
-      status: "approved",
-      ...(service && { service: service as string }),
-      ...(page && { page: Number(page) }),
-      ...(limit && { limit: Number(limit) }),
-      ...(search && { search: search as string }),
-      ...(location && { location: location as string }),
-      ...(sortBy && { sortBy: sortBy as string }),
-    };
+        status: "approved",
+        ...(service && { service: service as string }),
+        ...(page && { page: Number(page) }),
+        ...(limit && { limit: Number(limit) }),
+        ...(search && { search: search as string }),
+        ...(location && { location: location as string }),
+        ...(sortBy && { sortBy: sortBy as string }),
+      };
 
       this.logger.debug("Calling service to get public technicians", {
         ...context,
@@ -570,6 +570,55 @@ export class TechnicianManagementController {
         success: false,
         message: "Failed to fetch availability",
       });
+    }
+  };
+  // In your technician management controller
+  // In your TechnicianManagementController class, add this method:
+  getTechnicianPublicAvailability = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    const { technicianId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const context = {
+      operation: "getTechnicianPublicAvailability",
+      technicianId,
+      startDate,
+      endDate,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this.logger.info("Fetching public technician availability", context);
+
+      const result =
+        await this.technicianService.getTechnicianPublicAvailability(
+          technicianId,
+          startDate as string,
+          endDate as string
+        );
+
+      this.logger.info(
+        "Public technician availability retrieved successfully",
+        {
+          ...context,
+          availabilityCount: result.data?.availability?.length,
+        }
+      );
+
+      res.status(result.statusCode || 200).json(result);
+    } catch (error: any) {
+      this.logger.error("Get technician public availability controller error", {
+        ...context,
+        error: error.message,
+        stack: error.stack,
+      });
+
+      const errorResponse = ResponseHelper.error(
+        "Failed to fetch technician availability"
+      );
+      res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 }

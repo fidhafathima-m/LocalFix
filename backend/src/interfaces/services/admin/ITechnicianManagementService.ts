@@ -42,10 +42,15 @@ export interface ITechnicianManagementService {
     filters: TechnicianFiltersDto
   ): Promise<TechnicianListResponseDto>;
   getPublicTechnicianById(id: string): Promise<SingleTechnicianResponseDto>;
-  getTechnicianSlotRules(technicianId: string): Promise<any>
+  getTechnicianSlotRules(technicianId: string): Promise<any>;
   getTechnicianAvailability(
-    technicianId: string, 
-    startDate?: string, 
+    technicianId: string,
+    startDate?: string,
     endDate?: string
-  ): Promise<any>
+  ): Promise<any>;
+  getTechnicianPublicAvailability(
+    technicianId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<any>;
 }

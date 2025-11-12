@@ -368,6 +368,14 @@ export class TechnicianManagementService
       const availabilityData = await this.getAvailabilityForFrontend(
         technician._id.toString()
       );
+      let finalAvailability = availabilityData;
+      if (technician.availability?.weeklyPattern) {
+        console.log("DEBUG - Preserving original weeklyPattern");
+        finalAvailability = {
+          ...availabilityData,
+          weeklyPattern: technician.availability.weeklyPattern,
+        };
+      }
       const mapStatus = (
         status: string,
         application?: ITechnicianApplication
@@ -518,6 +526,11 @@ export class TechnicianManagementService
       // Format documents
       const documents = getDocuments(technician, application || undefined);
 
+      console.log("CONVERT - Original technician availability:", {
+        hasAvailability: !!technician.availability,
+        weeklyPattern: technician.availability?.weeklyPattern,
+      });
+
       // Create the admin technician view
       const adminTechnician: IAdminTechnician = {
         _id: technician._id,
@@ -551,10 +564,16 @@ export class TechnicianManagementService
         personalInfo: personalInfo,
         identityVerification: technician.identityVerification,
         documents: documents,
-        availability: availabilityData,
+        availability: technician.availability || finalAvailability,
         suspensionReason: technician.suspensionReason,
         suspendedAt: technician.suspendedAt,
       };
+      console.log("DEBUG - Final admin technician availability:", {
+        hasWeeklyPattern: !!adminTechnician.availability?.weeklyPattern,
+        availabilityKeys: adminTechnician.availability
+          ? Object.keys(adminTechnician.availability)
+          : "none",
+      });
       this.logger.debug(
         "Successfully converted technician to admin view",
         context
@@ -1933,28 +1952,55 @@ export class TechnicianManagementService
         );
       }
 
+      // Get ACTUAL availability records for the next 30 days
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 30);
+
+      const availabilityRecords =
+        await this.technicianRepository.getUpcomingAvailabilityProfile(
+          id,
+          startDate,
+          endDate
+        );
+
+      // Get active slot rules to understand the pattern
+      const slotRules = await this.technicianRepository.getActiveSlotRules(id);
+
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      // Remove sensitive data for public access
+      // Include REAL availability data
       const publicTechnician = {
         ...adminTechnician,
         identityVerification: undefined,
         paymentDetails: undefined,
         suspensionReason: undefined,
         rejectionReason: undefined,
+        // Include actual availability records and slot rules
+        availabilityRecords: availabilityRecords,
+        slotRules: slotRules,
       };
 
       const technicianDto = TechnicianMapper.toDetailDto(publicTechnician);
 
-      this.logger.info("Technician retrieved", {
+      // Add the actual data to response
+      const responseData = {
+        ...technicianDto,
+        availabilityRecords: availabilityRecords,
+        slotRules: slotRules,
+      };
+
+      this.logger.info("Technician retrieved with REAL availability", {
         ...context,
-        technician: technicianDto,
+        technicianId: id,
+        availabilityRecordsCount: availabilityRecords.length,
+        slotRulesCount: slotRules.length,
       });
 
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED,
         {
-          technician: technicianDto,
+          technician: responseData,
         }
       );
     } catch (error) {
@@ -1966,69 +2012,174 @@ export class TechnicianManagementService
       return ResponseHelper.error("Failed to retrieve technician");
     }
   }
+  private async processAvailabilityData(
+    technicianId: string,
+    availabilityData: {
+      isAvailable: boolean;
+      weeklyPattern?: {
+        [key: string]: {
+          available: boolean;
+          startTime: string;
+          endTime: string;
+        };
+      };
+      availableWeeks?: number[];
+    }
+  ): Promise<void> {
+    try {
+      const SlotRule = require("../models/technician/SlotRuleSchema").default;
+      const TechnicianAvailability =
+        require("../models/technician/TechnicianAvailabilitySchema").default;
 
-  private processAvailabilityData(availability: any): any {
-    if (!availability) return {};
+      const technicianObjectId = new Types.ObjectId(technicianId);
 
-    // Extract availability preferences from application
-    const daysAvailable: string[] = [];
-    const serviceAreas: string[] = [];
-    let workRadius = 10;
-    let startTime = "09:00";
-    let endTime = "18:00";
+      if (!availabilityData.weeklyPattern) {
+        return;
+      }
 
-    // Process days availability
-    if (availability.days) {
-      Object.entries(availability.days).forEach(
-        ([day, dayData]: [string, any]) => {
-          if (dayData.available === true) {
-            daysAvailable.push(day.toLowerCase());
+      const weeklyPattern = availabilityData.weeklyPattern;
 
-            // Use the first available day's timing as default
-            if (
-              daysAvailable.length === 1 &&
-              dayData.startTime &&
-              dayData.endTime
-            ) {
-              startTime = dayData.startTime;
-              endTime = dayData.endTime;
-            }
-          }
+      const durationMonths = 3;
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + durationMonths);
+
+      // Deactivate existing slot rules
+      await SlotRule.updateMany(
+        {
+          technicianId: technicianObjectId,
+          isActive: true,
+        },
+        {
+          $set: { isActive: false },
         }
       );
-    }
 
-    // Process work radius
-    if (availability.workRadius) {
-      workRadius = parseInt(availability.workRadius) || 10;
-    }
+      const days = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ];
+      const dayMap: { [key: string]: any } = {
+        monday: RRule.MO,
+        tuesday: RRule.TU,
+        wednesday: RRule.WE,
+        thursday: RRule.TH,
+        friday: RRule.FR,
+        saturday: RRule.SA,
+        sunday: RRule.SU,
+      };
 
-    // Process service areas
-    if (availability.serviceAreas) {
-      if (Array.isArray(availability.serviceAreas)) {
-        serviceAreas.push(...availability.serviceAreas);
-      } else if (typeof availability.serviceAreas === "string") {
-        serviceAreas.push(availability.serviceAreas);
+      let createdRulesCount = 0;
+
+      for (const day of days) {
+        const dayData = weeklyPattern[day];
+
+        if (dayData && dayData.available) {
+          try {
+            // Create simple weekly RRule for this specific day
+            const rule = new RRule({
+              freq: RRule.WEEKLY,
+              byweekday: [dayMap[day]],
+              dtstart: startDate,
+              until: endDate,
+            });
+
+            const slotRule = new SlotRule({
+              technicianId: technicianObjectId,
+              name: `${
+                day.charAt(0).toUpperCase() + day.slice(1)
+              } Availability`,
+              rruleString: rule.toString(),
+              startTime: dayData.startTime,
+              endTime: dayData.endTime,
+              slotDurationMinutes: 60,
+              bookingBufferBeforeMinutes: 0,
+              bookingBufferAfterMinutes: 0,
+              maxBookingsPerSlot: 1,
+              effectiveFrom: startDate,
+              isActive: true,
+            });
+
+            await slotRule.save();
+            createdRulesCount++;
+
+            console.log(
+              `Created slot rule for ${day}: ${dayData.startTime} - ${dayData.endTime}`
+            );
+          } catch (error) {
+            console.error(`Error creating slot rule for ${day}:`, error);
+          }
+        }
       }
+
+      console.log(
+        `Created ${createdRulesCount} slot rules for technician ${technicianId}`
+      );
+
+      // Delete existing availability records
+      const deleteResult = await TechnicianAvailability.deleteMany({
+        technicianId: technicianObjectId,
+        date: { $gte: startDate, $lte: endDate },
+      });
+
+      console.log(
+        `Deleted ${deleteResult.deletedCount} old availability records`
+      );
+
+      // Get active slot rules and generate availability records
+      const activeSlotRules = await SlotRule.find({
+        technicianId: technicianObjectId,
+        isActive: true,
+      });
+
+      let totalRecordsCreated = 0;
+
+      for (const slotRule of activeSlotRules) {
+        try {
+          const rrule = RRule.fromString(slotRule.rruleString);
+          const occurrences = rrule.between(startDate, endDate, true);
+
+          for (const occurrence of occurrences) {
+            const timeSlots = slotRule.generateSlotsForDate(occurrence);
+
+            const availabilityRecord = new TechnicianAvailability({
+              technicianId: technicianObjectId,
+              date: occurrence,
+              timeSlots: timeSlots,
+              isRecurring: true,
+              slotRuleId: slotRule._id,
+            });
+
+            await availabilityRecord.save();
+            totalRecordsCreated++;
+          }
+        } catch (ruleError) {
+          console.error(
+            `Error processing slot rule ${slotRule.name}:`,
+            ruleError
+          );
+        }
+      }
+
+      console.log(
+        `Created ${totalRecordsCreated} new availability records for technician ${technicianId}`
+      );
+
+      // Log the actual availability pattern that was set
+      const availableDays = days.filter((day) => weeklyPattern[day]?.available);
+      console.log(
+        `Technician ${technicianId} availability set for days:`,
+        availableDays
+      );
+    } catch (error) {
+      console.error("Error in processAvailabilityData:", error);
+      throw error;
     }
-
-    return {
-      daysAvailable,
-      startTime,
-      endTime,
-      workRadius,
-      serviceAreas,
-      emergencyService: availability.emergencyService || false,
-      afterHoursService: availability.afterHoursService || false,
-    };
-  }
-
-  private processAvailabilityPreferences(availability: any): any {
-    const processed = this.processAvailabilityData(availability);
-
-    return {
-      availabilityPreferences: processed,
-    };
   }
   private mapIdType(governmentIdType: string): string {
     const idTypeMap: { [key: string]: string } = {
@@ -2145,4 +2296,100 @@ export class TechnicianManagementService
       return ResponseHelper.error("Failed to retrieve availability");
     }
   }
+
+  // Add this to your TechnicianManagementService
+async getTechnicianPublicAvailability(
+  technicianId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<any> {
+  const context = {
+    operation: "getTechnicianPublicAvailability",
+    technicianId,
+    startDate,
+    endDate,
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    this.logger.info("Fetching public technician availability", context);
+
+    // First verify technician exists and is approved
+    const technician = await this.technicianRepository.findTechnicianById(
+      technicianId
+    );
+
+    if (!technician || technician.status !== "approved") {
+      this.logger.warn("Technician not found or not approved", context);
+      return ResponseHelper.notFound("Technician not found");
+    }
+
+    // Default to next 7 days if no dates provided
+    const start = startDate ? new Date(startDate) : new Date();
+    const end = endDate ? new Date(endDate) : new Date();
+    end.setDate(end.getDate() + 7);
+
+    const availability =
+      await this.technicianRepository.getUpcomingAvailabilityProfile(
+        technicianId,
+        start,
+        end
+      );
+
+    // Format the availability for frontend display
+    const formattedAvailability = this.formatAvailabilityForDisplay(availability);
+
+    this.logger.info(
+      `Found public availability for ${availability.length} days`,
+      {
+        ...context,
+        availabilityCount: availability.length,
+      }
+    );
+
+    return ResponseHelper.success("Availability retrieved successfully", {
+      availability: formattedAvailability,
+    });
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    this.logger.error("Failed to fetch public availability", {
+      ...context,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return ResponseHelper.error("Failed to retrieve availability");
+  }
+}
+
+private formatAvailabilityForDisplay(availabilityRecords: any[]): any[] {
+  return availabilityRecords.map(record => {
+    const availableSlots = record.timeSlots
+      .filter((slot: any) => slot.status === "available")
+      .map((slot: any) => ({
+        start: slot.start instanceof Date 
+          ? slot.start.toTimeString().substring(0, 5)
+          : new Date(slot.start).toTimeString().substring(0, 5),
+        end: slot.end instanceof Date
+          ? slot.end.toTimeString().substring(0, 5)
+          : new Date(slot.end).toTimeString().substring(0, 5),
+      }));
+
+    return {
+      date: record.date,
+      dayName: new Date(record.date).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase(),
+      slots: availableSlots,
+      isToday: this.isToday(new Date(record.date))
+    };
+  });
+}
+
+private isToday(date: Date): boolean {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+}
 }

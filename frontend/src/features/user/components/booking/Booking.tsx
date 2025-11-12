@@ -145,6 +145,36 @@ const BookingPage: React.FC = () => {
     );
   };
 
+  const getNextAvailableDate = (): string => {
+    const today = new Date();
+    const currentTime = today.getHours() * 60 + today.getMinutes(); // Current time in minutes
+
+    for (let i = 0; i < weeklyAvailability.length; i++) {
+      const day = weeklyAvailability[i];
+
+      if (day.slots.length === 0) continue;
+
+      // If it's not today, any available day is fine
+      if (!day.isToday) {
+        return day.formattedDate;
+      }
+
+      // If it's today, check if there are any future time slots
+      const hasFutureSlots = day.slots.some((slot) => {
+        const [slotHour, slotMinute] = slot.start.split(":").map(Number);
+        const slotTime = slotHour * 60 + slotMinute;
+        return slotTime > currentTime;
+      });
+
+      if (hasFutureSlots) {
+        return day.formattedDate;
+      }
+    }
+
+    // If no available dates found, return empty string
+    return "";
+  };
+
   // Helper function to find the exact service name from available services
   const findMatchingService = (service: string): string | null => {
     if (!technician?.services || !service) return null;
@@ -217,14 +247,13 @@ const BookingPage: React.FC = () => {
         if (technicianData) {
           setTechnician(technicianData);
 
-          // IMPROVED: Service selection with breadcrumb support
+          // Service selection logic (keep your existing code)
           if (serviceName && technicianData.services?.length > 0) {
             const matchingService = findMatchingService(serviceName);
             if (matchingService) {
               setSelectedService(matchingService);
               console.log("Service pre-selected from flow:", matchingService);
             } else {
-              // If no exact match, use the first available service
               setSelectedService(technicianData.services[0]);
               console.log(
                 "Service not available, using first available:",
@@ -239,7 +268,7 @@ const BookingPage: React.FC = () => {
             );
           }
 
-          // Rest of your slot rules fetching code...
+          // Fetch slot rules
           try {
             const slotRulesResponse =
               await TechnicianMangementService.getTechnicianSlotRules(
@@ -254,18 +283,30 @@ const BookingPage: React.FC = () => {
               const availability = generateWeeklyAvailability(slotRules);
               setWeeklyAvailability(availability);
 
-              const firstAvailableDay = availability.find(
-                (day) => day.slots.length > 0
-              );
-              if (firstAvailableDay && !selectedDate) {
-                setSelectedDate(firstAvailableDay.formattedDate);
-                if (firstAvailableDay.slots.length > 0 && !selectedTime) {
-                  const firstSlot = firstAvailableDay.slots[0];
-                  setSelectedTime(
-                    `${formatTimeTo12Hour(
-                      firstSlot.start
-                    )} - ${formatTimeTo12Hour(firstSlot.end)}`
-                  );
+              // NEW: Get the next available date considering current time
+              const nextAvailableDate = getNextAvailableDate();
+
+              if (nextAvailableDate && !selectedDate) {
+                setSelectedDate(nextAvailableDate);
+
+                // Set the first available time slot for that date
+                const selectedDay = availability.find(
+                  (day) => day.formattedDate === nextAvailableDate
+                );
+
+                if (
+                  selectedDay &&
+                  selectedDay.slots.length > 0 &&
+                  !selectedTime
+                ) {
+                  // If it's today, filter out past time slots
+                  const availableSlots = selectedDay.isToday
+                    ? getAvailableTimeSlotsForDate(selectedDay.formattedDate)
+                    : selectedDay.slots.map((slot) => formatTimeRange(slot));
+
+                  if (availableSlots.length > 0) {
+                    setSelectedTime(availableSlots[0]);
+                  }
                 }
               }
             } else {
@@ -293,6 +334,33 @@ const BookingPage: React.FC = () => {
       setLoading(false);
     }
   }, [technicianId, isLoggedIn, serviceName]);
+
+  const getAvailableTimeSlotsForDate = (date: string): string[] => {
+    const dayForDate = weeklyAvailability.find(
+      (day) => day.formattedDate === date
+    );
+
+    if (!dayForDate) return [];
+
+    const now = new Date();
+    const isToday = date === now.toISOString().split("T")[0];
+
+    if (!isToday) {
+      // For future dates, return all slots
+      return dayForDate.slots.map((slot) => formatTimeRange(slot));
+    }
+
+    // For today, filter out past time slots
+    const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
+
+    return dayForDate.slots
+      .filter((slot) => {
+        const [slotHour, slotMinute] = slot.start.split(":").map(Number);
+        const slotTime = slotHour * 60 + slotMinute;
+        return slotTime > currentTime;
+      })
+      .map((slot) => formatTimeRange(slot));
+  };
 
   // Add this useEffect to debug service selection
   useEffect(() => {
@@ -469,12 +537,7 @@ const BookingPage: React.FC = () => {
   // Get available time slots for selected date
   const getAvailableTimeSlotsForSelectedDate = (): string[] => {
     if (!selectedDate) return [];
-    const dayForDate = weeklyAvailability.find(
-      (day) => day.formattedDate === selectedDate
-    );
-    return dayForDate
-      ? dayForDate.slots.map((slot) => formatTimeRange(slot))
-      : [];
+    return getAvailableTimeSlotsForDate(selectedDate);
   };
 
   // Handle date change with validation
@@ -499,6 +562,12 @@ const BookingPage: React.FC = () => {
       setDateError(`Technician is unavailable on ${dayName}. ${availableDays}`);
     } else {
       console.log("Date is available - no error");
+
+      // Auto-select the first available time slot
+      const availableSlots = getAvailableTimeSlotsForDate(date);
+      if (availableSlots.length > 0) {
+        setSelectedTime(availableSlots[0]);
+      }
     }
   };
   // Get technician's available days summary
@@ -550,9 +619,10 @@ const BookingPage: React.FC = () => {
             <p className="text-red-700 text-sm">{dateError}</p>
           </div>
         )}
-        {availableDates.length > 0 && !dateError && (
+        {availableDates.length > 0 && !dateError && selectedDate && (
           <p className="text-green-600 text-xs mt-2">
-            ✅ {availableDates.length} available dates in next 30 days
+            ✅ {getAvailableTimeSlotsForSelectedDate().length} time slots
+            available on this date
           </p>
         )}
       </div>
@@ -1238,7 +1308,11 @@ const BookingPage: React.FC = () => {
                 <select
                   value={selectedTime}
                   onChange={(e) => setSelectedTime(e.target.value)}
-                  disabled={!selectedDate || dateError !== null}
+                  disabled={
+                    !selectedDate ||
+                    dateError !== null ||
+                    getAvailableTimeSlotsForSelectedDate().length === 0
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   <option value="">
@@ -1246,6 +1320,8 @@ const BookingPage: React.FC = () => {
                       ? "Select an available date first"
                       : !selectedDate
                       ? "Select date first"
+                      : getAvailableTimeSlotsForSelectedDate().length === 0
+                      ? "No available time slots"
                       : "Select time slot"}
                   </option>
                   {getAvailableTimeSlotsForSelectedDate().map((slot, index) => (
@@ -1258,7 +1334,8 @@ const BookingPage: React.FC = () => {
                   !dateError &&
                   getAvailableTimeSlotsForSelectedDate().length === 0 && (
                     <p className="text-red-500 text-xs mt-1">
-                      No available time slots for selected date
+                      No available time slots remaining for today. Please select
+                      another date.
                     </p>
                   )}
               </div>

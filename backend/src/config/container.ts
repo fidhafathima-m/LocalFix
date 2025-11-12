@@ -65,6 +65,7 @@ import { PaymentManagementController } from "../controllers/admin/paymentManagem
 import { NotificationRepository } from "../repositories/NotificationRepository";
 import { NotificationService } from "../services/NotificationService";
 import { NotificationController } from "../controllers/INotificationController";
+import { emailService } from "../services/EmailService";
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
@@ -119,6 +120,16 @@ const technicianDashboardController = new TechnicianDashboardController(
   technicianDashboardService
 );
 
+// Order dependencies
+const orderRepository = new OrderRepository();
+const orderService = new OrderService(
+  orderRepository,
+  technicianRepository,
+  notificationService
+);
+const orderController = new OrderController(orderService);
+const technicianOrderController = new TechnicianOrderController(orderService);
+
 // User authentication dependencies
 const otpRepository = new OTPRepository();
 const socialAccountRepository = new SocialAccountRepository();
@@ -135,7 +146,10 @@ const technicianProfileService = new TechnicianProfileService(
   technicianRepository,
   technicianProfileRepository,
   userRepository,
-  userAddressRepository
+  userAddressRepository,
+  orderService,
+  emailService,
+  notificationService
 );
 const technicianProfileController = new TechnicianProfileController(
   technicianProfileService
@@ -182,15 +196,6 @@ const paymentRepository = new PaymentRepository();
 const paymentService = new PaymentService(paymentRepository);
 const paymentController = new PaymentController(paymentService);
 
-// Order dependencies
-const orderRepository = new OrderRepository();
-const orderService = new OrderService(
-  orderRepository,
-  technicianRepository,
-  notificationService
-);
-const orderController = new OrderController(orderService);
-const technicianOrderController = new TechnicianOrderController(orderService);
 
 // Booking dependencies
 const bookingRepository = new BookingRepository();

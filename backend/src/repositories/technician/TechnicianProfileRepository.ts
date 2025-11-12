@@ -38,8 +38,6 @@ export class TechnicianProfileRepository
           : undefined,
       };
 
-      console.log("Repository update with data:", processedUpdateData);
-
       const result = await Technician.findByIdAndUpdate(
         technicianId,
         { $set: processedUpdateData },

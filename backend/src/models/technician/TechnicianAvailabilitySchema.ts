@@ -1,8 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITimeSlot {
-  start: string; // "09:00"
-  end: string; // "10:00"
+  start: Date; // "09:00"
+  end: Date; // "10:00"
   status: "available" | "booked" | "blocked";
   bookingId?: mongoose.Types.ObjectId;
 }
@@ -19,12 +19,12 @@ export interface ITechnicianAvailability extends Document {
 
 const TimeSlotSchema = new Schema<ITimeSlot>({
   start: {
-    type: String,
+    type: Date,
     required: true,
     match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
   },
   end: {
-    type: String,
+    type: Date,
     required: true,
     match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
   },

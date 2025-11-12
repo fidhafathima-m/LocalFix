@@ -51,4 +51,16 @@ export interface INotificationService {
     amount: number,
     paymentId: string
   ): Promise<NotificationResponseDto>;
+  createTechnicianUnavailableNotification(
+    customerId: string,
+    technicianName: string,
+    serviceType: string,
+    scheduledDate: string,
+    orderId: string
+  ): Promise<NotificationResponseDto>
+  createAvailabilityChangeImpactNotification(
+    technicianId: string,
+    cancelledOrdersCount: number,
+    date: string
+  ): Promise<NotificationResponseDto>
 }

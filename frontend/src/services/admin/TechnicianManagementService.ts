@@ -42,9 +42,17 @@ export class TechnicianMangementService {
       throw this.handleError(error, "Failed to get technician by id");
     }
   }
-  static async getTechnicianAvailability(technicianId: string, startDate: string, endDate: string) {
+  static async getTechnicianAvailability(
+    technicianId: string,
+    startDate: string,
+    endDate: string
+  ) {
     try {
-      const response = await adminAPI.getTechnicianAvailability(technicianId, startDate, endDate);
+      const response = await adminAPI.getTechnicianAvailability(
+        technicianId,
+        startDate,
+        endDate
+      );
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to get technician availability");
@@ -69,6 +77,22 @@ export class TechnicianMangementService {
   static async getPublicTechnicianById(technicianId: string) {
     try {
       const response = await adminAPI.getPublicTechnicianById(technicianId);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to get public technician");
+    }
+  }
+  static async getTechnicianPublicAvailability(
+    technicianId: string,
+    startDate: string,
+    endDate: string
+  ) {
+    try {
+      const response = await adminAPI.getTechnicianPublicAvailability(
+        technicianId,
+        startDate,
+        endDate
+      );
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to get public technician");

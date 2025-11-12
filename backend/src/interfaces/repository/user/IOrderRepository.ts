@@ -9,7 +9,7 @@ export interface IOrderRepository {
   findByUserId(
     userId: string,
     page: number,
-    limit: number,
+    limit: number
   ): Promise<{ orders: IOrder[]; total: number }>;
   updateStatus(
     orderId: string,
@@ -18,8 +18,15 @@ export interface IOrderRepository {
     reason?: string
   ): Promise<IOrder | null>;
   addOrderItem(orderId: string, itemData: any): Promise<IOrder | null>;
-  createFromBooking(bookingId: string, paymentData: any): Promise<IOrder | null>;
-  findByTechnicianId(technicianId: string, page: number, limit: number): Promise<{ orders: any[]; total: number }>;
+  createFromBooking(
+    bookingId: string,
+    paymentData: any
+  ): Promise<IOrder | null>;
+  findByTechnicianId(
+    technicianId: string,
+    page: number,
+    limit: number
+  ): Promise<{ orders: any[]; total: number }>;
   getTechnicianStats(technicianId: string): Promise<{
     totalOrders: number;
     pendingOrders: number;
@@ -32,14 +39,14 @@ export interface IOrderRepository {
     newDate: string,
     newTimeSlot: string,
     updatedBy: string
-  ): Promise<IOrder | null>
-   findConflictingOrders(
+  ): Promise<IOrder | null>;
+  findConflictingOrders(
     technicianId: string,
     date: string,
     timeSlot: string,
     excludeOrderId?: string
-  ): Promise<IOrder[]>
-  findByBookingId(bookingId: string): Promise<IOrderPopulated | null>
+  ): Promise<IOrder[]>;
+  findByBookingId(bookingId: string): Promise<IOrderPopulated | null>;
   updatePaymentDetails(
     orderId: string,
     paymentData: {
@@ -49,5 +56,9 @@ export interface IOrderRepository {
       transactionId?: string;
       paidAt?: Date;
     }
-  ): Promise<IOrder | null>
+  ): Promise<IOrder | null>;
+  getOrdersByTechnicianAndDate(
+    technicianId: string,
+    date: Date
+  ): Promise<IOrder[]>;
 }
