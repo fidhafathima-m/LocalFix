@@ -99,6 +99,11 @@ const BookingPage: React.FC = () => {
   >([]);
 
   const [problemDescription, setProblemDescription] = useState("");
+  const [brandError, setBrandError] = useState<string | null>(null);
+  const [problemDescriptionError, setProblemDescriptionError] = useState<
+    string | null
+  >(null);
+  const [selectedBrand, setSelectedBrand] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
 
   // Get auth state from Redux
@@ -109,16 +114,16 @@ const BookingPage: React.FC = () => {
   const searchParams = new URLSearchParams(location.search);
   const technicianId =
     searchParams.get("technicianId") || location.state?.technicianId;
-    
-    const [technicianName] = useState(location.state?.technicianName || "");
-    
-    const { breadcrumb, updateBreadcrumb } = useBreadcrumb();
-    
-    const serviceName =
-      searchParams.get("service") ||
-      location.state?.service ||
-      breadcrumb.serviceName ||
-      "";
+
+  const [technicianName] = useState(location.state?.technicianName || "");
+
+  const { breadcrumb, updateBreadcrumb } = useBreadcrumb();
+
+  const serviceName =
+    searchParams.get("service") ||
+    location.state?.service ||
+    breadcrumb.serviceName ||
+    "";
   useEffect(() => {
     if (technician && !breadcrumb.technicianName) {
       updateBreadcrumb({
@@ -647,11 +652,40 @@ const BookingPage: React.FC = () => {
   };
 
   const handleContinueToCheckout = () => {
+    // Clear previous errors
+    setBrandError(null);
+    setProblemDescriptionError(null);
+
+    // Validate service type
     if (!selectedService) {
       toast.error("Please select a service type");
       return;
     }
 
+    // Validate brand
+    if (!selectedBrand) {
+      setBrandError("Please select a brand");
+      toast.error("Please select a brand");
+      return;
+    }
+
+    // Validate problem description
+    if (!problemDescription.trim()) {
+      setProblemDescriptionError("Please describe the problem");
+      toast.error("Please describe the problem");
+      return;
+    }
+
+    // Validate problem description length (optional - you can adjust this)
+    if (problemDescription.trim().length < 10) {
+      setProblemDescriptionError(
+        "Please provide more details about the problem (minimum 10 characters)"
+      );
+      toast.error("Please provide more details about the problem");
+      return;
+    }
+
+    // Validate date and time
     if (!selectedDate || !selectedTime) {
       toast.error("Please select date and time");
       return;
@@ -673,6 +707,7 @@ const BookingPage: React.FC = () => {
       return;
     }
 
+    // Validate address
     if (usesSavedAddress && !selectedAddress) {
       toast.error("Please select an address");
       return;
@@ -693,11 +728,15 @@ const BookingPage: React.FC = () => {
       state: {
         technician,
         service: selectedService,
+        brand: selectedBrand, // Add brand to checkout data
         date: selectedDate,
         time: selectedTime,
         address: address,
         usesSavedAddress,
-        problemDescription,
+        problemDescription: problemDescription.trim(),
+        userPhoneNumber: phoneNumber,
+        userFullName: user?.fullName || "",
+        userEmail: user?.email || "",
       },
     });
   };
@@ -1006,7 +1045,6 @@ const BookingPage: React.FC = () => {
               <ShoppingBagOutlined className="w-5 h-5 text-blue-600" />
               <h2 className="text-lg font-semibold">Service Details</h2>
             </div>
-
             {/* Service Type */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1087,12 +1125,22 @@ const BookingPage: React.FC = () => {
                   </div>
                 )}
             </div>
-
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Brand
+                Select Brand <span className="text-red-500">*</span>
               </label>
-              <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select
+                value={selectedBrand}
+                onChange={(e) => {
+                  setSelectedBrand(e.target.value);
+                  if (brandError && e.target.value) {
+                    setBrandError(null);
+                  }
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  brandError ? "border-red-500" : "border-gray-300"
+                }`}
+              >
                 <option value="">Select brand</option>
                 <option value="LG">LG</option>
                 <option value="Samsung">Samsung</option>
@@ -1101,19 +1149,38 @@ const BookingPage: React.FC = () => {
                 <option value="Daikin">Daikin</option>
                 <option value="Other">Other</option>
               </select>
+              {brandError && (
+                <p className="text-red-500 text-xs mt-1">{brandError}</p>
+              )}
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Problem Description / Notes
+                Problem Description / Notes{" "}
+                <span className="text-red-500">*</span>
               </label>
               <textarea
                 rows={4}
                 placeholder="Describe the issue you're facing (e.g., AC not cooling, water leakage observed)"
                 value={problemDescription}
-                onChange={(e) => setProblemDescription(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => {
+                  setProblemDescription(e.target.value);
+                  if (problemDescriptionError && e.target.value.trim()) {
+                    setProblemDescriptionError(null);
+                  }
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  problemDescriptionError ? "border-red-500" : "border-gray-300"
+                }`}
               />
+              {problemDescriptionError && (
+                <p className="text-red-500 text-xs mt-1">
+                  {problemDescriptionError}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Please provide details about the issue to help the technician
+                prepare (atleast 10 letters)
+              </p>
             </div>
           </div>
           {/* Schedule */}
@@ -1307,8 +1374,11 @@ const BookingPage: React.FC = () => {
                 !selectedDate ||
                 !selectedTime ||
                 !selectedService ||
+                !selectedBrand ||
+                !problemDescription.trim() ||
                 (usesSavedAddress && !selectedAddress) ||
-                dateError !== null
+                dateError !== null ||
+                problemDescription.trim().length < 10
               }
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed cursor-pointer transition-colors"
             >

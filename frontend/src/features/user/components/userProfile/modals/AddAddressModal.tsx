@@ -93,8 +93,35 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
       setDetectingLocation(true);
       const toastId = toast.loading("Detecting your current location...");
 
+      // Check if geolocation is available
+      if (!navigator.geolocation) {
+        toast.error("Geolocation is not supported by your browser", {
+          id: toastId,
+        });
+        setDetectingLocation(false);
+        return;
+      }
+
+      // Check if we're in a secure context (HTTPS)
+      if (
+        window.location.protocol !== "https:" &&
+        window.location.hostname !== "localhost"
+      ) {
+        toast.error(
+          "Location access requires HTTPS. Please use the map to select your location manually.",
+          { id: toastId }
+        );
+        setDetectingLocation(false);
+        return;
+      }
+
       const position = await LocationService.getCurrentPosition();
       const { latitude, longitude } = position.coords;
+
+      // Validate coordinates
+      if (!latitude || !longitude) {
+        throw new Error("Invalid coordinates received");
+      }
 
       const geocodeResult: GeocodeResult = await LocationService.reverseGeocode(
         latitude,
@@ -118,52 +145,79 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
       }));
 
       toast.success("Location detected successfully!", { id: toastId });
-
-      // If you want to also update the map position, you can pass this to the OSMLocationPicker
-      // You might need to add a prop to OSMLocationPicker to set initial position
-      
     } catch (error: any) {
       console.error("Error getting location:", error);
       toast.dismiss();
 
       let errorMessage = "Failed to get your current location";
-      if (error instanceof GeolocationPositionError) {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage =
-              "Location access was denied. Please enable location permissions in your browser.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage =
-              "Location information is unavailable. Please try manual location selection.";
-            break;
-          case error.TIMEOUT:
-            errorMessage = "Location request timed out. Please try again.";
-            break;
-        }
+      let showManualOption = true;
+
+      if (error.code === 1) {
+        // PERMISSION_DENIED
+        errorMessage =
+          "Location access was denied. Please enable location permissions in your browser settings or use the map to select manually.";
+        showManualOption = false;
+      } else if (error.code === 2) {
+        // POSITION_UNAVAILABLE
+        errorMessage =
+          "Location information is unavailable. This could be due to poor GPS signal, device settings, or network issues. Please try selecting location on the map.";
+      } else if (error.code === 3) {
+        // TIMEOUT
+        errorMessage =
+          "Location request timed out. Please check your internet connection and try again.";
+      } else if (error.message?.includes("not supported")) {
+        errorMessage =
+          "Your browser doesn't support location services. Please use the map to select your location.";
+        showManualOption = false;
+      } else if (error.message?.includes("HTTPS")) {
+        errorMessage =
+          "Location access requires a secure connection (HTTPS). Please use the map to select your location.";
+        showManualOption = false;
       }
 
       toast.error(errorMessage);
 
-      // Show fallback option
-      setTimeout(() => {
-        toast(
-          (t) => (
-            <div className="text-center">
-              <p className="text-sm mb-2">Try selecting location on map?</p>
-              <div className="flex gap-2 justify-center">
-                <button
-                  onClick={() => toast.dismiss(t.id)}
-                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  OK
-                </button>
+      // Show fallback option for certain errors
+      if (showManualOption) {
+        setTimeout(() => {
+          toast(
+            (t) => (
+              <div className="text-center">
+                <p className="text-sm mb-2">
+                  Try selecting location on map instead?
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => {
+                      // Focus on the map or show instructions
+                      toast.dismiss(t.id);
+                      // You could add some visual indication on the map
+                      const mapElement =
+                        document.querySelector(".leaflet-container");
+                      if (mapElement) {
+                        mapElement.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    Select on Map
+                  </button>
+                  <button
+                    onClick={() => toast.dismiss(t.id)}
+                    className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
+                  >
+                    Dismiss
+                  </button>
+                </div>
               </div>
-            </div>
-          ),
-          { duration: 5000 }
-        );
-      }, 1000);
+            ),
+            { duration: 8000 }
+          );
+        }, 1500);
+      }
     } finally {
       setDetectingLocation(false);
     }
@@ -256,10 +310,13 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <MyLocationOutlined className="w-5 h-5" />
-                  {detectingLocation ? "Detecting Location..." : "Auto Detect My Location"}
+                  {detectingLocation
+                    ? "Detecting Location..."
+                    : "Auto Detect My Location"}
                 </button>
                 <p className="text-sm text-gray-600 mt-1">
-                  Click to automatically detect your current location using your device's GPS
+                  Click to automatically detect your current location using your
+                  device's GPS
                 </p>
               </div>
 
@@ -444,7 +501,9 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                               Location Required
                             </p>
                             <p className="text-sm text-yellow-700">
-                              Please select your location on the map or use "Auto Detect" to fill address details automatically
+                              Please select your location on the map or use
+                              "Auto Detect" to fill address details
+                              automatically
                             </p>
                           </div>
                         </div>
@@ -461,7 +520,8 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                               Location Selected
                             </p>
                             <p className="text-sm text-green-700">
-                              Address fields have been auto-filled. You can edit them if needed.
+                              Address fields have been auto-filled. You can edit
+                              them if needed.
                             </p>
                           </div>
                         </div>

@@ -215,110 +215,113 @@ const TechnicianProfile: React.FC = () => {
   }, [id]);
 
   const fetchTechnicianReviews = async (technicianId: string) => {
-  try {
-    setReviewsLoading(true);
+    try {
+      setReviewsLoading(true);
 
-    const statsResponse = await reviewService.getTechnicianReviewStats(
-      technicianId
-    );
-    if (statsResponse.success && statsResponse.data) {
-      setReviewStats(statsResponse.data);
-    }
+      const statsResponse = await reviewService.getTechnicianReviewStats(
+        technicianId
+      );
+      if (statsResponse.success && statsResponse.data) {
+        setReviewStats(statsResponse.data);
+      }
 
-    // Pass current user ID to get report status
-    const currentUserId = user?._id;
-    const reviewsResponse = await reviewService.getTechnicianReviews(
-      technicianId,
-      1,
-      10,
-      currentUserId // Pass current user ID
-    );
+      // Pass current user ID to get report status
+      const currentUserId = user?._id;
+      const reviewsResponse = await reviewService.getTechnicianReviews(
+        technicianId,
+        1,
+        10,
+        currentUserId // Pass current user ID
+      );
 
-    if (reviewsResponse.success && reviewsResponse.data) {
-      // Get cached reported reviews from localStorage
-      const cachedReportedReviews = getCachedReportedReviews();
-      
-      const transformedReviews: Review[] = reviewsResponse.data.reviews
-        .filter((review: any) => review.status !== "flagged") // Hide flagged reviews from public
-        .map((review: any) => {
-          // Extract user information properly
-          let userName = "Anonymous User";
-          let userEmail = "";
+      if (reviewsResponse.success && reviewsResponse.data) {
+        // Get cached reported reviews from localStorage
+        const cachedReportedReviews = getCachedReportedReviews();
 
-          // Check if user data is available in the response
-          if (review.userId && typeof review.userId === "object") {
-            // If userId is a populated user object
-            userName =
-              review.userId.fullName ||
-              review.userId.name ||
-              "Anonymous User";
-            userEmail = review.userId.email || "";
-          } else if (review.user) {
-            // If there's a separate user field
-            userName =
-              review.user.fullName || review.user.name || "Anonymous User";
-            userEmail = review.user.email || "";
-          } else if (typeof review.userId === "string") {
-            // Fallback: Try to extract from stringified field (old method)
-            const fullNameMatch = review.userId.match(
-              /fullName:\s*'([^']+)'/
-            );
-            if (fullNameMatch && fullNameMatch[1]) {
-              userName = fullNameMatch[1];
-            }
+        const transformedReviews: Review[] = reviewsResponse.data.reviews
+          .filter((review: any) => review.status !== "flagged") // Hide flagged reviews from public
+          .map((review: any) => {
+            // Extract user information properly
+            let userName = "Anonymous User";
+            let userEmail = "";
 
-            const emailMatch = review.userId.match(/email:\s*'([^']+)'/);
-            if (emailMatch && emailMatch[1]) {
-              userEmail = emailMatch[1];
-              if (userName === "Anonymous User") {
-                userName = emailMatch[1].split("@")[0];
+            // Check if user data is available in the response
+            if (review.userId && typeof review.userId === "object") {
+              // If userId is a populated user object
+              userName =
+                review.userId.fullName ||
+                review.userId.name ||
+                "Anonymous User";
+              userEmail = review.userId.email || "";
+            } else if (review.user) {
+              // If there's a separate user field
+              userName =
+                review.user.fullName || review.user.name || "Anonymous User";
+              userEmail = review.user.email || "";
+            } else if (typeof review.userId === "string") {
+              // Fallback: Try to extract from stringified field (old method)
+              const fullNameMatch = review.userId.match(
+                /fullName:\s*'([^']+)'/
+              );
+              if (fullNameMatch && fullNameMatch[1]) {
+                userName = fullNameMatch[1];
+              }
+
+              const emailMatch = review.userId.match(/email:\s*'([^']+)'/);
+              if (emailMatch && emailMatch[1]) {
+                userEmail = emailMatch[1];
+                if (userName === "Anonymous User") {
+                  userName = emailMatch[1].split("@")[0];
+                }
               }
             }
-          }
 
-          // Check if this review is reported by current user
-          // First check API response, then fallback to localStorage cache
-          const userReportedFromAPI = review.userReported || false;
-          const userReportedFromCache = cachedReportedReviews.includes(review.id || review._id);
-          
-          return {
-            _id: review.id || review._id, // Use both possible ID fields
-            userId: review.userId?._id || review.userId, // Handle both object and string
-            technicianId: review.technicianId,
-            rating: review.rating,
-            comment: review.comment,
-            userName: userName,
-            createdAt: review.createdAt,
-            status: review.status,
-            userReported: userReportedFromAPI || userReportedFromCache, // Combine both sources
-            user: {
-              fullName: userName,
-              email: userEmail,
-            },
-          };
-        });
-      setReviews(transformedReviews);
+            // Check if this review is reported by current user
+            // First check API response, then fallback to localStorage cache
+            const userReportedFromAPI = review.userReported || false;
+            const userReportedFromCache = cachedReportedReviews.includes(
+              review.id || review._id
+            );
+
+            return {
+              _id: review.id || review._id, // Use both possible ID fields
+              userId: review.userId?._id || review.userId, // Handle both object and string
+              technicianId: review.technicianId,
+              rating: review.rating,
+              comment: review.comment,
+              userName: userName,
+              createdAt: review.createdAt,
+              status: review.status,
+              userReported: userReportedFromAPI || userReportedFromCache, // Combine both sources
+              user: {
+                fullName: userName,
+                email: userEmail,
+              },
+            };
+          });
+        setReviews(transformedReviews);
+      }
+    } catch (error) {
+      console.error("Error fetching technician reviews:", error);
+    } finally {
+      setReviewsLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching technician reviews:", error);
-  } finally {
-    setReviewsLoading(false);
-  }
-};
+  };
 
-// Add this useEffect to sync reported reviews on component mount
-useEffect(() => {
-  if (reviews.length > 0 && user) {
-    // Update reviews with cached reported status
-    const cachedReportedReviews = getCachedReportedReviews();
-    setReviews(prevReviews => 
-      prevReviews.map(review => ({
-        ...review,
-        userReported: review.userReported || cachedReportedReviews.includes(review._id)
-      }))
-    );
-  }
-}, [reviews.length, user]);
+  // Add this useEffect to sync reported reviews on component mount
+  useEffect(() => {
+    if (reviews.length > 0 && user) {
+      // Update reviews with cached reported status
+      const cachedReportedReviews = getCachedReportedReviews();
+      setReviews((prevReviews) =>
+        prevReviews.map((review) => ({
+          ...review,
+          userReported:
+            review.userReported || cachedReportedReviews.includes(review._id),
+        }))
+      );
+    }
+  }, [reviews.length, user]);
 
   const handleReportReview = async (reviewId: string) => {
     try {
@@ -445,19 +448,19 @@ useEffect(() => {
   };
 
   // Add this helper function
- // Update this helper function to be more specific to current user if needed
-const getCachedReportedReviews = (): string[] => {
-  try {
-    const cached = localStorage.getItem("reportedReviews");
-    if (cached) {
-      const reportedReviews = JSON.parse(cached);
-      return Array.isArray(reportedReviews) ? reportedReviews : [];
+  // Update this helper function to be more specific to current user if needed
+  const getCachedReportedReviews = (): string[] => {
+    try {
+      const cached = localStorage.getItem("reportedReviews");
+      if (cached) {
+        const reportedReviews = JSON.parse(cached);
+        return Array.isArray(reportedReviews) ? reportedReviews : [];
+      }
+      return [];
+    } catch {
+      return [];
     }
-    return [];
-  } catch {
-    return [];
-  }
-};
+  };
 
   const generateWeeklyAvailability = (
     rules: SlotRule[]

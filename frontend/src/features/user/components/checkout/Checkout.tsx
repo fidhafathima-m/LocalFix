@@ -50,6 +50,9 @@ interface BookingData {
   } | null;
   usesSavedAddress: boolean;
   problemDescription?: string;
+  userPhoneNumber?: string;
+  userFullName?: string;
+  userEmail?: string;
 }
 
 interface ServicePricing {
@@ -553,19 +556,25 @@ const Checkout: React.FC = () => {
             <div>
               <span className="text-sm text-gray-600">Name: </span>
               <span className="font-medium">
-                {user?.fullName || "Not provided"}
+                {bookingData.userFullName || user?.fullName || "Not provided"}
               </span>
             </div>
             <div>
               <span className="text-sm text-gray-600">Phone: </span>
               <span className="font-medium">
-                {user?.phone || "Not provided"}
+                {bookingData.userPhoneNumber
+                  ? `+91 ${bookingData.userPhoneNumber}`
+                  : user?.phone
+                  ? `+91 ${user.phone.replace(/\D/g, "").slice(-10)}`
+                  : "Not provided"}
               </span>
             </div>
           </div>
           <div className="mb-4">
             <span className="text-sm text-gray-600">Email: </span>
-            <span className="font-medium">{user?.email || "Not provided"}</span>
+            <span className="font-medium">
+              {bookingData.userEmail || user?.email || "Not provided"}
+            </span>
           </div>
 
           {/* Service Details */}

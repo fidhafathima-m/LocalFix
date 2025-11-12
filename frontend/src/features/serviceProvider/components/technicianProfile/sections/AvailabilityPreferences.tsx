@@ -6,7 +6,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import { TechnicianService } from "../../../../../services/technician/technicianService";
 import toast from "react-hot-toast";
 import type { TechnicianProfile } from "../../../../../interface/technician/ITechnicianApi";
-import { WeeklyAvailabilitySelector, type WeeklyAvailability } from "../helper/AvailabilitySelector";
+import {
+  WeeklyAvailabilitySelector,
+  type WeeklyAvailability,
+} from "../helper/AvailabilitySelector";
 
 interface AvailabilityData {
   isAvailable: boolean;
@@ -118,28 +121,49 @@ const AvailabilityPreferences = () => {
   const getTomorrowInfo = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+    const dayNames = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
     const dayName = dayNames[tomorrow.getDay()];
-    
-    const formattedDate = tomorrow.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric'
+
+    const formattedDate = tomorrow.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
     });
 
     return {
       date: tomorrow,
       dayName,
-      formattedDate
+      formattedDate,
     };
   };
+
+  useEffect(() => {
+    // Recalculate tomorrow's availability whenever weekly pattern changes
+    const newTomorrowAvailable = checkTomorrowAvailability(
+      formData.availability.weeklyPattern
+    );
+    if (newTomorrowAvailable !== formData.tomorrowAvailable) {
+      setFormData((prev) => ({
+        ...prev,
+        tomorrowAvailable: newTomorrowAvailable,
+      }));
+    }
+  }, [formData.availability.weeklyPattern]);
 
   // Check if tomorrow is available based on weekly pattern
   const checkTomorrowAvailability = (weeklyPattern: any): boolean => {
     const tomorrowInfo = getTomorrowInfo();
     const tomorrowDay = tomorrowInfo.dayName;
-    
+
     // Check if tomorrow's day is marked as available in the weekly pattern
     const tomorrowPattern = weeklyPattern[tomorrowDay];
     return tomorrowPattern?.available || false;
@@ -188,21 +212,33 @@ const AvailabilityPreferences = () => {
     const weeklyPattern = getWeeklyPatternFromProfile(profileData);
 
     const sanitizedWeeklyPattern: any = {};
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const days = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ];
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
-    days.forEach(day => {
+    days.forEach((day) => {
       const dayPattern = weeklyPattern[day] || {
         available: false,
         startTime: "09:00",
-        endTime: "18:00"
+        endTime: "18:00",
       };
 
       // Ensure valid time values
       sanitizedWeeklyPattern[day] = {
         available: dayPattern.available || false,
-        startTime: timeRegex.test(dayPattern.startTime) ? dayPattern.startTime : "09:00",
-        endTime: timeRegex.test(dayPattern.endTime) ? dayPattern.endTime : "18:00"
+        startTime: timeRegex.test(dayPattern.startTime)
+          ? dayPattern.startTime
+          : "09:00",
+        endTime: timeRegex.test(dayPattern.endTime)
+          ? dayPattern.endTime
+          : "18:00",
       };
     });
 
@@ -495,30 +531,42 @@ const AvailabilityPreferences = () => {
   };
 
   const handleAvailabilityChange = (newAvailability: WeeklyAvailability) => {
+    const newTomorrowAvailable = checkTomorrowAvailability(
+      newAvailability.weeklyPattern
+    );
+
     setFormData((prev) => ({
       ...prev,
       availability: newAvailability,
-      // Update tomorrow's availability when weekly pattern changes
-      tomorrowAvailable: checkTomorrowAvailability(newAvailability.weeklyPattern),
+      tomorrowAvailable: newTomorrowAvailable,
     }));
   };
-
   // Toggle tomorrow's availability
   const handleTomorrowToggle = async (available: boolean) => {
     try {
       setUpdatingTomorrow(true);
-      
+
       // Update the weekly pattern for tomorrow's specific day
       const tomorrowInfo = getTomorrowInfo();
       const tomorrowDay = tomorrowInfo.dayName;
-      
+
       const updatedWeeklyPattern = {
         ...formData.availability.weeklyPattern,
         [tomorrowDay]: {
           ...formData.availability.weeklyPattern[tomorrowDay],
-          available: available
-        }
+          available: available,
+        },
       };
+
+      // Update local state immediately for better UX
+      setFormData((prev) => ({
+        ...prev,
+        availability: {
+          ...prev.availability,
+          weeklyPattern: updatedWeeklyPattern,
+        },
+        tomorrowAvailable: available, // Update this immediately
+      }));
 
       const updateData = {
         availability: {
@@ -533,15 +581,7 @@ const AvailabilityPreferences = () => {
       const response = await TechnicianService.updateAvailability(updateData);
 
       if (response.success) {
-        setFormData(prev => ({
-          ...prev,
-          availability: {
-            ...prev.availability,
-            weeklyPattern: updatedWeeklyPattern
-          },
-          tomorrowAvailable: available
-        }));
-
+        // State already updated above for immediate feedback
         if (profile) {
           setProfile({
             ...profile,
@@ -552,24 +592,49 @@ const AvailabilityPreferences = () => {
           });
         }
 
-        toast.success(`You are now ${available ? 'available' : 'unavailable'} for ${tomorrowInfo.formattedDate}`);
-        
-        // Refresh data to confirm changes
-        await fetchProfileAndAvailability();
+        toast.success(
+          `You are now ${available ? "available" : "unavailable"} for ${
+            tomorrowInfo.formattedDate
+          }`
+        );
       } else {
+        // Revert state if API call failed
+        setFormData((prev) => ({
+          ...prev,
+          availability: {
+            ...prev.availability,
+            weeklyPattern: formData.availability.weeklyPattern, // Revert to original
+          },
+          tomorrowAvailable: !available, // Revert toggle
+        }));
         toast.error("Failed to update tomorrow's availability");
       }
     } catch (error) {
       console.error("Error updating tomorrow's availability:", error);
+      // Revert state on error
+      setFormData((prev) => ({
+        ...prev,
+        availability: {
+          ...prev.availability,
+          weeklyPattern: formData.availability.weeklyPattern, // Revert to original
+        },
+        tomorrowAvailable: !available, // Revert toggle
+      }));
       toast.error("Failed to update availability");
     } finally {
       setUpdatingTomorrow(false);
     }
   };
 
+  // Update the getStatusDisplay function to ensure proper toggle state
   const getStatusDisplay = () => {
     const tomorrowInfo = getTomorrowInfo();
-    
+
+    // Always recalculate tomorrow's availability from current weekly pattern
+    const currentTomorrowAvailable = checkTomorrowAvailability(
+      formData.availability.weeklyPattern
+    );
+
     if (formData.isAvailable) {
       return (
         <div className="space-y-4">
@@ -598,21 +663,31 @@ const AvailabilityPreferences = () => {
                 </p>
               </div>
               <div className="flex items-center space-x-3">
-                <span className={`text-sm font-medium ${
-                  formData.tomorrowAvailable ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {formData.tomorrowAvailable ? 'Available' : 'Unavailable'}
+                <span
+                  className={`text-sm font-medium ${
+                    currentTomorrowAvailable ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {currentTomorrowAvailable ? "Available" : "Unavailable"}
                 </span>
                 <button
-                  onClick={() => handleTomorrowToggle(!formData.tomorrowAvailable)}
-                  disabled={updatingTomorrow}
+                  onClick={() =>
+                    handleTomorrowToggle(!currentTomorrowAvailable)
+                  }
+                  disabled={updatingTomorrow || !formData.isAvailable}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    formData.tomorrowAvailable ? 'bg-green-500' : 'bg-gray-300'
-                  } ${updatingTomorrow ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    currentTomorrowAvailable ? "bg-green-500" : "bg-gray-300"
+                  } ${
+                    updatingTomorrow || !formData.isAvailable
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.tomorrowAvailable ? 'translate-x-6' : 'translate-x-1'
+                      currentTomorrowAvailable
+                        ? "translate-x-6"
+                        : "translate-x-1"
                     }`}
                   />
                 </button>
@@ -624,6 +699,11 @@ const AvailabilityPreferences = () => {
                 Updating...
               </div>
             )}
+            {!formData.isAvailable && (
+              <div className="flex items-center mt-2 text-yellow-600 text-sm">
+                <p>Enable overall availability to manage daily schedules</p>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -631,7 +711,7 @@ const AvailabilityPreferences = () => {
       return (
         <div className="space-y-4">
           {/* Overall Status */}
-          <div className="flex items-start">
+          <div className="flex items-center">
             <div className="text-red-500 bg-red-100 rounded-full p-1 mr-2">
               <CloseIcon className="h-5 w-5" />
             </div>
@@ -643,7 +723,8 @@ const AvailabilityPreferences = () => {
           {/* Note when overall unavailable */}
           <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
             <p className="text-sm text-yellow-800">
-              You are currently set as unavailable. Enable overall availability to manage daily schedules.
+              You are currently set as unavailable. Enable overall availability
+              to manage daily schedules.
             </p>
           </div>
         </div>
@@ -653,10 +734,13 @@ const AvailabilityPreferences = () => {
 
   const validateTimeSlots = (weeklyPattern: any): boolean => {
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/; // HH:MM format
-    
+
     for (const [day, dayInfo] of Object.entries(weeklyPattern)) {
       const dayData = dayInfo as any;
-      if (dayData.available && (!timeRegex.test(dayData.startTime) || !timeRegex.test(dayData.endTime))) {
+      if (
+        dayData.available &&
+        (!timeRegex.test(dayData.startTime) || !timeRegex.test(dayData.endTime))
+      ) {
         console.error(`Invalid time format for ${day}:`, dayData);
         return false;
       }
@@ -669,7 +753,9 @@ const AvailabilityPreferences = () => {
       setSaving(true);
 
       if (!validateTimeSlots(formData.availability.weeklyPattern)) {
-        toast.error("Please ensure all time slots have valid time format (HH:MM)");
+        toast.error(
+          "Please ensure all time slots have valid time format (HH:MM)"
+        );
         setSaving(false);
         return;
       }
@@ -765,7 +851,9 @@ const AvailabilityPreferences = () => {
       <div className="space-y-6">
         {/* Overall Availability Status */}
         <div>
-          <h3 className="text-sm font-medium mb-3">Overall Availability Status</h3>
+          <h3 className="text-sm font-medium mb-3">
+            Overall Availability Status
+          </h3>
           {getStatusDisplay()}
         </div>
 

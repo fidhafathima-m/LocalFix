@@ -190,52 +190,76 @@ export const ApplicationForm: React.FC = () => {
   const [, setPreview] = useState<string | null>(null);
 
   // Form data state
-  const [formData, setFormData] = useState<FormDataState>({
-    // Step 1: Personal Information
-    fullName: user?.fullName || "",
-    phoneNumber: user?.phone || "",
-    email: user?.email || "",
-    dateOfBirth: "",
-    gender: "",
-    // Step 2: Identity & Verification
-    idType: "",
-    idNumber: "",
-    idProof: null,
-    addressProof: null,
-    address: {
-      street: "",
-      city: "",
-      state: "",
-      pincode: "",
-      landmark: "",
-    },
-    location: {
-      coordinates: [0, 0],
-      formattedAddress: "",
-    },
-    // Step 3: Skills & Services
-    services: [],
-    yearsOfExperience: "",
-    certifications: null,
-    languages: [],
-    bio: "",
-    // Step 4: Availability & Work Preferences
-    serviceAreas: [],
-    workRadius: "",
-    availability: createDefaultWeeklyAvailability(),
-    // Step 5: Banking Details
-    accountHolderName: "",
-    accountNumber: "",
-    ifscCode: "",
-    upiId: "",
-    bankName: "",
-    // Step 6: Documents
-    policeVerification: null,
-    tradeLicense: null,
-    passportPhoto: null,
-    // Step 7: Agreement & Consent
-    agreement: false,
+  // Replace your current formData state initialization with this:
+  const [formData, setFormData] = useState<FormDataState>(() => {
+    // Initialize with proper user data synchronization
+    const initialData: FormDataState = {
+      // Step 1: Personal Information - Ensure user data is properly set
+      fullName: user?.fullName || "",
+      phoneNumber: user?.phone || "",
+      email: user?.email || "",
+      dateOfBirth: "",
+      gender: "",
+
+      // Step 2: Identity & Verification
+      idType: "",
+      idNumber: "",
+      idProof: null,
+      addressProof: null,
+      address: {
+        street: "",
+        city: "",
+        state: "",
+        pincode: "",
+        landmark: "",
+      },
+      location: {
+        coordinates: [0, 0],
+        formattedAddress: "",
+      },
+
+      // Step 3: Skills & Services
+      services: [],
+      yearsOfExperience: "",
+      certifications: null,
+      languages: [],
+      bio: "",
+
+      // Step 4: Availability & Work Preferences
+      serviceAreas: [],
+      workRadius: "",
+      availability: createDefaultWeeklyAvailability(),
+
+      // Step 5: Banking Details
+      accountHolderName: "",
+      accountNumber: "",
+      ifscCode: "",
+      upiId: "",
+      bankName: "",
+
+      // Step 6: Documents
+      policeVerification: null,
+      tradeLicense: null,
+      passportPhoto: null,
+
+      // Step 7: Agreement & Consent
+      agreement: false,
+    };
+
+    return initialData;
   });
+
+  // Add this useEffect to properly sync user data when component mounts
+  useEffect(() => {
+    if (user && !hasRestoredFromLocalStorage && !existingApplicationData) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: user.fullName || prev.fullName,
+        phoneNumber: user.phone || prev.phoneNumber,
+        email: user.email || prev.email,
+      }));
+    }
+  }, [user, hasRestoredFromLocalStorage, existingApplicationData]);
 
   useEffect(() => {
     // Create a global flag to block redirects
@@ -295,20 +319,20 @@ export const ApplicationForm: React.FC = () => {
   ]);
 
   // Add this to your ApplicationForm component
-useEffect(() => {
-  // Check if we're in edit mode and have a specific step to jump to
-  const isEditMode = localStorage.getItem("isEditMode") === "true";
-  const editStep = localStorage.getItem("editStep");
-  
-  if (isEditMode && editStep) {
-    const stepIndex = STEPS.findIndex(step => step === editStep);
-    if (stepIndex !== -1) {
-      setCurrentStep(stepIndex + 1);
-      // Clear the edit step after using it
-      localStorage.removeItem("editStep");
+  useEffect(() => {
+    // Check if we're in edit mode and have a specific step to jump to
+    const isEditMode = localStorage.getItem("isEditMode") === "true";
+    const editStep = localStorage.getItem("editStep");
+
+    if (isEditMode && editStep) {
+      const stepIndex = STEPS.findIndex((step) => step === editStep);
+      if (stepIndex !== -1) {
+        setCurrentStep(stepIndex + 1);
+        // Clear the edit step after using it
+        localStorage.removeItem("editStep");
+      }
     }
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
     if (existingApplicationData?.stepsCompleted) {
@@ -382,13 +406,10 @@ useEffect(() => {
     try {
       // Handle availability data conversion
       let availabilityData = createDefaultWeeklyAvailability();
-
-      // Access the nested availability object
       const availabilityFromDB = appData.availability?.availability;
 
       if (availabilityFromDB) {
         try {
-          // Use the nested availability data directly
           availabilityData = {
             availableWeeks:
               availabilityFromDB.availableWeeks ||
@@ -399,7 +420,6 @@ useEffect(() => {
           };
         } catch (error) {
           console.error("Error converting availability:", error);
-          // Fall back to default availability
           availabilityData = createDefaultWeeklyAvailability();
         }
       }
@@ -408,45 +428,43 @@ useEffect(() => {
 
       setFormData((prev) => ({
         ...prev,
-        // Personal Information
-        fullName: personalInfo.fullName || user?.fullName || "",
-        phoneNumber: personalInfo.phoneNumber || user?.phone || "",
-        email: personalInfo.email || user?.email || "",
-        dateOfBirth: personalInfo.dateOfBirth || "",
-        gender: personalInfo.gender || "",
+        // Personal Information - Ensure user data takes precedence
+        fullName: user?.fullName || personalInfo.fullName || prev.fullName,
+        phoneNumber:
+          user?.phone || personalInfo.phoneNumber || prev.phoneNumber,
+        email: user?.email || personalInfo.email || prev.email,
+        dateOfBirth: personalInfo.dateOfBirth || prev.dateOfBirth,
+        gender: personalInfo.gender || prev.gender,
 
-        // Identity & Verification
-        idType: appData.identity?.idType || "",
-        idNumber: appData.identity?.idNumber || "",
+        // Rest of the fields remain the same...
+        idType: appData.identity?.idType || prev.idType,
+        idNumber: appData.identity?.idNumber || prev.idNumber,
         address: {
-          street: appData.identity?.address?.street || "",
-          city: appData.identity?.address?.city || "",
-          state: appData.identity?.address?.state || "",
-          pincode: appData.identity?.address?.pincode || "",
-          landmark: appData.identity?.address?.landmark || "",
+          street: appData.identity?.address?.street || prev.address.street,
+          city: appData.identity?.address?.city || prev.address.city,
+          state: appData.identity?.address?.state || prev.address.state,
+          pincode: appData.identity?.address?.pincode || prev.address.pincode,
+          landmark:
+            appData.identity?.address?.landmark || prev.address.landmark,
         },
         location: appData.identity?.location || prev.location,
-
-        // Skills & Services
-        services: appData.skills?.services || [],
-        yearsOfExperience: appData.skills?.yearsOfExperience?.toString() || "",
-        languages: appData.skills?.languages || [],
-        bio: appData.skills?.bio || "",
-
-        // Availability & Work Preferences - USE THE CORRECTLY ACCESSED DATA
-        serviceAreas: appData.availability?.serviceAreas || [],
-        workRadius: appData.availability?.workRadius?.toString() || "",
+        services: appData.skills?.services || prev.services,
+        yearsOfExperience:
+          appData.skills?.yearsOfExperience?.toString() ||
+          prev.yearsOfExperience,
+        languages: appData.skills?.languages || prev.languages,
+        bio: appData.skills?.bio || prev.bio,
+        serviceAreas: appData.availability?.serviceAreas || prev.serviceAreas,
+        workRadius:
+          appData.availability?.workRadius?.toString() || prev.workRadius,
         availability: availabilityData,
-
-        // Banking Details
-        accountHolderName: appData.bank?.accountHolderName || "",
-        accountNumber: appData.bank?.accountNumber || "",
-        ifscCode: appData.bank?.ifscCode || "",
-        upiId: appData.bank?.upiId || "",
-        bankName: appData.bank?.bankName || "",
-
-        // Agreement
-        agreement: appData.agreement || false,
+        accountHolderName:
+          appData.bank?.accountHolderName || prev.accountHolderName,
+        accountNumber: appData.bank?.accountNumber || prev.accountNumber,
+        ifscCode: appData.bank?.ifscCode || prev.ifscCode,
+        upiId: appData.bank?.upiId || prev.upiId,
+        bankName: appData.bank?.bankName || prev.bankName,
+        agreement: appData.agreement || prev.agreement,
       }));
 
       // Handle documents separately
@@ -542,15 +560,19 @@ useEffect(() => {
           backendDocuments = await fetchDocumentStatus(savedAppId);
         }
 
-        // Restore form data
+        // Restore form data with proper user data synchronization
         setFormData((prev) => {
           const restoredData = {
             ...prev,
             ...parsedData,
-            email: user?.email || prev.email,
+            // Ensure user data is always used when available
+            fullName: user?.fullName || parsedData.fullName || prev.fullName,
+            phoneNumber:
+              user?.phone || parsedData.phoneNumber || prev.phoneNumber,
+            email: user?.email || parsedData.email || prev.email,
           };
 
-          // Handle file restoration
+          // Handle file restoration (existing code)
           const fileFields = [
             "idProof",
             "addressProof",
@@ -562,8 +584,6 @@ useEffect(() => {
 
           fileFields.forEach((field) => {
             const fileMeta = parsedData[field];
-
-            // If backend has this document, create enhanced metadata
             if (
               backendDocuments &&
               backendDocuments[field] &&
@@ -578,14 +598,11 @@ useEffect(() => {
                 lastModified:
                   new Date(backendDoc.uploadedAt).getTime() || Date.now(),
                 uploadedAt: backendDoc.uploadedAt,
-                // Add backend-specific data
                 _fromBackend: true,
                 url: backendDoc.url,
                 verified: backendDoc.verified || false,
               };
-            }
-            // Otherwise use local metadata if available
-            else if (fileMeta && fileMeta._isFile) {
+            } else if (fileMeta && fileMeta._isFile) {
               restoredData[field] = fileMeta;
             }
           });
@@ -593,19 +610,17 @@ useEffect(() => {
           return restoredData;
         });
 
-        // Restore step
+        // Restore step and application ID (existing code)
         if (savedStepNumber > 0 && savedStepNumber <= STEPS.length) {
           setCurrentStep(savedStepNumber);
         }
 
-        // Restore application ID if exists
         if (savedAppId) {
           setApplicationId(savedAppId);
         }
 
         setHasRestoredFromLocalStorage(true);
       } else {
-        // No data found - definitely a new applicant
         setHasRestoredFromLocalStorage(false);
       }
     } catch (error) {
@@ -1366,19 +1381,43 @@ useEffect(() => {
           setCurrentStep((prev) => prev + 1);
         }
       } else {
+        // The error message is already in response.message from the backend
         const errorMessage = response.message || "Failed to save step";
+
+        // Show the specific error message in toast
         toast.error(errorMessage);
 
+        // Also set the error in the form for the specific field
         if (errorMessage.toLowerCase().includes("phone")) {
           setErrors({ phoneNumber: errorMessage });
         }
       }
     } catch (err: unknown) {
       console.error("Error saving step:", err);
+
+      // Handle Axios errors specifically to extract the backend message
       if (axios.isAxiosError(err)) {
-        const errorMessage = err.response?.data?.message || err.message;
-        toast.error(`Failed to save step: ${errorMessage}`);
+        // The backend error message is in err.response?.data?.message
+        const backendErrorMessage = err.response?.data?.message;
+
+        if (backendErrorMessage) {
+          // Show the specific backend error message
+          toast.error(backendErrorMessage);
+
+          // Also set the error in the form for the specific field
+          if (backendErrorMessage.toLowerCase().includes("phone")) {
+            setErrors({ phoneNumber: backendErrorMessage });
+          }
+        } else {
+          // Fallback to generic error
+          const errorMessage = err.response?.statusText || err.message;
+          toast.error(`Failed to save step: ${errorMessage}`);
+        }
+      } else if (err instanceof Error) {
+        // Handle other Error types
+        toast.error(`Failed to save step: ${err.message}`);
       } else {
+        // Generic error
         toast.error("Failed to save this step. Please try again.");
       }
     } finally {
@@ -2696,7 +2735,7 @@ useEffect(() => {
                     <div>
                       <span className="text-gray-600">Email:</span>
                       <p className="font-medium">
-                        {formData.email || "Not provided"}
+                        {formData.email || user?.email || "Not provided"}
                       </p>
                     </div>
                     <div>

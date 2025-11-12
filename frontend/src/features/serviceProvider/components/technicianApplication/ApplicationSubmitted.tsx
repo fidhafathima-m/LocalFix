@@ -17,7 +17,7 @@ export const ApplicationSubmitted: React.FC = () => {
           <SuccessIcon />
         </div>
         <h1 className="text-2xl font-bold mb-2">Application Submitted!</h1>
-        <p className="text-red-500">Redirecting to dashboard</p>
+        <p className="text-red-500 text-sm">Redirecting to dashboard...</p>
         <p className="text-gray-600 mb-6">
           Thank you for applying to be a LocalFix technician.
           <br />

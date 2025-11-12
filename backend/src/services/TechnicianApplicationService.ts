@@ -322,6 +322,7 @@ export class TechnicianApplicationService
         );
       }
 
+      // Validate personal information step with proper error propagation
       if (step === APPLICATION_STEPS.PERSONAL_INFORMATION) {
         const validation = await this.validatePersonalInfoStep(
           application,
@@ -332,7 +333,7 @@ export class TechnicianApplicationService
             ...context,
             validationError: validation.message,
           });
-          // Return the specific validation error message
+          // Return the specific validation error message that will be shown to user
           return ResponseHelper.badRequest(
             validation.message || "Personal information validation failed"
           );
@@ -345,6 +346,7 @@ export class TechnicianApplicationService
         stepsCompleted: application.stepsCompleted,
       });
 
+      // ... rest of your existing saveStep method remains the same
       const processedStepData: StepData = { ...stepData };
 
       // Parse JSON fields
@@ -434,6 +436,16 @@ export class TechnicianApplicationService
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
+
+      // Check if it's a phone number validation error and return specific message
+      if (
+        errorMessage.toLowerCase().includes("phone") ||
+        errorMessage.toLowerCase().includes("number") ||
+        errorMessage.includes("already registered")
+      ) {
+        return ResponseHelper.badRequest(errorMessage);
+      }
+
       return ResponseHelper.error(
         TECH_APPLICATION_MESSAGES.FAILED_TO_SAVE_STEP
       );
@@ -1695,7 +1707,7 @@ export class TechnicianApplicationService
         return {
           isValid: false,
           message:
-            "This phone number is already registered with another account",
+            "This phone number is already registered with another user account. Please use a different phone number.",
         };
       }
 
@@ -1719,7 +1731,7 @@ export class TechnicianApplicationService
         return {
           isValid: false,
           message:
-            "This phone number is already being used in another technician application",
+            "This phone number is already being used in another technician application. Please use a different phone number.",
         };
       }
 
@@ -1741,7 +1753,7 @@ export class TechnicianApplicationService
         return {
           isValid: false,
           message:
-            "This phone number is already registered with another technician",
+            "This phone number is already registered with another technician. Please use a different phone number.",
         };
       }
 
@@ -1754,7 +1766,11 @@ export class TechnicianApplicationService
         ...context,
         error: errorMessage,
       });
-      return { isValid: false, message: "Failed to validate phone number" };
+      return {
+        isValid: false,
+        message:
+          "Unable to verify phone number at the moment. Please try again later.",
+      };
     }
   }
 
@@ -1767,6 +1783,7 @@ export class TechnicianApplicationService
       data: {
         applicationId: application._id.toString(),
         hasPhone: !!stepData.phoneNumber,
+        phoneNumber: stepData.phoneNumber,
       },
     };
 
@@ -1779,13 +1796,31 @@ export class TechnicianApplicationService
         return { isValid: false, message: "Phone number is required" };
       }
 
-      // Validate phone number
+      // Clean phone number
+      const cleanPhone = phoneNumber.replace(/\D/g, "");
+
+      // Basic phone number format validation (Indian format)
+      const phoneRegex = /^[6-9]\d{9}$/;
+
+      if (!phoneRegex.test(cleanPhone)) {
+        return {
+          isValid: false,
+          message:
+            "Please enter a valid 10-digit Indian phone number starting with 6-9",
+        };
+      }
+
+      // Validate phone number with better error messages
       const phoneValidation = await this.validatePhoneNumber(
-        phoneNumber,
+        cleanPhone,
         application.technicianId?.toString()
       );
 
       if (!phoneValidation.isValid) {
+        this.logger.warn("Phone number validation failed", {
+          ...context,
+          validationError: phoneValidation.message,
+        });
         return phoneValidation;
       }
 
@@ -1796,7 +1831,9 @@ export class TechnicianApplicationService
       if (missingFields.length > 0) {
         return {
           isValid: false,
-          message: `Missing required fields: ${missingFields.join(", ")}`,
+          message: `Please fill in all required fields: ${missingFields.join(
+            ", "
+          )}`,
         };
       }
 
@@ -1813,7 +1850,8 @@ export class TechnicianApplicationService
         if (dob > minDate) {
           return {
             isValid: false,
-            message: "You must be at least 18 years old to apply",
+            message:
+              "You must be at least 18 years old to apply as a technician",
           };
         }
       }
@@ -1829,7 +1867,7 @@ export class TechnicianApplicationService
       });
       return {
         isValid: false,
-        message: "Failed to validate personal information",
+        message: "Failed to validate personal information. Please try again.",
       };
     }
   }
