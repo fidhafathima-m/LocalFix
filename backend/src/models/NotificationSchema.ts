@@ -23,7 +23,8 @@ const NotificationSchema = new Schema<INotificationDocument>(
       enum: [
         // Customer notifications
         "booking_confirmed",
-        "technician_assigned", 
+        "technician_assigned",
+        "on_the_way", 
         "service_in_progress",
         "service_completed",
         "booking_cancelled",

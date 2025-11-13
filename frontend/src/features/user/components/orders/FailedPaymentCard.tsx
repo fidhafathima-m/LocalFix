@@ -1,3 +1,4 @@
+// FailedPaymentCard.tsx
 import React from "react";
 import {
   CalendarTodayOutlined,
@@ -8,6 +9,7 @@ import {
   StarBorderOutlined,
   PaymentOutlined,
   WarningOutlined,
+  CloseOutlined,
 } from "@mui/icons-material";
 import type { OrderResponse } from "../../../../services/user/orderService";
 import { Link } from "react-router-dom";
@@ -17,6 +19,7 @@ interface FailedPaymentCardProps {
   formatDate: (date: string) => string;
   formatTimeSlot: (time: string) => string;
   onRetryPayment: () => void;
+  onDismissPayment: (orderId: string) => void;
 }
 
 const FailedPaymentCard: React.FC<FailedPaymentCardProps> = ({
@@ -24,9 +27,23 @@ const FailedPaymentCard: React.FC<FailedPaymentCardProps> = ({
   formatDate,
   formatTimeSlot,
   onRetryPayment,
+  onDismissPayment,
 }) => {
+  const handleDismiss = () => {
+    onDismissPayment(order._id);
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500">
+    <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 relative">
+      {/* Dismiss Button */}
+      <button
+        onClick={handleDismiss}
+        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+        title="Dismiss this failed payment"
+      >
+        <CloseOutlined className="w-5 h-5" />
+      </button>
+
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-red-600">
           <WarningOutlined className="w-5 h-5" />
@@ -41,7 +58,6 @@ const FailedPaymentCard: React.FC<FailedPaymentCardProps> = ({
         <div>
           <h3 className="text-xl font-bold mb-2">{order.serviceName}</h3>
           
-          {/* Essential Service Details Only */}
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-2 text-gray-700">
               <CalendarTodayOutlined className="w-4 h-4" />
@@ -62,7 +78,6 @@ const FailedPaymentCard: React.FC<FailedPaymentCardProps> = ({
         </div>
 
         <div>
-          {/* Technician Info */}
           <h3 className="font-semibold mb-3">Assigned Technician</h3>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
@@ -88,7 +103,6 @@ const FailedPaymentCard: React.FC<FailedPaymentCardProps> = ({
             </div>
           </div>
 
-          {/* Service Location (Simplified) */}
           <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
             <FmdGoodOutlined className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <div>
@@ -110,8 +124,8 @@ const FailedPaymentCard: React.FC<FailedPaymentCardProps> = ({
               Payment Failed
             </h4>
             <p className="text-red-700 text-sm">
-              Your payment for this booking failed. The technician is still available for your scheduled time. 
-              Complete the payment to confirm your booking.
+              Your payment for this booking failed. Complete the payment to confirm your booking, 
+              or cancel if you've changed your mind.
             </p>
           </div>
         </div>
@@ -126,9 +140,10 @@ const FailedPaymentCard: React.FC<FailedPaymentCardProps> = ({
           <PaymentOutlined className="w-5 h-5" />
           Retry Payment - ₹{order.totalAmount}
         </button>
+        
         <Link
           to="/services"
-          className="border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-center flex-1 sm:flex-none"
+          className="border-2 border-blue-300 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-center flex-1 sm:flex-none"
         >
           Book Different Service
         </Link>

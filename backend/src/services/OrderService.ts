@@ -125,95 +125,95 @@ export class OrderService implements IOrderService {
     }
   }
 
-  async createOrderFromBooking(
-    bookingId: string,
-    paymentData: {
-      method: "online" | "cod";
-      amount: number;
-      status: "pending" | "paid" | "failed";
-      transactionId?: string;
-      paidAt?: Date;
-    }
-  ): Promise<ApiResponse<OrderResponseDto>> {
-    const context = {
-      operation: "createOrderFromBooking",
-      data: { bookingId, ...paymentData },
-    };
+  // In orderService.ts - update createOrderFromBooking method
+async createOrderFromBooking(
+  bookingId: string,
+  paymentData: {
+    method: 'online' | 'cod';
+    amount: number;
+    status: 'pending' | 'paid' | 'failed';
+    transactionId?: string;
+    paidAt?: Date;
+  }
+): Promise<ApiResponse<OrderResponseDto>> {
+  const context = {
+    operation: "createOrderFromBooking",
+    data: { bookingId, ...paymentData },
+  };
 
-    try {
-      this.logger.info("Creating/updating order from booking", context);
+  try {
+    this.logger.info("Creating/updating order from booking", context);
 
-      const existingOrder = await this.orderRepository.findByBookingId(
-        bookingId
+    const existingOrder = await this.orderRepository.findByBookingId(bookingId);
+
+    let order;
+
+    if (existingOrder) {
+      this.logger.info("Updating existing order for payment retry", {
+        ...context,
+        existingOrderId: existingOrder._id.toString(),
+      });
+
+      // Update payment details and status - allow status updates for failed payments
+      order = await this.orderRepository.updatePaymentDetails(
+        existingOrder._id.toString(),
+        paymentData
       );
 
-      let order;
-
-      if (existingOrder) {
-        this.logger.info("Updating existing order for payment retry", {
-          ...context,
-          existingOrderId: existingOrder._id.toString(),
-        });
-
-        // Update payment details and status
-        order = await this.orderRepository.updatePaymentDetails(
-          existingOrder._id.toString(),
-          paymentData
-        );
-
-        if (!order) {
-          this.logger.error("Failed to update existing order", context);
-          return ResponseHelper.error(
-            "Failed to update order for payment retry"
-          );
-        }
-
-        this.logger.info("Existing order updated successfully", {
-          ...context,
-          orderId: order._id.toString(),
-        });
-      } else {
-        // CREATE new order
-        this.logger.info("Creating new order from booking", context);
-        order = await this.orderRepository.createFromBooking(
-          bookingId,
-          paymentData
-        );
-
-        if (!order) {
-          this.logger.error("Failed to create order from booking", context);
-          return ResponseHelper.error("Failed to create order");
-        }
-
-        this.logger.info("New order created successfully", {
-          ...context,
-          orderId: order._id.toString(),
-          orderCode: order.orderCode,
-        });
-
-        await this.notifyUserAboutOrderStatusChange(order, "confirmed");
-
-        await this.notifyTechnicianAboutNewOrder(order);
+      if (!order) {
+        this.logger.error("Failed to update existing order", context);
+        return ResponseHelper.error("Failed to update order for payment retry");
       }
 
-      const orderDto = this.mapToDto(order);
-      return ResponseHelper.created(
-        existingOrder
-          ? "Order updated successfully"
-          : "Order created successfully",
-        orderDto
-      );
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error creating/updating order from booking", {
+      this.logger.info("Existing order updated successfully", {
         ...context,
-        error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined,
+        orderId: order._id.toString(),
       });
-      return ResponseHelper.error("Failed to process order");
+    } else {
+      // CREATE new order - even for failed payments
+      this.logger.info("Creating new order from booking", context);
+      order = await this.orderRepository.createFromBooking(
+        bookingId,
+        paymentData
+      );
+
+      if (!order) {
+        this.logger.error("Failed to create order from booking", context);
+        return ResponseHelper.error("Failed to create order");
+      }
+
+      this.logger.info("New order created successfully", {
+        ...context,
+        orderId: order._id.toString(),
+        orderCode: order.orderCode,
+        paymentStatus: paymentData.status,
+      });
+
+      // Only send notifications for successful payments
+      if (paymentData.status === 'paid') {
+        await this.notifyUserAboutOrderStatusChange(order, "confirmed");
+        await this.notifyTechnicianAboutNewOrder(order);
+      } else if (paymentData.status === 'failed') {
+        // Send failure notification
+        await this.notifyUserAboutPayment(order, 'failed');
+      }
     }
+
+    const orderDto = this.mapToDto(order);
+    return ResponseHelper.created(
+      existingOrder ? "Order updated successfully" : "Order created successfully",
+      orderDto
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    this.logger.error("Error creating/updating order from booking", {
+      ...context,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return ResponseHelper.error("Failed to process order");
   }
+}
 
   async cancelOrder(
     userId: string,
@@ -997,8 +997,8 @@ export class OrderService implements IOrderService {
           notificationType = "technician_assigned";
           break;
         case "on_the_way":
-          notificationTitle = "🚗 Technician is on the way!";
-          notificationMessage = `Your technician ${order.technicianId?.displayName} is coming to your location. Tap to track live location.`;
+          notificationTitle = "Technician is on the way!";
+          notificationMessage = `Your technician is coming to your location.`;
           notificationType = "on_the_way";
           actionUrl = `/tracking/${order.orderId}`;
           priority = "high";

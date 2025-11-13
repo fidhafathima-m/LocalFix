@@ -15,6 +15,8 @@ import {
   PaymentOutlined,
   ChevronLeft,
   ChevronRight,
+  DeleteOutlined,
+  WarningOutlined,
 } from "@mui/icons-material";
 import Header from "../../../../components/common/Header";
 import Footer from "../../../../components/common/Footer";
@@ -50,11 +52,28 @@ const MyOrders: React.FC = () => {
   const currentUser = useAppSelector(selectUser);
   const navigate = useNavigate();
 
+   const [dismissedPayments, setDismissedPayments] = useState<string[]>([]);
+
+   useEffect(() => {
+    const savedDismissed = localStorage.getItem('dismissedFailedPayments');
+    if (savedDismissed) {
+      setDismissedPayments(JSON.parse(savedDismissed));
+    }
+    fetchOrders(1, ITEMS_PER_PAGE);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('dismissedFailedPayments', JSON.stringify(dismissedPayments));
+  }, [dismissedPayments]);
+
   useEffect(() => {
     fetchOrders(1, ITEMS_PER_PAGE);
   }, []);
 
-  const fetchOrders = async (page: number = 1, limit: number = ITEMS_PER_PAGE) => {
+  const fetchOrders = async (
+    page: number = 1,
+    limit: number = ITEMS_PER_PAGE
+  ) => {
     try {
       setLoading(true);
       const response = await orderService.getUserOrders(page, limit);
@@ -271,27 +290,72 @@ const MyOrders: React.FC = () => {
   };
 
   const getFailedPaymentOrders = () => {
-    const failedOrders = orders
+    return orders
       .filter((order) => {
-        return (
-          order.status === "cancelled" &&
-          order.payment.method === "online" &&
+        // Skip if payment is dismissed
+        if (dismissedPayments.includes(order._id)) {
+          return false;
+        }
+
+        const isFailedPayment =
+          order.payment.status === "failed" ||
+          (order.status === "cancelled" &&
+            order.payment.method === "online" &&
+            order.payment.status !== "paid");
+
+        const isRecent =
           new Date(order.createdAt) >
-            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        );
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        return isFailedPayment && isRecent;
       })
       .sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
+  };
 
-    return failedOrders;
+  const handleDismissPayment = (orderId: string) => {
+    setDismissedPayments(prev => [...prev, orderId]);
+    toast.success("Failed payment dismissed");
+  };
+
+  const handleCleanupOldPayments = async () => {
+    const result = await Swal.fire({
+      title: 'Clear Old Failed Payments?',
+      text: 'This will remove all failed payments older than 7 days. This action cannot be undone.',
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Clear All',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#3085d6',
+    });
+
+    if (result.isConfirmed) {
+      // Get all failed payment orders that are older than 7 days
+      const oldFailedPayments = orders
+        .filter(order => {
+          const isFailed = order.payment.status === "failed" || 
+            (order.status === "cancelled" && order.payment.method === "online");
+          const isOld = new Date(order.createdAt) <= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          return isFailed && isOld;
+        })
+        .map(order => order._id);
+
+      if (oldFailedPayments.length > 0) {
+        setDismissedPayments(prev => [...prev, ...oldFailedPayments]);
+        toast.success(`Cleared ${oldFailedPayments.length} old failed payments`);
+      } else {
+        toast.success("No old failed payments to clear");
+      }
+    }
   };
 
   const handleRetryPayment = (order: OrderResponse) => {
     navigate("/retry-payment", {
       state: {
         bookingId: order.bookingId,
+        orderId: order._id,
         bookingData: {
           technician: order.technicianId,
           service: order.serviceName,
@@ -307,6 +371,7 @@ const MyOrders: React.FC = () => {
           total: order.totalAmount,
         },
         error: "Payment failed previously",
+        existingOrder: order,
       },
     });
   };
@@ -314,7 +379,7 @@ const MyOrders: React.FC = () => {
   // Pagination Component
   const Pagination = () => {
     const { page, pages } = pagination;
-    
+
     if (pages <= 1) return null;
 
     return (
@@ -335,7 +400,7 @@ const MyOrders: React.FC = () => {
             <ChevronLeft className="w-4 h-4" />
             Previous
           </button>
-          
+
           <div className="flex items-center gap-1">
             {Array.from({ length: Math.min(5, pages) }, (_, i) => {
               let pageNum;
@@ -408,6 +473,15 @@ const MyOrders: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">My Orders</h1>
           <div className="flex items-center gap-4">
+            {activeTab === "failed" && getFailedPaymentOrders().length > 0 && (
+              <button
+                onClick={handleCleanupOldPayments}
+                className="text-gray-600 hover:text-gray-800 font-semibold flex items-center gap-2 text-sm"
+              >
+                <DeleteOutlined className="w-4 h-4" />
+                Clear Old Payments
+              </button>
+            )}
             <button
               onClick={() => fetchOrders(pagination.page, pagination.limit)}
               className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-2"
@@ -434,7 +508,8 @@ const MyOrders: React.FC = () => {
           >
             <div className="flex items-center gap-2">
               <LocalShippingOutlined className="w-5 h-5" />
-              Active Orders ({pagination.total > 0 ? `${activeOrders.length}` : '0'})
+              Active Orders (
+              {pagination.total > 0 ? `${activeOrders.length}` : "0"})
             </div>
             {activeTab === "active" && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
@@ -468,7 +543,8 @@ const MyOrders: React.FC = () => {
           >
             <div className="flex items-center gap-2">
               <AccessTimeOutlined className="w-5 h-5" />
-              Order History ({pagination.total > 0 ? `${historyOrders.length}` : '0'})
+              Order History (
+              {pagination.total > 0 ? `${historyOrders.length}` : "0"})
             </div>
             {activeTab === "history" && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
@@ -487,8 +563,19 @@ const MyOrders: React.FC = () => {
                   No Failed Payments
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  You don't have any failed payments to retry.
+                  {dismissedPayments.length > 0 
+                    ? "All failed payments have been dismissed or cleared."
+                    : "You don't have any failed payments to retry."
+                  }
                 </p>
+                {dismissedPayments.length > 0 && (
+                  <button
+                    onClick={() => setDismissedPayments([])}
+                    className="text-blue-600 hover:text-blue-800 font-semibold mb-4 me-5"
+                  >
+                    Restore Dismissed Payments
+                  </button>
+                )}
                 <Link
                   to="/services"
                   className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
@@ -497,15 +584,29 @@ const MyOrders: React.FC = () => {
                 </Link>
               </div>
             ) : (
-              failedPaymentOrders.map((order) => (
-                <FailedPaymentCard
-                  key={order._id}
-                  order={order}
-                  formatDate={formatDate}
-                  formatTimeSlot={formatTimeSlot}
-                  onRetryPayment={() => handleRetryPayment(order)}
-                />
-              ))
+              <>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <WarningOutlined className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-blue-800 text-sm">
+                        Failed payments are automatically cleared after 7 days. 
+                        You can dismiss individual payments or clear all old ones.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {failedPaymentOrders.map((order) => (
+                  <FailedPaymentCard
+                    key={order._id}
+                    order={order}
+                    formatDate={formatDate}
+                    formatTimeSlot={formatTimeSlot}
+                    onRetryPayment={() => handleRetryPayment(order)}
+                    onDismissPayment={handleDismissPayment}
+                  />
+                ))}
+              </>
             )}
           </div>
         )}
@@ -771,7 +872,6 @@ const OrderCard: React.FC<OrderCardProps> = ({
             )}
           </>
         ) : (
-          // History orders section remains the same
           order.status === "completed" && (
             <div className="flex justify-between items-center w-full mt-6 pt-6 border-t">
               {onDownloadInvoice && (

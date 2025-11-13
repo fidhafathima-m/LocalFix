@@ -10,7 +10,13 @@ import { IUser } from "../../interfaces/user/IUser";
 export class OrderRepository implements IOrderRepository {
   async createFromBooking(
     bookingId: string,
-    paymentData: any
+    paymentData: {
+      method: "online" | "cod";
+      amount: number;
+      status: "pending" | "paid" | "failed";
+      transactionId?: string;
+      paidAt?: Date;
+    }
   ): Promise<IOrder | null> {
     try {
       const booking = await Booking.findById(bookingId)
@@ -37,6 +43,13 @@ export class OrderRepository implements IOrderRepository {
       const orderCode = `ORD${String(orderCount + 1).padStart(6, "0")}`;
 
       const userId = booking.userId._id || booking.userId;
+
+      let orderStatus = "pending";
+      if (paymentData.status === "paid") {
+        orderStatus = "confirmed";
+      } else if (paymentData.status === "failed") {
+        orderStatus = "cancelled";
+      }
 
       // Create order data
       const orderData = {
@@ -65,10 +78,10 @@ export class OrderRepository implements IOrderRepository {
         },
         totalAmount: paymentData.amount,
         orderItems: [],
-        status: paymentData.method === "cod" ? "confirmed" : "pending",
+        status: orderStatus,
         history: [
           {
-            status: paymentData.method === "cod" ? "confirmed" : "pending",
+            status: orderStatus,
             description:
               paymentData.method === "cod"
                 ? "Order confirmed with cash on delivery"
@@ -445,13 +458,13 @@ export class OrderRepository implements IOrderRepository {
     }
   }
   async getOrdersByTechnicianAndDate(
-    technicianId: string, 
+    technicianId: string,
     date: Date
   ): Promise<IOrder[]> {
     try {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
-      
+
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
 
@@ -459,17 +472,17 @@ export class OrderRepository implements IOrderRepository {
         technicianId: new Types.ObjectId(technicianId),
         scheduledAt: {
           $gte: startOfDay,
-          $lte: endOfDay
+          $lte: endOfDay,
         },
-        status: { $in: ['confirmed', 'accepted', 'scheduled'] }
+        status: { $in: ["confirmed", "accepted", "scheduled"] },
       })
-      .populate("userId", "fullName email phone")
-      .populate("technicianId", "displayName profilePictureUrl services")
-      .exec();
+        .populate("userId", "fullName email phone")
+        .populate("technicianId", "displayName profilePictureUrl services")
+        .exec();
 
       return orders;
     } catch (error) {
-      console.error('Error fetching orders by technician and date:', error);
+      console.error("Error fetching orders by technician and date:", error);
       return [];
     }
   }

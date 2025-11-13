@@ -222,7 +222,6 @@ const BookingPage: React.FC = () => {
       const matchingService = findMatchingService(serviceName);
       if (matchingService && selectedService !== matchingService) {
         setSelectedService(matchingService);
-        console.log("Service pre-selected from breadcrumb:", matchingService);
       }
     }
   }, [technician, serviceName, selectedService]);
@@ -266,20 +265,11 @@ const BookingPage: React.FC = () => {
             const matchingService = findMatchingService(serviceName);
             if (matchingService) {
               setSelectedService(matchingService);
-              console.log("Service pre-selected from flow:", matchingService);
             } else {
               setSelectedService(technicianData.services[0]);
-              console.log(
-                "Service not available, using first available:",
-                technicianData.services[0]
-              );
             }
           } else if (technicianData.services?.length > 0) {
             setSelectedService(technicianData.services[0]);
-            console.log(
-              "No service provided, using first available:",
-              technicianData.services[0]
-            );
           }
 
           // Fetch slot rules
@@ -374,17 +364,6 @@ const BookingPage: React.FC = () => {
       })
       .map((slot) => formatTimeRange(slot));
   };
-
-  // Add this useEffect to debug service selection
-  useEffect(() => {
-    console.log("Service Selection Debug:", {
-      serviceName,
-      selectedService,
-      technicianServices: technician?.services,
-      isServiceAvailable: serviceName ? isServiceAvailable(serviceName) : false,
-      matchingService: serviceName ? findMatchingService(serviceName) : null,
-    });
-  }, [serviceName, selectedService, technician]);
 
   // Generate weekly availability from slot rules - extend to 30 days
   const generateWeeklyAvailability = (rules: any[]): DailyAvailability[] => {
@@ -732,7 +711,7 @@ const BookingPage: React.FC = () => {
     }
   };
 
-  const handleContinueToCheckout = () => {
+  const handleContinueToCheckout = async () => {
     // Clear previous errors
     setBrandError(null);
     setProblemDescriptionError(null);
@@ -800,22 +779,63 @@ const BookingPage: React.FC = () => {
       return;
     }
 
-    // All validations passed - navigate to checkout
-    navigate("/checkout", {
-      state: {
-        technician,
-        service: selectedService,
-        brand: selectedBrand,
-        date: selectedDate,
-        time: selectedTime,
-        address: address,
-        usesSavedAddress,
-        problemDescription: problemDescription.trim(),
-        userPhoneNumber: phoneNumber,
-        userFullName: user?.fullName || "",
-        userEmail: user?.email || "",
-      },
-    });
+    try {
+      // 5. Update user profile with the provided phone number if different
+      const shouldUpdatePhone = phoneNumber && user?.phone !== phoneNumber;
+
+      if (shouldUpdatePhone) {
+        try {
+          // Show loading state
+          toast.loading("Updating your profile...", { id: "phone-update" });
+
+          const updateResponse = await userService.updateUserProfile({
+            phone: `+91${phoneNumber}`, // Format with country code
+          });
+
+          if (updateResponse.success) {
+            toast.success("Phone number updated successfully", {
+              id: "phone-update",
+            });
+          } else {
+            toast.error(
+              "Failed to update phone number, but continuing with booking",
+              {
+                id: "phone-update",
+              }
+            );
+            console.warn("Phone update failed:", updateResponse.message);
+          }
+        } catch (updateError) {
+          toast.error(
+            "Failed to update phone number, but continuing with booking",
+            {
+              id: "phone-update",
+            }
+          );
+          console.error("Phone update error:", updateError);
+        }
+      }
+
+      navigate("/checkout", {
+        state: {
+          technician,
+          service: selectedService,
+          brand: selectedBrand,
+          date: selectedDate,
+          time: selectedTime,
+          address: address,
+          usesSavedAddress,
+          problemDescription: problemDescription.trim(),
+          userPhoneNumber: phoneNumber,
+          userFullName: user?.fullName || "",
+          userEmail: user?.email || "",
+          phoneUpdated: shouldUpdatePhone,
+        },
+      });
+    } catch (error) {
+      console.error("Error during booking preparation:", error);
+      toast.error("An error occurred while processing your booking");
+    }
   };
   // Safe function to get rating with fallback
   const getSafeRating = () => {

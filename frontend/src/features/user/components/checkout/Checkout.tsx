@@ -355,39 +355,61 @@ const Checkout: React.FC = () => {
 
       const razorpayInstance = new window.Razorpay(options);
 
-      razorpayInstance.on("payment.failed", function (response: any) {
+      // In Checkout component - update the payment failure handler
+      razorpayInstance.on("payment.failed", async function (response: any) {
         console.error("Payment failed:", response.error);
 
-        // Update booking status to 'cancelled' for payment failure
-        bookingService
-          .updateBookingStatus(
+        try {
+          // Create order for failed payment first
+          const orderResponse = await orderService.createOrderFromBooking({
+            bookingId,
+            paymentData: {
+              method: "online",
+              amount: pricing.total,
+              status: "failed",
+              transactionId: response.error.payment_id,
+              paidAt: new Date(),
+            },
+          });
+
+          // Then update booking status
+          await bookingService.updateBookingStatus(
             bookingId,
             "cancelled",
             "system",
             `Payment failed: ${response.error.description}`
-          )
-          .catch((err) =>
-            console.error("Failed to update booking status:", err)
           );
 
-        setProcessingPayment(false);
+          setProcessingPayment(false);
 
-        // Extract error message from Razorpay response
-        const errorMessage =
-          response.error.description ||
-          "Payment failed due to technical issues";
+          const errorMessage =
+            response.error.description ||
+            "Payment failed due to technical issues";
 
-        // Navigate to payment retry with proper error details
-        navigate("/payment-failed", {
-          state: {
-            bookingData,
-            pricing,
-            error: errorMessage,
-            bookingId,
-            razorpayError: response.error,
-          },
-          replace: true,
-        });
+          navigate("/payment-failed", {
+            state: {
+              bookingData,
+              pricing,
+              error: errorMessage,
+              bookingId,
+              orderId: orderResponse.data?._id, // Include order ID for retry
+              razorpayError: response.error,
+            },
+            replace: true,
+          });
+        } catch (error) {
+          console.error("Error handling failed payment:", error);
+          setProcessingPayment(false);
+          navigate("/payment-failed", {
+            state: {
+              bookingData,
+              pricing,
+              error: "Payment processing failed",
+              bookingId,
+            },
+            replace: true,
+          });
+        }
       });
 
       razorpayInstance.open();

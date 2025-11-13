@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import io from "socket.io-client";
 
 type SocketType = ReturnType<typeof io>;
@@ -33,14 +39,15 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
 
-   const connectSocket = () => {
+  const connectSocket = () => {
     try {
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
-      console.log("🔌 Connecting to socket server:", socketUrl);
-      
+      const socketUrl =
+        import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+      console.log("Connecting to socket server:", socketUrl);
+
       const newSocket = io(socketUrl, {
         transports: ["websocket", "polling"],
-        timeout: 30000, 
+        timeout: 30000,
         autoConnect: true,
         forceNew: false,
         reconnection: true,
@@ -49,17 +56,17 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         reconnectionDelayMax: 5000,
         randomizationFactor: 0.5,
       });
-      
+
       newSocket.on("connect", () => {
-        console.log("✅ Connected to server - Socket ID:", newSocket.id);
+        console.log("Connected to server - Socket ID:", newSocket.id);
         setIsConnected(true);
         setConnectionAttempts(0);
       });
 
       newSocket.on("disconnect", (reason: unknown) => {
-        console.log("🔌 Disconnected from server:", reason);
+        console.log("Disconnected from server:", reason);
         setIsConnected(false);
-        
+
         if (reason === "io server disconnect") {
           // Server forced disconnect, need to manually reconnect
           newSocket.connect();
@@ -67,14 +74,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       });
 
       newSocket.on("connect_error", (error: unknown) => {
-        console.error("❌ Connection error:", error);
+        console.error("Connection error:", error);
         setIsConnected(false);
-        setConnectionAttempts(prev => prev + 1);
-        
+        setConnectionAttempts((prev) => prev + 1);
+
         // Exponential backoff for reconnection
         const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000);
-        console.log(`🔄 Reconnecting in ${delay}ms...`);
-        
+        console.log(`Reconnecting in ${delay}ms...`);
+
         setTimeout(() => {
           if (!isConnected) {
             newSocket.connect();
@@ -83,26 +90,26 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       });
 
       newSocket.on("reconnect", (attempt: number) => {
-        console.log(`🔄 Reconnected after ${attempt} attempts`);
+        console.log(`Reconnected after ${attempt} attempts`);
         setIsConnected(true);
       });
 
       newSocket.on("reconnect_attempt", (attempt: number) => {
-        console.log(`🔄 Reconnection attempt ${attempt}`);
+        console.log(`Reconnection attempt ${attempt}`);
       });
 
       newSocket.on("reconnect_error", (error: unknown) => {
-        console.error("❌ Reconnection error:", error);
+        console.error("Reconnection error:", error);
       });
 
       newSocket.on("reconnect_failed", () => {
-        console.error("❌ Reconnection failed");
+        console.error("Reconnection failed");
       });
 
       setSocket(newSocket);
       return newSocket;
     } catch (error) {
-      console.error("❌ Error creating socket:", error);
+      console.error("Error creating socket:", error);
       return null;
     }
   };
@@ -110,7 +117,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const newSocket = connectSocket();
 
     return () => {
-     console.log("🧹 Cleaning up socket");
+      console.log("Cleaning up socket");
       if (newSocket) {
         newSocket.removeAllListeners();
         newSocket.close();
@@ -118,7 +125,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     };
   }, []);
 
-   const reconnect = () => {
+  const reconnect = () => {
     if (socket) {
       socket.disconnect();
       setTimeout(() => {

@@ -530,13 +530,6 @@ export class BookingService implements IBookingService {
         return ResponseHelper.notFound("Order not found");
       }
 
-      this.logger.debug("Technician data from order", {
-        technicianId: order.technicianId,
-        technicianIdType: typeof order.technicianId,
-        isObject: typeof order.technicianId === "object",
-        hasId: order.technicianId?._id !== undefined,
-      });
-
       const technician = order.technicianId;
 
       // Type guard function to check if it's ITechnician

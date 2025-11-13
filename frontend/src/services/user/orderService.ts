@@ -37,7 +37,7 @@ export interface OrderResponse {
   payment: {
     method: string;
     amount: number;
-    status: string;
+    status: "pending" | "paid" | "failed";
     transactionId?: string;
     paidAt?: string;
   };
@@ -75,84 +75,119 @@ export interface OrderListResponse {
 export interface CreateOrderRequest {
   bookingId: string;
   paymentData: {
-    method: 'online' | 'cod';
+    method: "online" | "cod";
     amount: number;
-    status: 'pending' | 'paid' | 'failed';
+    status: "pending" | "paid" | "failed";
     transactionId?: string;
     paidAt?: Date;
   };
 }
 
 export const orderService = {
-  async createOrderFromBooking(data: CreateOrderRequest): Promise<ApiResponse<OrderResponse>> {
-    const response = await api.post<ApiResponse<OrderResponse>>("/orders/create-from-booking", data);
+  async createOrderFromBooking(
+    data: CreateOrderRequest
+  ): Promise<ApiResponse<OrderResponse>> {
+    const response = await api.post<ApiResponse<OrderResponse>>(
+      "/orders/create-from-booking",
+      data
+    );
     return response.data;
   },
 
-  async getUserOrders(page: number = 1, limit: number = 10, status?: string): Promise<ApiResponse<OrderListResponse>> {
+  async getUserOrders(
+    page: number = 1,
+    limit: number = 10,
+    status?: string
+  ): Promise<ApiResponse<OrderListResponse>> {
     const response = await api.get<ApiResponse<OrderListResponse>>("/orders", {
-      params: { page, limit, status }
+      params: { page, limit, status },
     });
     return response.data;
   },
 
   async getOrderById(orderId: string): Promise<ApiResponse<OrderResponse>> {
-    const response = await api.get<ApiResponse<OrderResponse>>(`/orders/${orderId}`);
+    const response = await api.get<ApiResponse<OrderResponse>>(
+      `/orders/${orderId}`
+    );
     return response.data;
   },
 
-  async cancelOrder(orderId: string, reason: string): Promise<ApiResponse<OrderResponse>> {
-    const response = await api.post<ApiResponse<OrderResponse>>(`/orders/${orderId}/cancel`, { reason });
+  async cancelOrder(
+    orderId: string,
+    reason: string
+  ): Promise<ApiResponse<OrderResponse>> {
+    const response = await api.post<ApiResponse<OrderResponse>>(
+      `/orders/${orderId}/cancel`,
+      { reason }
+    );
     return response.data;
   },
 
   async downloadInvoice(orderId: string): Promise<Blob> {
     const response = await api.get(`/orders/${orderId}/invoice`, {
-      responseType: 'blob'
+      responseType: "blob",
     });
     return response.data;
   },
 
-  async submitReview(orderId: string, rating: number, review: string): Promise<ApiResponse<OrderResponse>> {
-    const response = await api.post<ApiResponse<OrderResponse>>(`/orders/${orderId}/review`, {
-      rating,
-      review
-    });
+  async submitReview(
+    orderId: string,
+    rating: number,
+    review: string
+  ): Promise<ApiResponse<OrderResponse>> {
+    const response = await api.post<ApiResponse<OrderResponse>>(
+      `/orders/${orderId}/review`,
+      {
+        rating,
+        review,
+      }
+    );
     return response.data;
   },
 
   getAvailableTimeSlots: async (technicianId: string, date: string) => {
     try {
       const response = await api.get(`/orders/available-slots`, {
-        params: { technicianId, date }
+        params: { technicianId, date },
       });
       return response.data;
     } catch (error) {
-      console.error('Error fetching time slots:', error);
+      console.error("Error fetching time slots:", error);
       throw error;
     }
   },
 
-  rescheduleOrder: async(orderId: string, newDate: string, newTimeSlot: string): Promise<ApiResponse<OrderResponse>> => {
-    const response = await api.post<ApiResponse<OrderResponse>>(`/orders/${orderId}/reschedule`, {
-      newDate,
-      newTimeSlot
-    });
+  rescheduleOrder: async (
+    orderId: string,
+    newDate: string,
+    newTimeSlot: string
+  ): Promise<ApiResponse<OrderResponse>> => {
+    const response = await api.post<ApiResponse<OrderResponse>>(
+      `/orders/${orderId}/reschedule`,
+      {
+        newDate,
+        newTimeSlot,
+      }
+    );
     return response.data;
   },
 
-   async getOrderByBookingId(bookingId: string): Promise<ApiResponse<OrderResponse>> {
-    const response = await api.get<ApiResponse<OrderResponse>>(`/orders/booking/${bookingId}`);
+  async getOrderByBookingId(
+    bookingId: string
+  ): Promise<ApiResponse<OrderResponse>> {
+    const response = await api.get<ApiResponse<OrderResponse>>(
+      `/orders/booking/${bookingId}`
+    );
     return response.data;
   },
 
   // NEW: Update order payment details
   async updateOrderPayment(
-    orderId: string, 
+    orderId: string,
     paymentData: {
-      method: 'online' | 'cod';
+      method: "online" | "cod";
       amount: number;
-      status: 'pending' | 'paid' | 'failed';
+      status: "pending" | "paid" | "failed";
       transactionId?: string;
       paidAt?: Date;
     }
@@ -168,9 +203,9 @@ export const orderService = {
   async retryPaymentForOrder(
     bookingId: string,
     paymentData: {
-      method: 'online' | 'cod';
+      method: "online" | "cod";
       amount: number;
-      status: 'pending' | 'paid' | 'failed';
+      status: "pending" | "paid" | "failed";
       transactionId?: string;
       paidAt?: Date;
     }

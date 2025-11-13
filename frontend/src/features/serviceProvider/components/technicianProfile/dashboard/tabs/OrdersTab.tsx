@@ -667,13 +667,6 @@ const OrdersTab: React.FC<TabProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={testLocationAPI}
-                className="bg-yellow-500 text-white px-3 py-2 rounded text-sm font-medium hover:bg-yellow-600 transition-colors"
-              >
-                Test Location API
-              </button>
-
               {order.problemDescription && (
                 <div className="mt-3 p-3 bg-gray-50 rounded">
                   <p className="text-sm text-gray-600">
