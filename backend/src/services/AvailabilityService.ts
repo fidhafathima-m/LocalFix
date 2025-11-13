@@ -6,16 +6,15 @@ import SlotRule, {
 } from "../models/technician/SlotRuleSchema";
 import TechnicianAvailability from "../models/technician/TechnicianAvailabilitySchema";
 import { ITechnicianAvailabilityService } from "@/interfaces/services/technician/ITechnicianAvailabilityService";
-import { LoggerService } from "../services/LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianAvailabilityService
   implements ITechnicianAvailabilityService
 {
-  private logger: ILogger;
+  private _logger: ILogger;
 
   constructor(logger: ILogger) {
-    this.logger = logger;
+    this._logger = logger;
   }
 
   async createTechnicianAvailabilityFromApplication(
@@ -28,7 +27,7 @@ export class TechnicianAvailabilityService
     };
 
     try {
-      this.logger.info(
+      this._logger.info(
         "Creating technician availability from application",
         context
       );
@@ -36,21 +35,21 @@ export class TechnicianAvailabilityService
       // Verify database connection first
       const dbConnected = await this.verifySlotRuleDatabaseConnection();
       if (!dbConnected) {
-        this.logger.error(
+        this._logger.error(
           "Database connection failed for SlotRule collection",
           context
         );
         throw new Error("Database connection failed for SlotRule collection");
       }
 
-      this.logger.debug("Database connection verified successfully", context);
+      this._logger.debug("Database connection verified successfully", context);
 
       // Extract availability configuration from application
       const availabilityConfig = this.extractAvailabilityConfig(
         applicationAvailability
       );
 
-      this.logger.info("Availability configuration extracted", {
+      this._logger.info("Availability configuration extracted", {
         ...context,
         config: {
           availableDays: availabilityConfig.availableDays.map(
@@ -61,7 +60,7 @@ export class TechnicianAvailabilityService
       });
 
       if (availabilityConfig.availableDays.length === 0) {
-        this.logger.warn("No available days found in application", context);
+        this._logger.warn("No available days found in application", context);
         throw new Error("No available days found in application");
       }
 
@@ -71,7 +70,7 @@ export class TechnicianAvailabilityService
         availabilityConfig
       );
 
-      this.logger.debug("Slot rules created, verifying creation", context);
+      this._logger.debug("Slot rules created, verifying creation", context);
 
       // Verify slot rules were created - use a small delay to ensure database write
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -82,7 +81,7 @@ export class TechnicianAvailabilityService
         isActive: true,
       });
 
-      this.logger.debug("Slot rule verification query completed", {
+      this._logger.debug("Slot rule verification query completed", {
         ...context,
         activeRulesFound: slotRules.length,
       });
@@ -92,7 +91,7 @@ export class TechnicianAvailabilityService
           technicianId: new Types.ObjectId(technicianId),
         });
 
-        this.logger.warn("No active slot rules found after creation", {
+        this._logger.warn("No active slot rules found after creation", {
           ...context,
           totalRulesFound: allRules.length,
         });
@@ -102,30 +101,30 @@ export class TechnicianAvailabilityService
             "Failed to create slot rules - no rules found after creation"
           );
         } else {
-          this.logger.info(
+          this._logger.info(
             "Found inactive rules, proceeding with generation",
             context
           );
         }
       } else {
-        this.logger.info("Active slot rules verified successfully", {
+        this._logger.info("Active slot rules verified successfully", {
           ...context,
           rulesCount: slotRules.length,
         });
       }
 
       // Generate actual availability slots for the next 3 months
-      this.logger.info("Generating availability slots from rules", context);
+      this._logger.info("Generating availability slots from rules", context);
       await this.generateAvailabilityFromRules(technicianId);
 
-      this.logger.info(
+      this._logger.info(
         "Technician availability creation completed successfully",
         context
       );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("CRITICAL ERROR creating technician availability", {
+      this._logger.error("CRITICAL ERROR creating technician availability", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -140,13 +139,13 @@ export class TechnicianAvailabilityService
     };
 
     try {
-      this.logger.debug("Verifying SlotRule database connection", context);
+      this._logger.debug("Verifying SlotRule database connection", context);
 
       const SlotRule = require("../models/technician/SlotRuleSchema").default;
 
       const count = await SlotRule.countDocuments();
 
-      this.logger.debug("SlotRule database connection verified", {
+      this._logger.debug("SlotRule database connection verified", {
         ...context,
         documentCount: count,
       });
@@ -155,7 +154,7 @@ export class TechnicianAvailabilityService
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("SlotRule database connection failed", {
+      this._logger.error("SlotRule database connection failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -179,7 +178,7 @@ export class TechnicianAvailabilityService
       },
     };
 
-    this.logger.debug("Extracting availability configuration", context);
+    this._logger.debug("Extracting availability configuration", context);
 
     const availableDays: Array<{
       day: string;
@@ -194,7 +193,7 @@ export class TechnicianAvailabilityService
       availabilityData?.availability?.weeklyPattern;
 
     if (!weeklyPattern) {
-      this.logger.error(
+      this._logger.error(
         "No weekly pattern found in availability data",
         context
       );
@@ -212,7 +211,7 @@ export class TechnicianAvailabilityService
       }
     });
 
-    this.logger.debug("Processed weekly pattern", {
+    this._logger.debug("Processed weekly pattern", {
       ...context,
       availableDays: availableDays.map(
         (ad) => `${ad.day}: ${ad.startTime}-${ad.endTime}`
@@ -220,14 +219,14 @@ export class TechnicianAvailabilityService
     });
 
     if (availableDays.length === 0) {
-      this.logger.error("No available days found in weekly pattern", {
+      this._logger.error("No available days found in weekly pattern", {
         ...context,
         weeklyPatternKeys: Object.keys(weeklyPattern),
       });
       throw new Error("No available days found in weekly pattern");
     }
 
-    this.logger.info("Availability configuration extracted successfully", {
+    this._logger.info("Availability configuration extracted successfully", {
       ...context,
       availableDaysCount: availableDays.length,
       daySpecificTimings: availableDays,
@@ -255,13 +254,13 @@ export class TechnicianAvailabilityService
     };
 
     try {
-      this.logger.info(
+      this._logger.info(
         "Creating slot rules from availability configuration",
         context
       );
 
       if (config.availableDays.length === 0) {
-        this.logger.warn(
+        this._logger.warn(
           "No available days provided for slot rule creation",
           context
         );
@@ -281,7 +280,7 @@ export class TechnicianAvailabilityService
       // Group days by their time patterns to create efficient RRules
       const timePatterns = this.groupDaysByTimePattern(config.availableDays);
 
-      this.logger.debug("Grouped days by time patterns", {
+      this._logger.debug("Grouped days by time patterns", {
         ...context,
         timePatternsCount: timePatterns.length,
         patterns: timePatterns.map((p) => ({
@@ -301,14 +300,14 @@ export class TechnicianAvailabilityService
         }
       }
 
-      this.logger.info("All slot rules created successfully", {
+      this._logger.info("All slot rules created successfully", {
         ...context,
         rulesCreated: timePatterns.length,
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error creating slot rules", {
+      this._logger.error("Error creating slot rules", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -356,7 +355,7 @@ export class TechnicianAvailabilityService
     };
 
     try {
-      this.logger.debug("Creating slot rule for time pattern", context);
+      this._logger.debug("Creating slot rule for time pattern", context);
 
       const dayMap: { [key: string]: any } = {
         monday: RRule.MO,
@@ -371,7 +370,7 @@ export class TechnicianAvailabilityService
       const byweekday = pattern.days.map((day) => dayMap[day]).filter(Boolean);
 
       if (byweekday.length === 0) {
-        this.logger.warn("No valid weekdays found for pattern", context);
+        this._logger.warn("No valid weekdays found for pattern", context);
         return;
       }
 
@@ -399,7 +398,7 @@ export class TechnicianAvailabilityService
         updatedAt: new Date(),
       };
 
-      this.logger.debug("Creating slot rule for pattern", {
+      this._logger.debug("Creating slot rule for pattern", {
         ...context,
         slotRuleData: {
           ...slotRuleData,
@@ -414,21 +413,21 @@ export class TechnicianAvailabilityService
       // Verify the rule was saved
       const savedRule = await SlotRule.findById(createdRule._id);
       if (!savedRule) {
-        this.logger.error("Slot rule was not saved to database", {
+        this._logger.error("Slot rule was not saved to database", {
           ...context,
           createdRuleId: createdRule._id?.toString(),
         });
         throw new Error("Slot rule was not saved to database");
       }
 
-      this.logger.info("Slot rule for pattern created successfully", {
+      this._logger.info("Slot rule for pattern created successfully", {
         ...context,
         ruleId: savedRule._id?.toString(),
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error creating slot rule for pattern", {
+      this._logger.error("Error creating slot rule for pattern", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -446,7 +445,7 @@ export class TechnicianAvailabilityService
     };
 
     try {
-      this.logger.info("Generating availability from slot rules", context);
+      this._logger.info("Generating availability from slot rules", context);
 
       const slotRules = await SlotRule.find({
         technicianId: new Types.ObjectId(technicianId),
@@ -458,20 +457,20 @@ export class TechnicianAvailabilityService
         ],
       });
 
-      this.logger.debug("Found active slot rules", {
+      this._logger.debug("Found active slot rules", {
         ...context,
         activeRulesCount: slotRules.length,
       });
 
       if (slotRules.length === 0) {
-        this.logger.warn("No active slot rules found for technician", context);
+        this._logger.warn("No active slot rules found for technician", context);
         return;
       }
 
       const startDate = new Date();
       const endDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 days ahead
 
-      this.logger.info("Processing slot rules to generate availability", {
+      this._logger.info("Processing slot rules to generate availability", {
         ...context,
         rulesToProcess: slotRules.length,
         dateRange: `${startDate.toISOString()} to ${endDate.toISOString()}`,
@@ -482,7 +481,7 @@ export class TechnicianAvailabilityService
 
       for (const rule of slotRules) {
         try {
-          this.logger.debug("Processing rule for availability generation", {
+          this._logger.debug("Processing rule for availability generation", {
             ...context,
             ruleId: rule._id?.toString(),
             ruleName: rule.name,
@@ -491,7 +490,7 @@ export class TechnicianAvailabilityService
           const rrule = RRule.fromString(rule.rruleString);
           const occurrences = rrule.between(startDate, endDate, true);
 
-          this.logger.debug("Rule occurrences calculated", {
+          this._logger.debug("Rule occurrences calculated", {
             ...context,
             ruleId: rule._id?.toString(),
             occurrencesCount: occurrences.length,
@@ -529,7 +528,7 @@ export class TechnicianAvailabilityService
             );
           }
 
-          this.logger.debug("Rule processing completed", {
+          this._logger.debug("Rule processing completed", {
             ...context,
             ruleId: rule._id?.toString(),
             occurrencesProcessed: occurrences.length,
@@ -537,7 +536,7 @@ export class TechnicianAvailabilityService
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error occurred";
-          this.logger.error(
+          this._logger.error(
             "Error processing rule for availability generation",
             {
               ...context,
@@ -549,7 +548,7 @@ export class TechnicianAvailabilityService
         }
       }
 
-      this.logger.info("Availability generation completed successfully", {
+      this._logger.info("Availability generation completed successfully", {
         ...context,
         totalOccurrences,
         totalSlotsGenerated,
@@ -558,7 +557,7 @@ export class TechnicianAvailabilityService
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error generating availability from rules", {
+      this._logger.error("Error generating availability from rules", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -577,7 +576,7 @@ export class TechnicianAvailabilityService
     };
 
     try {
-      this.logger.debug("Generating slots for date", context);
+      this._logger.debug("Generating slots for date", context);
 
       const slots: any[] = [];
 
@@ -591,7 +590,7 @@ export class TechnicianAvailabilityService
       const slotEnd = new Date(date);
       slotEnd.setHours(endHour, endMinute, 0, 0);
 
-      this.logger.debug("Time range calculated for slots", {
+      this._logger.debug("Time range calculated for slots", {
         ...context,
         startTime: slotStart.toISOString(),
         endTime: slotEnd.toISOString(),
@@ -620,7 +619,7 @@ export class TechnicianAvailabilityService
         slotCount++;
       }
 
-      this.logger.debug("Slots generated successfully", {
+      this._logger.debug("Slots generated successfully", {
         ...context,
         slotsGenerated: slotCount,
       });
@@ -629,7 +628,7 @@ export class TechnicianAvailabilityService
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error generating slots for date", {
+      this._logger.error("Error generating slots for date", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -654,7 +653,7 @@ export class TechnicianAvailabilityService
     };
 
     try {
-      this.logger.info("Fetching available slots for technician", context);
+      this._logger.info("Fetching available slots for technician", context);
 
       const availability = await TechnicianAvailability.find({
         technicianId: new Types.ObjectId(technicianId),
@@ -664,7 +663,7 @@ export class TechnicianAvailabilityService
         },
       }).sort({ date: 1 });
 
-      this.logger.debug("Availability records retrieved", {
+      this._logger.debug("Availability records retrieved", {
         ...context,
         availabilityRecordsCount: availability.length,
       });
@@ -698,7 +697,7 @@ export class TechnicianAvailabilityService
         0
       );
 
-      this.logger.info("Available slots retrieved successfully", {
+      this._logger.info("Available slots retrieved successfully", {
         ...context,
         daysWithAvailability: result.length,
         totalAvailableSlots,
@@ -708,7 +707,7 @@ export class TechnicianAvailabilityService
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching available slots", {
+      this._logger.error("Error fetching available slots", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -728,7 +727,7 @@ export class TechnicianAvailabilityService
     };
 
     try {
-      this.logger.info("Updating technician availability", context);
+      this._logger.info("Updating technician availability", context);
 
       // Deactivate old rules
       const deactivateResult = await SlotRule.updateMany(
@@ -736,7 +735,7 @@ export class TechnicianAvailabilityService
         { isActive: false, effectiveTo: new Date() }
       );
 
-      this.logger.info("Old slot rules deactivated", {
+      this._logger.info("Old slot rules deactivated", {
         ...context,
         rulesDeactivated: deactivateResult.modifiedCount,
       });
@@ -747,7 +746,7 @@ export class TechnicianAvailabilityService
         date: { $gte: new Date() },
       });
 
-      this.logger.info("Existing availability cleared", {
+      this._logger.info("Existing availability cleared", {
         ...context,
         availabilityRecordsDeleted: deleteResult.deletedCount,
       });
@@ -758,11 +757,11 @@ export class TechnicianAvailabilityService
         newAvailabilityConfig
       );
 
-      this.logger.info("Technician availability updated successfully", context);
+      this._logger.info("Technician availability updated successfully", context);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error updating technician availability", {
+      this._logger.error("Error updating technician availability", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

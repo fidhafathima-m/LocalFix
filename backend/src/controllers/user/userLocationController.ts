@@ -10,15 +10,15 @@ interface AuthRequest extends Request {
 }
 
 export class UserLocationController {
-  private userLocationService: IUserLocationService;
-  private logger: ILogger;
+  private _userLocationService: IUserLocationService;
+  private _logger: ILogger;
 
   constructor(
     userLocationService: IUserLocationService,
     logger: ILogger
   ) {
-    this.userLocationService = userLocationService;
-    this.logger = logger;
+    this._userLocationService = userLocationService;
+    this._logger = logger;
   }
 
   // Update user location
@@ -35,10 +35,10 @@ export class UserLocationController {
     };
 
     try {
-      this.logger.info("Updating user location", context);
+      this._logger.info("Updating user location", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update location failed - user not authenticated",
           context
         );
@@ -54,7 +54,7 @@ export class UserLocationController {
         !Array.isArray(coordinates) ||
         coordinates.length !== 2
       ) {
-        this.logger.warn("Update location failed - invalid coordinates", {
+        this._logger.warn("Update location failed - invalid coordinates", {
           ...context,
           coordinatesProvided: coordinates,
         });
@@ -65,19 +65,19 @@ export class UserLocationController {
         return;
       }
 
-      this.logger.debug("Calling service to update user location", {
+      this._logger.debug("Calling service to update user location", {
         ...context,
         longitude: coordinates[0],
         latitude: coordinates[1],
       });
 
-      const result = await this.userLocationService.updateUserLocation(userId, {
+      const result = await this._userLocationService.updateUserLocation(userId, {
         coordinates: coordinates as [number, number],
         address,
       });
 
       if (!result.success) {
-        this.logger.warn("Update location service returned failure", {
+        this._logger.warn("Update location service returned failure", {
           ...context,
           error: result.message,
         });
@@ -85,7 +85,7 @@ export class UserLocationController {
         return;
       }
 
-      this.logger.info("User location updated successfully", {
+      this._logger.info("User location updated successfully", {
         ...context,
         locationId: result.data?._id,
       });
@@ -96,7 +96,7 @@ export class UserLocationController {
         data: result.data,
       });
     } catch (error: any) {
-      this.logger.error("Update location error", {
+      this._logger.error("Update location error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -119,7 +119,7 @@ export class UserLocationController {
     };
 
     try {
-      this.logger.info("Fetching user location - START", {
+      this._logger.info("Fetching user location - START", {
         ...context,
         headers: req.headers,
         method: req.method,
@@ -127,7 +127,7 @@ export class UserLocationController {
       });
 
       if (!userId) {
-        this.logger.warn("Get location failed - user not authenticated", {
+        this._logger.warn("Get location failed - user not authenticated", {
           ...context,
           user: req.user,
         });
@@ -138,15 +138,15 @@ export class UserLocationController {
         return;
       }
 
-      this.logger.info("Calling service to get user location", {
+      this._logger.info("Calling service to get user location", {
         ...context,
         userId,
       });
 
-      const result = await this.userLocationService.getUserLocation(userId);
+      const result = await this._userLocationService.getUserLocation(userId);
 
       if (!result.success) {
-        this.logger.warn("Get location service returned failure", {
+        this._logger.warn("Get location service returned failure", {
           ...context,
           error: result.message,
           serviceResult: result,
@@ -160,7 +160,7 @@ export class UserLocationController {
         return;
       }
 
-      this.logger.info("User location retrieved successfully", {
+      this._logger.info("User location retrieved successfully", {
         ...context,
         hasLocation: !!result.data,
         locationData: result.data,
@@ -171,7 +171,7 @@ export class UserLocationController {
         data: result.data,
       });
     } catch (error: any) {
-      this.logger.error("Get location error", {
+      this._logger.error("Get location error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -194,10 +194,10 @@ export class UserLocationController {
     };
 
     try {
-      this.logger.info("Deleting user location", context);
+      this._logger.info("Deleting user location", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Delete location failed - user not authenticated",
           context
         );
@@ -208,10 +208,10 @@ export class UserLocationController {
         return;
       }
 
-      const result = await this.userLocationService.deleteUserLocation(userId);
+      const result = await this._userLocationService.deleteUserLocation(userId);
 
       if (!result.success) {
-        this.logger.warn("Delete location service returned failure", {
+        this._logger.warn("Delete location service returned failure", {
           ...context,
           error: result.message,
         });
@@ -219,14 +219,14 @@ export class UserLocationController {
         return;
       }
 
-      this.logger.info("User location deleted successfully", context);
+      this._logger.info("User location deleted successfully", context);
 
       res.status(200).json({
         success: true,
         message: "Location deleted successfully",
       });
     } catch (error: any) {
-      this.logger.error("Delete location error", {
+      this._logger.error("Delete location error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -253,10 +253,10 @@ export class UserLocationController {
     };
 
     try {
-      this.logger.info("Finding nearby technicians", context);
+      this._logger.info("Finding nearby technicians", context);
 
       if (!lat || !lng) {
-        this.logger.warn(
+        this._logger.warn(
           "Nearby technicians failed - missing coordinates",
           context
         );
@@ -273,20 +273,20 @@ export class UserLocationController {
       ];
       const radiusKm = parseInt(radius as string);
 
-      this.logger.debug("Searching for technicians with parameters", {
+      this._logger.debug("Searching for technicians with parameters", {
         ...context,
         parsedCoordinates: userCoordinates,
         parsedRadius: radiusKm,
       });
 
-      const result = await this.userLocationService.findTechniciansNearby(
+      const result = await this._userLocationService.findTechniciansNearby(
         userCoordinates,
         radiusKm,
         serviceName as string | null
       );
 
       if (!result.success) {
-        this.logger.warn("Nearby technicians service returned failure", {
+        this._logger.warn("Nearby technicians service returned failure", {
           ...context,
           error: result.message,
         });
@@ -294,7 +294,7 @@ export class UserLocationController {
         return;
       }
 
-      this.logger.info("Nearby technicians found successfully", {
+      this._logger.info("Nearby technicians found successfully", {
         ...context,
         technicianCount: result.count,
       });
@@ -305,7 +305,7 @@ export class UserLocationController {
         count: result.count,
       });
     } catch (error: any) {
-      this.logger.error("Nearby technicians error", {
+      this._logger.error("Nearby technicians error", {
         ...context,
         error: error.message,
         stack: error.stack,

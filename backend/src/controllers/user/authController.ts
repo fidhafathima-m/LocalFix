@@ -22,15 +22,15 @@ import {
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class AuthController {
-  private authService: IAuthService;
-  private logger: ILogger;
+  private _addressService: IAuthService;
+  private _logger: ILogger;
 
   constructor(
     authService: IAuthService,
     logger: ILogger
   ) {
-    this.authService = authService;
-    this.logger = logger;
+    this._addressService = authService;
+    this._logger = logger;
   }
 
   signup = async (req: Request, res: Response): Promise<void> => {
@@ -46,11 +46,11 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Signup request received", context);
+      this._logger.info("Signup request received", context);
 
-      const result: AuthResponseDto = await this.authService.signup(signupData);
+      const result: AuthResponseDto = await this._addressService.signup(signupData);
 
-      this.logger.info("Signup completed successfully", {
+      this._logger.info("Signup completed successfully", {
         ...context,
         userId: result.data?.user?._id,
         success: result.success,
@@ -58,7 +58,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Signup controller error", {
+      this._logger.error("Signup controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -79,11 +79,11 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("OTP verification request received", context);
+      this._logger.info("OTP verification request received", context);
 
-      const result: AuthResponseDto = await this.authService.verifyOtp(otpData);
+      const result: AuthResponseDto = await this._addressService.verifyOtp(otpData);
 
-      this.logger.info("OTP verification completed", {
+      this._logger.info("OTP verification completed", {
         ...context,
         success: result.success,
         verified: result.data?.verified,
@@ -91,7 +91,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Verify OTP controller error", {
+      this._logger.error("Verify OTP controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -112,13 +112,13 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Reset OTP verification request received", context);
+      this._logger.info("Reset OTP verification request received", context);
 
-      const result: AuthResponseDto = await this.authService.verifyResetOtp(
+      const result: AuthResponseDto = await this._addressService.verifyResetOtp(
         otpData
       );
 
-      this.logger.info("Reset OTP verification completed", {
+      this._logger.info("Reset OTP verification completed", {
         ...context,
         success: result.success,
         verified: result.data?.verified,
@@ -126,7 +126,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Verify reset OTP controller error", {
+      this._logger.error("Verify reset OTP controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -149,11 +149,11 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Login request received", context);
+      this._logger.info("Login request received", context);
 
-      const result: AuthResponseDto = await this.authService.login(credentials);
+      const result: AuthResponseDto = await this._addressService.login(credentials);
 
-      this.logger.info("Login completed", {
+      this._logger.info("Login completed", {
         ...context,
         success: result.success,
         userId: result.data?.user?._id,
@@ -161,7 +161,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Login controller error", {
+      this._logger.error("Login controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -184,15 +184,15 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Forgot password request received", context);
+      this._logger.info("Forgot password request received", context);
 
-      const result: AuthResponseDto = await this.authService.forgotPassword(
+      const result: AuthResponseDto = await this._addressService.forgotPassword(
         phone,
         email,
         userType
       );
 
-      this.logger.info("Forgot password request processed", {
+      this._logger.info("Forgot password request processed", {
         ...context,
         success: result.success,
         otpSent: result.data?.otpSent,
@@ -200,7 +200,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Forgot password controller error", {
+      this._logger.error("Forgot password controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -221,20 +221,20 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Reset password request received", context);
+      this._logger.info("Reset password request received", context);
 
-      const result: AuthResponseDto = await this.authService.resetPassword(
+      const result: AuthResponseDto = await this._addressService.resetPassword(
         resetData
       );
 
-      this.logger.info("Password reset completed", {
+      this._logger.info("Password reset completed", {
         ...context,
         success: result.success,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Reset password controller error", {
+      this._logger.error("Reset password controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -257,16 +257,16 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Resend OTP request received", context);
+      this._logger.info("Resend OTP request received", context);
 
-      const result: AuthResponseDto = await this.authService.resendOTP(
+      const result: AuthResponseDto = await this._addressService.resendOTP(
         phone,
         email,
         purpose,
         userType
       );
 
-      this.logger.info("OTP resent successfully", {
+      this._logger.info("OTP resent successfully", {
         ...context,
         success: result.success,
         otpSent: result.data?.otpSent,
@@ -274,7 +274,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Resend OTP controller error", {
+      this._logger.error("Resend OTP controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -295,13 +295,13 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Google authentication request received", context);
+      this._logger.info("Google authentication request received", context);
 
-      const result: AuthResponseDto = await this.authService.googleAuth(
+      const result: AuthResponseDto = await this._addressService.googleAuth(
         googleData
       );
 
-      this.logger.info("Google authentication completed", {
+      this._logger.info("Google authentication completed", {
         ...context,
         success: result.success,
         userId: result.data?.user?._id,
@@ -309,7 +309,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Google auth controller error", {
+      this._logger.error("Google auth controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -331,14 +331,14 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Facebook login request received", context);
+      this._logger.info("Facebook login request received", context);
 
-      const result: AuthResponseDto = await this.authService.facebookLogin(
+      const result: AuthResponseDto = await this._addressService.facebookLogin(
         accessToken,
         userID
       );
 
-      this.logger.info("Facebook login completed", {
+      this._logger.info("Facebook login completed", {
         ...context,
         success: result.success,
         userId: result.data?.user?._id,
@@ -346,7 +346,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Facebook login controller error", {
+      this._logger.error("Facebook login controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -367,13 +367,13 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Refresh token request received", context);
+      this._logger.info("Refresh token request received", context);
 
-      const result: AuthResponseDto = await this.authService.refreshToken(
+      const result: AuthResponseDto = await this._addressService.refreshToken(
         refreshToken
       );
 
-      this.logger.info("Token refresh completed", {
+      this._logger.info("Token refresh completed", {
         ...context,
         success: result.success,
         tokensRefreshed: !!result.data?.tokens,
@@ -381,7 +381,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Refresh token controller error", {
+      this._logger.error("Refresh token controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -405,10 +405,10 @@ export class AuthController {
     };
 
     try {
-      this.logger.info("Logout request received", context);
+      this._logger.info("Logout request received", context);
 
       if (!userId) {
-        this.logger.warn("Logout failed - authentication required", context);
+        this._logger.warn("Logout failed - authentication required", context);
         const unauthorizedResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -416,16 +416,16 @@ export class AuthController {
         return;
       }
 
-      const result: AuthResponseDto = await this.authService.logout(
+      const result: AuthResponseDto = await this._addressService.logout(
         userId,
         refreshToken
       );
 
-      this.logger.info("Logout completed successfully", context);
+      this._logger.info("Logout completed successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Logout controller error", {
+      this._logger.error("Logout controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

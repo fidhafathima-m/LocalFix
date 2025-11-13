@@ -6,16 +6,15 @@ import {
   NotificationListResponseDto,
 } from "../interfaces/dtos/notificationDtos";
 import { NotificationMapper } from "../mappers/notificationMapper";
-import { LoggerService } from "./LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class NotificationService implements INotificationService {
-  private notificationRepository: INotificationRepository;
-  private logger: ILogger;
+  private _notificationRepository: INotificationRepository;
+  private _logger: ILogger;
 
   constructor(notificationRepository: INotificationRepository, logger: ILogger) {
-    this.notificationRepository = notificationRepository;
-    this.logger = logger;
+    this._notificationRepository = notificationRepository;
+    this._logger = logger;
   }
 
   async createNotification(
@@ -30,19 +29,19 @@ export class NotificationService implements INotificationService {
     };
 
     try {
-      this.logger.info("Creating notification", context);
+      this._logger.info("Creating notification", context);
 
-      const notification = await this.notificationRepository.create(createDto);
+      const notification = await this._notificationRepository.create(createDto);
       const responseDto = NotificationMapper.toResponseDto(notification);
 
-      this.logger.info("Notification created successfully", {
+      this._logger.info("Notification created successfully", {
         ...context,
         notificationId: responseDto._id,
       });
 
       return responseDto;
     } catch (error: any) {
-      this.logger.error("Create notification error", {
+      this._logger.error("Create notification error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -65,12 +64,12 @@ export class NotificationService implements INotificationService {
     };
 
     try {
-      this.logger.info("Fetching notifications for user", context);
+      this._logger.info("Fetching notifications for user", context);
 
       const skip = (page - 1) * limit;
       const [notifications, total] = await Promise.all([
-        this.notificationRepository.findByUser(userId, skip, limit),
-        this.notificationRepository.countByUser(userId),
+        this._notificationRepository.findByUser(userId, skip, limit),
+        this._notificationRepository.countByUser(userId),
       ]);
 
       const responseDto = NotificationMapper.toListResponseDto(
@@ -80,7 +79,7 @@ export class NotificationService implements INotificationService {
         limit
       );
 
-      this.logger.info("Notifications retrieved successfully", {
+      this._logger.info("Notifications retrieved successfully", {
         ...context,
         count: notifications.length,
         total,
@@ -88,7 +87,7 @@ export class NotificationService implements INotificationService {
 
       return responseDto;
     } catch (error: any) {
-      this.logger.error("Get notifications error", {
+      this._logger.error("Get notifications error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -105,23 +104,23 @@ export class NotificationService implements INotificationService {
     };
 
     try {
-      this.logger.info("Marking notification as read", context);
+      this._logger.info("Marking notification as read", context);
 
-      const notification = await this.notificationRepository.markAsRead(
+      const notification = await this._notificationRepository.markAsRead(
         notificationId
       );
       if (!notification) {
-        this.logger.warn("Notification not found", context);
+        this._logger.warn("Notification not found", context);
         throw new Error("Notification not found");
       }
 
       const responseDto = NotificationMapper.toResponseDto(notification);
 
-      this.logger.info("Notification marked as read successfully", context);
+      this._logger.info("Notification marked as read successfully", context);
 
       return responseDto;
     } catch (error: any) {
-      this.logger.error("Mark as read error", {
+      this._logger.error("Mark as read error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -140,11 +139,11 @@ export class NotificationService implements INotificationService {
     };
 
     try {
-      this.logger.info("Marking all notifications as read", context);
+      this._logger.info("Marking all notifications as read", context);
 
-      const success = await this.notificationRepository.markAllAsRead(userId);
+      const success = await this._notificationRepository.markAllAsRead(userId);
 
-      this.logger.info("All notifications marked as read", {
+      this._logger.info("All notifications marked as read", {
         ...context,
         success,
       });
@@ -154,7 +153,7 @@ export class NotificationService implements INotificationService {
         message: "All notifications marked as read",
       };
     } catch (error: any) {
-      this.logger.error("Mark all as read error", {
+      this._logger.error("Mark all as read error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -176,11 +175,11 @@ export class NotificationService implements INotificationService {
     };
 
     try {
-      this.logger.info("Getting unread notification count", context);
+      this._logger.info("Getting unread notification count", context);
 
-      const count = await this.notificationRepository.countUnreadByUser(userId);
+      const count = await this._notificationRepository.countUnreadByUser(userId);
 
-      this.logger.info("Unread count retrieved", {
+      this._logger.info("Unread count retrieved", {
         ...context,
         count,
       });
@@ -190,7 +189,7 @@ export class NotificationService implements INotificationService {
         count,
       };
     } catch (error: any) {
-      this.logger.error("Get unread count error", {
+      this._logger.error("Get unread count error", {
         ...context,
         error: error.message,
         stack: error.stack,

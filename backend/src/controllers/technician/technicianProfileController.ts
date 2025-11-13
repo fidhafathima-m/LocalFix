@@ -8,15 +8,15 @@ import { TechnicianProfileMapper } from "../../mappers/technicianProfileMappers"
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianProfileController {
-  private profileService: ITechnicianProfileService;
-  private logger: ILogger;
+  private _profileService: ITechnicianProfileService;
+  private _logger: ILogger;
 
   constructor(
     profileService: ITechnicianProfileService,
     logger: ILogger
   ) {
-    this.profileService = profileService;
-    this.logger = logger;
+    this._profileService = profileService;
+    this._logger = logger;
   }
 
   // Helper method to handle service responses
@@ -47,10 +47,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Fetching technician profile", context);
+      this._logger.info("Fetching technician profile", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get profile failed - authentication required",
           context
         );
@@ -62,16 +62,16 @@ export class TechnicianProfileController {
       }
 
       const result: TechnicianProfileResponseDto =
-        await this.profileService.getTechnicianProfile(technicianId);
+        await this._profileService.getTechnicianProfile(technicianId);
 
-      this.logger.info("Profile retrieved successfully", {
+      this._logger.info("Profile retrieved successfully", {
         ...context,
         profileStatus: result?.profile?.status,
       });
 
       this.handleServiceResponse(result, res, "Profile retrieved successfully");
     } catch (error: any) {
-      this.logger.error("Get profile controller error", {
+      this._logger.error("Get profile controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -97,10 +97,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Updating personal information", context);
+      this._logger.info("Updating personal information", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update personal info failed - authentication required",
           context
         );
@@ -112,12 +112,12 @@ export class TechnicianProfileController {
       }
 
       const result: TechnicianProfileResponseDto =
-        await this.profileService.updatePersonalInformation(
+        await this._profileService.updatePersonalInformation(
           technicianId,
           updateData
         );
 
-      this.logger.info("Personal information updated successfully", {
+      this._logger.info("Personal information updated successfully", {
         ...context,
         updatedFieldCount: Object.keys(updateData).length,
       });
@@ -128,7 +128,7 @@ export class TechnicianProfileController {
         "Personal information updated successfully"
       );
     } catch (error: any) {
-      this.logger.error("Update personal info controller error", {
+      this._logger.error("Update personal info controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -153,10 +153,10 @@ export class TechnicianProfileController {
       };
 
       try {
-        this.logger.info("Uploading profile photo", context);
+        this._logger.info("Uploading profile photo", context);
 
         if (!technicianId) {
-          this.logger.warn(
+          this._logger.warn(
             "Upload photo failed - authentication required",
             context
           );
@@ -170,26 +170,26 @@ export class TechnicianProfileController {
         }
 
         if (!file) {
-          this.logger.warn("Upload photo failed - no file uploaded", context);
+          this._logger.warn("Upload photo failed - no file uploaded", context);
           const badRequestResponse =
             ResponseHelper.badRequest("No file uploaded");
           res.status(badRequestResponse.statusCode).json(badRequestResponse);
           return;
         }
 
-        const result = await this.profileService.uploadPhoto(
+        const result = await this._profileService.uploadPhoto(
           technicianId,
           file
         );
 
-        this.logger.info("Profile photo uploaded successfully", {
+        this._logger.info("Profile photo uploaded successfully", {
           ...context,
           uploadSuccess: result.success,
         });
 
         res.status(result.statusCode).json(result);
       } catch (error: any) {
-        this.logger.error("Upload photo controller error", {
+        this._logger.error("Upload photo controller error", {
           ...context,
           error: error.message,
           stack: error.stack,
@@ -216,10 +216,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Updating identity verification", context);
+      this._logger.info("Updating identity verification", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update identity verification failed - authentication required",
           context
         );
@@ -231,12 +231,12 @@ export class TechnicianProfileController {
       }
 
       const result: TechnicianProfileResponseDto =
-        await this.profileService.updateIdentityVerification(
+        await this._profileService.updateIdentityVerification(
           technicianId,
           updateData
         );
 
-      this.logger.info("Identity verification updated successfully", {
+      this._logger.info("Identity verification updated successfully", {
         ...context,
         verification: result?.profile?.identityVerification,
       });
@@ -247,7 +247,7 @@ export class TechnicianProfileController {
         "Identity verification updated successfully"
       );
     } catch (error: any) {
-      this.logger.error("Update identity verification controller error", {
+      this._logger.error("Update identity verification controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -273,10 +273,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Updating skills and services", context);
+      this._logger.info("Updating skills and services", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update skills services failed - authentication required",
           context
         );
@@ -288,12 +288,12 @@ export class TechnicianProfileController {
       }
 
       const result: TechnicianProfileResponseDto =
-        await this.profileService.updateSkillsServices(
+        await this._profileService.updateSkillsServices(
           technicianId,
           updateData
         );
 
-      this.logger.info("Skills and services updated successfully", {
+      this._logger.info("Skills and services updated successfully", {
         ...context,
         servicesCount: result?.profile?.services?.length,
       });
@@ -304,7 +304,7 @@ export class TechnicianProfileController {
         "Skills and services updated successfully"
       );
     } catch (error: any) {
-      this.logger.error("Update skills services controller error", {
+      this._logger.error("Update skills services controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -330,10 +330,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Updating availability preferences", context);
+      this._logger.info("Updating availability preferences", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update availability failed - authentication required",
           context
         );
@@ -345,12 +345,12 @@ export class TechnicianProfileController {
       }
 
       const result: TechnicianProfileResponseDto =
-        await this.profileService.updateAvailabilityPreferences(
+        await this._profileService.updateAvailabilityPreferences(
           technicianId,
           updateData
         );
 
-      this.logger.info("Availability updated successfully", {
+      this._logger.info("Availability updated successfully", {
         ...context,
         isAvailable: result?.profile?.availabilityPreferences?.isAvailable,
       });
@@ -361,7 +361,7 @@ export class TechnicianProfileController {
         "Availability updated successfully"
       );
     } catch (error: any) {
-      this.logger.error("Update availability controller error", {
+      this._logger.error("Update availability controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -387,10 +387,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Updating bank and payment details", context);
+      this._logger.info("Updating bank and payment details", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update bank payment failed - authentication required",
           context
         );
@@ -402,12 +402,12 @@ export class TechnicianProfileController {
       }
 
       const result: TechnicianProfileResponseDto =
-        await this.profileService.updateBankPaymentDetails(
+        await this._profileService.updateBankPaymentDetails(
           technicianId,
           updateData
         );
 
-      this.logger.info(
+      this._logger.info(
         "Bank and payment details updated successfully",
         context
       );
@@ -418,7 +418,7 @@ export class TechnicianProfileController {
         "Bank and payment details updated successfully"
       );
     } catch (error: any) {
-      this.logger.error("Update bank payment controller error", {
+      this._logger.error("Update bank payment controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -440,10 +440,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Updating password", context);
+      this._logger.info("Updating password", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update password failed - authentication required",
           context
         );
@@ -455,13 +455,13 @@ export class TechnicianProfileController {
       }
 
       const result: TechnicianProfileResponseDto =
-        await this.profileService.updatePassword(technicianId, updateData);
+        await this._profileService.updatePassword(technicianId, updateData);
 
-      this.logger.info("Password updated successfully", context);
+      this._logger.info("Password updated successfully", context);
 
       this.handleServiceResponse(result, res, "Password updated successfully");
     } catch (error: any) {
-      this.logger.error("Update password controller error", {
+      this._logger.error("Update password controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -488,10 +488,10 @@ export class TechnicianProfileController {
       };
 
       try {
-        this.logger.info("Uploading document", context);
+        this._logger.info("Uploading document", context);
 
         if (!technicianId) {
-          this.logger.warn(
+          this._logger.warn(
             "Upload document failed - authentication required",
             context
           );
@@ -505,7 +505,7 @@ export class TechnicianProfileController {
         }
 
         if (!file) {
-          this.logger.warn(
+          this._logger.warn(
             "Upload document failed - no file uploaded",
             context
           );
@@ -516,7 +516,7 @@ export class TechnicianProfileController {
         }
 
         if (!documentType) {
-          this.logger.warn(
+          this._logger.warn(
             "Upload document failed - document type required",
             context
           );
@@ -527,20 +527,20 @@ export class TechnicianProfileController {
           return;
         }
 
-        const result = await this.profileService.uploadDocument(
+        const result = await this._profileService.uploadDocument(
           technicianId,
           file,
           documentType
         );
 
-        this.logger.info("Document uploaded successfully", {
+        this._logger.info("Document uploaded successfully", {
           ...context,
           uploadSuccess: result.success,
         });
 
         res.status(result.statusCode).json(result);
       } catch (error: any) {
-        this.logger.error("Upload document controller error", {
+        this._logger.error("Upload document controller error", {
           ...context,
           error: error.message,
           stack: error.stack,
@@ -559,11 +559,11 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Fetching static data", context);
+      this._logger.info("Fetching static data", context);
 
       const staticData = TechnicianProfileMapper.toStaticDataDto();
 
-      this.logger.info("Static data retrieved successfully", context);
+      this._logger.info("Static data retrieved successfully", context);
 
       const successResponse = ResponseHelper.success(
         "Static data retrieved successfully",
@@ -571,7 +571,7 @@ export class TechnicianProfileController {
       );
       res.status(successResponse.statusCode).json(successResponse);
     } catch (error: any) {
-      this.logger.error("Get static data error", {
+      this._logger.error("Get static data error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -594,10 +594,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Deactivating profile", context);
+      this._logger.info("Deactivating profile", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Deactivate profile failed - authentication required",
           context
         );
@@ -609,13 +609,13 @@ export class TechnicianProfileController {
       }
 
       const result: TechnicianProfileResponseDto =
-        await this.profileService.updateAvailabilityPreferences(technicianId, {
+        await this._profileService.updateAvailabilityPreferences(technicianId, {
           availability: {
             isAvailable: false,
           },
         });
 
-      this.logger.info("Profile deactivated successfully", context);
+      this._logger.info("Profile deactivated successfully", context);
 
       this.handleServiceResponse(
         result,
@@ -623,7 +623,7 @@ export class TechnicianProfileController {
         "Profile deactivated successfully"
       );
     } catch (error: any) {
-      this.logger.error("Deactivate profile error", {
+      this._logger.error("Deactivate profile error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -645,10 +645,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Processing account deletion request", context);
+      this._logger.info("Processing account deletion request", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Delete account failed - authentication required",
           context
         );
@@ -659,14 +659,14 @@ export class TechnicianProfileController {
         return;
       }
 
-      this.logger.info("Account deletion request received", context);
+      this._logger.info("Account deletion request received", context);
 
       const successResponse = ResponseHelper.success(
         "Account deletion request received. This action will be processed within 24 hours."
       );
       res.status(successResponse.statusCode).json(successResponse);
     } catch (error: any) {
-      this.logger.error("Delete account error", {
+      this._logger.error("Delete account error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -688,10 +688,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Fetching slot rules", context);
+      this._logger.info("Fetching slot rules", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get slot rules failed - authentication required",
           context
         );
@@ -699,15 +699,15 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.getSlotRules(technicianId);
+      const result = await this._profileService.getSlotRules(technicianId);
 
-      this.logger.info("Slot rules retrieved successfully", {
+      this._logger.info("Slot rules retrieved successfully", {
         ...context,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get slot rules controller error", {
+      this._logger.error("Get slot rules controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -732,10 +732,10 @@ export class TechnicianProfileController {
     };
 
     try {
-      this.logger.info("Fetching technician availability", context);
+      this._logger.info("Fetching technician availability", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get technician availability failed - authentication required",
           context
         );
@@ -743,18 +743,18 @@ export class TechnicianProfileController {
         return;
       }
 
-      const result = await this.profileService.getTechnicianAvailability(
+      const result = await this._profileService.getTechnicianAvailability(
         technicianId
       );
 
-      this.logger.info("Technician availability retrieved successfully", {
+      this._logger.info("Technician availability retrieved successfully", {
         ...context,
         isAvailable: result.profile?.availabilityPreferences?.isAvailable,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician availability controller error", {
+      this._logger.error("Get technician availability controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

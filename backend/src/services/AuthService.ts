@@ -35,15 +35,14 @@ import {
   UserResponseDto,
   AuthTokensDto,
 } from "../interfaces/dtos/authDtos";
-import { LoggerService } from "./LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class AuthService implements IAuthService {
-  private userRepository: IUserRepository;
-  private otpRepository: IOTPRepository;
-  private socialAccountRepository: ISocialAccountRepository;
-  private googleClient: OAuth2Client;
-  private logger: ILogger;
+  private _userRepository: IUserRepository;
+  private _otpRepository: IOTPRepository;
+  private _socialAccountRepository: ISocialAccountRepository;
+  private _googleClient: OAuth2Client;
+  private _logger: ILogger;
 
   constructor(
     userRepository: IUserRepository,
@@ -51,11 +50,11 @@ export class AuthService implements IAuthService {
     socialAccountRepository: ISocialAccountRepository,
     logger: ILogger
   ) {
-    this.userRepository = userRepository;
-    this.otpRepository = otpRepository;
-    this.socialAccountRepository = socialAccountRepository;
-    this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-    this.logger = logger;
+    this._userRepository = userRepository;
+    this._otpRepository = otpRepository;
+    this._socialAccountRepository = socialAccountRepository;
+    this._googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    this._logger = logger;
   }
 
   async signup(signupData: SignupDataDto): Promise<AuthResponseDto> {
@@ -68,7 +67,7 @@ export class AuthService implements IAuthService {
       },
     };
     try {
-      this.logger.info("Starting user signup process", context);
+      this._logger.info("Starting user signup process", context);
 
       const { email, phone, userType } = signupData;
 
@@ -79,10 +78,10 @@ export class AuthService implements IAuthService {
 
       // Check uniqueness - ONLY if same email/phone AND same role
       if (email) {
-        const existingUser = await this.userRepository.findByEmail(email);
+        const existingUser = await this._userRepository.findByEmail(email);
         // Only conflict if user exists AND already has this role
         if (existingUser && existingUser.roles.includes(userType)) {
-          this.logger.warn("Email already in use for this role", {
+          this._logger.warn("Email already in use for this role", {
             ...context,
             existingUser: {
               id: existingUser._id,
@@ -93,9 +92,9 @@ export class AuthService implements IAuthService {
       }
 
       if (phone) {
-        const existingUser = await this.userRepository.findByPhone(phone);
+        const existingUser = await this._userRepository.findByPhone(phone);
         if (existingUser && existingUser.roles.includes(userType)) {
-          this.logger.warn("Phone already in use for this role", {
+          this._logger.warn("Phone already in use for this role", {
             ...context,
             existingUser: {
               id: existingUser._id,
@@ -117,8 +116,8 @@ export class AuthService implements IAuthService {
       if (phone) otpData.phone = phone;
       if (email) otpData.email = email;
 
-      await this.otpRepository.create(otpData);
-      this.logger.info("OTP record created successfully", {
+      await this._otpRepository.create(otpData);
+      this._logger.info("OTP record created successfully", {
         ...context,
         otpPurpose: OTP_PURPOSES.SIGNUP,
       });
@@ -128,7 +127,7 @@ export class AuthService implements IAuthService {
       if (phone) {
         await sendPhoneOTP(phone, otp);
         sentChannels.push(`phone: ${phone}`);
-        this.logger.info("SMS OTP sent successfully", {
+        this._logger.info("SMS OTP sent successfully", {
           ...context,
           channel: "sms",
           phone: phone,
@@ -137,14 +136,14 @@ export class AuthService implements IAuthService {
       if (email) {
         await sendEmailOTP(email, otp);
         sentChannels.push(`email: ${email}`);
-        this.logger.info("Email OTP sent successfully", {
+        this._logger.info("Email OTP sent successfully", {
           ...context,
           channel: "email",
           email: email,
         });
       }
 
-      this.logger.info("Signup OTP process completed successfully", {
+      this._logger.info("Signup OTP process completed successfully", {
         ...context,
         channels: sentChannels,
       });
@@ -155,7 +154,7 @@ export class AuthService implements IAuthService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Signup process failed", {
+      this._logger.error("Signup process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -175,35 +174,35 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting OTP verification process", context);
+      this._logger.info("Starting OTP verification process", context);
 
       const { phone, email, otp, fullName, password, userType } = otpData;
 
       // Validate required fields
       if (!userType) {
-        this.logger.warn(
+        this._logger.warn(
           "OTP verification attempted without user type",
           context
         );
         return ResponseHelper.badRequest("User type is required");
       }
 
-      const record = await this.otpRepository.findLatest(
+      const record = await this._otpRepository.findLatest(
         phone,
         email,
         OTP_PURPOSES.SIGNUP
       );
 
       if (!record) {
-        this.logger.warn("OTP record not found for verification", context);
+        this._logger.warn("OTP record not found for verification", context);
         return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_NOT_FOUND);
       }
 
       if (record.expiresAt < new Date()) {
         if (record._id) {
-          await this.otpRepository.deleteById(record._id.toString());
+          await this._otpRepository.deleteById(record._id.toString());
         }
-        this.logger.warn("Expired OTP attempted", {
+        this._logger.warn("Expired OTP attempted", {
           ...context,
           otpId: record._id,
           expiresAt: record.expiresAt,
@@ -213,14 +212,14 @@ export class AuthService implements IAuthService {
 
       const isMatch = await bcrypt.compare(otp, record.otpHash);
       if (!isMatch) {
-        this.logger.warn("Invalid OTP provided", {
+        this._logger.warn("Invalid OTP provided", {
           ...context,
           otpId: record._id,
         });
         return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OTP);
       }
 
-      this.logger.info("OTP validated successfully", {
+      this._logger.info("OTP validated successfully", {
         ...context,
         otpId: record._id,
       });
@@ -228,14 +227,14 @@ export class AuthService implements IAuthService {
       // FIND EXISTING USER
       let user: IUser | null = null;
       if (email) {
-        user = await this.userRepository.findByEmail(email);
+        user = await this._userRepository.findByEmail(email);
       }
       if (!user && phone) {
-        user = await this.userRepository.findByPhone(phone);
+        user = await this._userRepository.findByPhone(phone);
       }
 
       if (user) {
-        this.logger.info("Existing user found, updating roles and profile", {
+        this._logger.info("Existing user found, updating roles and profile", {
           ...context,
           userId: user._id,
           existingRoles: user.roles,
@@ -246,7 +245,7 @@ export class AuthService implements IAuthService {
           const updatedRoles = [...user.roles, userType];
 
           // Update user with new role
-          const updateResult = await this.userRepository.update(
+          const updateResult = await this._userRepository.update(
             user._id!.toString(),
             {
               roles: updatedRoles,
@@ -254,7 +253,7 @@ export class AuthService implements IAuthService {
           );
 
           if (!updateResult) {
-            this.logger.error("Failed to update user roles", {
+            this._logger.error("Failed to update user roles", {
               ...context,
               userId: user._id,
               newRoles: updatedRoles,
@@ -266,7 +265,7 @@ export class AuthService implements IAuthService {
           // Update password
           if (password) {
             const passwordHash = await bcrypt.hash(password, 10);
-            const passwordUpdateResult = await this.userRepository.update(
+            const passwordUpdateResult = await this._userRepository.update(
               user._id!.toString(),
               {
                 passwordHash,
@@ -279,7 +278,7 @@ export class AuthService implements IAuthService {
 
           // Update name
           if (fullName && user.fullName !== fullName) {
-            const nameUpdateResult = await this.userRepository.update(
+            const nameUpdateResult = await this._userRepository.update(
               user._id!.toString(),
               {
                 fullName,
@@ -290,13 +289,13 @@ export class AuthService implements IAuthService {
             }
           }
 
-          this.logger.info("User roles updated successfully", {
+          this._logger.info("User roles updated successfully", {
             ...context,
             userId: user._id,
             newRoles: updatedRoles,
           });
         } else {
-          this.logger.info(
+          this._logger.info(
             "User already has the required role, updating profile if needed",
             {
               ...context,
@@ -308,7 +307,7 @@ export class AuthService implements IAuthService {
 
           if (password) {
             const passwordHash = await bcrypt.hash(password, 10);
-            const passwordUpdateResult = await this.userRepository.update(
+            const passwordUpdateResult = await this._userRepository.update(
               user._id!.toString(),
               {
                 passwordHash,
@@ -320,7 +319,7 @@ export class AuthService implements IAuthService {
           }
 
           if (fullName && user.fullName !== fullName) {
-            const nameUpdateResult = await this.userRepository.update(
+            const nameUpdateResult = await this._userRepository.update(
               user._id!.toString(),
               {
                 fullName,
@@ -335,7 +334,7 @@ export class AuthService implements IAuthService {
         }
       } else {
         // Create new user with initial role
-        this.logger.info("Creating new user with initial role", {
+        this._logger.info("Creating new user with initial role", {
           ...context,
           userType: userType,
         });
@@ -354,14 +353,14 @@ export class AuthService implements IAuthService {
           roles: [userType],
         };
 
-        const newUser = await this.userRepository.create(userData);
+        const newUser = await this._userRepository.create(userData);
         if (!newUser) {
-          this.logger.error("Failed to create new user", context);
+          this._logger.error("Failed to create new user", context);
           return ResponseHelper.error("Failed to create user");
         }
         user = newUser;
 
-        this.logger.info("New user created successfully", {
+        this._logger.info("New user created successfully", {
           ...context,
           userId: user._id,
         });
@@ -369,7 +368,7 @@ export class AuthService implements IAuthService {
 
       // Ensure user is not null at this point
       if (!user) {
-        this.logger.error(
+        this._logger.error(
           "User creation/update resulted in null user",
           context
         );
@@ -379,18 +378,18 @@ export class AuthService implements IAuthService {
       const tokens = this.generateTokens(user);
 
       // Store refresh token in database
-      await this.userRepository.storeRefreshToken(
+      await this._userRepository.storeRefreshToken(
         user._id.toString(),
         tokens.refreshToken
       );
 
       // Delete used OTP
-      await this.otpRepository.deleteMany(phone, email, "signup");
+      await this._otpRepository.deleteMany(phone, email, "signup");
 
       // Create user response DTO
       const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
-      this.logger.info("OTP verification completed successfully", {
+      this._logger.info("OTP verification completed successfully", {
         ...context,
         userId: user._id,
         userRoles: user.roles,
@@ -404,7 +403,7 @@ export class AuthService implements IAuthService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("OTP verification process failed", {
+      this._logger.error("OTP verification process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -420,10 +419,10 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting token refresh process", context);
+      this._logger.info("Starting token refresh process", context);
 
       if (!refreshToken) {
-        this.logger.warn("Refresh token missing", context);
+        this._logger.warn("Refresh token missing", context);
         return ResponseHelper.unauthorized("Refresh token required");
       }
 
@@ -434,7 +433,7 @@ export class AuthService implements IAuthService {
       ) as JwtPayloadDto;
 
       if (decoded.type !== "refresh") {
-        this.logger.warn("Invalid token type for refresh", {
+        this._logger.warn("Invalid token type for refresh", {
           ...context,
           tokenType: decoded.type,
         });
@@ -442,13 +441,13 @@ export class AuthService implements IAuthService {
       }
 
       // Check if refresh token exists in database
-      const user = await this.userRepository.findByRefreshToken(
+      const user = await this._userRepository.findByRefreshToken(
         decoded._id,
         refreshToken
       );
 
       if (!user) {
-        this.logger.warn("Refresh token not found in database", {
+        this._logger.warn("Refresh token not found in database", {
           ...context,
           userId: decoded._id,
         });
@@ -459,13 +458,13 @@ export class AuthService implements IAuthService {
       const tokens = this.generateTokens(user);
 
       // Update refresh token in database
-      await this.userRepository.updateRefreshToken(
+      await this._userRepository.updateRefreshToken(
         user._id.toString(),
         refreshToken,
         tokens.refreshToken
       );
 
-      this.logger.info("Token refresh completed successfully", {
+      this._logger.info("Token refresh completed successfully", {
         ...context,
         userId: user._id,
       });
@@ -476,11 +475,11 @@ export class AuthService implements IAuthService {
       });
     } catch (error: unknown) {
       if (error instanceof jwt.TokenExpiredError) {
-        this.logger.warn("Refresh token expired", context);
+        this._logger.warn("Refresh token expired", context);
         return ResponseHelper.unauthorized("Refresh token expired");
       }
       if (error instanceof jwt.JsonWebTokenError) {
-        this.logger.warn("Invalid refresh token", {
+        this._logger.warn("Invalid refresh token", {
           ...context,
           error: error.message,
         });
@@ -488,7 +487,7 @@ export class AuthService implements IAuthService {
       }
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Token refresh process failed", {
+      this._logger.error("Token refresh process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -507,7 +506,7 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting user login process", context);
+      this._logger.info("Starting user login process", context);
 
       const { identifier, password, role } = credentials;
 
@@ -515,7 +514,7 @@ export class AuthService implements IAuthService {
 
       if (identifier.includes("@")) {
         normalizedIdentifier = identifier.toLowerCase();
-        this.logger.debug("Normalized email identifier to lowercase", {
+        this._logger.debug("Normalized email identifier to lowercase", {
           ...context,
           original: identifier,
           normalized: normalizedIdentifier,
@@ -525,18 +524,18 @@ export class AuthService implements IAuthService {
       let user: IUser | null;
 
       if (role) {
-        this.logger.info("Searching user with specific role", {
+        this._logger.info("Searching user with specific role", {
           ...context,
           role: role,
         });
 
-        user = await this.userRepository.findByIdentifier(
+        user = await this._userRepository.findByIdentifier(
           normalizedIdentifier,
           role
         );
 
         if (!user) {
-          this.logger.info(
+          this._logger.info(
             "User not found with specific role, searching without role",
             {
               ...context,
@@ -544,12 +543,12 @@ export class AuthService implements IAuthService {
             }
           );
 
-          user = await this.userRepository.findByIdentifier(
+          user = await this._userRepository.findByIdentifier(
             normalizedIdentifier
           );
 
           if (user && !user.roles.includes(role)) {
-            this.logger.warn("User found but does not have required role", {
+            this._logger.warn("User found but does not have required role", {
               ...context,
               userId: user._id,
               userRoles: user.roles,
@@ -561,16 +560,16 @@ export class AuthService implements IAuthService {
           }
         }
       } else {
-        this.logger.debug("Searching user without role filter", context);
-        user = await this.userRepository.findByIdentifier(normalizedIdentifier);
+        this._logger.debug("Searching user without role filter", context);
+        user = await this._userRepository.findByIdentifier(normalizedIdentifier);
       }
 
       if (!user) {
-        this.logger.warn("User not found for login attempt", context);
+        this._logger.warn("User not found for login attempt", context);
         return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
       }
 
-      this.logger.info("User found, checking account status", {
+      this._logger.info("User found, checking account status", {
         ...context,
         userId: user._id,
         userRoles: user.roles,
@@ -578,7 +577,7 @@ export class AuthService implements IAuthService {
       });
 
       if (user.isDeleted) {
-        this.logger.warn("Login attempt for deleted account", {
+        this._logger.warn("Login attempt for deleted account", {
           ...context,
           userId: user._id,
         });
@@ -586,7 +585,7 @@ export class AuthService implements IAuthService {
       }
 
       if (user.status === USER_STATUS.BLOCKED) {
-        this.logger.warn("Login attempt for blocked account", {
+        this._logger.warn("Login attempt for blocked account", {
           ...context,
           userId: user._id,
         });
@@ -594,7 +593,7 @@ export class AuthService implements IAuthService {
       }
 
       if (user.status !== USER_STATUS.ACTIVE) {
-        this.logger.warn("Login attempt for inactive account", {
+        this._logger.warn("Login attempt for inactive account", {
           ...context,
           userId: user._id,
           currentStatus: user.status,
@@ -602,21 +601,21 @@ export class AuthService implements IAuthService {
         return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_INACTIVE);
       }
 
-      this.logger.debug("Verifying password", {
+      this._logger.debug("Verifying password", {
         ...context,
         userId: user._id,
       });
 
       const isMatch = await bcrypt.compare(password, user.passwordHash || "");
       if (!isMatch) {
-        this.logger.warn("Invalid password provided for login", {
+        this._logger.warn("Invalid password provided for login", {
           ...context,
           userId: user._id,
         });
         return ResponseHelper.unauthorized(AUTH_MESSAGES.INVALID_CREDENTIALS);
       }
 
-      this.logger.info("Password verified successfully, generating tokens", {
+      this._logger.info("Password verified successfully, generating tokens", {
         ...context,
         userId: user._id,
       });
@@ -624,19 +623,19 @@ export class AuthService implements IAuthService {
       const tokens = this.generateTokens(user);
 
       // Store refresh token in database
-      await this.userRepository.storeRefreshToken(
+      await this._userRepository.storeRefreshToken(
         user._id.toString(),
         tokens.refreshToken
       );
 
-      this.logger.debug("Refresh token stored in database", {
+      this._logger.debug("Refresh token stored in database", {
         ...context,
         userId: user._id,
       });
 
       const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
-      this.logger.info("User login completed successfully", {
+      this._logger.info("User login completed successfully", {
         ...context,
         userId: user._id,
         userRoles: user.roles,
@@ -650,7 +649,7 @@ export class AuthService implements IAuthService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Login process failed", {
+      this._logger.error("Login process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -670,10 +669,10 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting forgot password process", context);
+      this._logger.info("Starting forgot password process", context);
 
       if (!phone && !email) {
-        this.logger.warn(
+        this._logger.warn(
           "Forgot password attempted without email or phone",
           context
         );
@@ -683,20 +682,20 @@ export class AuthService implements IAuthService {
       // Find user by phone or email
       let user: IUser | null;
       if (phone) {
-        this.logger.debug("Searching user by phone", { ...context, phone });
-        user = await this.userRepository.findByPhone(phone);
+        this._logger.debug("Searching user by phone", { ...context, phone });
+        user = await this._userRepository.findByPhone(phone);
       } else {
-        this.logger.debug("Searching user by email", { ...context, email });
-        user = await this.userRepository.findByEmail(email!);
+        this._logger.debug("Searching user by email", { ...context, email });
+        user = await this._userRepository.findByEmail(email!);
       }
 
       // Check if user exists
       if (!user) {
-        this.logger.warn("User not found for forgot password request", context);
+        this._logger.warn("User not found for forgot password request", context);
         return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
       }
 
-      this.logger.info("User found for forgot password", {
+      this._logger.info("User found for forgot password", {
         ...context,
         userId: user._id,
         userRoles: user.roles,
@@ -721,7 +720,7 @@ export class AuthService implements IAuthService {
         }
 
         if (!user.roles.includes(expectedRole)) {
-          this.logger.warn(
+          this._logger.warn(
             "User does not have required role for forgot password",
             {
               ...context,
@@ -736,7 +735,7 @@ export class AuthService implements IAuthService {
         }
       }
 
-      this.logger.debug("Checking user account status", {
+      this._logger.debug("Checking user account status", {
         ...context,
         userId: user._id,
         status: user.status,
@@ -745,7 +744,7 @@ export class AuthService implements IAuthService {
 
       // Check if user is active and not blocked
       if (user.isDeleted) {
-        this.logger.warn("Forgot password attempt for deleted account", {
+        this._logger.warn("Forgot password attempt for deleted account", {
           ...context,
           userId: user._id,
         });
@@ -753,7 +752,7 @@ export class AuthService implements IAuthService {
       }
 
       if (user.status === USER_STATUS.BLOCKED) {
-        this.logger.warn("Forgot password attempt for blocked account", {
+        this._logger.warn("Forgot password attempt for blocked account", {
           ...context,
           userId: user._id,
         });
@@ -761,7 +760,7 @@ export class AuthService implements IAuthService {
       }
 
       if (user.status !== USER_STATUS.ACTIVE) {
-        this.logger.warn("Forgot password attempt for inactive account", {
+        this._logger.warn("Forgot password attempt for inactive account", {
           ...context,
           userId: user._id,
           currentStatus: user.status,
@@ -769,7 +768,7 @@ export class AuthService implements IAuthService {
         return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_INACTIVE);
       }
 
-      this.logger.info("Generating OTP for password reset", {
+      this._logger.info("Generating OTP for password reset", {
         ...context,
         userId: user._id,
       });
@@ -786,8 +785,8 @@ export class AuthService implements IAuthService {
       if (phone) otpData.phone = phone;
       if (email) otpData.email = email;
 
-      await this.otpRepository.create(otpData);
-      this.logger.debug("OTP record created for password reset", {
+      await this._otpRepository.create(otpData);
+      this._logger.debug("OTP record created for password reset", {
         ...context,
         userId: user._id,
         purpose: OTP_PURPOSES.RESET,
@@ -797,7 +796,7 @@ export class AuthService implements IAuthService {
       if (phone) {
         await sendPhoneOTP(phone, otp);
         sentChannels.push(`phone: ${phone}`);
-        this.logger.info("SMS OTP sent for password reset", {
+        this._logger.info("SMS OTP sent for password reset", {
           ...context,
           channel: "sms",
           phone: phone,
@@ -806,14 +805,14 @@ export class AuthService implements IAuthService {
       if (email) {
         await sendEmailOTP(email!, otp);
         sentChannels.push(`email: ${email}`);
-        this.logger.info("Email OTP sent for password reset", {
+        this._logger.info("Email OTP sent for password reset", {
           ...context,
           channel: "email",
           email: email,
         });
       }
 
-      this.logger.info("Forgot password process completed successfully", {
+      this._logger.info("Forgot password process completed successfully", {
         ...context,
         userId: user._id,
         channels: sentChannels,
@@ -823,7 +822,7 @@ export class AuthService implements IAuthService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Forgot password process failed", {
+      this._logger.error("Forgot password process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -846,12 +845,12 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting password reset process", context);
+      this._logger.info("Starting password reset process", context);
 
       const { phone, email, otp, token, password, userType } = resetData;
 
       if (!password) {
-        this.logger.warn(
+        this._logger.warn(
           "Password reset attempted without new password",
           context
         );
@@ -862,20 +861,20 @@ export class AuthService implements IAuthService {
 
       // Handle OTP-based reset
       if (otp) {
-        this.logger.info("Processing OTP-based password reset", {
+        this._logger.info("Processing OTP-based password reset", {
           ...context,
           identifier: phone || email,
         });
 
-        record = await this.otpRepository.findLatest(phone, email, "reset");
+        record = await this._otpRepository.findLatest(phone, email, "reset");
 
         if (!record) {
-          this.logger.warn("OTP record not found for password reset", context);
+          this._logger.warn("OTP record not found for password reset", context);
           return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_NOT_FOUND);
         }
 
         if (record.expiresAt < new Date()) {
-          this.logger.warn("Expired OTP used for password reset", {
+          this._logger.warn("Expired OTP used for password reset", {
             ...context,
             otpId: record._id,
             expiresAt: record.expiresAt,
@@ -885,21 +884,21 @@ export class AuthService implements IAuthService {
 
         const isMatch = await bcrypt.compare(otp, record.otpHash);
         if (!isMatch) {
-          this.logger.warn("Invalid OTP provided for password reset", {
+          this._logger.warn("Invalid OTP provided for password reset", {
             ...context,
             otpId: record._id,
           });
           return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OTP);
         }
 
-        this.logger.debug("OTP validated successfully for password reset", {
+        this._logger.debug("OTP validated successfully for password reset", {
           ...context,
           otpId: record._id,
         });
       }
       // Handle token-based reset
       else if (token) {
-        this.logger.info("Processing token-based password reset", context);
+        this._logger.info("Processing token-based password reset", context);
 
         try {
           const decoded = jwt.verify(
@@ -909,7 +908,7 @@ export class AuthService implements IAuthService {
 
           // Verify token purpose and expiration
           if (decoded.purpose !== "password_reset") {
-            this.logger.warn("Invalid token purpose for password reset", {
+            this._logger.warn("Invalid token purpose for password reset", {
               ...context,
               tokenPurpose: decoded.purpose,
             });
@@ -920,7 +919,7 @@ export class AuthService implements IAuthService {
           const tokenIdentifier = decoded.identifier;
           const providedIdentifier = phone || email;
           if (tokenIdentifier !== providedIdentifier) {
-            this.logger.warn("Token identifier mismatch", {
+            this._logger.warn("Token identifier mismatch", {
               ...context,
               tokenIdentifier,
               providedIdentifier,
@@ -930,7 +929,7 @@ export class AuthService implements IAuthService {
 
           // Verify user type matches
           if (decoded.userType !== userType) {
-            this.logger.warn("User type mismatch in reset token", {
+            this._logger.warn("User type mismatch in reset token", {
               ...context,
               tokenUserType: decoded.userType,
               providedUserType: userType,
@@ -938,13 +937,13 @@ export class AuthService implements IAuthService {
             return ResponseHelper.badRequest(AUTH_MESSAGES.USER_TYPE_MISMATCH);
           }
 
-          this.logger.debug("Reset token validated successfully", {
+          this._logger.debug("Reset token validated successfully", {
             ...context,
             tokenIdentifier,
             userType,
           });
         } catch (error) {
-          this.logger.warn("Invalid or expired reset token", {
+          this._logger.warn("Invalid or expired reset token", {
             ...context,
             error: error instanceof Error ? error.message : "Unknown error",
           });
@@ -953,7 +952,7 @@ export class AuthService implements IAuthService {
           );
         }
       } else {
-        this.logger.warn(
+        this._logger.warn(
           "Password reset attempted without OTP or token",
           context
         );
@@ -963,13 +962,13 @@ export class AuthService implements IAuthService {
       const passwordHash = await bcrypt.hash(password, 10);
       const identifier = phone || email!;
 
-      this.logger.info("Updating user password", {
+      this._logger.info("Updating user password", {
         ...context,
         identifier,
         userType,
       });
 
-      await this.userRepository.updatePassword(
+      await this._userRepository.updatePassword(
         identifier,
         passwordHash,
         userType
@@ -977,14 +976,14 @@ export class AuthService implements IAuthService {
 
       // Delete OTP record if OTP was used
       if (otp) {
-        await this.otpRepository.deleteMany(phone, email, "reset");
-        this.logger.debug("OTP records cleaned up after password reset", {
+        await this._otpRepository.deleteMany(phone, email, "reset");
+        this._logger.debug("OTP records cleaned up after password reset", {
           ...context,
           identifier,
         });
       }
 
-      this.logger.info("Password reset completed successfully", {
+      this._logger.info("Password reset completed successfully", {
         ...context,
         identifier,
         userType,
@@ -994,7 +993,7 @@ export class AuthService implements IAuthService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Password reset process failed", {
+      this._logger.error("Password reset process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -1016,23 +1015,23 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting reset OTP verification process", context);
+      this._logger.info("Starting reset OTP verification process", context);
 
       const { phone, email, otp, userType } = otpData;
 
       // Find the OTP record with purpose "reset"
-      const record = await this.otpRepository.findLatest(phone, email, "reset");
+      const record = await this._otpRepository.findLatest(phone, email, "reset");
 
       if (!record) {
-        this.logger.warn("Reset OTP record not found", context);
+        this._logger.warn("Reset OTP record not found", context);
         return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_NOT_FOUND);
       }
 
       if (record.expiresAt < new Date()) {
         if (record._id) {
-          await this.otpRepository.deleteById(record._id.toString());
+          await this._otpRepository.deleteById(record._id.toString());
         }
-        this.logger.warn("Expired reset OTP attempted", {
+        this._logger.warn("Expired reset OTP attempted", {
           ...context,
           otpId: record._id,
           expiresAt: record.expiresAt,
@@ -1042,32 +1041,32 @@ export class AuthService implements IAuthService {
 
       const isMatch = await bcrypt.compare(otp, record.otpHash);
       if (!isMatch) {
-        this.logger.warn("Invalid reset OTP provided", {
+        this._logger.warn("Invalid reset OTP provided", {
           ...context,
           otpId: record._id,
         });
         return ResponseHelper.badRequest(AUTH_MESSAGES.INVALID_OTP);
       }
 
-      this.logger.info("Reset OTP validated successfully", {
+      this._logger.info("Reset OTP validated successfully", {
         ...context,
         otpId: record._id,
       });
 
       // For technicians, verify the user exists with correct role
       if (userType === USER_ROLES.SERVICE_PROVIDER) {
-        this.logger.debug("Verifying service provider user exists", {
+        this._logger.debug("Verifying service provider user exists", {
           ...context,
           userType: USER_ROLES.SERVICE_PROVIDER,
         });
 
         const identifier = phone || email!;
-        const user = await this.userRepository.findByIdentifier(
+        const user = await this._userRepository.findByIdentifier(
           identifier,
           USER_ROLES.SERVICE_PROVIDER
         );
         if (!user) {
-          this.logger.warn(
+          this._logger.warn(
             "Service provider user not found for OTP verification",
             {
               ...context,
@@ -1078,7 +1077,7 @@ export class AuthService implements IAuthService {
           return ResponseHelper.notFound(`${userType} not found`);
         }
 
-        this.logger.debug("Service provider user verified", {
+        this._logger.debug("Service provider user verified", {
           ...context,
           userId: user._id,
         });
@@ -1096,7 +1095,7 @@ export class AuthService implements IAuthService {
         { expiresIn: "15m" }
       );
 
-      this.logger.info(
+      this._logger.info(
         "Reset OTP verification completed, temporary token generated",
         {
           ...context,
@@ -1112,7 +1111,7 @@ export class AuthService implements IAuthService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Reset OTP verification process failed", {
+      this._logger.error("Reset OTP verification process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -1133,10 +1132,10 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting OTP resend process", context);
+      this._logger.info("Starting OTP resend process", context);
 
       if (!email && !phone) {
-        this.logger.warn(
+        this._logger.warn(
           "OTP resend attempted without email or phone",
           context
         );
@@ -1145,7 +1144,7 @@ export class AuthService implements IAuthService {
 
       // Validate purpose parameter
       if (!purpose || !Object.values(OTP_PURPOSES).includes(purpose as any)) {
-        this.logger.warn("Invalid OTP purpose provided", {
+        this._logger.warn("Invalid OTP purpose provided", {
           ...context,
           providedPurpose: purpose,
         });
@@ -1155,28 +1154,28 @@ export class AuthService implements IAuthService {
       // For forgot password, check if user exists
       if (purpose === OTP_PURPOSES.RESET) {
         const identifier = phone || email!;
-        this.logger.debug("Verifying user exists for password reset OTP", {
+        this._logger.debug("Verifying user exists for password reset OTP", {
           ...context,
           identifier,
           purpose: OTP_PURPOSES.RESET,
         });
 
-        const user = await this.userRepository.findByIdentifier(identifier);
+        const user = await this._userRepository.findByIdentifier(identifier);
         if (!user) {
-          this.logger.warn("User not found for password reset OTP resend", {
+          this._logger.warn("User not found for password reset OTP resend", {
             ...context,
             identifier,
           });
           return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
         }
 
-        this.logger.debug("User verified for password reset OTP", {
+        this._logger.debug("User verified for password reset OTP", {
           ...context,
           userId: user._id,
         });
       }
 
-      this.logger.info("Generating new OTP for resend", {
+      this._logger.info("Generating new OTP for resend", {
         ...context,
         purpose,
       });
@@ -1186,8 +1185,8 @@ export class AuthService implements IAuthService {
       const otpHash = await bcrypt.hash(otp, 10);
 
       // Delete any existing OTP records for this phone/email and purpose
-      await this.otpRepository.deleteMany(phone, email, purpose);
-      this.logger.debug("Cleaned up existing OTP records", {
+      await this._otpRepository.deleteMany(phone, email, purpose);
+      this._logger.debug("Cleaned up existing OTP records", {
         ...context,
         purpose,
       });
@@ -1200,8 +1199,8 @@ export class AuthService implements IAuthService {
       if (phone) otpData.phone = phone;
       if (email) otpData.email = email;
 
-      await this.otpRepository.create(otpData);
-      this.logger.debug("New OTP record created", {
+      await this._otpRepository.create(otpData);
+      this._logger.debug("New OTP record created", {
         ...context,
         purpose,
         expiresAt: otpData.expiresAt,
@@ -1212,7 +1211,7 @@ export class AuthService implements IAuthService {
       if (phone) {
         await sendPhoneOTP(phone, otp);
         sentChannels.push(`phone: ${phone}`);
-        this.logger.info("SMS OTP resent successfully", {
+        this._logger.info("SMS OTP resent successfully", {
           ...context,
           channel: "sms",
           phone: phone,
@@ -1222,7 +1221,7 @@ export class AuthService implements IAuthService {
       if (email) {
         await sendEmailOTP(email, otp);
         sentChannels.push(`email: ${email}`);
-        this.logger.info("Email OTP resent successfully", {
+        this._logger.info("Email OTP resent successfully", {
           ...context,
           channel: "email",
           email: email,
@@ -1230,7 +1229,7 @@ export class AuthService implements IAuthService {
         });
       }
 
-      this.logger.info("OTP resend process completed successfully", {
+      this._logger.info("OTP resend process completed successfully", {
         ...context,
         channels: sentChannels,
         purpose: purpose,
@@ -1240,7 +1239,7 @@ export class AuthService implements IAuthService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("OTP resend process failed", {
+      this._logger.error("OTP resend process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -1259,17 +1258,17 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting Facebook login process", context);
+      this._logger.info("Starting Facebook login process", context);
 
       // Verify token with Facebook Graph API
-      this.logger.debug("Verifying Facebook token with Graph API", context);
+      this._logger.debug("Verifying Facebook token with Graph API", context);
       const fbRes = await axios.get<FacebookGraphResponseDto>(
         `https://graph.facebook.com/${userID}?fields=id,name,email,picture&access_token=${accessToken}`
       );
 
       const { id, name, email, picture } = fbRes.data;
 
-      this.logger.info("Facebook user data retrieved", {
+      this._logger.info("Facebook user data retrieved", {
         ...context,
         facebookId: id,
         email: email,
@@ -1277,11 +1276,11 @@ export class AuthService implements IAuthService {
       });
 
       // Check if social account already exists
-      let account = await this.socialAccountRepository.findByProviderId(id);
+      let account = await this._socialAccountRepository.findByProviderId(id);
 
       let user: IUser | null;
       if (!account) {
-        this.logger.info(
+        this._logger.info(
           "No existing Facebook account found, creating new association",
           {
             ...context,
@@ -1290,15 +1289,15 @@ export class AuthService implements IAuthService {
         );
 
         // Create a new user if doesn't exist
-        user = await this.userRepository.findByEmail(email!);
+        user = await this._userRepository.findByEmail(email!);
 
         if (!user) {
-          this.logger.info("Creating new user for Facebook login", {
+          this._logger.info("Creating new user for Facebook login", {
             ...context,
             email: email,
           });
 
-          user = await this.userRepository.create({
+          user = await this._userRepository.create({
             fullName: name,
             email,
             roles: ["user"],
@@ -1306,18 +1305,18 @@ export class AuthService implements IAuthService {
             isVerified: true,
           });
 
-          this.logger.info("New user created for Facebook login", {
+          this._logger.info("New user created for Facebook login", {
             ...context,
             userId: user._id,
           });
         } else {
-          this.logger.info("Linking Facebook account to existing user", {
+          this._logger.info("Linking Facebook account to existing user", {
             ...context,
             userId: user._id,
           });
         }
 
-        account = await this.socialAccountRepository.create({
+        account = await this._socialAccountRepository.create({
           userId: user._id!,
           provider: "facebook",
           providerId: id,
@@ -1325,23 +1324,23 @@ export class AuthService implements IAuthService {
           profilePictureUrl: picture?.data?.url,
         });
 
-        this.logger.info("Facebook social account created", {
+        this._logger.info("Facebook social account created", {
           ...context,
           accountId: account._id,
           userId: user._id,
         });
       } else {
-        this.logger.info("Existing Facebook account found", {
+        this._logger.info("Existing Facebook account found", {
           ...context,
           accountId: account._id,
           userId: account.userId,
         });
 
-        user = await this.userRepository.findById(account.userId.toString());
+        user = await this._userRepository.findById(account.userId.toString());
       }
 
       if (!user) {
-        this.logger.error("User not found for Facebook account", {
+        this._logger.error("User not found for Facebook account", {
           ...context,
           accountId: account?._id,
         });
@@ -1351,19 +1350,19 @@ export class AuthService implements IAuthService {
       const tokens = this.generateTokens(user);
 
       // Store refresh token in database
-      await this.userRepository.storeRefreshToken(
+      await this._userRepository.storeRefreshToken(
         user._id.toString(),
         tokens.refreshToken
       );
 
-      this.logger.debug("Refresh token stored for Facebook user", {
+      this._logger.debug("Refresh token stored for Facebook user", {
         ...context,
         userId: user._id,
       });
 
       const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
-      this.logger.info("Facebook login completed successfully", {
+      this._logger.info("Facebook login completed successfully", {
         ...context,
         userId: user._id,
         userRoles: user.roles,
@@ -1377,7 +1376,7 @@ export class AuthService implements IAuthService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Facebook login process failed", {
+      this._logger.error("Facebook login process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -1393,24 +1392,24 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting Google authentication process", context);
+      this._logger.info("Starting Google authentication process", context);
 
       const { token, userType } = socialData;
 
       if (!token) {
-        this.logger.warn("Google auth attempted without token", context);
+        this._logger.warn("Google auth attempted without token", context);
         return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_OR_TOKEN_REQUIRED);
       }
 
-      this.logger.debug("Verifying Google ID token", context);
-      const ticket = await this.googleClient.verifyIdToken({
+      this._logger.debug("Verifying Google ID token", context);
+      const ticket = await this._googleClient.verifyIdToken({
         idToken: token,
         audience: process.env.GOOGLE_CLIENT_ID,
       });
 
       const payload = ticket.getPayload() as GoogleTokenPayloadDto | undefined;
       if (!payload) {
-        this.logger.warn("Invalid Google token payload", context);
+        this._logger.warn("Invalid Google token payload", context);
         return ResponseHelper.badRequest(
           AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN
         );
@@ -1419,11 +1418,11 @@ export class AuthService implements IAuthService {
       const { email, name, sub: googleId, picture } = payload;
 
       if (!email) {
-        this.logger.warn("Google token missing email", context);
+        this._logger.warn("Google token missing email", context);
         return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
       }
 
-      this.logger.info("Google user data retrieved", {
+      this._logger.info("Google user data retrieved", {
         ...context,
         googleId: googleId,
         email: email,
@@ -1431,23 +1430,23 @@ export class AuthService implements IAuthService {
       });
 
       // Check if social account exists
-      let socialAccount = await this.socialAccountRepository.findByProviderId(
+      let socialAccount = await this._socialAccountRepository.findByProviderId(
         googleId
       );
       let user: IUser | null;
 
       if (socialAccount) {
-        this.logger.info("Existing Google account found", {
+        this._logger.info("Existing Google account found", {
           ...context,
           accountId: socialAccount._id,
           userId: socialAccount.userId,
         });
 
-        user = await this.userRepository.findById(
+        user = await this._userRepository.findById(
           socialAccount.userId.toString()
         );
       } else {
-        this.logger.info(
+        this._logger.info(
           "No existing Google account found, creating new association",
           {
             ...context,
@@ -1456,17 +1455,17 @@ export class AuthService implements IAuthService {
         );
 
         // Check if user exists with this email
-        user = await this.userRepository.findByEmail(email);
+        user = await this._userRepository.findByEmail(email);
 
         if (!user) {
-          this.logger.info("Creating new user for Google auth", {
+          this._logger.info("Creating new user for Google auth", {
             ...context,
             email: email,
             userType: userType,
           });
 
           // Create new user
-          user = await this.userRepository.create({
+          user = await this._userRepository.create({
             fullName: name!,
             email: email,
             isVerified: true,
@@ -1477,13 +1476,13 @@ export class AuthService implements IAuthService {
             applicationStatus: "not-applied",
           });
 
-          this.logger.info("New user created for Google auth", {
+          this._logger.info("New user created for Google auth", {
             ...context,
             userId: user._id,
             roles: user.roles,
           });
         } else {
-          this.logger.info("Linking Google account to existing user", {
+          this._logger.info("Linking Google account to existing user", {
             ...context,
             userId: user._id,
             existingRoles: user.roles,
@@ -1495,11 +1494,11 @@ export class AuthService implements IAuthService {
             !user.roles.includes(USER_ROLES.SERVICE_PROVIDER)
           ) {
             const updatedRoles = [...user.roles, USER_ROLES.SERVICE_PROVIDER];
-            user = await this.userRepository.update(user._id!.toString(), {
+            user = await this._userRepository.update(user._id!.toString(), {
               roles: updatedRoles,
             });
 
-            this.logger.info("User roles updated for Google auth", {
+            this._logger.info("User roles updated for Google auth", {
               ...context,
               userId: user?._id,
               newRoles: updatedRoles,
@@ -1509,13 +1508,13 @@ export class AuthService implements IAuthService {
 
         // Create SocialAccount record
         socialAccount =
-          await this.socialAccountRepository.findByUserIdAndProvider(
+          await this._socialAccountRepository.findByUserIdAndProvider(
             user!._id!,
             "google"
           );
 
         if (!socialAccount) {
-          socialAccount = await this.socialAccountRepository.create({
+          socialAccount = await this._socialAccountRepository.create({
             userId: user!._id!,
             provider: "google",
             providerId: googleId,
@@ -1523,7 +1522,7 @@ export class AuthService implements IAuthService {
             profilePictureUrl: picture,
           });
 
-          this.logger.info("Google social account created", {
+          this._logger.info("Google social account created", {
             ...context,
             accountId: socialAccount._id,
             userId: user?._id,
@@ -1532,7 +1531,7 @@ export class AuthService implements IAuthService {
       }
 
       if (!user) {
-        this.logger.error("User not found for Google account", {
+        this._logger.error("User not found for Google account", {
           ...context,
           accountId: socialAccount?._id,
         });
@@ -1542,19 +1541,19 @@ export class AuthService implements IAuthService {
       const tokens = this.generateTokens(user);
 
       // Store refresh token in database
-      await this.userRepository.storeRefreshToken(
+      await this._userRepository.storeRefreshToken(
         user._id.toString(),
         tokens.refreshToken
       );
 
-      this.logger.debug("Refresh token stored for Google user", {
+      this._logger.debug("Refresh token stored for Google user", {
         ...context,
         userId: user._id,
       });
 
       const userResponse: UserResponseDto = this.mapToUserResponseDto(user);
 
-      this.logger.info("Google authentication completed successfully", {
+      this._logger.info("Google authentication completed successfully", {
         ...context,
         userId: user._id,
         userRoles: user.roles,
@@ -1568,7 +1567,7 @@ export class AuthService implements IAuthService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Google authentication process failed", {
+      this._logger.error("Google authentication process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -1587,28 +1586,28 @@ export class AuthService implements IAuthService {
     };
 
     try {
-      this.logger.info("Starting user logout process", context);
+      this._logger.info("Starting user logout process", context);
 
       if (refreshToken) {
         // Remove specific refresh token
-        this.logger.debug("Removing specific refresh token", {
+        this._logger.debug("Removing specific refresh token", {
           ...context,
           tokenPresent: true,
         });
-        await this.userRepository.removeRefreshToken(userId, refreshToken);
+        await this._userRepository.removeRefreshToken(userId, refreshToken);
       } else {
         // Remove all refresh tokens for user
-        this.logger.debug("Removing all refresh tokens for user", context);
-        await this.userRepository.removeAllRefreshTokens(userId);
+        this._logger.debug("Removing all refresh tokens for user", context);
+        await this._userRepository.removeAllRefreshTokens(userId);
       }
 
-      this.logger.info("User logout completed successfully", context);
+      this._logger.info("User logout completed successfully", context);
 
       return ResponseHelper.success("Logged out successfully");
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Logout process failed", {
+      this._logger.error("Logout process failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -1619,7 +1618,7 @@ export class AuthService implements IAuthService {
 
   // Helper method to map IUser to UserResponseDto
   private mapToUserResponseDto(user: IUser): UserResponseDto {
-    this.logger.debug("Mapping user to response DTO", {
+    this._logger.debug("Mapping user to response DTO", {
       operation: "mapToUserResponseDto",
       userId: user._id,
     });
@@ -1640,7 +1639,7 @@ export class AuthService implements IAuthService {
     try {
       const jwtSecret = process.env.JWT_SECRET;
       if (!jwtSecret) {
-        this.logger.error("JWT_SECRET environment variable is not defined", {
+        this._logger.error("JWT_SECRET environment variable is not defined", {
           operation: "generateAccessToken",
           userId: user._id,
         });
@@ -1657,7 +1656,7 @@ export class AuthService implements IAuthService {
         expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "24h",
       } as jwt.SignOptions);
     } catch (error) {
-      this.logger.error("Failed to generate access token", {
+      this._logger.error("Failed to generate access token", {
         operation: "generateAccessToken",
         userId: user._id,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -1684,7 +1683,7 @@ export class AuthService implements IAuthService {
         expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d",
       } as jwt.SignOptions);
     } catch (error) {
-      this.logger.error("Failed to generate refresh token", {
+      this._logger.error("Failed to generate refresh token", {
         operation: "generateRefreshToken",
         userId: user._id,
         error: error instanceof Error ? error.message : "Unknown error",

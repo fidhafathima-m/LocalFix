@@ -9,15 +9,15 @@ import {
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class CategoryManagementController {
-  private categoryService: ICategoryService;
-  private logger: ILogger;
+  private _categoryService: ICategoryService;
+  private _logger: ILogger;
 
   constructor(
     categoryService: ICategoryService,
     logger: ILogger
   ) {
-    this.categoryService = categoryService;
-    this.logger = logger;
+    this._categoryService = categoryService;
+    this._logger = logger;
   }
 
   createCategory = async (req: Request, res: Response): Promise<void> => {
@@ -28,13 +28,13 @@ export class CategoryManagementController {
     };
 
     try {
-      this.logger.info("Creating new category", context);
+      this._logger.info("Creating new category", context);
 
       const createDto: CreateCategoryDto = req.body;
 
       // Validation
       if (!createDto.name?.trim()) {
-        this.logger.warn("Category creation failed - name required", context);
+        this._logger.warn("Category creation failed - name required", context);
         const response = ResponseHelper.badRequest(
           CATEGORY_MESSAGES.NAME_REQUIRED
         );
@@ -43,7 +43,7 @@ export class CategoryManagementController {
       }
 
       if (!createDto.description?.trim()) {
-        this.logger.warn(
+        this._logger.warn(
           "Category creation failed - description required",
           context
         );
@@ -54,14 +54,14 @@ export class CategoryManagementController {
         return;
       }
 
-      this.logger.debug("Calling category service to create category", {
+      this._logger.debug("Calling category service to create category", {
         ...context,
         categoryName: createDto.name,
       });
 
-      const category = await this.categoryService.createCategory(createDto);
+      const category = await this._categoryService.createCategory(createDto);
 
-      this.logger.info("Category created successfully", {
+      this._logger.info("Category created successfully", {
         ...context,
         categoryId: category.id,
         categoryName: category.name,
@@ -75,7 +75,7 @@ export class CategoryManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || CATEGORY_MESSAGES.FAILED_CREATE_CATEGORY;
-      this.logger.error("Create category controller error", {
+      this._logger.error("Create category controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -95,11 +95,11 @@ export class CategoryManagementController {
     };
 
     try {
-      this.logger.info("Fetching category by ID", context);
+      this._logger.info("Fetching category by ID", context);
 
-      const category = await this.categoryService.getCategoryById(id);
+      const category = await this._categoryService.getCategoryById(id);
 
-      this.logger.info("Category retrieved successfully", {
+      this._logger.info("Category retrieved successfully", {
         ...context,
         categoryName: category.name,
       });
@@ -112,7 +112,7 @@ export class CategoryManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || CATEGORY_MESSAGES.CATEGORY_NOT_FOUND;
-      this.logger.error("Get category by ID controller error", {
+      this._logger.error("Get category by ID controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -132,11 +132,11 @@ export class CategoryManagementController {
     };
 
     try {
-      this.logger.info("Fetching category by slug", context);
+      this._logger.info("Fetching category by slug", context);
 
-      const category = await this.categoryService.getCategoryBySlug(slug);
+      const category = await this._categoryService.getCategoryBySlug(slug);
 
-      this.logger.info("Category retrieved by slug successfully", {
+      this._logger.info("Category retrieved by slug successfully", {
         ...context,
         categoryId: category.id,
         categoryName: category.name,
@@ -150,7 +150,7 @@ export class CategoryManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || CATEGORY_MESSAGES.CATEGORY_NOT_FOUND;
-      this.logger.error("Get category by slug controller error", {
+      this._logger.error("Get category by slug controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -175,15 +175,15 @@ export class CategoryManagementController {
     };
 
     try {
-      this.logger.info("Fetching all categories", context);
+      this._logger.info("Fetching all categories", context);
 
-      const result = await this.categoryService.getAllCategories(
+      const result = await this._categoryService.getAllCategories(
         page,
         limit,
         search
       );
 
-      this.logger.info("Categories retrieved successfully", {
+      this._logger.info("Categories retrieved successfully", {
         ...context,
         totalCategories: result.total,
       });
@@ -196,7 +196,7 @@ export class CategoryManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || CATEGORY_MESSAGES.FAILED_FETCH_CATEGORIES;
-      this.logger.error("Get all categories controller error", {
+      this._logger.error("Get all categories controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -219,11 +219,11 @@ export class CategoryManagementController {
     };
 
     try {
-      this.logger.info("Updating category", context);
+      this._logger.info("Updating category", context);
 
-      const category = await this.categoryService.updateCategory(id, updateDto);
+      const category = await this._categoryService.updateCategory(id, updateDto);
 
-      this.logger.info("Category updated successfully", {
+      this._logger.info("Category updated successfully", {
         ...context,
         categoryName: category.name,
         updatedFields: Object.keys(updateDto),
@@ -237,7 +237,7 @@ export class CategoryManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || CATEGORY_MESSAGES.FAILED_UPDATE_CATEGORY;
-      this.logger.error("Update category controller error", {
+      this._logger.error("Update category controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -257,11 +257,11 @@ export class CategoryManagementController {
     };
 
     try {
-      this.logger.info("Deleting category", context);
+      this._logger.info("Deleting category", context);
 
-      await this.categoryService.deleteCategory(id);
+      await this._categoryService.deleteCategory(id);
 
-      this.logger.info("Category deleted successfully", context);
+      this._logger.info("Category deleted successfully", context);
 
       const response = ResponseHelper.success(
         CATEGORY_MESSAGES.CATEGORY_DELETED
@@ -270,7 +270,7 @@ export class CategoryManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || CATEGORY_MESSAGES.FAILED_DELETE_CATEGORY;
-      this.logger.error("Delete category controller error", {
+      this._logger.error("Delete category controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -293,18 +293,18 @@ export class CategoryManagementController {
     };
 
     try {
-      this.logger.info("Searching categories", context);
+      this._logger.info("Searching categories", context);
 
       if (!q || typeof q !== "string") {
-        this.logger.warn("Search categories failed - query required", context);
+        this._logger.warn("Search categories failed - query required", context);
         const response = ResponseHelper.badRequest("Search query is required");
         res.status(response.statusCode).json(response);
         return;
       }
 
-      const categories = await this.categoryService.searchCategories(q, limit);
+      const categories = await this._categoryService.searchCategories(q, limit);
 
-      this.logger.info("Categories search completed successfully", {
+      this._logger.info("Categories search completed successfully", {
         ...context,
         resultsCount: categories.length,
       });
@@ -314,7 +314,7 @@ export class CategoryManagementController {
       });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      this.logger.error("Search categories controller error", {
+      this._logger.error("Search categories controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

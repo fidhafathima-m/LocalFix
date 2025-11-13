@@ -5,15 +5,15 @@ import { IPaymentService } from "@/interfaces/services/admin/IPaymentManagementS
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class PaymentManagementController {
-  private paymentService: IPaymentService;
-  private logger: ILogger;
+  private _paymentService: IPaymentService;
+  private _logger: ILogger;
 
   constructor(
     paymentService: IPaymentService,
     logger: ILogger
   ) {
-    this.paymentService = paymentService;
-    this.logger = logger;
+    this._paymentService = paymentService;
+    this._logger = logger;
   }
 
   getPayments = async (req: Request, res: Response): Promise<void> => {
@@ -36,9 +36,9 @@ export class PaymentManagementController {
     };
 
     try {
-      this.logger.info("Fetching payments", context);
+      this._logger.info("Fetching payments", context);
 
-      const result = await this.paymentService.getPayments(
+      const result = await this._paymentService.getPayments(
         page,
         limit,
         search,
@@ -47,7 +47,7 @@ export class PaymentManagementController {
         endDate
       );
 
-      this.logger.info("Payments retrieved successfully", {
+      this._logger.info("Payments retrieved successfully", {
         ...context,
         totalPayments: result.total,
       });
@@ -59,7 +59,7 @@ export class PaymentManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || PAYMENT_MESSAGES.FAILED_FETCH_PAYMENTS;
-      this.logger.error("Get payments controller error", {
+      this._logger.error("Get payments controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -79,7 +79,7 @@ export class PaymentManagementController {
     };
 
     try {
-      this.logger.info("Fetching payment by ID", context);
+      this._logger.info("Fetching payment by ID", context);
 
       if (!id) {
         const response = ResponseHelper.badRequest(PAYMENT_MESSAGES.PAYMENT_ID_REQUIRED);
@@ -87,9 +87,9 @@ export class PaymentManagementController {
         return;
       }
 
-      const payment = await this.paymentService.getPaymentById(id);
+      const payment = await this._paymentService.getPaymentById(id);
 
-      this.logger.info("Payment retrieved successfully", {
+      this._logger.info("Payment retrieved successfully", {
         ...context,
         paymentId: payment.id,
       });
@@ -100,7 +100,7 @@ export class PaymentManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || PAYMENT_MESSAGES.PAYMENT_NOT_FOUND;
-      this.logger.error("Get payment by ID controller error", {
+      this._logger.error("Get payment by ID controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -118,11 +118,11 @@ export class PaymentManagementController {
     };
 
     try {
-      this.logger.info("Fetching payment statistics", context);
+      this._logger.info("Fetching payment statistics", context);
 
-      const stats = await this.paymentService.getPaymentStats();
+      const stats = await this._paymentService.getPaymentStats();
 
-      this.logger.info("Payment stats retrieved successfully", {
+      this._logger.info("Payment stats retrieved successfully", {
         ...context,
         stats,
       });
@@ -134,7 +134,7 @@ export class PaymentManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || PAYMENT_MESSAGES.FAILED_FETCH_STATS;
-      this.logger.error("Get payment stats controller error", {
+      this._logger.error("Get payment stats controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -157,7 +157,7 @@ export class PaymentManagementController {
     };
 
     try {
-      this.logger.info("Processing refund", context);
+      this._logger.info("Processing refund", context);
 
       if (!id) {
         const response = ResponseHelper.badRequest(PAYMENT_MESSAGES.PAYMENT_ID_REQUIRED);
@@ -165,15 +165,15 @@ export class PaymentManagementController {
         return;
       }
 
-      await this.paymentService.processRefund(id, { reason });
+      await this._paymentService.processRefund(id, { reason });
 
-      this.logger.info("Refund processed successfully", context);
+      this._logger.info("Refund processed successfully", context);
 
       const response = ResponseHelper.success(PAYMENT_MESSAGES.REFUND_PROCESSED);
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || PAYMENT_MESSAGES.FAILED_PROCESS_REFUND;
-      this.logger.error("Process refund controller error", {
+      this._logger.error("Process refund controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -196,9 +196,9 @@ export class PaymentManagementController {
     };
 
     try {
-      this.logger.info("Exporting payments", context);
+      this._logger.info("Exporting payments", context);
 
-      const { data, filename } = await this.paymentService.exportPayments(format, filters);
+      const { data, filename } = await this._paymentService.exportPayments(format, filters);
 
       res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -206,7 +206,7 @@ export class PaymentManagementController {
       res.send(data);
     } catch (error: any) {
       const errorMessage = error.message || PAYMENT_MESSAGES.FAILED_EXPORT_PAYMENTS;
-      this.logger.error("Export payments controller error", {
+      this._logger.error("Export payments controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,

@@ -5,15 +5,15 @@ import { IUserProfileService } from "@/interfaces/services/user/IUserProfileServ
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class UserProfileController {
-  private userProfileService: IUserProfileService;
-  private logger: ILogger;
+  private _userProfileService: IUserProfileService;
+  private _logger: ILogger;
 
   constructor(
     userProfileService: IUserProfileService,
     logger: ILogger
   ) {
-    this.userProfileService = userProfileService;
-    this.logger = logger;
+    this._userProfileService = userProfileService;
+    this._logger = logger;
   }
 
   getUserProfile = async (req: Request, res: Response) => {
@@ -25,10 +25,10 @@ export class UserProfileController {
     };
 
     try {
-      this.logger.info("Fetching user profile", context);
+      this._logger.info("Fetching user profile", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get user profile failed - user not authenticated",
           context
         );
@@ -37,10 +37,10 @@ export class UserProfileController {
           .json(ResponseHelper.error("User not authenticated"));
       }
 
-      const result = await this.userProfileService.getUserProfile(userId);
+      const result = await this._userProfileService.getUserProfile(userId);
 
       if (!result.success) {
-        this.logger.warn("Get user profile service returned failure", {
+        this._logger.warn("Get user profile service returned failure", {
           ...context,
           error: result.message,
           statusCode: result.statusCode,
@@ -48,7 +48,7 @@ export class UserProfileController {
         return res.status(result.statusCode || 404).json(result);
       }
 
-      this.logger.info("User profile retrieved successfully", {
+      this._logger.info("User profile retrieved successfully", {
         ...context,
         userEmail: result.data?.user?.email,
         hasProfilePicture: !!result.data?.user?.profilePicture,
@@ -56,7 +56,7 @@ export class UserProfileController {
 
       return res.status(200).json(result);
     } catch (error: any) {
-      this.logger.error("Get user profile error", {
+      this._logger.error("Get user profile error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -80,10 +80,10 @@ export class UserProfileController {
     };
 
     try {
-      this.logger.info("Updating user profile", context);
+      this._logger.info("Updating user profile", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update user profile failed - user not authenticated",
           context
         );
@@ -93,7 +93,7 @@ export class UserProfileController {
       }
 
       if (Object.keys(updateData).length === 0) {
-        this.logger.warn(
+        this._logger.warn(
           "Update user profile failed - no fields to update",
           context
         );
@@ -102,18 +102,18 @@ export class UserProfileController {
           .json(ResponseHelper.error("No fields to update"));
       }
 
-      this.logger.debug("Profile update data", {
+      this._logger.debug("Profile update data", {
         ...context,
         updateFields: updateData,
       });
 
-      const result = await this.userProfileService.updateUserProfile(
+      const result = await this._userProfileService.updateUserProfile(
         userId,
         updateData
       );
 
       if (!result.success) {
-        this.logger.warn("Update user profile service returned failure", {
+        this._logger.warn("Update user profile service returned failure", {
           ...context,
           error: result.message,
           statusCode: result.statusCode,
@@ -121,7 +121,7 @@ export class UserProfileController {
         return res.status(result.statusCode || 400).json(result);
       }
 
-      this.logger.info("User profile updated successfully", {
+      this._logger.info("User profile updated successfully", {
         ...context,
         updatedFieldCount: Object.keys(updateData).length,
         userEmail: result.data?.user?.email,
@@ -129,7 +129,7 @@ export class UserProfileController {
 
       return res.status(200).json(result);
     } catch (error: any) {
-      this.logger.error("Update user profile error", {
+      this._logger.error("Update user profile error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -154,10 +154,10 @@ export class UserProfileController {
     };
 
     try {
-      this.logger.info("Uploading profile picture", context);
+      this._logger.info("Uploading profile picture", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Upload profile picture failed - user not authenticated",
           context
         );
@@ -167,25 +167,25 @@ export class UserProfileController {
       }
 
       if (!file) {
-        this.logger.warn(
+        this._logger.warn(
           "Upload profile picture failed - no file uploaded",
           context
         );
         return res.status(400).json(ResponseHelper.error("No file uploaded"));
       }
 
-      this.logger.debug("Processing profile picture upload", {
+      this._logger.debug("Processing profile picture upload", {
         ...context,
         mimetype: file.mimetype,
       });
 
-      const result = await this.userProfileService.uploadProfilePicture(
+      const result = await this._userProfileService.uploadProfilePicture(
         userId,
         file
       );
 
       if (!result.success) {
-        this.logger.warn("Upload profile picture service returned failure", {
+        this._logger.warn("Upload profile picture service returned failure", {
           ...context,
           error: result.message,
           statusCode: result.statusCode,
@@ -193,7 +193,7 @@ export class UserProfileController {
         return res.status(result.statusCode || 400).json(result);
       }
 
-      this.logger.info("Profile picture uploaded successfully", {
+      this._logger.info("Profile picture uploaded successfully", {
         ...context,
         uploadSuccess: result.success,
         profilePictureUrl: result.data?.profilePictureUrl,
@@ -201,7 +201,7 @@ export class UserProfileController {
 
       return res.status(200).json(result);
     } catch (error: any) {
-      this.logger.error("Upload profile picture error", {
+      this._logger.error("Upload profile picture error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -224,10 +224,10 @@ export class UserProfileController {
     };
 
     try {
-      this.logger.info("Changing user password", context);
+      this._logger.info("Changing user password", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Change password failed - user not authenticated",
           context
         );
@@ -237,7 +237,7 @@ export class UserProfileController {
       }
 
       if (!currentPassword || !newPassword || !confirmPassword) {
-        this.logger.warn("Change password failed - missing required fields", {
+        this._logger.warn("Change password failed - missing required fields", {
           ...context,
           hasCurrentPassword: !!currentPassword,
           hasNewPassword: !!newPassword,
@@ -249,7 +249,7 @@ export class UserProfileController {
       }
 
       if (newPassword !== confirmPassword) {
-        this.logger.warn(
+        this._logger.warn(
           "Change password failed - password confirmation mismatch",
           context
         );
@@ -258,9 +258,9 @@ export class UserProfileController {
           .json(ResponseHelper.error("New passwords do not match"));
       }
 
-      this.logger.debug("Initiating password change process", context);
+      this._logger.debug("Initiating password change process", context);
 
-      const result = await this.userProfileService.changePassword(
+      const result = await this._userProfileService.changePassword(
         userId,
         currentPassword,
         newPassword,
@@ -268,7 +268,7 @@ export class UserProfileController {
       );
 
       if (!result.success) {
-        this.logger.warn("Change password service returned failure", {
+        this._logger.warn("Change password service returned failure", {
           ...context,
           error: result.message,
           statusCode: result.statusCode,
@@ -276,11 +276,11 @@ export class UserProfileController {
         return res.status(result.statusCode || 400).json(result);
       }
 
-      this.logger.info("Password changed successfully", context);
+      this._logger.info("Password changed successfully", context);
 
       return res.status(200).json(result);
     } catch (error: any) {
-      this.logger.error("Change password error", {
+      this._logger.error("Change password error", {
         ...context,
         error: error.message,
         stack: error.stack,

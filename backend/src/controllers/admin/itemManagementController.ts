@@ -6,15 +6,15 @@ import { CreateItemDto, UpdateItemDto } from "../../interfaces/dtos/itemDtos";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ItemManagementController {
-  private itemService: IItemService;
-  private logger: ILogger;
+  private _itemService: IItemService;
+  private _logger: ILogger;
 
   constructor(
     itemService: IItemService,
     logger: ILogger
   ) {
-    this.itemService = itemService;
-    this.logger = logger;
+    this._itemService = itemService;
+    this._logger = logger;
   }
 
   createItem = async (req: Request, res: Response): Promise<void> => {
@@ -25,20 +25,20 @@ export class ItemManagementController {
     };
 
     try {
-      this.logger.info("Creating new item", context);
+      this._logger.info("Creating new item", context);
 
       const createDto: CreateItemDto = req.body;
 
       // Validation
       if (!createDto.name?.trim()) {
-        this.logger.warn("Item creation failed - name required", context);
+        this._logger.warn("Item creation failed - name required", context);
         const response = ResponseHelper.badRequest(ITEM_MESSAGES.NAME_REQUIRED);
         res.status(response.statusCode).json(response);
         return;
       }
 
       if (!createDto.description?.trim()) {
-        this.logger.warn(
+        this._logger.warn(
           "Item creation failed - description required",
           context
         );
@@ -50,7 +50,7 @@ export class ItemManagementController {
       }
 
       if (!createDto.serviceId?.trim()) {
-        this.logger.warn("Item creation failed - service ID required", context);
+        this._logger.warn("Item creation failed - service ID required", context);
         const response = ResponseHelper.badRequest(
           ITEM_MESSAGES.SERVICE_ID_REQUIRED
         );
@@ -59,7 +59,7 @@ export class ItemManagementController {
       }
 
       if (createDto.price === undefined || createDto.price < 0) {
-        this.logger.warn("Item creation failed - invalid price", {
+        this._logger.warn("Item creation failed - invalid price", {
           ...context,
           providedPrice: createDto.price,
         });
@@ -68,16 +68,16 @@ export class ItemManagementController {
         return;
       }
 
-      this.logger.debug("Calling item service to create item", {
+      this._logger.debug("Calling item service to create item", {
         ...context,
         itemName: createDto.name,
         serviceId: createDto.serviceId,
         price: createDto.price,
       });
 
-      const item = await this.itemService.createItem(createDto);
+      const item = await this._itemService.createItem(createDto);
 
-      this.logger.info("Item created successfully", {
+      this._logger.info("Item created successfully", {
         ...context,
         itemId: item.id,
         itemName: item.name,
@@ -90,7 +90,7 @@ export class ItemManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ITEM_MESSAGES.FAILED_CREATE_ITEM;
-      this.logger.error("Create item controller error", {
+      this._logger.error("Create item controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -110,11 +110,11 @@ export class ItemManagementController {
     };
 
     try {
-      this.logger.info("Fetching item by ID", context);
+      this._logger.info("Fetching item by ID", context);
 
-      const item = await this.itemService.getItemById(id);
+      const item = await this._itemService.getItemById(id);
 
-      this.logger.info("Item retrieved successfully", {
+      this._logger.info("Item retrieved successfully", {
         ...context,
         itemName: item.name,
         serviceId: item.serviceId,
@@ -126,7 +126,7 @@ export class ItemManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ITEM_MESSAGES.ITEM_NOT_FOUND;
-      this.logger.error("Get item by ID controller error", {
+      this._logger.error("Get item by ID controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -153,16 +153,16 @@ export class ItemManagementController {
     };
 
     try {
-      this.logger.info("Fetching items by service ID", context);
+      this._logger.info("Fetching items by service ID", context);
 
-      const result = await this.itemService.getItemsByServiceId(
+      const result = await this._itemService.getItemsByServiceId(
         serviceId,
         page,
         limit,
         search
       );
 
-      this.logger.info("Items by service retrieved successfully", {
+      this._logger.info("Items by service retrieved successfully", {
         ...context,
         totalItems: result.total,
       });
@@ -174,7 +174,7 @@ export class ItemManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ITEM_MESSAGES.FAILED_FETCH_ITEMS;
-      this.logger.error("Get items by service controller error", {
+      this._logger.error("Get items by service controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -199,11 +199,11 @@ export class ItemManagementController {
     };
 
     try {
-      this.logger.info("Fetching all items", context);
+      this._logger.info("Fetching all items", context);
 
-      const result = await this.itemService.getAllItems(page, limit, search);
+      const result = await this._itemService.getAllItems(page, limit, search);
 
-      this.logger.info("All items retrieved successfully", {
+      this._logger.info("All items retrieved successfully", {
         ...context,
         totalItems: result.total,
       });
@@ -215,7 +215,7 @@ export class ItemManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ITEM_MESSAGES.FAILED_FETCH_ITEMS;
-      this.logger.error("Get all items controller error", {
+      this._logger.error("Get all items controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -238,11 +238,11 @@ export class ItemManagementController {
     };
 
     try {
-      this.logger.info("Updating item", context);
+      this._logger.info("Updating item", context);
 
-      const item = await this.itemService.updateItem(id, updateDto);
+      const item = await this._itemService.updateItem(id, updateDto);
 
-      this.logger.info("Item updated successfully", {
+      this._logger.info("Item updated successfully", {
         ...context,
         itemName: item.name,
         updatedFields: Object.keys(updateDto),
@@ -254,7 +254,7 @@ export class ItemManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ITEM_MESSAGES.FAILED_UPDATE_ITEM;
-      this.logger.error("Update item controller error", {
+      this._logger.error("Update item controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -274,17 +274,17 @@ export class ItemManagementController {
     };
 
     try {
-      this.logger.info("Deleting item", context);
+      this._logger.info("Deleting item", context);
 
-      await this.itemService.deleteItem(id);
+      await this._itemService.deleteItem(id);
 
-      this.logger.info("Item deleted successfully", context);
+      this._logger.info("Item deleted successfully", context);
 
       const response = ResponseHelper.success(ITEM_MESSAGES.ITEM_DELETED);
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ITEM_MESSAGES.FAILED_DELETE_ITEM;
-      this.logger.error("Delete item controller error", {
+      this._logger.error("Delete item controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -307,18 +307,18 @@ export class ItemManagementController {
     };
 
     try {
-      this.logger.info("Searching items", context);
+      this._logger.info("Searching items", context);
 
       if (!q || typeof q !== "string") {
-        this.logger.warn("Search items failed - query required", context);
+        this._logger.warn("Search items failed - query required", context);
         const response = ResponseHelper.badRequest("Search query is required");
         res.status(response.statusCode).json(response);
         return;
       }
 
-      const items = await this.itemService.searchItems(q, limit);
+      const items = await this._itemService.searchItems(q, limit);
 
-      this.logger.info("Items search completed successfully", {
+      this._logger.info("Items search completed successfully", {
         ...context,
         resultsCount: items.length,
       });
@@ -328,7 +328,7 @@ export class ItemManagementController {
       });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      this.logger.error("Search items controller error", {
+      this._logger.error("Search items controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

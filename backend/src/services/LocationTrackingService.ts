@@ -5,10 +5,10 @@ import { LocationTrackingRepository } from "../repositories/LocationTrackingRepo
 import { Types } from "mongoose";
 
 export class LocationTrackingService implements ILocationTrackingService {
-  private locationRepository: ILocationTrackingRepository;
+  private _locationRepository: ILocationTrackingRepository;
 
   constructor() {
-    this.locationRepository = new LocationTrackingRepository();
+    this._locationRepository = new LocationTrackingRepository();
   }
 
   async startLocationSharing(
@@ -23,7 +23,7 @@ export class LocationTrackingService implements ILocationTrackingService {
         accuracy: location.accuracy,
       };
 
-      const tracking = await this.locationRepository.startLocationSharing(
+      const tracking = await this._locationRepository.startLocationSharing(
         new Types.ObjectId(technicianId),
         orderId,
         locationPoint
@@ -63,7 +63,7 @@ export class LocationTrackingService implements ILocationTrackingService {
         heading: location.heading,
       };
 
-      const tracking = await this.locationRepository.updateLocation(
+      const tracking = await this._locationRepository.updateLocation(
         new Types.ObjectId(technicianId),
         orderId,
         locationPoint
@@ -95,7 +95,7 @@ export class LocationTrackingService implements ILocationTrackingService {
     orderId: string
   ): Promise<any> {
     try {
-      const tracking = await this.locationRepository.stopLocationSharing(
+      const tracking = await this._locationRepository.stopLocationSharing(
         new Types.ObjectId(technicianId),
         orderId
       );
@@ -116,7 +116,7 @@ export class LocationTrackingService implements ILocationTrackingService {
 
   async getLiveTrackingData(orderId: string): Promise<any> {
     try {
-      const tracking = await this.locationRepository.getActiveTracking(
+      const tracking = await this._locationRepository.getActiveTracking(
         orderId
       );
 
@@ -158,7 +158,7 @@ export class LocationTrackingService implements ILocationTrackingService {
 
   async getLocationHistory(orderId: string): Promise<any> {
     try {
-      const tracking = await this.locationRepository.getLocationHistory(
+      const tracking = await this._locationRepository.getLocationHistory(
         orderId
       );
 

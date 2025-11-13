@@ -5,15 +5,15 @@ import { LoggerService } from "../services/LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class NotificationController {
-  private notificationService: INotificationService;
-  private logger: ILogger;
+  private _notificationService: INotificationService;
+  private _logger: ILogger;
 
   constructor(
     notificationService: INotificationService,
     logger: ILogger
   ) {
-    this.notificationService = notificationService;
-    this.logger = logger;
+    this._notificationService = notificationService;
+    this._logger = logger;
   }
 
   getNotificationsByUser = async (req: Request, res: Response): Promise<void> => {
@@ -30,7 +30,7 @@ export class NotificationController {
     };
 
     try {
-      this.logger.info("Fetching notifications for user", context);
+      this._logger.info("Fetching notifications for user", context);
 
       if (!userId || typeof userId !== "string") {
         const response = ResponseHelper.badRequest("User ID is required");
@@ -38,9 +38,9 @@ export class NotificationController {
         return;
       }
 
-      const result = await this.notificationService.getNotificationsByUser(userId, page, limit);
+      const result = await this._notificationService.getNotificationsByUser(userId, page, limit);
 
-      this.logger.info("Notifications retrieved successfully", {
+      this._logger.info("Notifications retrieved successfully", {
         ...context,
         count: result.notifications.length
       });
@@ -48,7 +48,7 @@ export class NotificationController {
       const response = ResponseHelper.success("Notifications retrieved successfully", result);
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      this.logger.error("Get notifications controller error", {
+      this._logger.error("Get notifications controller error", {
         ...context,
         error: error.message,
         stack: error.stack
@@ -69,18 +69,18 @@ export class NotificationController {
     };
 
     try {
-      this.logger.info("Marking notification as read", context);
+      this._logger.info("Marking notification as read", context);
 
-      const result = await this.notificationService.markAsRead(notificationId);
+      const result = await this._notificationService.markAsRead(notificationId);
 
-      this.logger.info("Notification marked as read successfully", context);
+      this._logger.info("Notification marked as read successfully", context);
 
       const response = ResponseHelper.success("Notification marked as read", {
         notification: result
       });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      this.logger.error("Mark as read controller error", {
+      this._logger.error("Mark as read controller error", {
         ...context,
         error: error.message,
         stack: error.stack
@@ -104,7 +104,7 @@ export class NotificationController {
     };
 
     try {
-      this.logger.info("Marking all notifications as read", context);
+      this._logger.info("Marking all notifications as read", context);
 
       if (!userId) {
         const response = ResponseHelper.badRequest("User ID is required");
@@ -112,7 +112,7 @@ export class NotificationController {
         return;
       }
 
-      const result = await this.notificationService.markAllAsRead(userId);
+      const result = await this._notificationService.markAllAsRead(userId);
 
       const response = result.success
         ? ResponseHelper.success(result.message)
@@ -120,7 +120,7 @@ export class NotificationController {
       
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      this.logger.error("Mark all as read controller error", {
+      this._logger.error("Mark all as read controller error", {
         ...context,
         error: error.message,
         stack: error.stack
@@ -141,7 +141,7 @@ export class NotificationController {
     };
 
     try {
-      this.logger.info("Getting unread notification count", context);
+      this._logger.info("Getting unread notification count", context);
 
       if (!userId || typeof userId !== "string") {
         const response = ResponseHelper.badRequest("User ID is required");
@@ -149,7 +149,7 @@ export class NotificationController {
         return;
       }
 
-      const result = await this.notificationService.getUnreadCount(userId);
+      const result = await this._notificationService.getUnreadCount(userId);
 
       const response = result.success
         ? ResponseHelper.success("Unread count retrieved", { count: result.count })
@@ -157,7 +157,7 @@ export class NotificationController {
       
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      this.logger.error("Get unread count controller error", {
+      this._logger.error("Get unread count controller error", {
         ...context,
         error: error.message,
         stack: error.stack

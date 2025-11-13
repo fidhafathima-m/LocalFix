@@ -1,20 +1,19 @@
 import { IReviewRepository } from "@/interfaces/repository/admin/IReviewRepository";
 import { GetReviewsFilter, IAdminReviewService, ReviewListResponse, ReviewResponseDto, ReviewStatsResponse } from "@/interfaces/services/admin/IReviewManagementService";
 
-import { LoggerService } from "./LoggerService";
 import { ReviewMapper } from "../mappers/reviewManagementMapper";
 import { REVIEW_MESSAGES } from "../constants";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ReviewManagementService implements IAdminReviewService {
-  private reviewRepository: IReviewRepository;
-  private reviewMapper: ReviewMapper;
-  private logger: ILogger;
+  private _reviewRepository: IReviewRepository;
+  private _reviewMapper: ReviewMapper;
+  private _logger: ILogger;
 
   constructor(reviewRepository: IReviewRepository, logger: ILogger) {
-    this.reviewRepository = reviewRepository;
-    this.reviewMapper = new ReviewMapper();
-    this.logger = logger;
+    this._reviewRepository = reviewRepository;
+    this._reviewMapper = new ReviewMapper();
+    this._logger = logger;
   }
 
   async getAllReviews(filters: GetReviewsFilter): Promise<ReviewListResponse> {
@@ -24,27 +23,27 @@ export class ReviewManagementService implements IAdminReviewService {
     };
 
     try {
-      this.logger.info('Fetching all reviews with filters', context);
+      this._logger.info('Fetching all reviews with filters', context);
 
-      const { reviews, total } = await this.reviewRepository.findAllWithDetails(filters);
+      const { reviews, total } = await this._reviewRepository.findAllWithDetails(filters);
 
       const totalPages = Math.ceil(total / (filters.limit || 10));
 
-      this.logger.info('Reviews retrieved successfully', {
+      this._logger.info('Reviews retrieved successfully', {
         ...context,
         totalReviews: total,
         returnedReviews: reviews.length,
       });
 
       return {
-        reviews: reviews.map(review => this.reviewMapper.toAdminReviewResponseDto(review)),
+        reviews: reviews.map(review => this._reviewMapper.toAdminReviewResponseDto(review)),
         total,
         page: filters.page || 1,
         totalPages,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Get all reviews operation failed', {
+      this._logger.error('Get all reviews operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -60,24 +59,24 @@ export class ReviewManagementService implements IAdminReviewService {
     };
 
     try {
-      this.logger.info('Fetching review by ID', context);
+      this._logger.info('Fetching review by ID', context);
 
-      const review = await this.reviewRepository.findByIdWithDetails(reviewId);
+      const review = await this._reviewRepository.findByIdWithDetails(reviewId);
       
       if (!review) {
-        this.logger.warn('Review not found by ID', context);
+        this._logger.warn('Review not found by ID', context);
         throw new Error(REVIEW_MESSAGES.REVIEW_NOT_FOUND);
       }
 
-      this.logger.info('Review retrieved successfully', {
+      this._logger.info('Review retrieved successfully', {
         ...context,
         reviewId: review._id?.toString()
       });
 
-      return this.reviewMapper.toAdminReviewResponseDto(review);
+      return this._reviewMapper.toAdminReviewResponseDto(review);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Get review by ID operation failed', {
+      this._logger.error('Get review by ID operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -93,33 +92,33 @@ export class ReviewManagementService implements IAdminReviewService {
     };
 
     try {
-      this.logger.info('Updating review status', context);
+      this._logger.info('Updating review status', context);
 
-      const review = await this.reviewRepository.findById(reviewId);
+      const review = await this._reviewRepository.findById(reviewId);
       
       if (!review) {
-        this.logger.warn('Review not found for status update', context);
+        this._logger.warn('Review not found for status update', context);
         throw new Error(REVIEW_MESSAGES.REVIEW_NOT_FOUND);
       }
 
-      const updatedReview = await this.reviewRepository.updateStatus(reviewId, status);
+      const updatedReview = await this._reviewRepository.updateStatus(reviewId, status);
       
       if (!updatedReview) {
-        this.logger.error('Review repository update returned null', context);
+        this._logger.error('Review repository update returned null', context);
         throw new Error(REVIEW_MESSAGES.FAILED_UPDATE_REVIEW);
       }
 
-      const reviewWithDetails = await this.reviewRepository.findByIdWithDetails(reviewId);
+      const reviewWithDetails = await this._reviewRepository.findByIdWithDetails(reviewId);
 
-      this.logger.info('Review status updated successfully', {
+      this._logger.info('Review status updated successfully', {
         ...context,
         reviewId: updatedReview._id?.toString()
       });
 
-      return this.reviewMapper.toAdminReviewResponseDto(reviewWithDetails!);
+      return this._reviewMapper.toAdminReviewResponseDto(reviewWithDetails!);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Update review status operation failed', {
+      this._logger.error('Update review status operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -135,33 +134,33 @@ export class ReviewManagementService implements IAdminReviewService {
     };
 
     try {
-      this.logger.info('Flagging review', context);
+      this._logger.info('Flagging review', context);
 
-      const review = await this.reviewRepository.findById(reviewId);
+      const review = await this._reviewRepository.findById(reviewId);
       
       if (!review) {
-        this.logger.warn('Review not found for flagging', context);
+        this._logger.warn('Review not found for flagging', context);
         throw new Error(REVIEW_MESSAGES.REVIEW_NOT_FOUND);
       }
 
-      const updatedReview = await this.reviewRepository.flagReview(reviewId, reason);
+      const updatedReview = await this._reviewRepository.flagReview(reviewId, reason);
       
       if (!updatedReview) {
-        this.logger.error('Review repository flag returned null', context);
+        this._logger.error('Review repository flag returned null', context);
         throw new Error(REVIEW_MESSAGES.FAILED_FLAG_REVIEW);
       }
 
-      const reviewWithDetails = await this.reviewRepository.findByIdWithDetails(reviewId);
+      const reviewWithDetails = await this._reviewRepository.findByIdWithDetails(reviewId);
 
-      this.logger.info('Review flagged successfully', {
+      this._logger.info('Review flagged successfully', {
         ...context,
         reviewId: updatedReview._id?.toString()
       });
 
-      return this.reviewMapper.toAdminReviewResponseDto(reviewWithDetails!);
+      return this._reviewMapper.toAdminReviewResponseDto(reviewWithDetails!);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Flag review operation failed', {
+      this._logger.error('Flag review operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -177,26 +176,26 @@ export class ReviewManagementService implements IAdminReviewService {
     };
 
     try {
-      this.logger.info('Deleting review', context);
+      this._logger.info('Deleting review', context);
 
-      const review = await this.reviewRepository.findById(reviewId);
+      const review = await this._reviewRepository.findById(reviewId);
       
       if (!review) {
-        this.logger.warn('Review not found for deletion', context);
+        this._logger.warn('Review not found for deletion', context);
         throw new Error(REVIEW_MESSAGES.REVIEW_NOT_FOUND);
       }
 
-      const deleted = await this.reviewRepository.delete(reviewId);
+      const deleted = await this._reviewRepository.delete(reviewId);
       
       if (!deleted) {
-        this.logger.error('Review repository deletion returned false', context);
+        this._logger.error('Review repository deletion returned false', context);
         throw new Error(REVIEW_MESSAGES.FAILED_DELETE_REVIEW);
       }
 
-      this.logger.info('Review deleted successfully', context);
+      this._logger.info('Review deleted successfully', context);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Delete review operation failed', {
+      this._logger.error('Delete review operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -211,11 +210,11 @@ export class ReviewManagementService implements IAdminReviewService {
     };
 
     try {
-      this.logger.info('Fetching review statistics', context);
+      this._logger.info('Fetching review statistics', context);
 
-      const stats = await this.reviewRepository.getReviewStats();
+      const stats = await this._reviewRepository.getReviewStats();
 
-      this.logger.info('Review statistics retrieved successfully', {
+      this._logger.info('Review statistics retrieved successfully', {
         ...context,
         totalReviews: stats.totalReviews
       });
@@ -223,7 +222,7 @@ export class ReviewManagementService implements IAdminReviewService {
       return stats;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Get review stats operation failed', {
+      this._logger.error('Get review stats operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined

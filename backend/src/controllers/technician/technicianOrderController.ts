@@ -6,15 +6,15 @@ import { AuthRequest } from "../../middleware/authMiddleware";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 class TechnicianOrderController {
-  private orderService: IOrderService;
-  private logger: ILogger;
+  private _orderService: IOrderService;
+  private _logger: ILogger;
 
   constructor(
     orderService: IOrderService,
     logger: ILogger
   ) {
-    this.orderService = orderService;
-    this.logger = logger;
+    this._orderService = orderService;
+    this._logger = logger;
   }
 
   getTechnicianOrders = async (
@@ -34,10 +34,10 @@ class TechnicianOrderController {
     };
 
     try {
-      this.logger.info("Fetching technician orders", context);
+      this._logger.info("Fetching technician orders", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get technician orders failed - authentication required",
           context
         );
@@ -48,20 +48,20 @@ class TechnicianOrderController {
         return;
       }
 
-      const result = await this.orderService.getTechnicianOrders(
+      const result = await this._orderService.getTechnicianOrders(
         technicianId,
         page,
         limit
       );
 
-      this.logger.info("Technician orders retrieved successfully", {
+      this._logger.info("Technician orders retrieved successfully", {
         ...context,
         orderCount: result.data?.orders?.length || 0,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician orders controller error", {
+      this._logger.error("Get technician orders controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -87,10 +87,10 @@ class TechnicianOrderController {
     };
 
     try {
-      this.logger.info("Fetching technician order by ID", context);
+      this._logger.info("Fetching technician order by ID", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get technician order failed - authentication required",
           context
         );
@@ -101,19 +101,19 @@ class TechnicianOrderController {
         return;
       }
 
-      const result = await this.orderService.getTechnicianOrderById(
+      const result = await this._orderService.getTechnicianOrderById(
         technicianId,
         orderId
       );
 
-      this.logger.info("Technician order retrieved successfully", {
+      this._logger.info("Technician order retrieved successfully", {
         ...context,
         orderFound: !!result,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician order by ID controller error", {
+      this._logger.error("Get technician order by ID controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -142,10 +142,10 @@ class TechnicianOrderController {
     };
 
     try {
-      this.logger.info("Updating order status", context);
+      this._logger.info("Updating order status", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update order status failed - authentication required",
           context
         );
@@ -157,7 +157,7 @@ class TechnicianOrderController {
       }
 
       if (!status) {
-        this.logger.warn(
+        this._logger.warn(
           "Update order status failed - status required",
           context
         );
@@ -167,18 +167,18 @@ class TechnicianOrderController {
         return;
       }
 
-      const result = await this.orderService.updateOrderStatus(
+      const result = await this._orderService.updateOrderStatus(
         orderId,
         status,
         "technician",
         reason
       );
 
-      this.logger.info("Order status updated successfully", context);
+      this._logger.info("Order status updated successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Update order status controller error", {
+      this._logger.error("Update order status controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -202,10 +202,10 @@ class TechnicianOrderController {
     };
 
     try {
-      this.logger.info("Fetching technician order stats", context);
+      this._logger.info("Fetching technician order stats", context);
 
       if (!technicianId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get technician order stats failed - authentication required",
           context
         );
@@ -216,18 +216,18 @@ class TechnicianOrderController {
         return;
       }
 
-      const result = await this.orderService.getTechnicianOrderStats(
+      const result = await this._orderService.getTechnicianOrderStats(
         technicianId
       );
 
-      this.logger.info(
+      this._logger.info(
         "Technician order stats retrieved successfully",
         context
       );
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician order stats controller error", {
+      this._logger.error("Get technician order stats controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

@@ -17,15 +17,15 @@ import {
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianManagementController {
-  private technicianService: ITechnicianManagementService;
-  private logger: ILogger;
+  private _technicianService: ITechnicianManagementService;
+  private _logger: ILogger;
 
   constructor(
     technicianService: ITechnicianManagementService,
     logger: ILogger
   ) {
-    this.technicianService = technicianService;
-    this.logger = logger;
+    this._technicianService = technicianService;
+    this._logger = logger;
   }
 
   // ========== PUBLIC ROUTES ==========
@@ -44,7 +44,7 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching public technicians", context);
+      this._logger.info("Fetching public technicians", context);
 
       const filters: TechnicianFiltersDto = {
         status: "approved",
@@ -56,15 +56,15 @@ export class TechnicianManagementController {
         ...(sortBy && { sortBy: sortBy as string }),
       };
 
-      this.logger.debug("Calling service to get public technicians", {
+      this._logger.debug("Calling service to get public technicians", {
         ...context,
         filters,
       });
 
       const result: TechnicianListResponseDto =
-        await this.technicianService.getPublicTechnicians(filters);
+        await this._technicianService.getPublicTechnicians(filters);
 
-      this.logger.info("Public technicians retrieved successfully", {
+      this._logger.info("Public technicians retrieved successfully", {
         ...context,
         count: result.data?.technicians?.length,
         total: result.data?.pagination?.total,
@@ -72,7 +72,7 @@ export class TechnicianManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get public technicians controller error", {
+      this._logger.error("Get public technicians controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -95,22 +95,22 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching technicians by service", context);
+      this._logger.info("Fetching technicians by service", context);
 
       const filters: TechnicianFiltersDto = {
         status: "approved",
         service: service,
       };
 
-      this.logger.debug(
+      this._logger.debug(
         "Calling service to get technicians by service",
         context
       );
 
       const result: TechnicianListResponseDto =
-        await this.technicianService.getPublicTechnicians(filters);
+        await this._technicianService.getPublicTechnicians(filters);
 
-      this.logger.info("Technicians by service retrieved successfully", {
+      this._logger.info("Technicians by service retrieved successfully", {
         ...context,
         count: result.data?.technicians?.length,
         total: result.data?.pagination?.total,
@@ -118,7 +118,7 @@ export class TechnicianManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technicians by service controller error", {
+      this._logger.error("Get technicians by service controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -141,19 +141,19 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching public technician by ID", context);
+      this._logger.info("Fetching public technician by ID", context);
 
       const result: SingleTechnicianResponseDto =
-        await this.technicianService.getPublicTechnicianById(id);
+        await this._technicianService.getPublicTechnicianById(id);
 
-      this.logger.info("Public technician retrieved successfully", {
+      this._logger.info("Public technician retrieved successfully", {
         ...context,
         technicianName: result.data?.technician?.displayName,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get public technician controller error", {
+      this._logger.error("Get public technician controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -175,12 +175,12 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching all technicians (admin)", context);
+      this._logger.info("Fetching all technicians (admin)", context);
 
       const result: TechnicianListResponseDto =
-        await this.technicianService.getAllTechnicians(filters);
+        await this._technicianService.getAllTechnicians(filters);
 
-      this.logger.info("All technicians retrieved successfully (admin)", {
+      this._logger.info("All technicians retrieved successfully (admin)", {
         ...context,
         count: result.data?.technicians?.length,
         total: result.data?.pagination?.total,
@@ -188,7 +188,7 @@ export class TechnicianManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technicians controller error", {
+      this._logger.error("Get technicians controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -208,12 +208,12 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching technician by ID (admin)", context);
+      this._logger.info("Fetching technician by ID (admin)", context);
 
       const result: SingleTechnicianResponseDto =
-        await this.technicianService.getTechnicianById(id);
+        await this._technicianService.getTechnicianById(id);
 
-      this.logger.info("Technician retrieved successfully (admin)", {
+      this._logger.info("Technician retrieved successfully (admin)", {
         ...context,
         technicianName: result.data?.technician?.displayName,
         status: result.data?.technician?.status,
@@ -221,7 +221,7 @@ export class TechnicianManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician controller error", {
+      this._logger.error("Get technician controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -249,12 +249,12 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Updating technician status", context);
+      this._logger.info("Updating technician status", context);
 
       const result: SingleTechnicianResponseDto =
-        await this.technicianService.updateTechnicianStatus(id, statusData);
+        await this._technicianService.updateTechnicianStatus(id, statusData);
 
-      this.logger.info("Technician status updated successfully", {
+      this._logger.info("Technician status updated successfully", {
         ...context,
         technicianName: result.data?.technician?.displayName,
         previousStatus: result.data?.technician?.status,
@@ -262,7 +262,7 @@ export class TechnicianManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Update technician status controller error", {
+      this._logger.error("Update technician status controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -280,19 +280,19 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching technician statistics", context);
+      this._logger.info("Fetching technician statistics", context);
 
       const result: TechnicianStatsResponseDto =
-        await this.technicianService.getTechnicianStats();
+        await this._technicianService.getTechnicianStats();
 
-      this.logger.info("Technician statistics retrieved successfully", {
+      this._logger.info("Technician statistics retrieved successfully", {
         ...context,
         stats: result.data,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician stats controller error", {
+      this._logger.error("Get technician stats controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -315,12 +315,12 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching pending applications", context);
+      this._logger.info("Fetching pending applications", context);
 
       const result: ApplicationListResponseDto =
-        await this.technicianService.getPendingApplications(filters);
+        await this._technicianService.getPendingApplications(filters);
 
-      this.logger.info("Pending applications retrieved successfully", {
+      this._logger.info("Pending applications retrieved successfully", {
         ...context,
         count: result.data?.applications?.length,
         total: result.data?.pagination?.total,
@@ -328,7 +328,7 @@ export class TechnicianManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get pending applications controller error", {
+      this._logger.error("Get pending applications controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -353,19 +353,19 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Approving technician application", context);
+      this._logger.info("Approving technician application", context);
 
       const result: ApplicationListResponseDto =
-        await this.technicianService.approveApplication(id);
+        await this._technicianService.approveApplication(id);
 
-      this.logger.info("Application approved successfully", {
+      this._logger.info("Application approved successfully", {
         ...context,
         technicianId: result.data?.applications?.[0]?.technicianId,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Approve application controller error", {
+      this._logger.error("Approve application controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -393,10 +393,10 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Rejecting technician application", context);
+      this._logger.info("Rejecting technician application", context);
 
       if (!rejectData.rejectionReason) {
-        this.logger.warn("Rejection failed - reason required", context);
+        this._logger.warn("Rejection failed - reason required", context);
         const badRequestResponse = ResponseHelper.badRequest(
           "Rejection reason is required"
         );
@@ -404,16 +404,16 @@ export class TechnicianManagementController {
         return;
       }
 
-      this.logger.debug("Calling service to reject application", context);
+      this._logger.debug("Calling service to reject application", context);
 
       const result: ApplicationListResponseDto =
-        await this.technicianService.rejectApplication(id, rejectData);
+        await this._technicianService.rejectApplication(id, rejectData);
 
-      this.logger.info("Application rejected successfully", context);
+      this._logger.info("Application rejected successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Reject application controller error", {
+      this._logger.error("Reject application controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -433,12 +433,12 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching application by ID", context);
+      this._logger.info("Fetching application by ID", context);
 
       const result: ApplicationListResponseDto =
-        await this.technicianService.getApplicationById(id);
+        await this._technicianService.getApplicationById(id);
 
-      this.logger.info("Application retrieved successfully", {
+      this._logger.info("Application retrieved successfully", {
         ...context,
         technicianId: result.data?.applications?.[0]?.technicianId,
         status: result.data?.applications?.[0]?.status,
@@ -446,7 +446,7 @@ export class TechnicianManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get application controller error", {
+      this._logger.error("Get application controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -464,19 +464,19 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching application statistics", context);
+      this._logger.info("Fetching application statistics", context);
 
       const result: ApplicationStatsResponseDto =
-        await this.technicianService.getApplicationStats();
+        await this._technicianService.getApplicationStats();
 
-      this.logger.info("Application statistics retrieved successfully", {
+      this._logger.info("Application statistics retrieved successfully", {
         ...context,
         stats: result.data,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get application stats controller error", {
+      this._logger.error("Get application stats controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -499,14 +499,14 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching technician by application ID", context);
+      this._logger.info("Fetching technician by application ID", context);
 
       const result: TechnicianListResponseDto =
-        await this.technicianService.getTechnicianByApplicationId(
+        await this._technicianService.getTechnicianByApplicationId(
           applicationId
         );
 
-      this.logger.info("Technician by application retrieved successfully", {
+      this._logger.info("Technician by application retrieved successfully", {
         ...context,
         technicianId: result.data?.technicians?.[0]?._id,
         technicianName: result.data?.technicians?.[0]?.displayName,
@@ -514,7 +514,7 @@ export class TechnicianManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician by application controller error", {
+      this._logger.error("Get technician by application controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -530,7 +530,7 @@ export class TechnicianManagementController {
   ): Promise<void> => {
     try {
       const { id } = req.params;
-      const result = await this.technicianService.getTechnicianSlotRules(id);
+      const result = await this._technicianService.getTechnicianSlotRules(id);
 
       if (!result.success) {
         res.status(400).json(result);
@@ -555,7 +555,7 @@ export class TechnicianManagementController {
       const { id } = req.params;
       const { startDate, endDate } = req.query;
 
-      const result = await this.technicianService.getTechnicianAvailability(
+      const result = await this._technicianService.getTechnicianAvailability(
         id,
         startDate as string,
         endDate as string
@@ -593,16 +593,16 @@ export class TechnicianManagementController {
     };
 
     try {
-      this.logger.info("Fetching public technician availability", context);
+      this._logger.info("Fetching public technician availability", context);
 
       const result =
-        await this.technicianService.getTechnicianPublicAvailability(
+        await this._technicianService.getTechnicianPublicAvailability(
           technicianId,
           startDate as string,
           endDate as string
         );
 
-      this.logger.info(
+      this._logger.info(
         "Public technician availability retrieved successfully",
         {
           ...context,
@@ -612,7 +612,7 @@ export class TechnicianManagementController {
 
       res.status(result.statusCode || 200).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician public availability controller error", {
+      this._logger.error("Get technician public availability controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

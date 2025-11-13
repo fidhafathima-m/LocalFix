@@ -13,14 +13,14 @@ import { LoggerService } from "../services/LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ItemService implements IItemService {
-  private itemRepository: IItemRepository;
-  private itemMapper: ItemMapper;
-  private logger: ILogger;
+  private _itemRepository: IItemRepository;
+  private _itemMapper: ItemMapper;
+  private _logger: ILogger;
 
   constructor(itemRepository: IItemRepository, logger: ILogger) {
-    this.itemRepository = itemRepository;
-    this.itemMapper = new ItemMapper();
-    this.logger = logger;
+    this._itemRepository = itemRepository;
+    this._itemMapper = new ItemMapper();
+    this._logger = logger;
   }
 
   async createItem(createDto: CreateItemDto): Promise<ItemResponseDto> {
@@ -33,12 +33,12 @@ export class ItemService implements IItemService {
     };
 
     try {
-      this.logger.info('Creating new item', context);
+      this._logger.info('Creating new item', context);
 
       // Check if item with same name already exists for this service
-      const existingItem = await this.itemRepository.findByName(createDto.name);
+      const existingItem = await this._itemRepository.findByName(createDto.name);
       if (existingItem) {
-        this.logger.warn('Item creation failed - item already exists', {
+        this._logger.warn('Item creation failed - item already exists', {
           ...context,
           existingItemId: existingItem._id.toString()
         });
@@ -47,27 +47,27 @@ export class ItemService implements IItemService {
 
       // Validate service ID
       if (!Types.ObjectId.isValid(createDto.serviceId)) {
-        this.logger.warn('Item creation failed - invalid service ID', context);
+        this._logger.warn('Item creation failed - invalid service ID', context);
         throw new Error(ITEM_MESSAGES.INVALID_SERVICE_ID);
       }
 
-      this.logger.debug('Creating item in repository', context);
+      this._logger.debug('Creating item in repository', context);
 
-      const item = await this.itemRepository.create({
+      const item = await this._itemRepository.create({
         ...createDto,
         serviceId: new Types.ObjectId(createDto.serviceId),
         isActive: createDto.isActive ?? true,
       });
 
-      this.logger.info('Item created successfully', {
+      this._logger.info('Item created successfully', {
         ...context,
         itemId: item._id.toString(),
         serviceId: item.serviceId.toString()
       });
 
-      return this.itemMapper.toItemResponseDto(item);
+      return this._itemMapper.toItemResponseDto(item);
     } catch (error: any) {
-      this.logger.error('Create item error', {
+      this._logger.error('Create item error', {
         ...context,
         error: error.message,
         stack: error.stack
@@ -84,23 +84,23 @@ export class ItemService implements IItemService {
     };
 
     try {
-      this.logger.info('Fetching item by ID', context);
+      this._logger.info('Fetching item by ID', context);
 
-      const item = await this.itemRepository.findById(itemId);
+      const item = await this._itemRepository.findById(itemId);
       if (!item) {
-        this.logger.warn('Item not found', context);
+        this._logger.warn('Item not found', context);
         throw new Error(ITEM_MESSAGES.ITEM_NOT_FOUND);
       }
 
-      this.logger.info('Item retrieved successfully', {
+      this._logger.info('Item retrieved successfully', {
         ...context,
         itemName: item.name,
         serviceId: item.serviceId.toString()
       });
 
-      return this.itemMapper.toItemResponseDto(item);
+      return this._itemMapper.toItemResponseDto(item);
     } catch (error: any) {
-      this.logger.error('Get item by ID error', {
+      this._logger.error('Get item by ID error', {
         ...context,
         error: error.message,
         stack: error.stack
@@ -125,10 +125,10 @@ export class ItemService implements IItemService {
     };
 
     try {
-      this.logger.info('Fetching items by service ID', context);
+      this._logger.info('Fetching items by service ID', context);
 
       if (!Types.ObjectId.isValid(serviceId)) {
-        this.logger.warn('Invalid service ID provided', context);
+        this._logger.warn('Invalid service ID provided', context);
         throw new Error(ITEM_MESSAGES.INVALID_SERVICE_ID);
       }
 
@@ -137,32 +137,32 @@ export class ItemService implements IItemService {
       let total: number;
 
       if (search) {
-        this.logger.debug('Searching items by service with query', {
+        this._logger.debug('Searching items by service with query', {
           ...context,
           searchQuery: search
         });
-        items = await this.itemRepository.searchByService(
+        items = await this._itemRepository.searchByService(
           serviceId,
           search,
           limit
         );
         total = items.length;
       } else {
-        this.logger.debug('Fetching all items by service', context);
-        items = await this.itemRepository.findAll({ serviceId }, skip, limit);
-        total = await this.itemRepository.count({ serviceId });
+        this._logger.debug('Fetching all items by service', context);
+        items = await this._itemRepository.findAll({ serviceId }, skip, limit);
+        total = await this._itemRepository.count({ serviceId });
       }
 
-      this.logger.info('Items by service retrieved successfully', {
+      this._logger.info('Items by service retrieved successfully', {
         ...context,
         itemsCount: items.length,
         totalItems: total,
         hasSearch: !!search
       });
 
-      return this.itemMapper.toItemListResponseDto(items, total, page, limit);
+      return this._itemMapper.toItemListResponseDto(items, total, page, limit);
     } catch (error: any) {
-      this.logger.error('Get items by service error', {
+      this._logger.error('Get items by service error', {
         ...context,
         error: error.message,
         stack: error.stack
@@ -185,35 +185,35 @@ export class ItemService implements IItemService {
     };
 
     try {
-      this.logger.info('Fetching all items', context);
+      this._logger.info('Fetching all items', context);
 
       const skip = (page - 1) * limit;
       let items: any[];
       let total: number;
 
       if (search) {
-        this.logger.debug('Searching items with query', {
+        this._logger.debug('Searching items with query', {
           ...context,
           searchQuery: search
         });
-        items = await this.itemRepository.search(search, limit);
+        items = await this._itemRepository.search(search, limit);
         total = items.length;
       } else {
-        this.logger.debug('Fetching all items without search', context);
-        items = await this.itemRepository.findAll({}, skip, limit);
-        total = await this.itemRepository.count();
+        this._logger.debug('Fetching all items without search', context);
+        items = await this._itemRepository.findAll({}, skip, limit);
+        total = await this._itemRepository.count();
       }
 
-      this.logger.info('All items retrieved successfully', {
+      this._logger.info('All items retrieved successfully', {
         ...context,
         itemsCount: items.length,
         totalItems: total,
         hasSearch: !!search
       });
 
-      return this.itemMapper.toItemListResponseDto(items, total, page, limit);
+      return this._itemMapper.toItemListResponseDto(items, total, page, limit);
     } catch (error: any) {
-      this.logger.error('Get all items error', {
+      this._logger.error('Get all items error', {
         ...context,
         error: error.message,
         stack: error.stack
@@ -234,28 +234,28 @@ export class ItemService implements IItemService {
     };
 
     try {
-      this.logger.info('Updating item', context);
+      this._logger.info('Updating item', context);
 
       // Check if item exists
-      const existingItem = await this.itemRepository.findById(itemId);
+      const existingItem = await this._itemRepository.findById(itemId);
       if (!existingItem) {
-        this.logger.warn('Update failed - item not found', context);
+        this._logger.warn('Update failed - item not found', context);
         throw new Error(ITEM_MESSAGES.ITEM_NOT_FOUND);
       }
 
       // If name is being updated, check for duplicates
       if (updateDto.name && updateDto.name !== existingItem.name) {
-        this.logger.debug('Checking for duplicate item name', {
+        this._logger.debug('Checking for duplicate item name', {
           ...context,
           newName: updateDto.name,
           oldName: existingItem.name
         });
         
-        const duplicateItem = await this.itemRepository.findByName(
+        const duplicateItem = await this._itemRepository.findByName(
           updateDto.name
         );
         if (duplicateItem && duplicateItem._id.toString() !== itemId) {
-          this.logger.warn('Update failed - item name already exists', {
+          this._logger.warn('Update failed - item name already exists', {
             ...context,
             duplicateItemId: duplicateItem._id.toString()
           });
@@ -263,26 +263,26 @@ export class ItemService implements IItemService {
         }
       }
 
-      this.logger.debug('Updating item in repository', {
+      this._logger.debug('Updating item in repository', {
         ...context,
         updateData: updateDto
       });
 
-      const updatedItem = await this.itemRepository.update(itemId, updateDto);
+      const updatedItem = await this._itemRepository.update(itemId, updateDto);
       if (!updatedItem) {
-        this.logger.error('Update failed - repository returned null', context);
+        this._logger.error('Update failed - repository returned null', context);
         throw new Error(ITEM_MESSAGES.FAILED_UPDATE_ITEM);
       }
 
-      this.logger.info('Item updated successfully', {
+      this._logger.info('Item updated successfully', {
         ...context,
         itemName: updatedItem.name,
         updatedFieldCount: Object.keys(updateDto).length
       });
 
-      return this.itemMapper.toItemResponseDto(updatedItem);
+      return this._itemMapper.toItemResponseDto(updatedItem);
     } catch (error: any) {
-      this.logger.error('Update item error', {
+      this._logger.error('Update item error', {
         ...context,
         error: error.message,
         stack: error.stack
@@ -299,29 +299,29 @@ export class ItemService implements IItemService {
     };
 
     try {
-      this.logger.info('Deleting item', context);
+      this._logger.info('Deleting item', context);
 
       // Check if item exists
-      const existingItem = await this.itemRepository.findById(itemId);
+      const existingItem = await this._itemRepository.findById(itemId);
       if (!existingItem) {
-        this.logger.warn('Delete failed - item not found', context);
+        this._logger.warn('Delete failed - item not found', context);
         throw new Error(ITEM_MESSAGES.ITEM_NOT_FOUND);
       }
 
-      this.logger.debug('Deleting item from repository', {
+      this._logger.debug('Deleting item from repository', {
         ...context,
         itemName: existingItem.name
       });
 
-      const deleted = await this.itemRepository.delete(itemId);
+      const deleted = await this._itemRepository.delete(itemId);
       if (!deleted) {
-        this.logger.error('Delete failed - repository returned false', context);
+        this._logger.error('Delete failed - repository returned false', context);
         throw new Error(ITEM_MESSAGES.FAILED_DELETE_ITEM);
       }
 
-      this.logger.info('Item deleted successfully', context);
+      this._logger.info('Item deleted successfully', context);
     } catch (error: any) {
-      this.logger.error('Delete item error', {
+      this._logger.error('Delete item error', {
         ...context,
         error: error.message,
         stack: error.stack
@@ -342,18 +342,18 @@ export class ItemService implements IItemService {
     };
 
     try {
-      this.logger.info('Searching items', context);
+      this._logger.info('Searching items', context);
 
-      const items = await this.itemRepository.search(query, limit);
+      const items = await this._itemRepository.search(query, limit);
 
-      this.logger.info('Item search completed', {
+      this._logger.info('Item search completed', {
         ...context,
         resultsCount: items.length
       });
 
-      return items.map((item) => this.itemMapper.toItemResponseDto(item));
+      return items.map((item) => this._itemMapper.toItemResponseDto(item));
     } catch (error: any) {
-      this.logger.error('Search items error', {
+      this._logger.error('Search items error', {
         ...context,
         error: error.message,
         stack: error.stack

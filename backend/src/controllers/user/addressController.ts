@@ -12,15 +12,15 @@ import { AuthRequest } from "@/middleware/authMiddleware";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class AddressController {
-  private addressService: IAddressService;
-  private logger: ILogger;
+  private _addressService: IAddressService;
+  private _logger: ILogger;
 
   constructor(
     addressService: IAddressService,
     logger: ILogger
   ) {
-    this.addressService = addressService;
-    this.logger = logger;
+    this._addressService = addressService;
+    this._logger = logger;
   }
 
   // Get all addresses for user
@@ -33,10 +33,10 @@ export class AddressController {
     };
 
     try {
-      this.logger.info("Fetching user addresses", context);
+      this._logger.info("Fetching user addresses", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get user addresses failed - authentication required",
           context
         );
@@ -48,16 +48,16 @@ export class AddressController {
       }
 
       const result: AddressListResponseDto =
-        await this.addressService.getUserAddresses(userId);
+        await this._addressService.getUserAddresses(userId);
 
-      this.logger.info("User addresses retrieved successfully", {
+      this._logger.info("User addresses retrieved successfully", {
         ...context,
         addressCount: result?.addresses?.length,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get user addresses controller error", {
+      this._logger.error("Get user addresses controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -81,10 +81,10 @@ export class AddressController {
     };
 
     try {
-      this.logger.info("Creating new address", context);
+      this._logger.info("Creating new address", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Create address failed - authentication required",
           context
         );
@@ -96,7 +96,7 @@ export class AddressController {
       }
 
       // Log address data (excluding sensitive information)
-      this.logger.debug("Address creation data", {
+      this._logger.debug("Address creation data", {
         ...context,
         hasStreet: !!addressData.street,
         hasCity: !!addressData.city,
@@ -105,9 +105,9 @@ export class AddressController {
       });
 
       const result: AddressResponseDto =
-        await this.addressService.createAddress(userId, addressData);
+        await this._addressService.createAddress(userId, addressData);
 
-      this.logger.info("Address created successfully", {
+      this._logger.info("Address created successfully", {
         ...context,
         addressId: result?.address?.id,
         isDefault: result?.address?.isDefault,
@@ -115,7 +115,7 @@ export class AddressController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Create address controller error", {
+      this._logger.error("Create address controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -141,10 +141,10 @@ export class AddressController {
     };
 
     try {
-      this.logger.info("Updating address", context);
+      this._logger.info("Updating address", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update address failed - authentication required",
           context
         );
@@ -156,7 +156,7 @@ export class AddressController {
       }
 
       if (Object.keys(addressData).length === 0) {
-        this.logger.warn(
+        this._logger.warn(
           "Update address failed - no fields to update",
           context
         );
@@ -167,22 +167,22 @@ export class AddressController {
         return;
       }
 
-      this.logger.debug("Address update data", {
+      this._logger.debug("Address update data", {
         ...context,
         updateFields: addressData,
       });
 
       const result: AddressResponseDto =
-        await this.addressService.updateAddress(userId, addressId, addressData);
+        await this._addressService.updateAddress(userId, addressId, addressData);
 
-      this.logger.info("Address updated successfully", {
+      this._logger.info("Address updated successfully", {
         ...context,
         updatedFieldCount: Object.keys(addressData).length,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Update address controller error", {
+      this._logger.error("Update address controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -206,10 +206,10 @@ export class AddressController {
     };
 
     try {
-      this.logger.info("Deleting address", context);
+      this._logger.info("Deleting address", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Delete address failed - authentication required",
           context
         );
@@ -221,13 +221,13 @@ export class AddressController {
       }
 
       const result: AddressResponseDto =
-        await this.addressService.deleteAddress(userId, addressId);
+        await this._addressService.deleteAddress(userId, addressId);
 
-      this.logger.info("Address deleted successfully", context);
+      this._logger.info("Address deleted successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Delete address controller error", {
+      this._logger.error("Delete address controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -254,10 +254,10 @@ export class AddressController {
     };
 
     try {
-      this.logger.info("Setting default address", context);
+      this._logger.info("Setting default address", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Set default address failed - authentication required",
           context
         );
@@ -269,13 +269,13 @@ export class AddressController {
       }
 
       const result: AddressResponseDto =
-        await this.addressService.setDefaultAddress(userId, addressId);
+        await this._addressService.setDefaultAddress(userId, addressId);
 
-      this.logger.info("Default address set successfully", context);
+      this._logger.info("Default address set successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Set default address controller error", {
+      this._logger.error("Set default address controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -299,10 +299,10 @@ export class AddressController {
     };
 
     try {
-      this.logger.info("Fetching address by ID", context);
+      this._logger.info("Fetching address by ID", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get address by ID failed - authentication required",
           context
         );
@@ -314,9 +314,9 @@ export class AddressController {
       }
 
       const result: AddressResponseDto =
-        await this.addressService.getAddressById(userId, addressId);
+        await this._addressService.getAddressById(userId, addressId);
 
-      this.logger.info("Address retrieved successfully", {
+      this._logger.info("Address retrieved successfully", {
         ...context,
         addressType: result.address?.label,
         isDefault: result?.address?.isDefault,
@@ -324,7 +324,7 @@ export class AddressController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get address by ID controller error", {
+      this._logger.error("Get address by ID controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

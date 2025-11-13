@@ -12,12 +12,12 @@ import { LoggerService } from "./LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class UserLocationService implements IUserLocationService {
-  private userLocationRepository: IUserLocationRepository;
-  private logger: ILogger;
+  private _userLocationRepository: IUserLocationRepository;
+  private _logger: ILogger;
 
   constructor(userLocationRepository: IUserLocationRepository, logger: ILogger) {
-    this.userLocationRepository = userLocationRepository;
-    this.logger = logger;
+    this._userLocationRepository = userLocationRepository;
+    this._logger = logger;
   }
 
   async updateUserLocation(
@@ -31,13 +31,13 @@ export class UserLocationService implements IUserLocationService {
       timestamp: new Date().toString(),
     };
     try {
-      this.logger.info("Updating user location", context);
-      const userLocation = await this.userLocationRepository.createOrUpdate(
+      this._logger.info("Updating user location", context);
+      const userLocation = await this._userLocationRepository.createOrUpdate(
         userId,
         locationData
       );
 
-      this.logger.info("Created or updated user location", {
+      this._logger.info("Created or updated user location", {
         ...context,
         data: userLocation,
       });
@@ -48,7 +48,7 @@ export class UserLocationService implements IUserLocationService {
       };
     } catch (error: any) {
       console.error("Error updating user location:", error);
-      this.logger.error("Failed to update user location", {
+      this._logger.error("Failed to update user location", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
@@ -69,14 +69,14 @@ export class UserLocationService implements IUserLocationService {
       timestamp: new Date().toString(),
     };
     try {
-      this.logger.info("Updating user location", context);
+      this._logger.info("Updating user location", context);
 
-      const userLocation = await this.userLocationRepository.findOneByUserId(
+      const userLocation = await this._userLocationRepository.findOneByUserId(
         userId
       );
 
       if (!userLocation) {
-        this.logger.warn("Location not found", {
+        this._logger.warn("Location not found", {
           ...context,
           userLocation,
         });
@@ -86,7 +86,7 @@ export class UserLocationService implements IUserLocationService {
         };
       }
 
-      this.logger.info("User location found", {
+      this._logger.info("User location found", {
         ...context,
         data: userLocation,
       });
@@ -97,7 +97,7 @@ export class UserLocationService implements IUserLocationService {
       };
     } catch (error: any) {
       console.error("Error getting user location:", error);
-      this.logger.error("Failed to get user location", {
+      this._logger.error("Failed to get user location", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
@@ -116,11 +116,11 @@ export class UserLocationService implements IUserLocationService {
       timestamp: new Date().toString(),
     };
     try {
-      this.logger.info("deleting user location", context);
+      this._logger.info("deleting user location", context);
 
-      await this.userLocationRepository.deleteByUserId(userId);
+      await this._userLocationRepository.deleteByUserId(userId);
 
-      this.logger.info("User location deleted", context);
+      this._logger.info("User location deleted", context);
 
       return {
         success: true,
@@ -128,7 +128,7 @@ export class UserLocationService implements IUserLocationService {
       };
     } catch (error: any) {
       console.error("Error deleting user location:", error);
-      this.logger.error("Failed to delete user location", {
+      this._logger.error("Failed to delete user location", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
@@ -153,16 +153,16 @@ export class UserLocationService implements IUserLocationService {
       timestamp: new Date().toString(),
     };
     try {
-      this.logger.info("Finding technicaians nearby", context);
+      this._logger.info("Finding technicaians nearby", context);
       const radiusInMeters = radiusKm * 1000;
       const nearbyTechnicians =
-        await this.userLocationRepository.findNearbyTechnicians(
+        await this._userLocationRepository.findNearbyTechnicians(
           userCoordinates,
           radiusInMeters,
           serviceName || undefined
         );
 
-      this.logger.info("Nearby techncins found", {
+      this._logger.info("Nearby techncins found", {
         ...context,
         data: nearbyTechnicians,
         count: nearbyTechnicians.length,
@@ -175,7 +175,7 @@ export class UserLocationService implements IUserLocationService {
       };
     } catch (error: any) {
       console.error("Error finding nearby technicians:", error);
-      this.logger.error("Failed to find nearby technicins", {
+      this._logger.error("Failed to find nearby technicins", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,

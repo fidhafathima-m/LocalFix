@@ -9,18 +9,17 @@ import {
 import { CategoryMapper } from "../mappers/categoryMapper";
 import { CATEGORY_MESSAGES } from "../constants";
 import { Service } from "../models/category/serviceSchema";
-import { LoggerService } from "../services/LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class CategoryService implements ICategoryService {
-  private categoryRepository: ICategoryRepository;
-  private categoryMapper: CategoryMapper;
-  private logger: ILogger
+  private _categoryRepository: ICategoryRepository;
+  private _categoryMapper: CategoryMapper;
+  private _logger: ILogger
 
   constructor(categoryRepository: ICategoryRepository, logger: ILogger) {
-    this.categoryRepository = categoryRepository;
-    this.categoryMapper = new CategoryMapper();
-    this.logger = logger;
+    this._categoryRepository = categoryRepository;
+    this._categoryMapper = new CategoryMapper();
+    this._logger = logger;
   }
 
   async createCategory(
@@ -36,39 +35,39 @@ export class CategoryService implements ICategoryService {
     };
 
     try {
-      this.logger.info('Creating new category', context);
+      this._logger.info('Creating new category', context);
 
       // Check if category with same name already exists
-      this.logger.debug('Checking for existing category with same name', {
+      this._logger.debug('Checking for existing category with same name', {
         ...context,
         categoryName: createDto.name
       });
 
-      const existingCategory = await this.categoryRepository.findByName(
+      const existingCategory = await this._categoryRepository.findByName(
         createDto.name
       );
       
       if (existingCategory) {
-        this.logger.warn('Category creation failed - category already exists', {
+        this._logger.warn('Category creation failed - category already exists', {
           ...context,
           existingCategoryId: existingCategory._id?.toString()
         });
         throw new Error(CATEGORY_MESSAGES.CATEGORY_ALREADY_EXISTS);
       }
 
-      this.logger.debug('No duplicate found, proceeding with category creation', context);
+      this._logger.debug('No duplicate found, proceeding with category creation', context);
 
-      const category = await this.categoryRepository.create(createDto);
+      const category = await this._categoryRepository.create(createDto);
       
-      this.logger.info('Category created successfully', {
+      this._logger.info('Category created successfully', {
         ...context,
         categoryId: category._id?.toString()
       });
 
-      return this.categoryMapper.toCategoryResponseDto(category);
+      return this._categoryMapper.toCategoryResponseDto(category);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Create category operation failed', {
+      this._logger.error('Create category operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -84,16 +83,16 @@ export class CategoryService implements ICategoryService {
     };
 
     try {
-      this.logger.info('Fetching category by ID', context);
+      this._logger.info('Fetching category by ID', context);
 
-      const category = await this.categoryRepository.findById(categoryId);
+      const category = await this._categoryRepository.findById(categoryId);
       
       if (!category) {
-        this.logger.warn('Category not found by ID', context);
+        this._logger.warn('Category not found by ID', context);
         throw new Error(CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
       }
 
-      this.logger.debug('Category found, counting active services', {
+      this._logger.debug('Category found, counting active services', {
         ...context,
         categoryName: category.name
       });
@@ -103,7 +102,7 @@ export class CategoryService implements ICategoryService {
         status: "active",
       });
 
-      this.logger.debug('Service count retrieved', {
+      this._logger.debug('Service count retrieved', {
         ...context,
         serviceCount
       });
@@ -113,16 +112,16 @@ export class CategoryService implements ICategoryService {
         serviceCount,
       };
 
-      this.logger.info('Category retrieved successfully with service count', {
+      this._logger.info('Category retrieved successfully with service count', {
         ...context,
         categoryId: category._id?.toString(),
         serviceCount
       });
 
-      return this.categoryMapper.toCategoryResponseDto(categoryWithCount);
+      return this._categoryMapper.toCategoryResponseDto(categoryWithCount);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Get category by ID operation failed', {
+      this._logger.error('Get category by ID operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -138,25 +137,25 @@ export class CategoryService implements ICategoryService {
     };
 
     try {
-      this.logger.info('Fetching category by slug', context);
+      this._logger.info('Fetching category by slug', context);
 
-      const category = await this.categoryRepository.findBySlug(slug);
+      const category = await this._categoryRepository.findBySlug(slug);
       
       if (!category) {
-        this.logger.warn('Category not found by slug', context);
+        this._logger.warn('Category not found by slug', context);
         throw new Error(CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
       }
 
-      this.logger.info('Category retrieved successfully by slug', {
+      this._logger.info('Category retrieved successfully by slug', {
         ...context,
         categoryId: category._id?.toString(),
         categoryName: category.name
       });
 
-      return this.categoryMapper.toCategoryResponseDto(category);
+      return this._categoryMapper.toCategoryResponseDto(category);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Get category by slug operation failed', {
+      this._logger.error('Get category by slug operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -181,43 +180,43 @@ export class CategoryService implements ICategoryService {
     };
 
     try {
-      this.logger.info('Fetching all categories', context);
+      this._logger.info('Fetching all categories', context);
 
       const skip = (page - 1) * limit;
       let categories: any[];
       let total: number;
 
       if (search) {
-        this.logger.debug('Performing search for categories', {
+        this._logger.debug('Performing search for categories', {
           ...context,
           searchQuery: search
         });
 
-        categories = await this.categoryRepository.search(search, limit);
+        categories = await this._categoryRepository.search(search, limit);
         total = categories.length;
 
-        this.logger.debug('Search completed', {
+        this._logger.debug('Search completed', {
           ...context,
           categoriesFound: categories.length
         });
       } else {
-        this.logger.debug('Fetching all categories with pagination', {
+        this._logger.debug('Fetching all categories with pagination', {
           ...context,
           skip,
           limit
         });
 
-        categories = await this.categoryRepository.findAll({}, skip, limit);
-        total = await this.categoryRepository.count();
+        categories = await this._categoryRepository.findAll({}, skip, limit);
+        total = await this._categoryRepository.count();
 
-        this.logger.debug('Categories retrieved from repository', {
+        this._logger.debug('Categories retrieved from repository', {
           ...context,
           categoriesCount: categories.length,
           totalCount: total
         });
       }
 
-      this.logger.debug('Counting services for each category', {
+      this._logger.debug('Counting services for each category', {
         ...context,
         categoriesToProcess: categories.length
       });
@@ -236,19 +235,19 @@ export class CategoryService implements ICategoryService {
         })
       );
 
-      this.logger.debug('Service counts calculated for all categories', {
+      this._logger.debug('Service counts calculated for all categories', {
         ...context,
         processedCategories: categoriesWithCounts.length
       });
 
-      const result = this.categoryMapper.toCategoryListResponseDto(
+      const result = this._categoryMapper.toCategoryListResponseDto(
         categoriesWithCounts,
         total,
         page,
         limit
       );
 
-      this.logger.info('All categories retrieved successfully', {
+      this._logger.info('All categories retrieved successfully', {
         ...context,
         totalCategories: total,
         returnedCategories: result.categories.length,
@@ -257,7 +256,7 @@ export class CategoryService implements ICategoryService {
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Get all categories operation failed', {
+      this._logger.error('Get all categories operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -279,21 +278,21 @@ export class CategoryService implements ICategoryService {
     };
 
     try {
-      this.logger.info('Updating category', context);
+      this._logger.info('Updating category', context);
 
       // Check if category exists
-      this.logger.debug('Checking if category exists', context);
+      this._logger.debug('Checking if category exists', context);
       
-      const existingCategory = await this.categoryRepository.findById(
+      const existingCategory = await this._categoryRepository.findById(
         categoryId
       );
       
       if (!existingCategory) {
-        this.logger.warn('Category not found for update', context);
+        this._logger.warn('Category not found for update', context);
         throw new Error(CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
       }
 
-      this.logger.debug('Category found, checking for name changes', {
+      this._logger.debug('Category found, checking for name changes', {
         ...context,
         currentName: existingCategory.name,
         newName: updateDto.name
@@ -301,12 +300,12 @@ export class CategoryService implements ICategoryService {
 
       // If name is being updated, check for duplicates
       if (updateDto.name && updateDto.name !== existingCategory.name) {
-        this.logger.debug('Category name is being changed, checking for duplicates', {
+        this._logger.debug('Category name is being changed, checking for duplicates', {
           ...context,
           newName: updateDto.name
         });
 
-        const duplicateCategory = await this.categoryRepository.findByName(
+        const duplicateCategory = await this._categoryRepository.findByName(
           updateDto.name
         );
         
@@ -314,37 +313,37 @@ export class CategoryService implements ICategoryService {
           duplicateCategory &&
           duplicateCategory._id.toString() !== categoryId
         ) {
-          this.logger.warn('Category update failed - duplicate name found', {
+          this._logger.warn('Category update failed - duplicate name found', {
             ...context,
             duplicateCategoryId: duplicateCategory._id?.toString()
           });
           throw new Error(CATEGORY_MESSAGES.CATEGORY_ALREADY_EXISTS);
         }
 
-        this.logger.debug('No duplicate name found, proceeding with update', context);
+        this._logger.debug('No duplicate name found, proceeding with update', context);
       }
 
-      this.logger.debug('Performing category update in repository', context);
+      this._logger.debug('Performing category update in repository', context);
 
-      const updatedCategory = await this.categoryRepository.update(
+      const updatedCategory = await this._categoryRepository.update(
         categoryId,
         updateDto
       );
       
       if (!updatedCategory) {
-        this.logger.error('Category repository update returned null', context);
+        this._logger.error('Category repository update returned null', context);
         throw new Error(CATEGORY_MESSAGES.FAILED_UPDATE_CATEGORY);
       }
 
-      this.logger.info('Category updated successfully', {
+      this._logger.info('Category updated successfully', {
         ...context,
         categoryId: updatedCategory._id?.toString()
       });
 
-      return this.categoryMapper.toCategoryResponseDto(updatedCategory);
+      return this._categoryMapper.toCategoryResponseDto(updatedCategory);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Update category operation failed', {
+      this._logger.error('Update category operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -360,36 +359,36 @@ export class CategoryService implements ICategoryService {
     };
 
     try {
-      this.logger.info('Deleting category', context);
+      this._logger.info('Deleting category', context);
 
       // Check if category exists
-      this.logger.debug('Checking if category exists for deletion', context);
+      this._logger.debug('Checking if category exists for deletion', context);
       
-      const existingCategory = await this.categoryRepository.findById(
+      const existingCategory = await this._categoryRepository.findById(
         categoryId
       );
       
       if (!existingCategory) {
-        this.logger.warn('Category not found for deletion', context);
+        this._logger.warn('Category not found for deletion', context);
         throw new Error(CATEGORY_MESSAGES.CATEGORY_NOT_FOUND);
       }
 
-      this.logger.debug('Category found, proceeding with deletion', {
+      this._logger.debug('Category found, proceeding with deletion', {
         ...context,
         categoryName: existingCategory.name
       });
 
-      const deleted = await this.categoryRepository.delete(categoryId);
+      const deleted = await this._categoryRepository.delete(categoryId);
       
       if (!deleted) {
-        this.logger.error('Category repository deletion returned false', context);
+        this._logger.error('Category repository deletion returned false', context);
         throw new Error(CATEGORY_MESSAGES.FAILED_DELETE_CATEGORY);
       }
 
-      this.logger.info('Category deleted successfully', context);
+      this._logger.info('Category deleted successfully', context);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Delete category operation failed', {
+      this._logger.error('Delete category operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined
@@ -411,23 +410,23 @@ export class CategoryService implements ICategoryService {
     };
 
     try {
-      this.logger.info('Searching categories', context);
+      this._logger.info('Searching categories', context);
 
-      this.logger.debug('Performing search in repository', context);
+      this._logger.debug('Performing search in repository', context);
 
-      const categories = await this.categoryRepository.search(query, limit);
+      const categories = await this._categoryRepository.search(query, limit);
 
-      this.logger.info('Category search completed successfully', {
+      this._logger.info('Category search completed successfully', {
         ...context,
         categoriesFound: categories.length
       });
 
       return categories.map((category) =>
-        this.categoryMapper.toCategoryResponseDto(category)
+        this._categoryMapper.toCategoryResponseDto(category)
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error('Search categories operation failed', {
+      this._logger.error('Search categories operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined

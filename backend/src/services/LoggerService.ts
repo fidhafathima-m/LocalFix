@@ -2,30 +2,30 @@ import { ILogger } from "../interfaces/utils/ILogger";
 import Logger from "../utils/logger";
 
 export class LoggerService implements ILogger {
-  private logger: typeof Logger;
+  private _logger: typeof Logger;
 
   constructor() {
-    this.logger = Logger;
+    this._logger = Logger;
   }
 
   error(message: string, meta?: any): void {
-    this.logger.error(message, meta);
+    this._logger.error(message, meta);
   }
 
   warn(message: string, meta?: any): void {
-    this.logger.warn(message, meta);
+    this._logger.warn(message, meta);
   }
 
   info(message: string, meta?: any): void {
-    this.logger.info(message, meta);
+    this._logger.info(message, meta);
   }
 
   http(message: string, meta?: any): void {
-    this.logger.http(message, meta);
+    this._logger.http(message, meta);
   }
 
   debug(message: string, meta?: any): void {
-    this.logger.debug(message, meta);
+    this._logger.debug(message, meta);
   }
 
   // Method to log with context (useful for tracking requests)

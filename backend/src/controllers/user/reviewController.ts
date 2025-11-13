@@ -15,18 +15,18 @@ import { IReviewRepository } from "../../interfaces/repository/user/IReviewRepos
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ReviewController {
-  private reviewService: IReviewService;
-  private reviewRepository: IReviewRepository;
-  private logger: ILogger;
+  private _reviewService: IReviewService;
+  private _reviewRepository: IReviewRepository;
+  private _logger: ILogger;
 
   constructor(
     reviewService: IReviewService,
     reviewRepository: IReviewRepository,
     logger: ILogger
   ) {
-    this.reviewService = reviewService;
-    this.reviewRepository = reviewRepository;
-    this.logger = logger;
+    this._reviewService = reviewService;
+    this._reviewRepository = reviewRepository;
+    this._logger = logger;
   }
 
   createReview = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -41,10 +41,10 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Creating new review", context);
+      this._logger.info("Creating new review", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Create review failed - authentication required",
           context
         );
@@ -55,16 +55,16 @@ export class ReviewController {
         return;
       }
 
-      const result = await this.reviewService.createReview(userId, reviewData);
+      const result = await this._reviewService.createReview(userId, reviewData);
 
-      this.logger.info("Review created successfully", {
+      this._logger.info("Review created successfully", {
         ...context,
         reviewId: result.data?.id,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Create review controller error", {
+      this._logger.error("Create review controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -88,10 +88,10 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Updating review", context);
+      this._logger.info("Updating review", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update review failed - authentication required",
           context
         );
@@ -102,17 +102,17 @@ export class ReviewController {
         return;
       }
 
-      const result = await this.reviewService.updateReview(
+      const result = await this._reviewService.updateReview(
         userId,
         reviewId,
         reviewData
       );
 
-      this.logger.info("Review updated successfully", context);
+      this._logger.info("Review updated successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Update review controller error", {
+      this._logger.error("Update review controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -135,10 +135,10 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Deleting review", context);
+      this._logger.info("Deleting review", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Delete review failed - authentication required",
           context
         );
@@ -149,13 +149,13 @@ export class ReviewController {
         return;
       }
 
-      const result = await this.reviewService.deleteReview(userId, reviewId);
+      const result = await this._reviewService.deleteReview(userId, reviewId);
 
-      this.logger.info("Review deleted successfully", context);
+      this._logger.info("Review deleted successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Delete review controller error", {
+      this._logger.error("Delete review controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -176,15 +176,15 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Fetching review by ID", context);
+      this._logger.info("Fetching review by ID", context);
 
-      const result = await this.reviewService.getReviewById(reviewId);
+      const result = await this._reviewService.getReviewById(reviewId);
 
-      this.logger.info("Review retrieved successfully", context);
+      this._logger.info("Review retrieved successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get review by ID controller error", {
+      this._logger.error("Get review by ID controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -205,10 +205,10 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Fetching user reviews", context);
+      this._logger.info("Fetching user reviews", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get user reviews failed - authentication required",
           context
         );
@@ -219,16 +219,16 @@ export class ReviewController {
         return;
       }
 
-      const result = await this.reviewService.getUserReviews(userId);
+      const result = await this._reviewService.getUserReviews(userId);
 
-      this.logger.info("User reviews retrieved successfully", {
+      this._logger.info("User reviews retrieved successfully", {
         ...context,
         reviewCount: result.data?.reviews?.length || 0,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get user reviews controller error", {
+      this._logger.error("Get user reviews controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -256,22 +256,22 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Fetching technician reviews", context);
+      this._logger.info("Fetching technician reviews", context);
 
-      const result = await this.reviewService.getTechnicianReviews(
+      const result = await this._reviewService.getTechnicianReviews(
         technicianId,
         page,
         limit
       );
 
-      this.logger.info("Technician reviews retrieved successfully", {
+      this._logger.info("Technician reviews retrieved successfully", {
         ...context,
         reviewCount: result.data?.reviews?.length || 0,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician reviews controller error", {
+      this._logger.error("Get technician reviews controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -292,12 +292,12 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Fetching review for order", context);
+      this._logger.info("Fetching review for order", context);
 
-      const review = await this.reviewRepository.findByOrderId(orderId);
+      const review = await this._reviewRepository.findByOrderId(orderId);
 
       if (!review) {
-        this.logger.info("No review found for order", context);
+        this._logger.info("No review found for order", context);
         const response = ResponseHelper.success(
           "No review found for this order",
           null
@@ -306,7 +306,7 @@ export class ReviewController {
         return;
       }
 
-      this.logger.info("Order review retrieved successfully", context);
+      this._logger.info("Order review retrieved successfully", context);
 
       const reviewDto = ReviewMapper.toDto(review);
       const response = ResponseHelper.success(
@@ -315,7 +315,7 @@ export class ReviewController {
       );
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      this.logger.error("Get order review controller error", {
+      this._logger.error("Get order review controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -338,20 +338,20 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Fetching technician review stats", context);
+      this._logger.info("Fetching technician review stats", context);
 
-      const result = await this.reviewService.getTechnicianReviewStats(
+      const result = await this._reviewService.getTechnicianReviewStats(
         technicianId
       );
 
-      this.logger.info(
+      this._logger.info(
         "Technician review stats retrieved successfully",
         context
       );
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician review stats controller error", {
+      this._logger.error("Get technician review stats controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -377,10 +377,10 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Checking if user can review order", context);
+      this._logger.info("Checking if user can review order", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Check review permission failed - authentication required",
           context
         );
@@ -391,7 +391,7 @@ export class ReviewController {
         return;
       }
 
-      const canReview = await this.reviewService.canUserReviewOrder(
+      const canReview = await this._reviewService.canUserReviewOrder(
         userId,
         orderId
       );
@@ -405,7 +405,7 @@ export class ReviewController {
 
       res.status(response.statusCode).json(response);
     } catch (error: any) {
-      this.logger.error("Check review permission controller error", {
+      this._logger.error("Check review permission controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -429,10 +429,10 @@ export class ReviewController {
     };
 
     try {
-      this.logger.info("Reporting review", context);
+      this._logger.info("Reporting review", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Report review failed - authentication required",
           context
         );
@@ -445,23 +445,23 @@ export class ReviewController {
 
       // Validate required fields
       if (!reportData.reason || reportData.reason.trim().length === 0) {
-        this.logger.warn("Report review failed - reason required", context);
+        this._logger.warn("Report review failed - reason required", context);
         const errorResponse = ResponseHelper.badRequest("Reason is required");
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
 
-      const result = await this.reviewService.reportReview(
+      const result = await this._reviewService.reportReview(
         userId,
         reviewId,
         reportData
       );
 
-      this.logger.info("Review reported successfully", context);
+      this._logger.info("Review reported successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Report review controller error", {
+      this._logger.error("Report review controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

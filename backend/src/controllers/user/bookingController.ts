@@ -7,15 +7,15 @@ import { AuthRequest } from "../../middleware/authMiddleware";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class BookingController {
-  private bookingService: IBookingService;
-  private logger: ILogger;
+  private _bookingService: IBookingService;
+  private _logger: ILogger;
 
   constructor(
     bookingService: IBookingService,
     logger: ILogger
   ) {
-    this.bookingService = bookingService;
-    this.logger = logger;
+    this._bookingService = bookingService;
+    this._logger = logger;
   }
 
   createBooking = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -31,10 +31,10 @@ export class BookingController {
     };
 
     try {
-      this.logger.info("Creating new booking", context);
+      this._logger.info("Creating new booking", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Create booking failed - authentication required",
           context
         );
@@ -45,25 +45,25 @@ export class BookingController {
         return;
       }
 
-      this.logger.debug("Booking creation data", {
+      this._logger.debug("Booking creation data", {
         ...context,
         scheduledAt: bookingData.scheduledAt,
         timeSlot: bookingData.timeSlot,
         brand: bookingData.brand,
       });
 
-      const result = await this.bookingService.createBooking(
+      const result = await this._bookingService.createBooking(
         userId,
         bookingData
       );
 
-      this.logger.info("Booking created successfully", {
+      this._logger.info("Booking created successfully", {
         ...context,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Create booking controller error", {
+      this._logger.error("Create booking controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -86,10 +86,10 @@ export class BookingController {
     };
 
     try {
-      this.logger.info("Fetching booking by ID", context);
+      this._logger.info("Fetching booking by ID", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get booking failed - authentication required",
           context
         );
@@ -100,19 +100,19 @@ export class BookingController {
         return;
       }
 
-      const result = await this.bookingService.getBookingById(
+      const result = await this._bookingService.getBookingById(
         userId,
         bookingId
       );
 
-      this.logger.info("Booking retrieved successfully", {
+      this._logger.info("Booking retrieved successfully", {
         ...context,
         bookingFound: !!result,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get booking by ID controller error", {
+      this._logger.error("Get booking by ID controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -137,10 +137,10 @@ export class BookingController {
     };
 
     try {
-      this.logger.info("Fetching user bookings", context);
+      this._logger.info("Fetching user bookings", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get user bookings failed - authentication required",
           context
         );
@@ -151,19 +151,19 @@ export class BookingController {
         return;
       }
 
-      const result = await this.bookingService.getUserBookings(
+      const result = await this._bookingService.getUserBookings(
         userId,
         page,
         limit
       );
 
-      this.logger.info("User bookings retrieved successfully", {
+      this._logger.info("User bookings retrieved successfully", {
         ...context,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get user bookings controller error", {
+      this._logger.error("Get user bookings controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -188,10 +188,10 @@ export class BookingController {
     };
 
     try {
-      this.logger.info("Cancelling booking", context);
+      this._logger.info("Cancelling booking", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Cancel booking failed - authentication required",
           context
         );
@@ -203,7 +203,7 @@ export class BookingController {
       }
 
       if (!reason) {
-        this.logger.warn("Cancel booking failed - reason required", context);
+        this._logger.warn("Cancel booking failed - reason required", context);
         const badRequestResponse = ResponseHelper.badRequest(
           "Cancellation reason is required"
         );
@@ -211,17 +211,17 @@ export class BookingController {
         return;
       }
 
-      const result = await this.bookingService.cancelBooking(
+      const result = await this._bookingService.cancelBooking(
         userId,
         bookingId,
         reason
       );
 
-      this.logger.info("Booking cancelled successfully", context);
+      this._logger.info("Booking cancelled successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Cancel booking controller error", {
+      this._logger.error("Cancel booking controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -245,10 +245,10 @@ export class BookingController {
     };
 
     try {
-      this.logger.info("Updating booking", context);
+      this._logger.info("Updating booking", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update booking failed - authentication required",
           context
         );
@@ -261,7 +261,7 @@ export class BookingController {
 
       // Validate required fields
       if (!updateData || Object.keys(updateData).length === 0) {
-        this.logger.warn(
+        this._logger.warn(
           "Update booking failed - no update data provided",
           context
         );
@@ -273,28 +273,28 @@ export class BookingController {
       }
 
       // Check if user owns the booking
-      const booking = await this.bookingService.getBookingById(
+      const booking = await this._bookingService.getBookingById(
         userId,
         bookingId
       );
       if (!booking.success) {
-        this.logger.warn("Booking not found or user not authorized", context);
+        this._logger.warn("Booking not found or user not authorized", context);
         res.status(booking.statusCode).json(booking);
         return;
       }
 
       // Update the booking
-      const result = await this.bookingService.updateBooking(
+      const result = await this._bookingService.updateBooking(
         userId,
         bookingId,
         updateData
       );
 
-      this.logger.info("Booking updated successfully", context);
+      this._logger.info("Booking updated successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Update booking controller error", {
+      this._logger.error("Update booking controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -323,10 +323,10 @@ export class BookingController {
     };
 
     try {
-      this.logger.info("Updating booking status", context);
+      this._logger.info("Updating booking status", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update booking status failed - authentication required",
           context
         );
@@ -338,7 +338,7 @@ export class BookingController {
       }
 
       if (!status || !updatedBy) {
-        this.logger.warn(
+        this._logger.warn(
           "Update booking status failed - missing required fields",
           context
         );
@@ -349,18 +349,18 @@ export class BookingController {
         return;
       }
 
-      const result = await this.bookingService.updateBookingStatus(
+      const result = await this._bookingService.updateBookingStatus(
         bookingId,
         status,
         updatedBy,
         reason
       );
 
-      this.logger.info("Booking status updated successfully", context);
+      this._logger.info("Booking status updated successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Update booking status controller error", {
+      this._logger.error("Update booking status controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -385,10 +385,10 @@ export class BookingController {
     };
 
     try {
-      this.logger.info("Fetching booking tracking details", context);
+      this._logger.info("Fetching booking tracking details", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get tracking details failed - authentication required",
           context
         );
@@ -399,19 +399,19 @@ export class BookingController {
         return;
       }
 
-      const result = await this.bookingService.getTrackingDetails(
+      const result = await this._bookingService.getTrackingDetails(
         userId,
         bookingId
       );
 
-      this.logger.info("Tracking details retrieved successfully", {
+      this._logger.info("Tracking details retrieved successfully", {
         ...context,
         bookingFound: !!result,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get tracking details controller error", {
+      this._logger.error("Get tracking details controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -437,10 +437,10 @@ export class BookingController {
     };
 
     try {
-      this.logger.info("Fetching technician location", context);
+      this._logger.info("Fetching technician location", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get technician location failed - authentication required",
           context
         );
@@ -451,13 +451,13 @@ export class BookingController {
         return;
       }
 
-      const result = await this.bookingService.getTechnicianLocation(bookingId);
+      const result = await this._bookingService.getTechnicianLocation(bookingId);
 
-      this.logger.info("Technician location retrieved successfully", context);
+      this._logger.info("Technician location retrieved successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get technician location controller error", {
+      this._logger.error("Get technician location controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

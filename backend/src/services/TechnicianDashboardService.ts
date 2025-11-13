@@ -5,10 +5,7 @@ import { IUserRepository } from "../interfaces/repository/user/IUserRepository";
 import { IUserAddressRepository } from "../interfaces/repository/user/IUserAddressRepository";
 import { ResponseHelper } from "../utils/responseHelper";
 import { DASHBOARD_MESSAGES } from "../constants";
-import { ITechnician } from "@/interfaces/technician/ITechnician";
-import { IUser } from "@/interfaces/user/IUser";
 import { IAddress } from "@/interfaces/user/IAddress";
-import { LoggerService } from "../services/LoggerService";
 
 import {
   DashboardOverviewResponseDto,
@@ -20,10 +17,10 @@ import { TechnicianDashboardMapper } from "../mappers/technicianDashboardMappers
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianDashboardService implements ITechnicianDashboardService {
-  private technicianRepository: ITechnicianRepository;
-  private userRepository: IUserRepository;
-  private userAddressRepository: IUserAddressRepository;
-  private logger: ILogger;
+  private _technicianRepository: ITechnicianRepository;
+  private _userRepository: IUserRepository;
+  private _userAddressRepository: IUserAddressRepository;
+  private _logger: ILogger;
 
   constructor(
     technicianRepository: ITechnicianRepository,
@@ -31,10 +28,10 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     userAddressRepository: IUserAddressRepository,
     logger: ILogger
   ) {
-    this.technicianRepository = technicianRepository;
-    this.userRepository = userRepository;
-    this.userAddressRepository = userAddressRepository;
-    this.logger = logger;
+    this._technicianRepository = technicianRepository;
+    this._userRepository = userRepository;
+    this._userAddressRepository = userAddressRepository;
+    this._logger = logger;
   }
 
   async getDashboardOverview(
@@ -46,21 +43,21 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     };
 
     try {
-      this.logger.info("Fetching dashboard overview for technician", context);
+      this._logger.info("Fetching dashboard overview for technician", context);
 
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
 
       if (!technician) {
-        this.logger.warn(
+        this._logger.warn(
           "Technician not found for dashboard overview",
           context
         );
         return ResponseHelper.notFound(DASHBOARD_MESSAGES.TECHNICIAN_NOT_FOUND);
       }
 
-      this.logger.debug("Technician found, generating overview data", {
+      this._logger.debug("Technician found, generating overview data", {
         ...context,
         technicianRecordId: technician._id?.toString(),
         displayName: technician.displayName,
@@ -70,7 +67,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
       const overviewDto =
         TechnicianDashboardMapper.toDashboardOverviewDto(technician);
 
-      this.logger.info("Dashboard overview generated successfully", {
+      this._logger.info("Dashboard overview generated successfully", {
         ...context,
         // overviewData: {
         //   totalBookings: overviewDto.totalBookings,
@@ -91,7 +88,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Get dashboard overview operation failed", {
+      this._logger.error("Get dashboard overview operation failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -109,29 +106,29 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     };
 
     try {
-      this.logger.info("Fetching technician profile", context);
+      this._logger.info("Fetching technician profile", context);
 
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
 
       if (!technician) {
-        this.logger.warn("Technician record not found", context);
+        this._logger.warn("Technician record not found", context);
         return ResponseHelper.notFound(
           DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_NOT_FOUND
         );
       }
 
-      this.logger.debug("Technician found, fetching user data", {
+      this._logger.debug("Technician found, fetching user data", {
         ...context,
         technicianRecordId: technician._id?.toString(),
         userId: technician.userId?.toString(),
       });
 
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!user) {
-        this.logger.warn("User record not found for technician", {
+        this._logger.warn("User record not found for technician", {
           ...context,
           technicianId,
         });
@@ -140,7 +137,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         );
       }
 
-      this.logger.debug("User found, fetching address data", {
+      this._logger.debug("User found, fetching address data", {
         ...context,
         userId: user._id?.toString(),
         userEmail: user.email,
@@ -148,27 +145,27 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
 
       let userAddress = null;
       if (technician.userId) {
-        userAddress = await this.userAddressRepository.findByUserId(
+        userAddress = await this._userAddressRepository.findByUserId(
           technician.userId as Types.ObjectId
         );
 
         if (userAddress) {
-          this.logger.debug("User address found", {
+          this._logger.debug("User address found", {
             ...context,
             addressId: userAddress._id?.toString(),
             hasLocation: !!userAddress.location,
           });
         } else {
-          this.logger.debug("No user address found", context);
+          this._logger.debug("No user address found", context);
         }
       } else {
-        this.logger.warn("No userId found in technician record", {
+        this._logger.warn("No userId found in technician record", {
           ...context,
           technicianRecordId: technician._id?.toString(),
         });
       }
 
-      this.logger.debug("Generating profile DTO from collected data", {
+      this._logger.debug("Generating profile DTO from collected data", {
         ...context,
         hasTechnicianData: !!technician,
         hasUserData: !!user,
@@ -181,7 +178,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         userAddress as IAddress | undefined
       );
 
-      this.logger.info("Technician profile generated successfully", {
+      this._logger.info("Technician profile generated successfully", {
         ...context,
         profileData: {
           displayName: profileDto.displayName,
@@ -201,7 +198,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Get technician profile operation failed", {
+      this._logger.error("Get technician profile operation failed", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

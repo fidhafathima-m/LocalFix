@@ -12,15 +12,15 @@ import {
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class UserManagementController {
-  private userManagementService: IUserManagementService;
-  private logger: ILogger;
+  private _userManagementService: IUserManagementService;
+  private _logger: ILogger;
 
   constructor(
     userManagementService: IUserManagementService,
     logger: ILogger
   ) {
-    this.userManagementService = userManagementService;
-    this.logger = logger;
+    this._userManagementService = userManagementService;
+    this._logger = logger;
   }
 
   getUsers = async (req: Request, res: Response): Promise<void> => {
@@ -30,19 +30,19 @@ export class UserManagementController {
     };
 
     try {
-      this.logger.info("Fetching all users", context);
+      this._logger.info("Fetching all users", context);
 
       const result: UsersListResponseDto =
-        await this.userManagementService.getUsers();
+        await this._userManagementService.getUsers();
 
-      this.logger.info("Users retrieved successfully", {
+      this._logger.info("Users retrieved successfully", {
         ...context,
         count: result?.users?.length,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get users controller error", {
+      this._logger.error("Get users controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -65,10 +65,10 @@ export class UserManagementController {
     };
 
     try {
-      this.logger.info("Updating user status", context);
+      this._logger.info("Updating user status", context);
 
       if (!statusData.status) {
-        this.logger.warn(
+        this._logger.warn(
           "User status update failed - status required",
           context
         );
@@ -79,16 +79,16 @@ export class UserManagementController {
       }
 
       const result: UserManagementResponseDto =
-        await this.userManagementService.updateUserStatus(userId, statusData);
+        await this._userManagementService.updateUserStatus(userId, statusData);
 
-      this.logger.info("User status updated successfully", {
+      this._logger.info("User status updated successfully", {
         ...context,
         userEmail: result?.user?.email,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Update user status controller error", {
+      this._logger.error("Update user status controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -111,10 +111,10 @@ export class UserManagementController {
     };
 
     try {
-      this.logger.info("Editing user profile", context);
+      this._logger.info("Editing user profile", context);
 
       if (Object.keys(userData).length === 0) {
-        this.logger.warn("User edit failed - no fields to update", context);
+        this._logger.warn("User edit failed - no fields to update", context);
         const badRequestResponse = ResponseHelper.badRequest(
           "No fields to update"
         );
@@ -122,15 +122,15 @@ export class UserManagementController {
         return;
       }
 
-      this.logger.debug("Calling service to edit user", {
+      this._logger.debug("Calling service to edit user", {
         ...context,
         updateFields: userData,
       });
 
       const result: UserManagementResponseDto =
-        await this.userManagementService.editUser(userId, userData);
+        await this._userManagementService.editUser(userId, userData);
 
-      this.logger.info("User edited successfully", {
+      this._logger.info("User edited successfully", {
         ...context,
         userEmail: result?.user?.email,
         updatedFieldCount: Object.keys(userData).length,
@@ -138,7 +138,7 @@ export class UserManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Edit user controller error", {
+      this._logger.error("Edit user controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -158,19 +158,19 @@ export class UserManagementController {
     };
 
     try {
-      this.logger.info("Deleting user", context);
+      this._logger.info("Deleting user", context);
 
       const result: UserManagementResponseDto =
-        await this.userManagementService.deleteUser(userId);
+        await this._userManagementService.deleteUser(userId);
 
-      this.logger.info("User deleted successfully", {
+      this._logger.info("User deleted successfully", {
         ...context,
         userEmail: result?.user?.email,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Delete user controller error", {
+      this._logger.error("Delete user controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -188,19 +188,19 @@ export class UserManagementController {
     };
 
     try {
-      this.logger.info("Fetching user statistics", context);
+      this._logger.info("Fetching user statistics", context);
 
       const result: UserStatsResponseDto =
-        await this.userManagementService.getUserStats();
+        await this._userManagementService.getUserStats();
 
-      this.logger.info("User statistics retrieved successfully", {
+      this._logger.info("User statistics retrieved successfully", {
         ...context,
         stats: result,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get user stats controller error", {
+      this._logger.error("Get user stats controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -220,12 +220,12 @@ export class UserManagementController {
     };
 
     try {
-      this.logger.info("Fetching user by ID", context);
+      this._logger.info("Fetching user by ID", context);
 
       const result: UserManagementResponseDto =
-        await this.userManagementService.getUserById(userId);
+        await this._userManagementService.getUserById(userId);
 
-      this.logger.info("User retrieved successfully", {
+      this._logger.info("User retrieved successfully", {
         ...context,
         userEmail: result?.user?.email,
         userRole: result?.user?.roles?.[0],
@@ -234,7 +234,7 @@ export class UserManagementController {
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get user by ID controller error", {
+      this._logger.error("Get user by ID controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

@@ -1,5 +1,4 @@
 import { PaymentMapper } from "../mappers/paymentMapper";
-import { LoggerService } from "./LoggerService";
 import {
   PaymentListResponseDto,
   PaymentResponseDto,
@@ -13,14 +12,14 @@ import { IPaymentService } from "../interfaces/services/admin/IPaymentManagement
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class PaymentManagementService implements IPaymentService {
-  private paymentRepository: IPaymentRepository;
-  private paymentMapper: PaymentMapper;
-  private logger: ILogger;
+  private _paymentRepository: IPaymentRepository;
+  private _paymentMapper: PaymentMapper;
+  private _logger: ILogger;
 
   constructor(paymentRepository: IPaymentRepository, logger: ILogger) {
-    this.paymentRepository = paymentRepository;
-    this.paymentMapper = new PaymentMapper();
-    this.logger = logger;
+    this._paymentRepository = paymentRepository;
+    this._paymentMapper = new PaymentMapper();
+    this._logger = logger;
   }
 
   async getPayments(
@@ -43,7 +42,7 @@ export class PaymentManagementService implements IPaymentService {
     };
 
     try {
-      this.logger.info("Fetching payments", context);
+      this._logger.info("Fetching payments", context);
 
       // Build filter query
       const filter: any = {};
@@ -64,13 +63,13 @@ export class PaymentManagementService implements IPaymentService {
       let total: number;
 
       if (search) {
-        this.logger.debug("Searching payments with query", {
+        this._logger.debug("Searching payments with query", {
           ...context,
           searchQuery: search,
         });
 
         // Get all matching results first
-        const allSearchResults = await this.paymentRepository.search(
+        const allSearchResults = await this._paymentRepository.search(
           search,
           10000,
           filter
@@ -80,29 +79,29 @@ export class PaymentManagementService implements IPaymentService {
         // Apply pagination
         payments = allSearchResults.slice(skip, skip + limit);
       } else {
-        this.logger.debug("Fetching all payments with filter", {
+        this._logger.debug("Fetching all payments with filter", {
           ...context,
           filter,
         });
-        payments = await this.paymentRepository.findAll(filter, skip, limit);
-        total = await this.paymentRepository.count(filter);
+        payments = await this._paymentRepository.findAll(filter, skip, limit);
+        total = await this._paymentRepository.count(filter);
       }
 
-      this.logger.info("Payments retrieved successfully", {
+      this._logger.info("Payments retrieved successfully", {
         ...context,
         paymentsCount: payments.length,
         totalPayments: total,
         hasSearch: !!search,
       });
 
-      return this.paymentMapper.toPaymentListResponseDto(
+      return this._paymentMapper.toPaymentListResponseDto(
         payments,
         total,
         page,
         limit
       );
     } catch (error: any) {
-      this.logger.error("Get payments error", {
+      this._logger.error("Get payments error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -119,28 +118,28 @@ export class PaymentManagementService implements IPaymentService {
     };
 
     try {
-      this.logger.info("Fetching payment by ID", context);
+      this._logger.info("Fetching payment by ID", context);
 
       if (!Types.ObjectId.isValid(paymentId)) {
-        this.logger.warn("Invalid payment ID provided", context);
+        this._logger.warn("Invalid payment ID provided", context);
         throw new Error(PAYMENT_MESSAGES.INVALID_PAYMENT_ID);
       }
 
-      const payment = await this.paymentRepository.findById(paymentId);
+      const payment = await this._paymentRepository.findById(paymentId);
       if (!payment) {
-        this.logger.warn("Payment not found", context);
+        this._logger.warn("Payment not found", context);
         throw new Error(PAYMENT_MESSAGES.PAYMENT_NOT_FOUND);
       }
 
-      this.logger.info("Payment retrieved successfully", {
+      this._logger.info("Payment retrieved successfully", {
         ...context,
         providerOrderId: payment.providerOrderId,
         status: payment.status,
       });
 
-      return this.paymentMapper.toPaymentResponseDto(payment);
+      return this._paymentMapper.toPaymentResponseDto(payment);
     } catch (error: any) {
-      this.logger.error("Get payment by ID error", {
+      this._logger.error("Get payment by ID error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -156,19 +155,19 @@ export class PaymentManagementService implements IPaymentService {
     };
 
     try {
-      this.logger.info("Fetching payment statistics", context);
+      this._logger.info("Fetching payment statistics", context);
 
-      const stats = await this.paymentRepository.getPaymentStats();
+      const stats = await this._paymentRepository.getPaymentStats();
 
-      this.logger.info("Payment stats retrieved successfully", {
+      this._logger.info("Payment stats retrieved successfully", {
         ...context,
         totalRevenue: stats.totalRevenue,
         totalPayments: stats.totalPayments,
       });
 
-      return this.paymentMapper.toPaymentStatsDto(stats);
+      return this._paymentMapper.toPaymentStatsDto(stats);
     } catch (error: any) {
-      this.logger.error("Get payment stats error", {
+      this._logger.error("Get payment stats error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -189,21 +188,21 @@ export class PaymentManagementService implements IPaymentService {
     };
 
     try {
-      this.logger.info("Processing refund", context);
+      this._logger.info("Processing refund", context);
 
       if (!Types.ObjectId.isValid(paymentId)) {
-        this.logger.warn("Invalid payment ID for refund", context);
+        this._logger.warn("Invalid payment ID for refund", context);
         throw new Error(PAYMENT_MESSAGES.INVALID_PAYMENT_ID);
       }
 
-      const payment = await this.paymentRepository.findById(paymentId);
+      const payment = await this._paymentRepository.findById(paymentId);
       if (!payment) {
-        this.logger.warn("Payment not found for refund", context);
+        this._logger.warn("Payment not found for refund", context);
         throw new Error(PAYMENT_MESSAGES.PAYMENT_NOT_FOUND);
       }
 
       if (payment.status !== "success") {
-        this.logger.warn("Refund failed - payment not successful", {
+        this._logger.warn("Refund failed - payment not successful", {
           ...context,
           currentStatus: payment.status,
         });
@@ -211,17 +210,17 @@ export class PaymentManagementService implements IPaymentService {
       }
 
       // Update payment status to refunded
-      const updatedPayment = await this.paymentRepository.update(paymentId, {
+      const updatedPayment = await this._paymentRepository.update(paymentId, {
         status: "refunded",
         refundedAt: new Date(),
       });
 
       if (!updatedPayment) {
-        this.logger.error("Refund failed - repository update failed", context);
+        this._logger.error("Refund failed - repository update failed", context);
         throw new Error(PAYMENT_MESSAGES.FAILED_PROCESS_REFUND);
       }
 
-      this.logger.info("Refund processed successfully", {
+      this._logger.info("Refund processed successfully", {
         ...context,
         amount: payment.amount,
         providerOrderId: payment.providerOrderId,
@@ -229,7 +228,7 @@ export class PaymentManagementService implements IPaymentService {
 
       // Here would Razorpay refund API call - to be implemet
     } catch (error: any) {
-      this.logger.error("Process refund error", {
+      this._logger.error("Process refund error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -250,10 +249,10 @@ export class PaymentManagementService implements IPaymentService {
     };
 
     try {
-      this.logger.info("Exporting payments", context);
+      this._logger.info("Exporting payments", context);
 
       // Get all payments based on filters
-      const payments = await this.paymentRepository.findAll({});
+      const payments = await this._paymentRepository.findAll({});
 
       // Convert to CSV/Excel format
       let data: Buffer;
@@ -270,7 +269,7 @@ export class PaymentManagementService implements IPaymentService {
         filename = `payments-${new Date().toISOString().split("T")[0]}.xlsx`;
       }
 
-      this.logger.info("Payments exported successfully", {
+      this._logger.info("Payments exported successfully", {
         ...context,
         paymentsCount: payments.length,
         filename,
@@ -278,7 +277,7 @@ export class PaymentManagementService implements IPaymentService {
 
       return { data, filename };
     } catch (error: any) {
-      this.logger.error("Export payments error", {
+      this._logger.error("Export payments error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -302,7 +301,7 @@ export class PaymentManagementService implements IPaymentService {
     ].join(",");
 
     const rows = payments.map((payment) => {
-      const paymentDto = this.paymentMapper.toPaymentResponseDto(payment);
+      const paymentDto = this._paymentMapper.toPaymentResponseDto(payment);
       return [
         paymentDto.providerOrderId,
         paymentDto.orderId,

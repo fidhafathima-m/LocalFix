@@ -5,15 +5,15 @@ import { IAdminReviewService } from "@/interfaces/services/admin/IReviewManageme
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ReviewManagementController {
-  private reviewService: IAdminReviewService;
-  private logger: ILogger;
+  private _reviewService: IAdminReviewService;
+  private _logger: ILogger;
 
   constructor(
     reviewService: IAdminReviewService,
     logger: ILogger
   ) {
-    this.reviewService = reviewService;
-    this.logger = logger;
+    this._reviewService = reviewService;
+    this._logger = logger;
   }
 
   getAllReviews = async (req: Request, res: Response): Promise<void> => {
@@ -36,9 +36,9 @@ export class ReviewManagementController {
     };
 
     try {
-      this.logger.info("Fetching all reviews for admin", context);
+      this._logger.info("Fetching all reviews for admin", context);
 
-      const result = await this.reviewService.getAllReviews({
+      const result = await this._reviewService.getAllReviews({
         page,
         limit,
         search,
@@ -47,7 +47,7 @@ export class ReviewManagementController {
         service,
       });
 
-      this.logger.info("Reviews retrieved successfully", {
+      this._logger.info("Reviews retrieved successfully", {
         ...context,
         totalReviews: result.total,
       });
@@ -60,7 +60,7 @@ export class ReviewManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || REVIEW_MESSAGES.FAILED_FETCH_REVIEWS;
-      this.logger.error("Get all reviews controller error", {
+      this._logger.error("Get all reviews controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -80,11 +80,11 @@ export class ReviewManagementController {
     };
 
     try {
-      this.logger.info("Fetching review by ID", context);
+      this._logger.info("Fetching review by ID", context);
 
-      const review = await this.reviewService.getReviewById(id);
+      const review = await this._reviewService.getReviewById(id);
 
-      this.logger.info("Review retrieved successfully", {
+      this._logger.info("Review retrieved successfully", {
         ...context,
         reviewId: review.id,
       });
@@ -97,7 +97,7 @@ export class ReviewManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || REVIEW_MESSAGES.REVIEW_NOT_FOUND;
-      this.logger.error("Get review by ID controller error", {
+      this._logger.error("Get review by ID controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -120,18 +120,18 @@ export class ReviewManagementController {
     };
 
     try {
-      this.logger.info("Updating review status", context);
+      this._logger.info("Updating review status", context);
 
       if (!status || !["published", "flagged", "pending"].includes(status)) {
-        this.logger.warn("Invalid status provided", context);
+        this._logger.warn("Invalid status provided", context);
         const response = ResponseHelper.badRequest("Invalid status");
         res.status(response.statusCode).json(response);
         return;
       }
 
-      const review = await this.reviewService.updateReviewStatus(id, status);
+      const review = await this._reviewService.updateReviewStatus(id, status);
 
-      this.logger.info("Review status updated successfully", {
+      this._logger.info("Review status updated successfully", {
         ...context,
         reviewId: review.id,
       });
@@ -144,7 +144,7 @@ export class ReviewManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || REVIEW_MESSAGES.FAILED_UPDATE_REVIEW;
-      this.logger.error("Update review status controller error", {
+      this._logger.error("Update review status controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -167,11 +167,11 @@ export class ReviewManagementController {
     };
 
     try {
-      this.logger.info("Flagging review", context);
+      this._logger.info("Flagging review", context);
 
-      const review = await this.reviewService.flagReview(id, reason);
+      const review = await this._reviewService.flagReview(id, reason);
 
-      this.logger.info("Review flagged successfully", {
+      this._logger.info("Review flagged successfully", {
         ...context,
         reviewId: review.id,
       });
@@ -184,7 +184,7 @@ export class ReviewManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || REVIEW_MESSAGES.FAILED_FLAG_REVIEW;
-      this.logger.error("Flag review controller error", {
+      this._logger.error("Flag review controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -204,11 +204,11 @@ export class ReviewManagementController {
     };
 
     try {
-      this.logger.info("Deleting review", context);
+      this._logger.info("Deleting review", context);
 
-      await this.reviewService.deleteReview(id);
+      await this._reviewService.deleteReview(id);
 
-      this.logger.info("Review deleted successfully", context);
+      this._logger.info("Review deleted successfully", context);
 
       const response = ResponseHelper.success(
         REVIEW_MESSAGES.REVIEW_DELETED
@@ -217,7 +217,7 @@ export class ReviewManagementController {
     } catch (error: any) {
       const errorMessage =
         error.message || REVIEW_MESSAGES.FAILED_DELETE_REVIEW;
-      this.logger.error("Delete review controller error", {
+      this._logger.error("Delete review controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -235,11 +235,11 @@ export class ReviewManagementController {
     };
 
     try {
-      this.logger.info("Fetching review statistics", context);
+      this._logger.info("Fetching review statistics", context);
 
-      const stats = await this.reviewService.getReviewStats();
+      const stats = await this._reviewService.getReviewStats();
 
-      this.logger.info("Review statistics retrieved successfully", context);
+      this._logger.info("Review statistics retrieved successfully", context);
 
       const response = ResponseHelper.success(
         "Review statistics retrieved",
@@ -248,7 +248,7 @@ export class ReviewManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || "Failed to fetch review statistics";
-      this.logger.error("Get review stats controller error", {
+      this._logger.error("Get review stats controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,

@@ -6,15 +6,15 @@ import { UpdateOrderStatusDto } from "../../interfaces/dtos/orderDtos";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class OrderManagementController {
-  private orderService: IOrderService;
-  private logger: ILogger;
+  private _orderService: IOrderService;
+  private _logger: ILogger;
 
   constructor(
     orderService: IOrderService,
     logger: ILogger
   ) {
-    this.orderService = orderService;
-    this.logger = logger;
+    this._orderService = orderService;
+    this._logger = logger;
   }
 
   getOrders = async (req: Request, res: Response): Promise<void> => {
@@ -33,16 +33,16 @@ export class OrderManagementController {
     };
 
     try {
-      this.logger.info("Fetching orders", context);
+      this._logger.info("Fetching orders", context);
 
-      const result = await this.orderService.getOrders(
+      const result = await this._orderService.getOrders(
         page,
         limit,
         search,
         status
       );
 
-      this.logger.info("Orders retrieved successfully", {
+      this._logger.info("Orders retrieved successfully", {
         ...context,
         totalOrders: result.total,
       });
@@ -54,7 +54,7 @@ export class OrderManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ORDER_MESSAGES.FAILED_FETCH_ORDERS;
-      this.logger.error("Get orders controller error", {
+      this._logger.error("Get orders controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -74,11 +74,11 @@ export class OrderManagementController {
     };
 
     try {
-      this.logger.info("Fetching order by ID", context);
+      this._logger.info("Fetching order by ID", context);
 
-      const order = await this.orderService.getOrderById(orderId);
+      const order = await this._orderService.getOrderById(orderId);
 
-      this.logger.info("Order retrieved successfully", {
+      this._logger.info("Order retrieved successfully", {
         ...context,
         orderCode: order.orderCode,
       });
@@ -89,7 +89,7 @@ export class OrderManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ORDER_MESSAGES.ORDER_NOT_FOUND;
-      this.logger.error("Get order by ID controller error", {
+      this._logger.error("Get order by ID controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -107,11 +107,11 @@ export class OrderManagementController {
     };
 
     try {
-      this.logger.info("Fetching order statistics", context);
+      this._logger.info("Fetching order statistics", context);
 
-      const stats = await this.orderService.getOrderStats();
+      const stats = await this._orderService.getOrderStats();
 
-      this.logger.info("Order statistics retrieved successfully", context);
+      this._logger.info("Order statistics retrieved successfully", context);
 
       const response = ResponseHelper.success(ORDER_MESSAGES.STATS_RETRIEVED, {
         stats,
@@ -119,7 +119,7 @@ export class OrderManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ORDER_MESSAGES.FAILED_FETCH_STATS;
-      this.logger.error("Get order stats controller error", {
+      this._logger.error("Get order stats controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -142,11 +142,11 @@ export class OrderManagementController {
     };
 
     try {
-      this.logger.info("Updating order status", context);
+      this._logger.info("Updating order status", context);
 
       // Validation
       if (!updateDto.status) {
-        this.logger.warn(
+        this._logger.warn(
           "Order status update failed - status required",
           context
         );
@@ -166,7 +166,7 @@ export class OrderManagementController {
         "refunded",
       ];
       if (!validStatuses.includes(updateDto.status)) {
-        this.logger.warn("Order status update failed - invalid status", {
+        this._logger.warn("Order status update failed - invalid status", {
           ...context,
           providedStatus: updateDto.status,
         });
@@ -177,12 +177,12 @@ export class OrderManagementController {
         return;
       }
 
-      const order = await this.orderService.updateOrderStatus(
+      const order = await this._orderService.updateOrderStatus(
         orderId,
         updateDto
       );
 
-      this.logger.info("Order status updated successfully", {
+      this._logger.info("Order status updated successfully", {
         ...context,
         orderCode: order.orderCode,
       });
@@ -193,7 +193,7 @@ export class OrderManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ORDER_MESSAGES.FAILED_UPDATE_STATUS;
-      this.logger.error("Update order status controller error", {
+      this._logger.error("Update order status controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,
@@ -217,18 +217,18 @@ export class OrderManagementController {
     };
 
     try {
-      this.logger.info("Fetching orders by technician", context);
+      this._logger.info("Fetching orders by technician", context);
 
       if (!technicianId) {
-        this.logger.warn("Technician ID is required", context);
+        this._logger.warn("Technician ID is required", context);
         const response = ResponseHelper.badRequest("Technician ID is required");
         res.status(response.statusCode).json(response);
         return;
       }
 
-      const result = await this.orderService.getOrdersByTechnician(technicianId, page, limit);
+      const result = await this._orderService.getOrdersByTechnician(technicianId, page, limit);
 
-      this.logger.info("Technician orders retrieved successfully", {
+      this._logger.info("Technician orders retrieved successfully", {
         ...context,
         totalOrders: result.total,
       });
@@ -240,7 +240,7 @@ export class OrderManagementController {
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       const errorMessage = error.message || ORDER_MESSAGES.FAILED_FETCH_ORDERS;
-      this.logger.error("Get technician orders controller error", {
+      this._logger.error("Get technician orders controller error", {
         ...context,
         error: errorMessage,
         stack: error.stack,

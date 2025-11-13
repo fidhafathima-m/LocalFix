@@ -3,24 +3,24 @@ import { LocationTrackingService } from "./LocationTrackingService";
 import { ITechnicianLocationShare } from "@/interfaces/common/ILocationTracking";
 
 export class SocketService {
-  private io: Server;
-  private locationService: LocationTrackingService;
-  private activeConnections: Map<string, string> = new Map(); 
+  private _io: Server;
+  private _locationService: LocationTrackingService;
+  private _activeConnections: Map<string, string> = new Map(); 
 
   constructor(server: any) {
-    this.io = new Server(server, {
+    this._io = new Server(server, {
       cors: {
         origin: process.env.FRONTEND_URL,
         methods: ["GET", "POST"],
       },
     });
 
-    this.locationService = new LocationTrackingService();
+    this._locationService = new LocationTrackingService();
     this.setupSocketHandlers();
   }
 
   private setupSocketHandlers(): void {
-    this.io.on("connection", (socket) => {
+    this._io.on("connection", (socket) => {
 
       socket.on(
         "technician-location-share",
@@ -29,10 +29,10 @@ export class SocketService {
             const { technicianId, orderId, location } = data;
 
             // Store connection mapping
-            this.activeConnections.set(socket.id, technicianId);
+            this._activeConnections.set(socket.id, technicianId);
 
             // Start location sharing in database
-            const result = await this.locationService.startLocationSharing(
+            const result = await this._locationService.startLocationSharing(
               technicianId,
               orderId,
               location
@@ -42,11 +42,11 @@ export class SocketService {
               const roomName = `order-${orderId}`; 
 
               // Get room info
-              const room = this.io.sockets.adapter.rooms.get(roomName);
+              const room = this._io.sockets.adapter.rooms.get(roomName);
               const roomSize = room ? room.size : 0;
 
               // Broadcast to ALL clients in the room
-              this.io.to(roomName).emit("technician-location-update", {
+              this._io.to(roomName).emit("technician-location-update", {
                 technicianId,
                 location: {
                   ...location,
@@ -74,7 +74,7 @@ export class SocketService {
           const { technicianId, orderId, location } = data;
           const roomName = `order-${orderId}`; 
 
-          this.io.to(roomName).emit("technician-location-update", {
+          this._io.to(roomName).emit("technician-location-update", {
             technicianId,
             location: {
               ...location,
@@ -97,7 +97,7 @@ export class SocketService {
       socket.on("check-room", (data: { orderId: string }) => {
         const { orderId } = data;
         const roomName = `order-${orderId}`; 
-        const room = this.io.sockets.adapter.rooms.get(roomName);
+        const room = this._io.sockets.adapter.rooms.get(roomName);
         const roomSize = room ? room.size : 0;
         socket.emit("room-status", {
           room: roomName,
@@ -113,13 +113,13 @@ export class SocketService {
             const { technicianId, orderId } = data;
 
             // Stop location sharing in database
-            await this.locationService.stopLocationSharing(
+            await this._locationService.stopLocationSharing(
               technicianId,
               orderId
             );
 
             // Remove connection mapping
-            this.activeConnections.delete(socket.id);
+            this._activeConnections.delete(socket.id);
 
             // Notify user
             socket.to(`booking-${orderId}`).emit("technician-location-ended", {
@@ -140,15 +140,15 @@ export class SocketService {
       socket.on("disconnect", () => {
 
         // Clean up disconnected technicians
-        const technicianId = this.activeConnections.get(socket.id);
+        const technicianId = this._activeConnections.get(socket.id);
         if (technicianId) {
-          this.activeConnections.delete(socket.id);
+          this._activeConnections.delete(socket.id);
         }
       });
     });
   }
 
   public getIO(): Server {
-    return this.io;
+    return this._io;
   }
 }

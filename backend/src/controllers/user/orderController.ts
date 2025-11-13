@@ -6,15 +6,15 @@ import { IOrderService } from "@/interfaces/services/user/IOrderService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class OrderController {
-  private orderService: IOrderService;
-  private logger: ILogger;
+  private _orderService: IOrderService;
+  private _logger: ILogger;
 
   constructor(
     orderService: IOrderService,
     logger: ILogger
   ) {
-    this.orderService = orderService;
-    this.logger = logger;
+    this._orderService = orderService;
+    this._logger = logger;
   }
 
   getUserOrders = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -31,10 +31,10 @@ export class OrderController {
     };
 
     try {
-      this.logger.info("Fetching user orders", context);
+      this._logger.info("Fetching user orders", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Get user orders failed - authentication required",
           context
         );
@@ -45,16 +45,16 @@ export class OrderController {
         return;
       }
 
-      const result = await this.orderService.getUserOrders(userId, page, limit);
+      const result = await this._orderService.getUserOrders(userId, page, limit);
 
-      this.logger.info("User orders retrieved successfully", {
+      this._logger.info("User orders retrieved successfully", {
         ...context,
         orderCount: result.data?.orders.length || 0,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get user orders controller error", {
+      this._logger.error("Get user orders controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -77,10 +77,10 @@ export class OrderController {
     };
 
     try {
-      this.logger.info("Fetching order by ID", context);
+      this._logger.info("Fetching order by ID", context);
 
       if (!userId) {
-        this.logger.warn("Get order failed - authentication required", context);
+        this._logger.warn("Get order failed - authentication required", context);
         const errorResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -88,16 +88,16 @@ export class OrderController {
         return;
       }
 
-      const result = await this.orderService.getOrderById(userId, orderId);
+      const result = await this._orderService.getOrderById(userId, orderId);
 
-      this.logger.info("Order retrieved successfully", {
+      this._logger.info("Order retrieved successfully", {
         ...context,
         orderFound: !!result.data,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get order by ID controller error", {
+      this._logger.error("Get order by ID controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -122,10 +122,10 @@ export class OrderController {
     };
 
     try {
-      this.logger.info("Cancelling order", context);
+      this._logger.info("Cancelling order", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Cancel order failed - authentication required",
           context
         );
@@ -137,7 +137,7 @@ export class OrderController {
       }
 
       if (!reason) {
-        this.logger.warn("Cancel order failed - reason required", context);
+        this._logger.warn("Cancel order failed - reason required", context);
         const badRequestResponse = ResponseHelper.badRequest(
           "Cancellation reason is required"
         );
@@ -145,17 +145,17 @@ export class OrderController {
         return;
       }
 
-      const result = await this.orderService.cancelOrder(
+      const result = await this._orderService.cancelOrder(
         userId,
         orderId,
         reason
       );
 
-      this.logger.info("Order cancelled successfully", context);
+      this._logger.info("Order cancelled successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Cancel order controller error", {
+      this._logger.error("Cancel order controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -180,10 +180,10 @@ export class OrderController {
     };
 
     try {
-      this.logger.info("Rescheduling order", context);
+      this._logger.info("Rescheduling order", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Reschedule order failed - authentication required",
           context
         );
@@ -195,7 +195,7 @@ export class OrderController {
       }
 
       if (!newDate || !newTimeSlot) {
-        this.logger.warn("Reschedule order failed - missing required fields", {
+        this._logger.warn("Reschedule order failed - missing required fields", {
           ...context,
           hasNewDate: !!newDate,
           hasNewTimeSlot: !!newTimeSlot,
@@ -210,7 +210,7 @@ export class OrderController {
       // Validate date format
       const scheduledAt = new Date(newDate);
       if (isNaN(scheduledAt.getTime())) {
-        this.logger.warn(
+        this._logger.warn(
           "Reschedule order failed - invalid date format",
           context
         );
@@ -223,7 +223,7 @@ export class OrderController {
 
       // Check if the new date is in the future
       if (scheduledAt <= new Date()) {
-        this.logger.warn(
+        this._logger.warn(
           "Reschedule order failed - date must be in future",
           context
         );
@@ -234,7 +234,7 @@ export class OrderController {
         return;
       }
 
-      const result = await this.orderService.rescheduleOrder(
+      const result = await this._orderService.rescheduleOrder(
         userId,
         orderId,
         newDate,
@@ -242,18 +242,18 @@ export class OrderController {
       );
 
       if (!result.success) {
-        this.logger.warn("Reschedule order service returned failure", {
+        this._logger.warn("Reschedule order service returned failure", {
           ...context,
           error: result.message,
           statusCode: result.statusCode,
         });
       } else {
-        this.logger.info("Order rescheduled successfully", context);
+        this._logger.info("Order rescheduled successfully", context);
       }
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Reschedule order controller error", {
+      this._logger.error("Reschedule order controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -278,10 +278,10 @@ export class OrderController {
     };
 
     try {
-      this.logger.info("Creating order from booking", context);
+      this._logger.info("Creating order from booking", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Create order failed - authentication required",
           context
         );
@@ -293,7 +293,7 @@ export class OrderController {
       }
 
       if (!bookingId || !paymentData) {
-        this.logger.warn(
+        this._logger.warn(
           "Create order failed - missing required fields",
           context
         );
@@ -304,16 +304,16 @@ export class OrderController {
         return;
       }
 
-      const result = await this.orderService.createOrderFromBooking(
+      const result = await this._orderService.createOrderFromBooking(
         bookingId,
         paymentData
       );
 
-      this.logger.info("Order created successfully from booking", context);
+      this._logger.info("Order created successfully from booking", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Create order from booking controller error", {
+      this._logger.error("Create order from booking controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -338,10 +338,10 @@ export class OrderController {
     };
 
     try {
-      this.logger.info("Fetching order by booking ID", context);
+      this._logger.info("Fetching order by booking ID", context);
 
       if (!userId) {
-        this.logger.warn("Get order failed - authentication required", context);
+        this._logger.warn("Get order failed - authentication required", context);
         const errorResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -349,19 +349,19 @@ export class OrderController {
         return;
       }
 
-      const result = await this.orderService.getOrderByBookingId(
+      const result = await this._orderService.getOrderByBookingId(
         userId,
         bookingId
       );
 
-      this.logger.info("Order retrieved successfully by booking ID", {
+      this._logger.info("Order retrieved successfully by booking ID", {
         ...context,
         orderFound: !!result.data,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Get order by booking ID controller error", {
+      this._logger.error("Get order by booking ID controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -387,10 +387,10 @@ export class OrderController {
     };
 
     try {
-      this.logger.info("Updating order payment", context);
+      this._logger.info("Updating order payment", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Update payment failed - authentication required",
           context
         );
@@ -401,16 +401,16 @@ export class OrderController {
         return;
       }
 
-      const result = await this.orderService.updateOrderPayment(
+      const result = await this._orderService.updateOrderPayment(
         orderId,
         paymentData
       );
 
-      this.logger.info("Order payment updated successfully", context);
+      this._logger.info("Order payment updated successfully", context);
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Update order payment controller error", {
+      this._logger.error("Update order payment controller error", {
         ...context,
         error: error.message,
         stack: error.stack,

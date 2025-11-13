@@ -9,17 +9,16 @@ import {
 import { OrderMapper } from "../mappers/orderMapper";
 import { ORDER_MESSAGES } from "../constants";
 import { Types } from "mongoose";
-import { LoggerService } from "../services/LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 export class OrderManagementService implements IOrderService {
-  private orderRepository: IOrderRepository;
-  private orderMapper: OrderMapper;
-  private logger: ILogger;
+  private _orderRepository: IOrderRepository;
+  private _orderMapper: OrderMapper;
+  private _logger: ILogger;
 
   constructor(orderRepository: IOrderRepository, logger: ILogger) {
-    this.orderRepository = orderRepository;
-    this.orderMapper = new OrderMapper();
-    this.logger = logger;
+    this._orderRepository = orderRepository;
+    this._orderMapper = new OrderMapper();
+    this._logger = logger;
   }
 
   async getOrders(
@@ -38,7 +37,7 @@ export class OrderManagementService implements IOrderService {
     };
 
     try {
-      this.logger.info("Fetching orders", context);
+      this._logger.info("Fetching orders", context);
 
       const skip = (page - 1) * limit;
 
@@ -52,35 +51,35 @@ export class OrderManagementService implements IOrderService {
       let total: number;
 
       if (search) {
-        this.logger.debug("Searching orders with query", {
+        this._logger.debug("Searching orders with query", {
           ...context,
           searchQuery: search,
         });
-        orders = await this.orderRepository.search(search, limit);
+        orders = await this._orderRepository.search(search, limit);
         total = orders.length;
       } else {
-        this.logger.debug("Fetching orders with filter", {
+        this._logger.debug("Fetching orders with filter", {
           ...context,
           filter,
         });
-        orders = await this.orderRepository.findAll(filter, skip, limit);
-        total = await this.orderRepository.count(filter);
+        orders = await this._orderRepository.findAll(filter, skip, limit);
+        total = await this._orderRepository.count(filter);
       }
 
-      this.logger.info("Orders retrieved successfully", {
+      this._logger.info("Orders retrieved successfully", {
         ...context,
         ordersCount: orders.length,
         totalOrders: total,
       });
 
-      return this.orderMapper.toOrderListResponseDto(
+      return this._orderMapper.toOrderListResponseDto(
         orders,
         total,
         page,
         limit
       );
     } catch (error: any) {
-      this.logger.error("Get orders error", {
+      this._logger.error("Get orders error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -97,27 +96,27 @@ export class OrderManagementService implements IOrderService {
     };
 
     try {
-      this.logger.info("Fetching order by ID", context);
+      this._logger.info("Fetching order by ID", context);
 
       if (!Types.ObjectId.isValid(orderId)) {
-        this.logger.warn("Invalid order ID provided", context);
+        this._logger.warn("Invalid order ID provided", context);
         throw new Error(ORDER_MESSAGES.INVALID_ORDER_ID);
       }
 
-      const order = await this.orderRepository.findById(orderId);
+      const order = await this._orderRepository.findById(orderId);
       if (!order) {
-        this.logger.warn("Order not found", context);
+        this._logger.warn("Order not found", context);
         throw new Error(ORDER_MESSAGES.ORDER_NOT_FOUND);
       }
 
-      this.logger.info("Order retrieved successfully", {
+      this._logger.info("Order retrieved successfully", {
         ...context,
         orderCode: order.orderCode,
       });
 
-      return this.orderMapper.toOrderResponseDto(order);
+      return this._orderMapper.toOrderResponseDto(order);
     } catch (error: any) {
-      this.logger.error("Get order by ID error", {
+      this._logger.error("Get order by ID error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -133,19 +132,19 @@ export class OrderManagementService implements IOrderService {
     };
 
     try {
-      this.logger.info("Fetching order statistics", context);
+      this._logger.info("Fetching order statistics", context);
 
-      const stats = await this.orderRepository.getOrderStats();
+      const stats = await this._orderRepository.getOrderStats();
 
-      this.logger.info("Order statistics retrieved successfully", {
+      this._logger.info("Order statistics retrieved successfully", {
         ...context,
         totalOrders: stats.totalOrders,
         totalRevenue: stats.totalRevenue,
       });
 
-      return this.orderMapper.toOrderStatsDto(stats);
+      return this._orderMapper.toOrderStatsDto(stats);
     } catch (error: any) {
-      this.logger.error("Get order stats error", {
+      this._logger.error("Get order stats error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -166,17 +165,17 @@ export class OrderManagementService implements IOrderService {
     };
 
     try {
-      this.logger.info("Updating order status", context);
+      this._logger.info("Updating order status", context);
 
       if (!Types.ObjectId.isValid(orderId)) {
-        this.logger.warn("Invalid order ID provided", context);
+        this._logger.warn("Invalid order ID provided", context);
         throw new Error(ORDER_MESSAGES.INVALID_ORDER_ID);
       }
 
       // Check if order exists
-      const existingOrder = await this.orderRepository.findById(orderId);
+      const existingOrder = await this._orderRepository.findById(orderId);
       if (!existingOrder) {
-        this.logger.warn("Order not found for status update", context);
+        this._logger.warn("Order not found for status update", context);
         throw new Error(ORDER_MESSAGES.ORDER_NOT_FOUND);
       }
 
@@ -197,33 +196,33 @@ export class OrderManagementService implements IOrderService {
 
       updatePayload.$push = { history: newHistory };
 
-      this.logger.debug("Updating order status in repository", {
+      this._logger.debug("Updating order status in repository", {
         ...context,
         updatePayload,
       });
 
-      const updatedOrder = await this.orderRepository.update(
+      const updatedOrder = await this._orderRepository.update(
         orderId,
         updatePayload
       );
       if (!updatedOrder) {
-        this.logger.error(
+        this._logger.error(
           "Order status update failed - repository returned null",
           context
         );
         throw new Error(ORDER_MESSAGES.FAILED_UPDATE_STATUS);
       }
 
-      this.logger.info("Order status updated successfully", {
+      this._logger.info("Order status updated successfully", {
         ...context,
         orderCode: updatedOrder.orderCode,
         oldStatus: existingOrder.status,
         newStatus: updatedOrder.status,
       });
 
-      return this.orderMapper.toOrderResponseDto(updatedOrder);
+      return this._orderMapper.toOrderResponseDto(updatedOrder);
     } catch (error: any) {
-      this.logger.error("Update order status error", {
+      this._logger.error("Update order status error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -245,10 +244,10 @@ export class OrderManagementService implements IOrderService {
     };
 
     try {
-      this.logger.info("Fetching orders by technician", context);
+      this._logger.info("Fetching orders by technician", context);
 
       if (!Types.ObjectId.isValid(technicianId)) {
-        this.logger.warn("Invalid technician ID provided", context);
+        this._logger.warn("Invalid technician ID provided", context);
         throw new Error("Invalid technician ID");
       }
 
@@ -257,24 +256,24 @@ export class OrderManagementService implements IOrderService {
       const filter = { technicianId: new Types.ObjectId(technicianId) };
 
       const [orders, total] = await Promise.all([
-        this.orderRepository.findAll(filter, skip, limit),
-        this.orderRepository.count(filter),
+        this._orderRepository.findAll(filter, skip, limit),
+        this._orderRepository.count(filter),
       ]);
 
-      this.logger.info("Technician orders retrieved successfully", {
+      this._logger.info("Technician orders retrieved successfully", {
         ...context,
         ordersCount: orders.length,
         totalOrders: total,
       });
 
-      return this.orderMapper.toOrderListResponseDto(
+      return this._orderMapper.toOrderListResponseDto(
         orders,
         total,
         page,
         limit
       );
     } catch (error: any) {
-      this.logger.error("Get technician orders error", {
+      this._logger.error("Get technician orders error", {
         ...context,
         error: error.message,
         stack: error.stack,

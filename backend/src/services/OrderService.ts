@@ -1,6 +1,5 @@
 import { IOrderRepository } from "../interfaces/repository/user/IOrderRepository";
 import { ResponseHelper, ApiResponse } from "../utils/responseHelper";
-import { LoggerService } from "../services/LoggerService";
 import {
   IOrder,
   OrderListResponseDto,
@@ -9,20 +8,24 @@ import {
 import { IOrderService } from "@/interfaces/services/user/IOrderService";
 import { ITechnicianRepository } from "@/interfaces/repository/technician/ITechnicianRepository";
 import { INotificationService } from "@/interfaces/services/INotificationService";
-import OrderSchema from "@/models/OrderSchema";
-import { Types } from "mongoose";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class OrderService implements IOrderService {
-  private logger: ILogger;
+  private _logger: ILogger;
+  private _orderRepository: IOrderRepository;
+  private _technicianRepository: ITechnicianRepository;
+  private _notificationService: INotificationService;
 
   constructor(
-    private orderRepository: IOrderRepository,
-    private technicianRepository: ITechnicianRepository,
-    private notificationService: INotificationService,
+    orderRepository: IOrderRepository,
+    technicianRepository: ITechnicianRepository,
+    notificationService: INotificationService,
     logger: ILogger
   ) {
-    this.logger = logger;
+    this._logger = logger;
+    this._orderRepository = orderRepository;
+    this._technicianRepository = technicianRepository;
+    this._notificationService = notificationService
   }
 
   async getUserOrders(
@@ -36,15 +39,15 @@ export class OrderService implements IOrderService {
     };
 
     try {
-      this.logger.info("Fetching user orders", context);
+      this._logger.info("Fetching user orders", context);
 
-      const result = await this.orderRepository.findByUserId(
+      const result = await this._orderRepository.findByUserId(
         userId,
         page,
         limit
       );
 
-      this.logger.info("User orders retrieved successfully", {
+      this._logger.info("User orders retrieved successfully", {
         ...context,
         orderCount: result.orders.length,
         total: result.total,
@@ -64,7 +67,7 @@ export class OrderService implements IOrderService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching user orders", {
+      this._logger.error("Error fetching user orders", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -83,16 +86,16 @@ export class OrderService implements IOrderService {
     };
 
     try {
-      this.logger.info("Fetching order by ID", context);
+      this._logger.info("Fetching order by ID", context);
 
-      const order = await this.orderRepository.findById(orderId);
+      const order = await this._orderRepository.findById(orderId);
 
       if (!order) {
-        this.logger.warn("Order not found", context);
+        this._logger.warn("Order not found", context);
         return ResponseHelper.notFound("Order not found");
       }
 
-      this.logger.debug("Order user ID vs requesting user ID", {
+      this._logger.debug("Order user ID vs requesting user ID", {
         orderUserId: order.userId.toString(),
         requestingUserId: userId,
         match: order.userId.toString() === userId,
@@ -103,7 +106,7 @@ export class OrderService implements IOrderService {
 
       // Check if user has access to this order
       if (realOrderId !== userId) {
-        this.logger.warn("User not authorized to access this order", {
+        this._logger.warn("User not authorized to access this order", {
           ...context,
           orderUserId: order.userId.toString(),
           requestingUserId: userId,
@@ -111,14 +114,14 @@ export class OrderService implements IOrderService {
         return ResponseHelper.forbidden("Not authorized to access this order");
       }
 
-      this.logger.info("Order retrieved successfully", context);
+      this._logger.info("Order retrieved successfully", context);
 
       const orderDto = this.mapToDto(order);
       return ResponseHelper.success("Order retrieved successfully", orderDto);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching order", {
+      this._logger.error("Error fetching order", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -144,47 +147,47 @@ async createOrderFromBooking(
   };
 
   try {
-    this.logger.info("Creating/updating order from booking", context);
+    this._logger.info("Creating/updating order from booking", context);
 
-    const existingOrder = await this.orderRepository.findByBookingId(bookingId);
+    const existingOrder = await this._orderRepository.findByBookingId(bookingId);
 
     let order;
 
     if (existingOrder) {
-      this.logger.info("Updating existing order for payment retry", {
+      this._logger.info("Updating existing order for payment retry", {
         ...context,
         existingOrderId: existingOrder._id.toString(),
       });
 
       // Update payment details and status - allow status updates for failed payments
-      order = await this.orderRepository.updatePaymentDetails(
+      order = await this._orderRepository.updatePaymentDetails(
         existingOrder._id.toString(),
         paymentData
       );
 
       if (!order) {
-        this.logger.error("Failed to update existing order", context);
+        this._logger.error("Failed to update existing order", context);
         return ResponseHelper.error("Failed to update order for payment retry");
       }
 
-      this.logger.info("Existing order updated successfully", {
+      this._logger.info("Existing order updated successfully", {
         ...context,
         orderId: order._id.toString(),
       });
     } else {
       // CREATE new order - even for failed payments
-      this.logger.info("Creating new order from booking", context);
-      order = await this.orderRepository.createFromBooking(
+      this._logger.info("Creating new order from booking", context);
+      order = await this._orderRepository.createFromBooking(
         bookingId,
         paymentData
       );
 
       if (!order) {
-        this.logger.error("Failed to create order from booking", context);
+        this._logger.error("Failed to create order from booking", context);
         return ResponseHelper.error("Failed to create order");
       }
 
-      this.logger.info("New order created successfully", {
+      this._logger.info("New order created successfully", {
         ...context,
         orderId: order._id.toString(),
         orderCode: order.orderCode,
@@ -208,7 +211,7 @@ async createOrderFromBooking(
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    this.logger.error("Error creating/updating order from booking", {
+    this._logger.error("Error creating/updating order from booking", {
       ...context,
       error: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
@@ -228,12 +231,12 @@ async createOrderFromBooking(
     };
 
     try {
-      this.logger.info("Cancelling order", context);
+      this._logger.info("Cancelling order", context);
 
-      const order = await this.orderRepository.findById(orderId);
+      const order = await this._orderRepository.findById(orderId);
 
       if (!order) {
-        this.logger.warn("Order not found for cancellation", context);
+        this._logger.warn("Order not found for cancellation", context);
         return ResponseHelper.notFound("Order not found");
       }
 
@@ -242,13 +245,13 @@ async createOrderFromBooking(
 
       // Check if user owns the order
       if (realOrderId !== userId) {
-        this.logger.warn("User not authorized to cancel this order", context);
+        this._logger.warn("User not authorized to cancel this order", context);
         return ResponseHelper.forbidden("Not authorized to cancel this order");
       }
 
       // Check if order can be cancelled
       if (["cancelled", "completed", "refunded"].includes(order.status)) {
-        this.logger.warn("Order cannot be cancelled in current status", {
+        this._logger.warn("Order cannot be cancelled in current status", {
           ...context,
           currentStatus: order.status,
         });
@@ -257,7 +260,7 @@ async createOrderFromBooking(
         );
       }
 
-      const updatedOrder = await this.orderRepository.updateStatus(
+      const updatedOrder = await this._orderRepository.updateStatus(
         orderId,
         "cancelled",
         "user",
@@ -265,18 +268,18 @@ async createOrderFromBooking(
       );
 
       if (!updatedOrder) {
-        this.logger.error("Failed to cancel order", context);
+        this._logger.error("Failed to cancel order", context);
         return ResponseHelper.error("Failed to cancel order");
       }
 
-      this.logger.info("Order cancelled successfully", context);
+      this._logger.info("Order cancelled successfully", context);
 
       const orderDto = this.mapToDto(updatedOrder);
       return ResponseHelper.success("Order cancelled successfully", orderDto);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error cancelling order", {
+      this._logger.error("Error cancelling order", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -365,13 +368,13 @@ async createOrderFromBooking(
     };
 
     try {
-      this.logger.info("Fetching technician orders for user", context);
+      this._logger.info("Fetching technician orders for user", context);
 
       // Get the actual technician ID from user ID
       const technicianId = await this.getTechnicianIdByUserId(userId);
 
       if (!technicianId) {
-        this.logger.warn("No technician profile found for user", { userId });
+        this._logger.warn("No technician profile found for user", { userId });
         // Return empty orders instead of error if no technician profile exists
         return ResponseHelper.success("No orders found", {
           orders: [],
@@ -384,18 +387,18 @@ async createOrderFromBooking(
         });
       }
 
-      this.logger.debug("Resolved technician ID", {
+      this._logger.debug("Resolved technician ID", {
         userId,
         technicianId,
       });
 
-      const result = await this.orderRepository.findByTechnicianId(
+      const result = await this._orderRepository.findByTechnicianId(
         technicianId,
         page,
         limit
       );
 
-      this.logger.info("Technician orders retrieved successfully", {
+      this._logger.info("Technician orders retrieved successfully", {
         ...context,
         technicianId,
         orderCount: result.orders.length,
@@ -416,7 +419,7 @@ async createOrderFromBooking(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching technician orders", {
+      this._logger.error("Error fetching technician orders", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -435,12 +438,12 @@ async createOrderFromBooking(
     };
 
     try {
-      this.logger.info("Fetching technician order by ID", context);
+      this._logger.info("Fetching technician order by ID", context);
 
-      const order = await this.orderRepository.findById(orderId);
+      const order = await this._orderRepository.findById(orderId);
 
       if (!order) {
-        this.logger.warn("Order not found", context);
+        this._logger.warn("Order not found", context);
         return ResponseHelper.notFound("Order not found");
       }
 
@@ -449,7 +452,7 @@ async createOrderFromBooking(
         order.technicianId?._id?.toString() || order.technicianId?.toString();
 
       if (orderTechnicianId !== technicianId) {
-        this.logger.warn("Technician not authorized to access this order", {
+        this._logger.warn("Technician not authorized to access this order", {
           ...context,
           orderTechnicianId,
           requestingTechnicianId: technicianId,
@@ -457,14 +460,14 @@ async createOrderFromBooking(
         return ResponseHelper.forbidden("Not authorized to access this order");
       }
 
-      this.logger.info("Technician order retrieved successfully", context);
+      this._logger.info("Technician order retrieved successfully", context);
 
       const orderDto = this.mapToDto(order);
       return ResponseHelper.success("Order retrieved successfully", orderDto);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching technician order", {
+      this._logger.error("Error fetching technician order", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -485,9 +488,9 @@ async createOrderFromBooking(
     };
 
     try {
-      this.logger.info("=== UPDATE ORDER STATUS START ===", context);
+      this._logger.info("=== UPDATE ORDER STATUS START ===", context);
 
-      const updatedOrder = await this.orderRepository.updateStatus(
+      const updatedOrder = await this._orderRepository.updateStatus(
         orderId,
         status,
         updatedBy,
@@ -495,11 +498,11 @@ async createOrderFromBooking(
       );
 
       if (!updatedOrder) {
-        this.logger.warn("Order not found for status update", context);
+        this._logger.warn("Order not found for status update", context);
         return ResponseHelper.notFound("Order not found");
       }
 
-      this.logger.info(
+      this._logger.info(
         "Order updated successfully, now triggering notifications"
       );
 
@@ -509,7 +512,7 @@ async createOrderFromBooking(
         await this.notifyTechnicianAboutOrderStatusChange(updatedOrder, status);
       }
 
-      this.logger.info("=== UPDATE ORDER STATUS COMPLETE ===", {
+      this._logger.info("=== UPDATE ORDER STATUS COMPLETE ===", {
         orderId,
         status,
         userNotified: true,
@@ -524,7 +527,7 @@ async createOrderFromBooking(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error updating order status", {
+      this._logger.error("Error updating order status", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -548,11 +551,11 @@ async createOrderFromBooking(
     };
 
     try {
-      this.logger.info("Fetching technician order stats", context);
+      this._logger.info("Fetching technician order stats", context);
 
-      const stats = await this.orderRepository.getTechnicianStats(technicianId);
+      const stats = await this._orderRepository.getTechnicianStats(technicianId);
 
-      this.logger.info(
+      this._logger.info(
         "Technician order stats retrieved successfully",
         context
       );
@@ -564,7 +567,7 @@ async createOrderFromBooking(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching technician order stats", {
+      this._logger.error("Error fetching technician order stats", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -580,7 +583,7 @@ async createOrderFromBooking(
   ): Promise<boolean> {
     try {
       const conflictingOrders =
-        await this.orderRepository.findConflictingOrders(
+        await this._orderRepository.findConflictingOrders(
           technicianId,
           date,
           timeSlot,
@@ -589,7 +592,7 @@ async createOrderFromBooking(
 
       return conflictingOrders.length === 0;
     } catch (error) {
-      this.logger.error("Error checking technician availability", {
+      this._logger.error("Error checking technician availability", {
         technicianId,
         date,
         timeSlot,
@@ -611,12 +614,12 @@ async createOrderFromBooking(
     };
 
     try {
-      this.logger.info("Rescheduling order", context);
+      this._logger.info("Rescheduling order", context);
 
-      const order = await this.orderRepository.findById(orderId);
+      const order = await this._orderRepository.findById(orderId);
 
       if (!order) {
-        this.logger.warn("Order not found for rescheduling", context);
+        this._logger.warn("Order not found for rescheduling", context);
         return ResponseHelper.notFound("Order not found");
       }
 
@@ -625,7 +628,7 @@ async createOrderFromBooking(
 
       // Check if user owns the order
       if (realOrderId !== userId) {
-        this.logger.warn(
+        this._logger.warn(
           "User not authorized to reschedule this order",
           context
         );
@@ -636,7 +639,7 @@ async createOrderFromBooking(
 
       // Check if order can be rescheduled
       if (!this.canOrderBeRescheduled(order.status)) {
-        this.logger.warn("Order cannot be rescheduled in current status", {
+        this._logger.warn("Order cannot be rescheduled in current status", {
           ...context,
           currentStatus: order.status,
         });
@@ -651,7 +654,7 @@ async createOrderFromBooking(
       const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
 
       if (scheduledAt < fourHoursFromNow) {
-        this.logger.warn(
+        this._logger.warn(
           "Reschedule date must be at least 4 hours in advance",
           {
             ...context,
@@ -673,7 +676,7 @@ async createOrderFromBooking(
       );
 
       if (!isAvailable) {
-        this.logger.warn(
+        this._logger.warn(
           "Technician not available for the selected slot",
           context
         );
@@ -682,7 +685,7 @@ async createOrderFromBooking(
         );
       }
 
-      const updatedOrder = await this.orderRepository.rescheduleOrder(
+      const updatedOrder = await this._orderRepository.rescheduleOrder(
         orderId,
         newDate,
         newTimeSlot,
@@ -690,11 +693,11 @@ async createOrderFromBooking(
       );
 
       if (!updatedOrder) {
-        this.logger.error("Failed to reschedule order in repository", context);
+        this._logger.error("Failed to reschedule order in repository", context);
         return ResponseHelper.error("Failed to reschedule order");
       }
 
-      this.logger.info("Order rescheduled successfully", {
+      this._logger.info("Order rescheduled successfully", {
         ...context,
         oldDate: order.scheduledAt,
         oldTimeSlot: order.timeSlot,
@@ -705,7 +708,7 @@ async createOrderFromBooking(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error rescheduling order", {
+      this._logger.error("Error rescheduling order", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -723,23 +726,23 @@ async createOrderFromBooking(
     userId: string
   ): Promise<string | null> {
     try {
-      this.logger.debug("Looking up technician ID for user", { userId });
+      this._logger.debug("Looking up technician ID for user", { userId });
 
-      const technician = await this.technicianRepository.findByUserId(userId);
+      const technician = await this._technicianRepository.findByUserId(userId);
 
       if (!technician) {
-        this.logger.warn("No technician found for user", { userId });
+        this._logger.warn("No technician found for user", { userId });
         return null;
       }
 
-      this.logger.debug("Found technician profile", {
+      this._logger.debug("Found technician profile", {
         userId,
         technicianId: technician._id.toString(),
       });
 
       return technician._id.toString();
     } catch (error) {
-      this.logger.error("Error finding technician by user ID", {
+      this._logger.error("Error finding technician by user ID", {
         userId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -756,12 +759,12 @@ async createOrderFromBooking(
     };
 
     try {
-      this.logger.info("Fetching order by booking ID", context);
+      this._logger.info("Fetching order by booking ID", context);
 
-      const order = await this.orderRepository.findByBookingId(bookingId);
+      const order = await this._orderRepository.findByBookingId(bookingId);
 
       if (!order) {
-        this.logger.warn("Order not found for booking", context);
+        this._logger.warn("Order not found for booking", context);
         return ResponseHelper.notFound("Order not found for this booking");
       }
 
@@ -770,7 +773,7 @@ async createOrderFromBooking(
 
       // Check if user has access to this order
       if (realOrderId !== userId) {
-        this.logger.warn("User not authorized to access this order", {
+        this._logger.warn("User not authorized to access this order", {
           ...context,
           orderUserId: order.userId.toString(),
           requestingUserId: userId,
@@ -778,14 +781,14 @@ async createOrderFromBooking(
         return ResponseHelper.forbidden("Not authorized to access this order");
       }
 
-      this.logger.info("Order retrieved successfully by booking ID", context);
+      this._logger.info("Order retrieved successfully by booking ID", context);
 
       const orderDto = this.mapToDto(order);
       return ResponseHelper.success("Order retrieved successfully", orderDto);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching order by booking ID", {
+      this._logger.error("Error fetching order by booking ID", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -809,20 +812,20 @@ async createOrderFromBooking(
     };
 
     try {
-      this.logger.info("Updating order payment", context);
+      this._logger.info("Updating order payment", context);
 
-      const updatedOrder = await this.orderRepository.updatePaymentDetails(
+      const updatedOrder = await this._orderRepository.updatePaymentDetails(
         orderId,
         paymentData
       );
 
       if (!updatedOrder) {
-        this.logger.error("Failed to update order payment", context);
+        this._logger.error("Failed to update order payment", context);
         return ResponseHelper.error("Failed to update order payment");
       }
       await this.notifyUserAboutPayment(updatedOrder, paymentData.status);
 
-      this.logger.info("Order payment updated successfully", context);
+      this._logger.info("Order payment updated successfully", context);
 
       const orderDto = this.mapToDto(updatedOrder);
       return ResponseHelper.success(
@@ -832,7 +835,7 @@ async createOrderFromBooking(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error updating order payment", {
+      this._logger.error("Error updating order payment", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -849,33 +852,33 @@ async createOrderFromBooking(
         technicianId: order.technicianId.toString(),
       };
 
-      this.logger.info("Sending new order notification to technician", context);
+      this._logger.info("Sending new order notification to technician", context);
 
       // Get technician details for personalized notification
-      const technician = await this.technicianRepository.findById(
+      const technician = await this._technicianRepository.findById(
         order.technicianId.toString()
       );
 
       if (!technician) {
-        this.logger.warn("Technician not found for notification", context);
+        this._logger.warn("Technician not found for notification", context);
         return;
       }
 
       // Create notification for technician
-      await this.notificationService.createNewBookingNotification(
+      await this._notificationService.createNewBookingNotification(
         technician._id.toString(),
         order._id.toString(),
         order.serviceName || "Service"
       );
 
-      this.logger.info("New order notification sent successfully", {
+      this._logger.info("New order notification sent successfully", {
         ...context,
         technicianName: technician.displayName,
         serviceType: order.serviceName,
       });
     } catch (error) {
       // Don't fail the order creation if notification fails
-      this.logger.error("Failed to send notification to technician", {
+      this._logger.error("Failed to send notification to technician", {
         orderId: order._id.toString(),
         technicianId: order.technicianId.toString(),
         error: error instanceof Error ? error.message : "Unknown error",
@@ -895,18 +898,18 @@ async createOrderFromBooking(
         newStatus,
       };
 
-      this.logger.info(
+      this._logger.info(
         "Sending order status change notification to technician",
         context
       );
 
       // Get technician details
-      const technician = await this.technicianRepository.findById(
+      const technician = await this._technicianRepository.findById(
         order.technicianId.toString()
       );
 
       if (!technician) {
-        this.logger.warn(
+        this._logger.warn(
           "Technician not found for status change notification",
           context
         );
@@ -937,7 +940,7 @@ async createOrderFromBooking(
           return; // Don't send notification for other status changes
       }
 
-      await this.notificationService.createNotification({
+      await this._notificationService.createNotification({
         userId: technician._id.toString(),
         userType: "technician",
         type: "order_update",
@@ -951,13 +954,13 @@ async createOrderFromBooking(
         },
       });
 
-      this.logger.info(
+      this._logger.info(
         "Order status change notification sent successfully",
         context
       );
     } catch (error) {
       // Don't fail the order update if notification fails
-      this.logger.error(
+      this._logger.error(
         "Failed to send status change notification to technician",
         {
           orderId: order._id.toString(),
@@ -979,7 +982,7 @@ async createOrderFromBooking(
         newStatus,
       };
 
-      this.logger.info("=== NOTIFY USER START ===", context);
+      this._logger.info("=== NOTIFY USER START ===", context);
 
       let notificationTitle = "";
       let notificationMessage = "";
@@ -1021,18 +1024,18 @@ async createOrderFromBooking(
           notificationType = "booking_cancelled";
           break;
         default:
-          this.logger.info("No notification for status:", newStatus);
+          this._logger.info("No notification for status:", newStatus);
           return;
       }
 
-      this.logger.info("Creating user notification:", {
+      this._logger.info("Creating user notification:", {
         title: notificationTitle,
         message: notificationMessage,
         type: notificationType,
         actionUrl,
       });
 
-      await this.notificationService.createNotification({
+      await this._notificationService.createNotification({
         userId: order.userId.toString(),
         userType: "customer",
         type: notificationType,
@@ -1051,11 +1054,11 @@ async createOrderFromBooking(
         },
       });
 
-      this.logger.info("=== NOTIFICATION CREATED SUCCESSFULLY ===", {
+      this._logger.info("=== NOTIFICATION CREATED SUCCESSFULLY ===", {
         userId: order.userId.toString(),
       });
     } catch (error) {
-      this.logger.error("=== NOTIFICATION CREATION FAILED ===", {
+      this._logger.error("=== NOTIFICATION CREATION FAILED ===", {
         orderId: order._id.toString(),
         userId: order.userId.toString(),
         error: error instanceof Error ? error.message : "Unknown error",
@@ -1076,7 +1079,7 @@ async createOrderFromBooking(
         paymentStatus,
       };
 
-      this.logger.info("=== PAYMENT NOTIFICATION START ===", context);
+      this._logger.info("=== PAYMENT NOTIFICATION START ===", context);
 
       let notificationTitle = "";
       let notificationMessage = "";
@@ -1088,16 +1091,16 @@ async createOrderFromBooking(
         notificationTitle = "Payment Failed";
         notificationMessage = `Your payment for ${order.serviceName} failed. Please try again.`;
       } else {
-        this.logger.info("No payment notification for status:", paymentStatus);
+        this._logger.info("No payment notification for status:", paymentStatus);
         return;
       }
 
-      this.logger.info("Creating payment notification:", {
+      this._logger.info("Creating payment notification:", {
         title: notificationTitle,
         message: notificationMessage,
       });
 
-      await this.notificationService.createNotification({
+      await this._notificationService.createNotification({
         userId: order.userId.toString(),
         userType: "customer",
         type: "payment_success",
@@ -1112,9 +1115,9 @@ async createOrderFromBooking(
         },
       });
 
-      this.logger.info("=== PAYMENT NOTIFICATION CREATED SUCCESSFULLY ===");
+      this._logger.info("=== PAYMENT NOTIFICATION CREATED SUCCESSFULLY ===");
     } catch (error) {
-      this.logger.error("=== PAYMENT NOTIFICATION FAILED ===", {
+      this._logger.error("=== PAYMENT NOTIFICATION FAILED ===", {
         orderId: order._id.toString(),
         userId: order.userId.toString(),
         error: error instanceof Error ? error.message : "Unknown error",
@@ -1131,14 +1134,14 @@ async createOrderFromBooking(
     };
 
     try {
-      this.logger.info("Fetching orders by technician and date", context);
+      this._logger.info("Fetching orders by technician and date", context);
 
-      const orders = await this.orderRepository.getOrdersByTechnicianAndDate(
+      const orders = await this._orderRepository.getOrdersByTechnicianAndDate(
         technicianId,
         date
       );
 
-      this.logger.info("Orders retrieved successfully", {
+      this._logger.info("Orders retrieved successfully", {
         ...context,
         orderCount: orders.length,
       });
@@ -1147,7 +1150,7 @@ async createOrderFromBooking(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching orders by technician and date", {
+      this._logger.error("Error fetching orders by technician and date", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

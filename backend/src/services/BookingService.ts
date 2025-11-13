@@ -1,7 +1,6 @@
 import { IBookingService } from "../interfaces/services/user/IBookingService";
 import { IBookingRepository } from "../interfaces/repository/user/IBookingRepository";
 import { ResponseHelper, ApiResponse } from "../utils/responseHelper";
-import { LoggerService } from "../services/LoggerService";
 import {
   CreateBookingRequestDto,
   BookingResponseDto,
@@ -11,20 +10,23 @@ import {
 } from "../interfaces/dtos/bookingDtos";
 import { Types } from "mongoose";
 import { IOrderRepository } from "@/interfaces/repository/user/IOrderRepository";
-import { ITechnicianRepository } from "@/interfaces/repository/technician/ITechnicianRepository";
 import { ITechnician } from "@/interfaces/technician/ITechnician";
 import { IBooking } from "@/models/BookingSchema";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class BookingService implements IBookingService {
-  private logger: ILogger;
+  private _logger: ILogger;
+  private _bookingRepository: IBookingRepository;
+  private _orderRepository: IOrderRepository;
 
   constructor(
-    private bookingRepository: IBookingRepository,
-    private orderRepository: IOrderRepository,
+    bookingRepository: IBookingRepository,
+    orderRepository: IOrderRepository,
     logger: ILogger
   ) {
-    this.logger = logger;
+    this._logger = logger;
+    this._bookingRepository = bookingRepository;
+    this._orderRepository = orderRepository
   }
 
   async createBooking(
@@ -37,7 +39,7 @@ export class BookingService implements IBookingService {
     };
 
     try {
-      this.logger.info("Creating new booking", context);
+      this._logger.info("Creating new booking", context);
 
       // Validate required fields
       if (
@@ -47,7 +49,7 @@ export class BookingService implements IBookingService {
         !bookingData.scheduledAt ||
         !bookingData.timeSlot
       ) {
-        this.logger.warn("Missing required booking fields", context);
+        this._logger.warn("Missing required booking fields", context);
         return ResponseHelper.badRequest(
           "Please fill in all required booking fields"
         );
@@ -55,7 +57,7 @@ export class BookingService implements IBookingService {
 
 
       // Generate booking code
-      const bookingCount = await this.bookingRepository.getBookingCount();
+      const bookingCount = await this._bookingRepository.getBookingCount();
       const bookingCode = `BK${String(bookingCount + 1).padStart(6, "0")}`;
 
       // Calculate amounts
@@ -86,19 +88,19 @@ export class BookingService implements IBookingService {
         ],
       };
 
-      this.logger.debug("Creating booking in repository", {
+      this._logger.debug("Creating booking in repository", {
         ...context,
         bookingModel,
       });
 
-      const newBooking = await this.bookingRepository.create(bookingModel);
+      const newBooking = await this._bookingRepository.create(bookingModel);
 
       if (!newBooking) {
-        this.logger.error("Failed to create booking in database", context);
+        this._logger.error("Failed to create booking in database", context);
         return ResponseHelper.error("Failed to create booking");
       }
 
-      this.logger.info("Booking created successfully", {
+      this._logger.info("Booking created successfully", {
         ...context,
         bookingId: newBooking._id?.toString(),
         bookingCode: newBooking.bookingCode,
@@ -109,7 +111,7 @@ export class BookingService implements IBookingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error creating booking", {
+      this._logger.error("Error creating booking", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -128,12 +130,12 @@ export class BookingService implements IBookingService {
     };
 
     try {
-      this.logger.info("Fetching booking by ID", context);
+      this._logger.info("Fetching booking by ID", context);
 
-      const booking = await this.bookingRepository.findById(bookingId);
+      const booking = await this._bookingRepository.findById(bookingId);
 
       if (!booking) {
-        this.logger.warn("Booking not found", context);
+        this._logger.warn("Booking not found", context);
         return ResponseHelper.notFound("Booking not found");
       }
 
@@ -145,13 +147,13 @@ export class BookingService implements IBookingService {
 
       // Check if user has access to this booking
       if (bookingUserId !== userId && bookingTechnicianId !== userId) {
-        this.logger.warn("User not authorized to access this booking", context);
+        this._logger.warn("User not authorized to access this booking", context);
         return ResponseHelper.forbidden(
           "Not authorized to access this booking"
         );
       }
 
-      this.logger.info("Booking retrieved successfully", context);
+      this._logger.info("Booking retrieved successfully", context);
 
       const bookingDto = this.mapToDto(booking);
       return ResponseHelper.success(
@@ -161,7 +163,7 @@ export class BookingService implements IBookingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching booking", {
+      this._logger.error("Error fetching booking", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -181,15 +183,15 @@ export class BookingService implements IBookingService {
     };
 
     try {
-      this.logger.info("Fetching user bookings", context);
+      this._logger.info("Fetching user bookings", context);
 
-      const result = await this.bookingRepository.findByUserId(
+      const result = await this._bookingRepository.findByUserId(
         userId,
         page,
         limit
       );
 
-      this.logger.info("User bookings retrieved successfully", {
+      this._logger.info("User bookings retrieved successfully", {
         ...context,
         bookingCount: result.bookings.length,
         total: result.total,
@@ -211,7 +213,7 @@ export class BookingService implements IBookingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching user bookings", {
+      this._logger.error("Error fetching user bookings", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -231,15 +233,15 @@ export class BookingService implements IBookingService {
     };
 
     try {
-      this.logger.info("Fetching technician bookings", context);
+      this._logger.info("Fetching technician bookings", context);
 
-      const result = await this.bookingRepository.findByTechnicianId(
+      const result = await this._bookingRepository.findByTechnicianId(
         technicianId,
         page,
         limit
       );
 
-      this.logger.info("Technician bookings retrieved successfully", {
+      this._logger.info("Technician bookings retrieved successfully", {
         ...context,
         bookingCount: result.bookings.length,
         total: result.total,
@@ -261,7 +263,7 @@ export class BookingService implements IBookingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching technician bookings", {
+      this._logger.error("Error fetching technician bookings", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -281,12 +283,12 @@ export class BookingService implements IBookingService {
     };
 
     try {
-      this.logger.info("Updating booking", context);
+      this._logger.info("Updating booking", context);
 
-      const existingBooking = await this.bookingRepository.findById(bookingId);
+      const existingBooking = await this._bookingRepository.findById(bookingId);
 
       if (!existingBooking) {
-        this.logger.warn("Booking not found for update", context);
+        this._logger.warn("Booking not found for update", context);
         return ResponseHelper.notFound("Booking not found");
       }
 
@@ -296,7 +298,7 @@ export class BookingService implements IBookingService {
 
       // Check if user owns the booking
       if (bookingUserId !== userId) {
-        this.logger.warn("User not authorized to update this booking", context);
+        this._logger.warn("User not authorized to update this booking", context);
         return ResponseHelper.forbidden(
           "Not authorized to update this booking"
         );
@@ -304,7 +306,7 @@ export class BookingService implements IBookingService {
 
       const allowedStatuses = ["pending", "cancelled", "accepted"];
       if (!allowedStatuses.includes(existingBooking.status)) {
-        this.logger.warn("Booking cannot be updated in current status", {
+        this._logger.warn("Booking cannot be updated in current status", {
           ...context,
           currentStatus: existingBooking.status,
         });
@@ -337,17 +339,17 @@ export class BookingService implements IBookingService {
       }
 
       // Update the booking in repository
-      const updatedBooking = await this.bookingRepository.update(
+      const updatedBooking = await this._bookingRepository.update(
         bookingId,
         repositoryUpdateData
       );
 
       if (!updatedBooking) {
-        this.logger.error("Failed to update booking in repository", context);
+        this._logger.error("Failed to update booking in repository", context);
         return ResponseHelper.error("Failed to update booking");
       }
 
-      this.logger.info("Booking updated successfully", {
+      this._logger.info("Booking updated successfully", {
         ...context,
         updatedFields: Object.keys(repositoryUpdateData),
       });
@@ -357,7 +359,7 @@ export class BookingService implements IBookingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error updating booking", {
+      this._logger.error("Error updating booking", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -378,9 +380,9 @@ export class BookingService implements IBookingService {
     };
 
     try {
-      this.logger.info("Updating booking status", context);
+      this._logger.info("Updating booking status", context);
 
-      const updatedBooking = await this.bookingRepository.updateStatus(
+      const updatedBooking = await this._bookingRepository.updateStatus(
         bookingId,
         status,
         updatedBy,
@@ -388,11 +390,11 @@ export class BookingService implements IBookingService {
       );
 
       if (!updatedBooking) {
-        this.logger.warn("Booking not found for status update", context);
+        this._logger.warn("Booking not found for status update", context);
         return ResponseHelper.notFound("Booking not found");
       }
 
-      this.logger.info("Booking status updated successfully", context);
+      this._logger.info("Booking status updated successfully", context);
 
       const bookingDto = this.mapToDto(updatedBooking);
       return ResponseHelper.success(
@@ -402,7 +404,7 @@ export class BookingService implements IBookingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error updating booking status", {
+      this._logger.error("Error updating booking status", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -422,12 +424,12 @@ export class BookingService implements IBookingService {
     };
 
     try {
-      this.logger.info("Cancelling booking", context);
+      this._logger.info("Cancelling booking", context);
 
-      const booking = await this.bookingRepository.findById(bookingId);
+      const booking = await this._bookingRepository.findById(bookingId);
 
       if (!booking) {
-        this.logger.warn("Booking not found for cancellation", context);
+        this._logger.warn("Booking not found for cancellation", context);
         return ResponseHelper.notFound("Booking not found");
       }
 
@@ -436,7 +438,7 @@ export class BookingService implements IBookingService {
 
       // Check if user owns the booking
       if (bookingUserId !== userId) {
-        this.logger.warn("User not authorized to cancel this booking", context);
+        this._logger.warn("User not authorized to cancel this booking", context);
         return ResponseHelper.forbidden(
           "Not authorized to cancel this booking"
         );
@@ -444,7 +446,7 @@ export class BookingService implements IBookingService {
 
       // Check if booking can be cancelled
       if (["cancelled", "completed"].includes(booking.status)) {
-        this.logger.warn("Booking cannot be cancelled in current status", {
+        this._logger.warn("Booking cannot be cancelled in current status", {
           ...context,
           currentStatus: booking.status,
         });
@@ -453,7 +455,7 @@ export class BookingService implements IBookingService {
         );
       }
 
-      const updatedBooking = await this.bookingRepository.updateStatus(
+      const updatedBooking = await this._bookingRepository.updateStatus(
         bookingId,
         "cancelled",
         "user",
@@ -461,11 +463,11 @@ export class BookingService implements IBookingService {
       );
 
       if (!updatedBooking) {
-        this.logger.error("Failed to cancel booking", context);
+        this._logger.error("Failed to cancel booking", context);
         return ResponseHelper.error("Failed to cancel booking");
       }
 
-      this.logger.info("Booking cancelled successfully", context);
+      this._logger.info("Booking cancelled successfully", context);
 
       const bookingDto = this.mapToDto(updatedBooking);
       return ResponseHelper.success(
@@ -475,7 +477,7 @@ export class BookingService implements IBookingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error cancelling booking", {
+      this._logger.error("Error cancelling booking", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -523,13 +525,13 @@ export class BookingService implements IBookingService {
     };
 
     try {
-      this.logger.info("Fetching tracking details", context);
+      this._logger.info("Fetching tracking details", context);
 
       // Query Order collection
-      const order = await this.orderRepository.findByBookingId(bookingId);
+      const order = await this._orderRepository.findByBookingId(bookingId);
 
       if (!order) {
-        this.logger.warn("Order not found for tracking", context);
+        this._logger.warn("Order not found for tracking", context);
         return ResponseHelper.notFound("Order not found");
       }
 
@@ -546,7 +548,7 @@ export class BookingService implements IBookingService {
       };
 
       if (!technician || !isTechnicianPopulated(technician)) {
-        this.logger.warn(
+        this._logger.warn(
           "Technician data not properly populated in order",
           context
         );
@@ -557,7 +559,7 @@ export class BookingService implements IBookingService {
 
       // Get technician location if available
       const technicianLocation =
-        await this.bookingRepository.getTechnicianLocation(
+        await this._bookingRepository.getTechnicianLocation(
           technician._id.toString()
         );
 
@@ -619,7 +621,7 @@ export class BookingService implements IBookingService {
         distance,
       };
 
-      this.logger.info("Tracking details retrieved successfully", context);
+      this._logger.info("Tracking details retrieved successfully", context);
 
       return ResponseHelper.success(
         "Tracking details retrieved successfully",
@@ -628,7 +630,7 @@ export class BookingService implements IBookingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching tracking details", {
+      this._logger.error("Error fetching tracking details", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -645,23 +647,23 @@ export class BookingService implements IBookingService {
     };
 
     try {
-      this.logger.info("Fetching technician location", context);
+      this._logger.info("Fetching technician location", context);
 
-      const booking = await this.bookingRepository.findById(bookingId);
+      const booking = await this._bookingRepository.findById(bookingId);
 
       if (!booking) {
-        this.logger.warn("Booking not found for location tracking", context);
+        this._logger.warn("Booking not found for location tracking", context);
         return ResponseHelper.notFound("Booking not found");
       }
 
       // Get technician location
       const technicianLocation =
-        await this.bookingRepository.getTechnicianLocation(
+        await this._bookingRepository.getTechnicianLocation(
           booking.technicianId.toString()
         );
 
       if (!technicianLocation) {
-        this.logger.warn("Technician location not available", context);
+        this._logger.warn("Technician location not available", context);
         return ResponseHelper.notFound("Technician location not available");
       }
 
@@ -687,7 +689,7 @@ export class BookingService implements IBookingService {
         bookingId: booking.bookingCode,
       };
 
-      this.logger.info("Technician location retrieved successfully", context);
+      this._logger.info("Technician location retrieved successfully", context);
 
       return ResponseHelper.success(
         "Technician location retrieved successfully",
@@ -696,7 +698,7 @@ export class BookingService implements IBookingService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching technician location", {
+      this._logger.error("Error fetching technician location", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

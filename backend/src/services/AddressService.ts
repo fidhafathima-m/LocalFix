@@ -2,7 +2,6 @@ import { IAddressRepository } from "../interfaces/repository/user/IAddressReposi
 import { IAddressService } from "../interfaces/services/user/IAddressService";
 import { ResponseHelper } from "../utils/responseHelper";
 import { AddressMapper } from "../mappers/addressMapper";
-import { LoggerService } from "../services/LoggerService";
 import {
   AddressListResponseDto,
   AddressResponseDto,
@@ -12,10 +11,12 @@ import {
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class AddressService implements IAddressService {
-  private logger: ILogger;
+  private _addressRepository: IAddressRepository;
+  private _logger: ILogger;
 
-  constructor(private addressRepository: IAddressRepository, logger: ILogger) {
-    this.logger = logger;
+  constructor(addressRepository: IAddressRepository, logger: ILogger) {
+    this._logger = logger;
+    this._addressRepository = addressRepository
   }
 
   async getUserAddresses(userId: string): Promise<AddressListResponseDto> {
@@ -25,18 +26,18 @@ export class AddressService implements IAddressService {
     };
 
     try {
-      this.logger.info("Fetching user addresses", context);
+      this._logger.info("Fetching user addresses", context);
 
-      const addresses = await this.addressRepository.findByUserId(userId);
+      const addresses = await this._addressRepository.findByUserId(userId);
 
       if (!addresses || addresses.length === 0) {
-        this.logger.info("No addresses found for user", context);
+        this._logger.info("No addresses found for user", context);
         return ResponseHelper.success("No addresses found", {
           addresses: [],
         });
       }
 
-      this.logger.info("User addresses retrieved successfully", {
+      this._logger.info("User addresses retrieved successfully", {
         ...context,
         addressCount: addresses.length,
       });
@@ -48,7 +49,7 @@ export class AddressService implements IAddressService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching user addresses", {
+      this._logger.error("Error fetching user addresses", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -67,19 +68,19 @@ export class AddressService implements IAddressService {
     };
 
     try {
-      this.logger.info("Fetching address by ID", context);
+      this._logger.info("Fetching address by ID", context);
 
-      const address = await this.addressRepository.findByIdAndUserId(
+      const address = await this._addressRepository.findByIdAndUserId(
         addressId,
         userId
       );
 
       if (!address) {
-        this.logger.warn("Address not found for user", context);
+        this._logger.warn("Address not found for user", context);
         return ResponseHelper.notFound("Address not found");
       }
 
-      this.logger.info("Address retrieved successfully", {
+      this._logger.info("Address retrieved successfully", {
         ...context,
         addressFound: true,
       });
@@ -91,7 +92,7 @@ export class AddressService implements IAddressService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error fetching address by ID", {
+      this._logger.error("Error fetching address by ID", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -119,7 +120,7 @@ export class AddressService implements IAddressService {
     };
 
     try {
-      this.logger.info("Creating new address for user", context);
+      this._logger.info("Creating new address for user", context);
 
       // Validate required fields
       if (
@@ -128,7 +129,7 @@ export class AddressService implements IAddressService {
         !addressData.state ||
         !addressData.pincode
       ) {
-        this.logger.warn("Missing required address fields", {
+        this._logger.warn("Missing required address fields", {
           ...context,
           missingFields: {
             street: !addressData.street,
@@ -144,16 +145,16 @@ export class AddressService implements IAddressService {
 
       // If this is set as default, unset other defaults
       if (addressData.isDefault) {
-        this.logger.info(
+        this._logger.info(
           "Setting address as default, unsetting other defaults",
           context
         );
-        await this.addressRepository.unsetAllDefaults(userId);
+        await this._addressRepository.unsetAllDefaults(userId);
       }
 
       const addressModel = AddressMapper.toCreateModel(userId, addressData);
 
-      this.logger.debug("Creating address in repository", {
+      this._logger.debug("Creating address in repository", {
         ...context,
         addressModel: {
           ...addressModel,
@@ -161,14 +162,14 @@ export class AddressService implements IAddressService {
         },
       });
 
-      const newAddress = await this.addressRepository.create(addressModel);
+      const newAddress = await this._addressRepository.create(addressModel);
 
       if (!newAddress) {
-        this.logger.error("Failed to create address in database", context);
+        this._logger.error("Failed to create address in database", context);
         return ResponseHelper.error("Failed to create address in database");
       }
 
-      this.logger.info("Address created successfully", {
+      this._logger.info("Address created successfully", {
         ...context,
         addressId: newAddress._id?.toString(),
       });
@@ -180,7 +181,7 @@ export class AddressService implements IAddressService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error creating address", {
+      this._logger.error("Error creating address", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -204,50 +205,50 @@ export class AddressService implements IAddressService {
     };
 
     try {
-      this.logger.info("Updating address", context);
+      this._logger.info("Updating address", context);
 
-      const existingAddress = await this.addressRepository.findByIdAndUserId(
+      const existingAddress = await this._addressRepository.findByIdAndUserId(
         addressId,
         userId
       );
 
       if (!existingAddress) {
-        this.logger.warn("Address not found for update", context);
+        this._logger.warn("Address not found for update", context);
         return ResponseHelper.notFound("Address not found");
       }
 
-      this.logger.debug("Existing address found", {
+      this._logger.debug("Existing address found", {
         ...context,
         currentIsDefault: existingAddress.isDefault,
       });
 
       // If setting as default, unset other defaults
       if (addressData.isDefault && !existingAddress.isDefault) {
-        this.logger.info(
+        this._logger.info(
           "Setting address as default, unsetting other defaults",
           context
         );
-        await this.addressRepository.unsetAllDefaults(userId);
+        await this._addressRepository.unsetAllDefaults(userId);
       }
 
       const updateModel = AddressMapper.toUpdateModel(addressData);
 
-      this.logger.debug("Updating address in repository", {
+      this._logger.debug("Updating address in repository", {
         ...context,
         updateModel,
       });
 
-      const updatedAddress = await this.addressRepository.update(
+      const updatedAddress = await this._addressRepository.update(
         addressId,
         updateModel
       );
 
       if (!updatedAddress) {
-        this.logger.error("Failed to update address in repository", context);
+        this._logger.error("Failed to update address in repository", context);
         return ResponseHelper.error("Failed to update address");
       }
 
-      this.logger.info("Address updated successfully", context);
+      this._logger.info("Address updated successfully", context);
 
       const addressDto = AddressMapper.toDto(updatedAddress);
       return ResponseHelper.success("Address updated successfully", {
@@ -256,7 +257,7 @@ export class AddressService implements IAddressService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error updating address", {
+      this._logger.error("Error updating address", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -275,53 +276,53 @@ export class AddressService implements IAddressService {
     };
 
     try {
-      this.logger.info("Deleting address", context);
+      this._logger.info("Deleting address", context);
 
-      const address = await this.addressRepository.findByIdAndUserId(
+      const address = await this._addressRepository.findByIdAndUserId(
         addressId,
         userId
       );
 
       if (!address) {
-        this.logger.warn("Address not found for deletion", context);
+        this._logger.warn("Address not found for deletion", context);
         return ResponseHelper.notFound("Address not found");
       }
 
       // Don't allow deletion if it's the only address
-      const userAddresses = await this.addressRepository.findByUserId(userId);
+      const userAddresses = await this._addressRepository.findByUserId(userId);
 
-      this.logger.debug("Checking address count for deletion validation", {
+      this._logger.debug("Checking address count for deletion validation", {
         ...context,
         addressCount: userAddresses.length,
       });
 
       if (userAddresses.length <= 1) {
-        this.logger.warn("Attempt to delete only address", {
+        this._logger.warn("Attempt to delete only address", {
           ...context,
           addressCount: userAddresses.length,
         });
         return ResponseHelper.badRequest("Cannot delete your only address");
       }
 
-      this.logger.debug("Proceeding with address deletion", {
+      this._logger.debug("Proceeding with address deletion", {
         ...context,
         isDefault: address.isDefault,
       });
 
-      const deleted = await this.addressRepository.delete(addressId);
+      const deleted = await this._addressRepository.delete(addressId);
 
       if (!deleted) {
-        this.logger.error("Failed to delete address from repository", context);
+        this._logger.error("Failed to delete address from repository", context);
         return ResponseHelper.error("Failed to delete address");
       }
 
-      this.logger.info("Address deleted successfully", context);
+      this._logger.info("Address deleted successfully", context);
 
       return ResponseHelper.success("Address deleted successfully");
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error deleting address", {
+      this._logger.error("Error deleting address", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -340,42 +341,42 @@ export class AddressService implements IAddressService {
     };
 
     try {
-      this.logger.info("Setting default address", context);
+      this._logger.info("Setting default address", context);
 
-      const address = await this.addressRepository.findByIdAndUserId(
+      const address = await this._addressRepository.findByIdAndUserId(
         addressId,
         userId
       );
 
       if (!address) {
-        this.logger.warn("Address not found for setting default", context);
+        this._logger.warn("Address not found for setting default", context);
         return ResponseHelper.notFound("Address not found");
       }
 
       if (address.isDefault) {
-        this.logger.info("Address is already set as default", context);
+        this._logger.info("Address is already set as default", context);
         return ResponseHelper.success("Address is already default");
       }
 
-      this.logger.info("Unsetting all existing default addresses", context);
+      this._logger.info("Unsetting all existing default addresses", context);
 
       // Unset all other defaults
-      await this.addressRepository.unsetAllDefaults(userId);
+      await this._addressRepository.unsetAllDefaults(userId);
 
       // Set this as default
-      const updatedAddress = await this.addressRepository.update(addressId, {
+      const updatedAddress = await this._addressRepository.update(addressId, {
         isDefault: true,
       });
 
       if (!updatedAddress) {
-        this.logger.error(
+        this._logger.error(
           "Failed to set address as default in repository",
           context
         );
         return ResponseHelper.error("Failed to set default address");
       }
 
-      this.logger.info("Default address set successfully", context);
+      this._logger.info("Default address set successfully", context);
 
       const addressDto = AddressMapper.toDto(updatedAddress);
       return ResponseHelper.success("Default address updated successfully", {
@@ -384,7 +385,7 @@ export class AddressService implements IAddressService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error setting default address", {
+      this._logger.error("Error setting default address", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

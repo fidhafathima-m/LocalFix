@@ -33,21 +33,20 @@ import {
 import { TechnicianProfileMapper } from "../mappers/technicianProfileMappers";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import { RRule } from "rrule";
-import { LoggerService } from "./LoggerService";
 import { IOrderService } from "@/interfaces/services/user/IOrderService";
 import { IEmailService } from "@/interfaces/services/IEmailService";
 import { INotificationService } from "@/interfaces/services/INotificationService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianProfileService implements ITechnicianProfileService {
-  private technicianRepository: ITechnicianRepository;
-  private technicianProfileRepository: ITechnicianProfileRepository;
-  private userRepository: IUserRepository;
-  private userAddressRepository: IUserAddressRepository;
-  private logger: ILogger;
-  private orderService: IOrderService;
-  private emailService: IEmailService;
-  private notificationService: INotificationService;
+  private _technicianRepository: ITechnicianRepository;
+  private _technicianProfileRepository: ITechnicianProfileRepository;
+  private _userRepository: IUserRepository;
+  private _userAddressRepository: IUserAddressRepository;
+  private _logger: ILogger;
+  private _orderService: IOrderService;
+  private _emailService: IEmailService;
+  private _notificationService: INotificationService;
 
   constructor(
     technicianRepository: ITechnicianRepository,
@@ -59,24 +58,24 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     notificationService: INotificationService,
     logger: ILogger
   ) {
-    this.technicianRepository = technicianRepository;
-    this.technicianProfileRepository = technicianProfileRepository;
-    this.userRepository = userRepository;
-    this.userAddressRepository = userAddressRepository;
-    this.logger = logger;
-    this.orderService = orderService;
-    this.emailService = emailService;
-    this.notificationService = notificationService;
+    this._technicianRepository = technicianRepository;
+    this._technicianProfileRepository = technicianProfileRepository;
+    this._userRepository = userRepository;
+    this._userAddressRepository = userAddressRepository;
+    this._logger = logger;
+    this._orderService = orderService;
+    this._emailService = emailService;
+    this._notificationService = notificationService;
   }
 
   async getTechnicianProfile(
     technicianId: string
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -150,10 +149,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     updateData: PersonalInfoUpdateDto
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -196,7 +195,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       // Update technician personal info
       const updatedTechnician =
-        await this.technicianProfileRepository.updateTechnician(
+        await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
           updatePayload
         );
@@ -209,7 +208,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       // Update user email if provided
       if (updateData.email && updateData.email !== user.email) {
-        const existingUser = await this.userRepository.findByEmail(
+        const existingUser = await this._userRepository.findByEmail(
           updateData.email
         );
         if (existingUser && existingUser._id!.toString() !== technicianId) {
@@ -217,12 +216,12 @@ export class TechnicianProfileService implements ITechnicianProfileService {
             TECHNICIAN_PROFILE_MESSAGES.EMAIL_ALREADY_EXISTS
           );
         }
-        await this.technicianProfileRepository.updateUser(technicianId, {
+        await this._technicianProfileRepository.updateUser(technicianId, {
           email: updateData.email,
         });
       }
 
-      const updatedUser = await this.userRepository.findById(technicianId);
+      const updatedUser = await this._userRepository.findById(technicianId);
       const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
         updatedTechnician,
         updatedUser || user
@@ -249,10 +248,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     updateData: IdentityVerificationUpdateDto
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -286,7 +285,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       }
 
       const updatedTechnician =
-        await this.technicianProfileRepository.updateTechnician(
+        await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
           updatePayload
         );
@@ -324,10 +323,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     updateData: SkillsServicesUpdateDto
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -336,7 +335,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       }
 
       const updatedTechnician =
-        await this.technicianProfileRepository.updateTechnician(
+        await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
           {
             services:
@@ -391,10 +390,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         technicianId
       );
 
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -423,7 +422,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       // Update technician with the new data
       const updatedTechnician =
-        await this.technicianProfileRepository.updateTechnician(
+        await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
           updateDataForRepo
         );
@@ -670,10 +669,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     updateData: BankPaymentUpdateDto
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -749,7 +748,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       };
 
       const updatedTechnician =
-        await this.technicianProfileRepository.updateTechnician(
+        await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
           updatePayload
         );
@@ -786,8 +785,8 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     updateData: SecuritySettingsUpdateDto
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const user = await this.userRepository.findById(technicianId);
-      const technician = await this.technicianRepository.findByUserId(
+      const user = await this._userRepository.findById(technicianId);
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
 
@@ -800,7 +799,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       // Verify current password
       if (updateData.currentPassword) {
         const isCurrentPasswordValid =
-          await this.technicianProfileRepository.verifyPassword(
+          await this._technicianProfileRepository.verifyPassword(
             technicianId,
             updateData.currentPassword
           );
@@ -823,7 +822,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         }
 
         const updateResult =
-          await this.technicianProfileRepository.updateUserPassword(
+          await this._technicianProfileRepository.updateUserPassword(
             technicianId,
             updateData.newPassword
           );
@@ -864,10 +863,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     documentType?: string
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -925,7 +924,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       };
 
       const updatedTechnician =
-        await this.technicianProfileRepository.addDocument(
+        await this._technicianProfileRepository.addDocument(
           technician._id!.toString(),
           newDocument as any
         );
@@ -976,10 +975,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     file: Express.Multer.File
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -1001,7 +1000,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       // Update technician with the new profile picture URL
       const updatedTechnician =
-        await this.technicianProfileRepository.updateTechnician(
+        await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
           {
             profilePictureUrl: profilePictureUrl,
@@ -1040,10 +1039,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     technicianId: string
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -1074,10 +1073,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     technicianId: string
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this.technicianRepository.findByUserId(
+      const technician = await this._technicianRepository.findByUserId(
         technicianId
       );
-      const user = await this.userRepository.findById(technicianId);
+      const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
@@ -1122,7 +1121,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         technicianId: new Types.ObjectId(technicianId),
       }).sort({ date: 1 });
 
-      this.logger.info(
+      this._logger.info(
         "Availability Data from technciian",
         availabilityRecords
       );
@@ -1166,19 +1165,19 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     };
 
     try {
-      this.logger.info("Handling technician unavailability", context);
+      this._logger.info("Handling technician unavailability", context);
 
-      const orders = await this.orderService.getOrdersByTechnicianAndDate(
+      const orders = await this._orderService.getOrdersByTechnicianAndDate(
         technicianId,
         unavailableDate
       );
 
       if (orders.length === 0) {
-        this.logger.info("No orders found for the specified date", context);
+        this._logger.info("No orders found for the specified date", context);
         return;
       }
 
-      this.logger.info(`Found ${orders.length} orders to process`, {
+      this._logger.info(`Found ${orders.length} orders to process`, {
         ...context,
         orderCount: orders.length,
       });
@@ -1191,9 +1190,9 @@ export class TechnicianProfileService implements ITechnicianProfileService {
             orderId: order._id.toString(),
           };
 
-          this.logger.info("Processing order for cancellation", orderContext);
+          this._logger.info("Processing order for cancellation", orderContext);
 
-          const updatedOrder = await this.orderService.updateOrderStatus(
+          const updatedOrder = await this._orderService.updateOrderStatus(
             order._id.toString(),
             "cancelled",
             "system",
@@ -1206,7 +1205,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
             // Send email notification
             if (customer?.email) {
-              await this.emailService.sendTechnicianUnavailableNotification(
+              await this._emailService.sendTechnicianUnavailableNotification(
                 customer.email,
                 customer.fullName || "Customer",
                 (order.technicianId as any)?.displayName || "Technician",
@@ -1217,7 +1216,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
             }
 
             // Create in-app notification
-            await this.notificationService.createTechnicianUnavailableNotification(
+            await this._notificationService.createTechnicianUnavailableNotification(
               customer._id.toString(),
               (order.technicianId as any)?.displayName || "Technician",
               order.serviceName,
@@ -1225,10 +1224,10 @@ export class TechnicianProfileService implements ITechnicianProfileService {
               order._id.toString()
             );
 
-            this.logger.info("Order processed successfully", orderContext);
+            this._logger.info("Order processed successfully", orderContext);
           }
         } catch (orderError) {
-          this.logger.error("Error processing order", {
+          this._logger.error("Error processing order", {
             ...context,
             orderId: order._id.toString(),
             error:
@@ -1242,21 +1241,21 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       // Notify technician about the impact
       if (orders.length > 0) {
-        await this.notificationService.createAvailabilityChangeImpactNotification(
+        await this._notificationService.createAvailabilityChangeImpactNotification(
           technicianId,
           orders.length,
           unavailableDate.toLocaleDateString()
         );
       }
 
-      this.logger.info("Technician unavailability handled successfully", {
+      this._logger.info("Technician unavailability handled successfully", {
         ...context,
         processedOrders: orders.length,
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error("Error handling technician unavailability", {
+      this._logger.error("Error handling technician unavailability", {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

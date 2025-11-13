@@ -15,7 +15,6 @@ import {
   EditUserRequestDto,
 } from "../interfaces/dtos/userDtos";
 import { UserMapper } from "../mappers/userMapper";
-import { LoggerService } from "./LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 // Type guard function for status validation
@@ -26,12 +25,12 @@ function isValidStatus(
 }
 
 export class UserManagementService implements IUserManagementService {
-  private userManagementRepository: IUserManagementRepository;
-  private logger: ILogger;
+  private _userManagementRepository: IUserManagementRepository;
+  private _logger: ILogger;
 
   constructor(userManagementRepository: IUserManagementRepository, logger: ILogger) {
-    this.userManagementRepository = userManagementRepository;
-    this.logger = logger;
+    this._userManagementRepository = userManagementRepository;
+    this._logger = logger;
   }
 
   async getUsers(): Promise<UsersListResponseDto> {
@@ -40,12 +39,12 @@ export class UserManagementService implements IUserManagementService {
       timestamp: new Date().toString(),
     };
     try {
-      this.logger.info("Finding all users", context);
-      const users = await this.userManagementRepository.findAllUsers();
+      this._logger.info("Finding all users", context);
+      const users = await this._userManagementRepository.findAllUsers();
 
       const userDtos = users.map((user) => UserMapper.toListDto(user));
 
-      this.logger.debug("Users retrieved", {
+      this._logger.debug("Users retrieved", {
         ...context,
         users: userDtos,
       });
@@ -55,7 +54,7 @@ export class UserManagementService implements IUserManagementService {
       });
     } catch (error) {
       console.error("Error fetching users:", error);
-      this.logger.error("Failed to get all users", {
+      this._logger.error("Failed to get all users", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
@@ -75,11 +74,11 @@ export class UserManagementService implements IUserManagementService {
       timestamp: new Date().toString(),
     };
     try {
-      this.logger.info("Updating user status", context);
+      this._logger.info("Updating user status", context);
       const { status } = statusData;
 
       if (!isValidStatus(status)) {
-        this.logger.error("Invalid status value", {
+        this._logger.error("Invalid status value", {
           ...context,
         });
         return ResponseHelper.badRequest(
@@ -87,31 +86,31 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      const user = await this.userManagementRepository.findById(userId);
+      const user = await this._userManagementRepository.findById(userId);
       if (!user) {
-        this.logger.warn("User not found", context);
+        this._logger.warn("User not found", context);
         return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
       }
 
-      this.logger.info("User found", {
+      this._logger.info("User found", {
         ...context,
         userId,
       });
 
       if (user.isDeleted) {
-        this.logger.warn("Deleted user cannot be updated", context);
+        this._logger.warn("Deleted user cannot be updated", context);
         return ResponseHelper.forbidden(
           USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER
         );
       }
 
-      const updatedUser = await this.userManagementRepository.updateUserStatus(
+      const updatedUser = await this._userManagementRepository.updateUserStatus(
         userId,
         status
       );
 
       if (!updatedUser) {
-        this.logger.error("Failed to update user status", context);
+        this._logger.error("Failed to update user status", context);
         return ResponseHelper.conflict(
           USER_MANAGEMENT_MESSAGES.UPDATE_CONFLICT
         );
@@ -119,7 +118,7 @@ export class UserManagementService implements IUserManagementService {
 
       const userDto = UserMapper.toDetailDto(updatedUser);
 
-      this.logger.info("User status updated", {
+      this._logger.info("User status updated", {
         ...context,
         user: userDto,
       });
@@ -132,7 +131,7 @@ export class UserManagementService implements IUserManagementService {
       );
     } catch (error) {
       console.error("Error updating user status:", error);
-      this.logger.error("Failed to update user status", {
+      this._logger.error("Failed to update user status", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
@@ -153,26 +152,26 @@ export class UserManagementService implements IUserManagementService {
       user: userData,
     };
     try {
-      this.logger.info("Editing user", context);
+      this._logger.info("Editing user", context);
       const { fullName, email, phone, status } = userData;
 
       if (status) {
         if (!isValidStatus(status)) {
-          this.logger.warn("Invalid status value", context);
+          this._logger.warn("Invalid status value", context);
           return ResponseHelper.badRequest(
             USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE
           );
         }
       }
 
-      const user = await this.userManagementRepository.findById(userId);
+      const user = await this._userManagementRepository.findById(userId);
       if (!user) {
-        this.logger.warn("User not found", context);
+        this._logger.warn("User not found", context);
         return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
       }
 
       if (user.isDeleted) {
-        this.logger.warn("Deleted user cannot be updated", context);
+        this._logger.warn("Deleted user cannot be updated", context);
         return ResponseHelper.forbidden(
           USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER
         );
@@ -180,7 +179,7 @@ export class UserManagementService implements IUserManagementService {
 
       // Validate email format if provided
       if (email && !VALIDATION.EMAIL_REGEX.test(email)) {
-        this.logger.warn("not a valid email", context);
+        this._logger.warn("not a valid email", context);
         return ResponseHelper.badRequest(
           "Please provide a valid email address"
         );
@@ -192,7 +191,7 @@ export class UserManagementService implements IUserManagementService {
         (fullName.length < VALIDATION.MIN_FULL_NAME_LENGTH ||
           fullName.length > VALIDATION.MAX_FULL_NAME_LENGTH)
       ) {
-        this.logger.warn(
+        this._logger.warn(
           `Full name must be between ${VALIDATION.MIN_FULL_NAME_LENGTH} and ${VALIDATION.MAX_FULL_NAME_LENGTH} characters`
         );
         return ResponseHelper.badRequest(
@@ -206,7 +205,7 @@ export class UserManagementService implements IUserManagementService {
         (phone.length < VALIDATION.MIN_PHONE_LENGTH ||
           phone.length > VALIDATION.MAX_PHONE_LENGTH)
       ) {
-        this.logger.warn(
+        this._logger.warn(
           `Phone number must be between ${VALIDATION.MIN_PHONE_LENGTH} and ${VALIDATION.MAX_PHONE_LENGTH} characters`
         );
         return ResponseHelper.badRequest(
@@ -220,13 +219,13 @@ export class UserManagementService implements IUserManagementService {
       if (phone) updateData.phone = phone;
       if (status) updateData.status = status;
 
-      const updatedUser = await this.userManagementRepository.update(
+      const updatedUser = await this._userManagementRepository.update(
         userId,
         updateData
       );
 
       if (!updatedUser) {
-        this.logger.error("Failed to update user", context);
+        this._logger.error("Failed to update user", context);
         return ResponseHelper.conflict(
           USER_MANAGEMENT_MESSAGES.UPDATE_USER_CONFLICT
         );
@@ -234,7 +233,7 @@ export class UserManagementService implements IUserManagementService {
 
       const userDto = UserMapper.toDetailDto(updatedUser);
 
-      this.logger.info("user updated", {
+      this._logger.info("user updated", {
         ...context,
         user: userDto,
       });
@@ -244,7 +243,7 @@ export class UserManagementService implements IUserManagementService {
       });
     } catch (error) {
       console.error("Error updating user:", error);
-      this.logger.error("Failed to edit user", {
+      this._logger.error("Failed to edit user", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
@@ -260,26 +259,26 @@ export class UserManagementService implements IUserManagementService {
       timestamp: new Date().toString(),
     };
     try {
-      this.logger.info("Deleting user", context);
-      const user = await this.userManagementRepository.findById(userId);
+      this._logger.info("Deleting user", context);
+      const user = await this._userManagementRepository.findById(userId);
       if (!user) {
-        this.logger.warn("User not found", context);
+        this._logger.warn("User not found", context);
         return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
       }
 
       if (user.isDeleted) {
-        this.logger.error("User already deleted", context);
+        this._logger.error("User already deleted", context);
         return ResponseHelper.badRequest(
           USER_MANAGEMENT_MESSAGES.USER_ALREADY_DELETED
         );
       }
 
-      const deletedUser = await this.userManagementRepository.softDeleteUser(
+      const deletedUser = await this._userManagementRepository.softDeleteUser(
         userId
       );
 
       if (!deletedUser) {
-        this.logger.error("Failed to delete user", context);
+        this._logger.error("Failed to delete user", context);
         return ResponseHelper.conflict(
           USER_MANAGEMENT_MESSAGES.DELETE_CONFLICT
         );
@@ -287,7 +286,7 @@ export class UserManagementService implements IUserManagementService {
 
       const userDto = UserMapper.toDetailDto(deletedUser);
 
-      this.logger.info("User deleted", {
+      this._logger.info("User deleted", {
         ...context,
         user: userDto,
       });
@@ -297,7 +296,7 @@ export class UserManagementService implements IUserManagementService {
       });
     } catch (error) {
       console.error("Error deleting user:", error);
-      this.logger.error("Failed to delete user", {
+      this._logger.error("Failed to delete user", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
@@ -312,12 +311,12 @@ export class UserManagementService implements IUserManagementService {
       timestamp: new Date().toString(),
     };
     try {
-      this.logger.info("Fetchning user stats", context);
-      const stats = await this.userManagementRepository.getUserStats();
+      this._logger.info("Fetchning user stats", context);
+      const stats = await this._userManagementRepository.getUserStats();
 
       const statsDto = UserMapper.toStatsDto(stats);
 
-      this.logger.info("User stats retriened", {
+      this._logger.info("User stats retriened", {
         ...context,
         stats: statsDto,
       });
@@ -330,7 +329,7 @@ export class UserManagementService implements IUserManagementService {
       );
     } catch (error) {
       console.error("Error fetching user stats:", error);
-      this.logger.error("Failed to get user sttas", {
+      this._logger.error("Failed to get user sttas", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
@@ -345,16 +344,16 @@ export class UserManagementService implements IUserManagementService {
       userId,
     };
     try {
-      this.logger.info("Fetching user by id", context);
-      const user = await this.userManagementRepository.findById(userId);
+      this._logger.info("Fetching user by id", context);
+      const user = await this._userManagementRepository.findById(userId);
 
       if (!user) {
-        this.logger.warn("User not found", context);
+        this._logger.warn("User not found", context);
         return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
       }
 
       if (user.isDeleted) {
-        this.logger.warn("User has been deleted", context);
+        this._logger.warn("User has been deleted", context);
         return ResponseHelper.forbidden(
           USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER
         );
@@ -362,11 +361,11 @@ export class UserManagementService implements IUserManagementService {
 
       // Get user addresses
       const userAddresses =
-        await this.userManagementRepository.findUserAddresses(userId);
+        await this._userManagementRepository.findUserAddresses(userId);
 
       const userDto = UserMapper.toDetailDto(user, userAddresses);
 
-      this.logger.info("User retrieved", {
+      this._logger.info("User retrieved", {
         ...context,
         user: userDto,
       });
@@ -376,7 +375,7 @@ export class UserManagementService implements IUserManagementService {
       });
     } catch (error) {
       console.error("Error fetching user:", error);
-      this.logger.error("Failed to get user by id", {
+      this._logger.error("Failed to get user by id", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
@@ -392,16 +391,16 @@ export class UserManagementService implements IUserManagementService {
       timestamp: new Date().toString(),
     };
     try {
-      this.logger.info("fetching public user by id", context);
-      const user = await this.userManagementRepository.findById(userId);
+      this._logger.info("fetching public user by id", context);
+      const user = await this._userManagementRepository.findById(userId);
 
       if (!user) {
-        this.logger.warn("User not found", context);
+        this._logger.warn("User not found", context);
         return ResponseHelper.notFound(USER_MANAGEMENT_MESSAGES.USER_NOT_FOUND);
       }
 
       if (user.isDeleted) {
-        this.logger.warn("User has been deleted", context);
+        this._logger.warn("User has been deleted", context);
         return ResponseHelper.forbidden(
           USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER
         );
@@ -409,7 +408,7 @@ export class UserManagementService implements IUserManagementService {
 
       // Get ALL user addresses
       const userAddresses =
-        await this.userManagementRepository.findUserAddresses(userId);
+        await this._userManagementRepository.findUserAddresses(userId);
 
       // Map addresses to the format expected by frontend
       const addresses = userAddresses.map((address) => ({
@@ -456,7 +455,7 @@ export class UserManagementService implements IUserManagementService {
         addresses: addresses, // All addresses array
       };
 
-      this.logger.info("User retrieved", {
+      this._logger.info("User retrieved", {
         ...context,
         user: publicUserDto,
       });
@@ -466,7 +465,7 @@ export class UserManagementService implements IUserManagementService {
       });
     } catch (error) {
       console.error("Error fetching public user:", error);
-      this.logger.error("Failed to get public user", {
+      this._logger.error("Failed to get public user", {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,

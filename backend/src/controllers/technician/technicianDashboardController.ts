@@ -10,15 +10,15 @@ import {
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianDashboardController {
-  private dashboardService: ITechnicianDashboardService;
-  private logger: ILogger;
+  private _dashboardService: ITechnicianDashboardService;
+  private _logger: ILogger;
 
   constructor(
     dashboardService: ITechnicianDashboardService,
     logger: ILogger
   ) {
-    this.dashboardService = dashboardService;
-    this.logger = logger;
+    this._dashboardService = dashboardService;
+    this._logger = logger;
   }
 
   getDashboardOverview = async (
@@ -33,10 +33,10 @@ export class TechnicianDashboardController {
       timestamp: new Date().toISOString(),
     };
     try {
-      this.logger.info("Fetchning dashboard overview", context);
+      this._logger.info("Fetchning dashboard overview", context);
 
       if (!technicianId) {
-        this.logger.warn("Authemtication required", context);
+        this._logger.warn("Authemtication required", context);
         const unauthorizedResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -45,9 +45,9 @@ export class TechnicianDashboardController {
       }
 
       const result: DashboardOverviewResponseDto =
-        await this.dashboardService.getDashboardOverview(technicianId);
+        await this._dashboardService.getDashboardOverview(technicianId);
 
-      this.logger.info("Dashboard retrieved successfully", {
+      this._logger.info("Dashboard retrieved successfully", {
         ...context,
         overview: result?.overview,
       });
@@ -56,7 +56,7 @@ export class TechnicianDashboardController {
     } catch (error) {
       console.error("Get dashboard overview controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
-      this.logger.error("Get technician dashboard error", {
+      this._logger.error("Get technician dashboard error", {
         ...context,
         error: error,
       });
@@ -75,10 +75,10 @@ export class TechnicianDashboardController {
       timestamp: new Date().toISOString(),
     };
     try {
-      this.logger.info("Fetchning technician profile", context);
+      this._logger.info("Fetchning technician profile", context);
 
       if (!technicianId) {
-        this.logger.warn("Authemtication required", context);
+        this._logger.warn("Authemtication required", context);
         const unauthorizedResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -87,9 +87,9 @@ export class TechnicianDashboardController {
       }
 
       const result: TechnicianProfileResponseDto =
-        await this.dashboardService.getTechnicianProfile(technicianId);
+        await this._dashboardService.getTechnicianProfile(technicianId);
 
-      this.logger.info("Technician profile retrieved successfully", {
+      this._logger.info("Technician profile retrieved successfully", {
         ...context,
         profile: result?.profile,
       });
@@ -98,7 +98,7 @@ export class TechnicianDashboardController {
     } catch (error) {
       console.error("Get technician profile controller error:", error);
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
-      this.logger.error("Get technician profile error", {
+      this._logger.error("Get technician profile error", {
         ...context,
         error: error,
       });

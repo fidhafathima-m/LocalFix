@@ -3,10 +3,10 @@ import { IEmailOptions } from "../interfaces/IEmailOptions";
 import { IEmailService } from "../interfaces/services/IEmailService";
 
 class EmailService implements IEmailService {
-  private transporter: nodemailer.Transporter;
+  private _transporter: nodemailer.Transporter;
 
   constructor() {
-    this.transporter = nodemailer.createTransport({
+    this._transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
@@ -17,7 +17,7 @@ class EmailService implements IEmailService {
 
   async sendEmail(options: IEmailOptions): Promise<boolean> {
     try {
-      await this.transporter.sendMail({
+      await this._transporter.sendMail({
         from: `"LocalFix Admin" <${process.env.EMAIL_USER}>`,
         to: options.to,
         subject: options.subject,

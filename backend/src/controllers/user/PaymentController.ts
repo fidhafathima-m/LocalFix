@@ -5,15 +5,15 @@ import { IPaymentService } from "../../interfaces/services/user/IPaymentService"
 import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class PaymentController {
-  private paymentService: IPaymentService;
-  private logger: ILogger;
+  private _paymentService: IPaymentService;
+  private _logger: ILogger;
 
   constructor(
     paymentService: IPaymentService,
     logger: ILogger
   ) {
-    this.paymentService = paymentService;
-    this.logger = logger;
+    this._paymentService = paymentService;
+    this._logger = logger;
   }
 
   createPaymentOrder = async (
@@ -32,10 +32,10 @@ export class PaymentController {
     };
 
     try {
-      this.logger.info("Creating payment order", context);
+      this._logger.info("Creating payment order", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Create payment order failed - authentication required",
           context
         );
@@ -47,7 +47,7 @@ export class PaymentController {
       }
 
       if (!bookingId || !amount || !type) {
-        this.logger.warn(
+        this._logger.warn(
           "Create payment order failed - missing required fields",
           context
         );
@@ -67,16 +67,16 @@ export class PaymentController {
         sparePartId,
       };
 
-      const result = await this.paymentService.createPaymentOrder(paymentData);
+      const result = await this._paymentService.createPaymentOrder(paymentData);
 
-      this.logger.info("Payment order created successfully", {
+      this._logger.info("Payment order created successfully", {
         ...context,
         orderId: result.data?.providerOrderId,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Create payment order controller error", {
+      this._logger.error("Create payment order controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
@@ -102,10 +102,10 @@ export class PaymentController {
     };
 
     try {
-      this.logger.info("Verifying payment", context);
+      this._logger.info("Verifying payment", context);
 
       if (!userId) {
-        this.logger.warn(
+        this._logger.warn(
           "Verify payment failed - authentication required",
           context
         );
@@ -117,7 +117,7 @@ export class PaymentController {
       }
 
       if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
-        this.logger.warn(
+        this._logger.warn(
           "Verify payment failed - missing payment data",
           context
         );
@@ -128,20 +128,20 @@ export class PaymentController {
         return;
       }
 
-      const result = await this.paymentService.verifyPayment(
+      const result = await this._paymentService.verifyPayment(
         razorpay_payment_id,
         razorpay_order_id,
         razorpay_signature
       );
 
-      this.logger.info("Payment verification completed", {
+      this._logger.info("Payment verification completed", {
         ...context,
         status: result.data?.payment?.status,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: any) {
-      this.logger.error("Verify payment controller error", {
+      this._logger.error("Verify payment controller error", {
         ...context,
         error: error.message,
         stack: error.stack,
