@@ -124,12 +124,12 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
                   : "No work areas specified"}
               </dd>
             </div>
-            <div>
+            {/* <div>
               <dt className="text-sm text-gray-500">Rating</dt>
               <dd className="text-sm font-medium">
                 {profile.averageRating.toFixed(1)} ({profile.ratingCount} reviews)
               </dd>
-            </div>
+            </div> */}
             <div>
               <dt className="text-sm text-gray-500">Location</dt>
               <dd className="text-sm font-medium flex items-center">

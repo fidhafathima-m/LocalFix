@@ -269,7 +269,6 @@ const OrdersTab: React.FC<TabProps> = ({
       if (locationResult.isConfirmed) {
         // Start location sharing
         await startLocationSharing(orderId);
-        toast.success("Location sharing started! Customer can now track you.");
       } else {
         toast.success("Status updated to 'on the way'");
       }
@@ -320,9 +319,6 @@ const OrdersTab: React.FC<TabProps> = ({
           heading: position.coords.heading || 0,
           timestamp: new Date(),
         };
-
-        console.log("📍 SUCCESS - Got initial location:", locationData);
-        console.log("👨‍🔧 Technician ID:", correctTechnicianId);
 
         // Send to backend via socket
         socket?.emit("technician-location-share", {

@@ -546,14 +546,14 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center mt-1">
+                  {/* <div className="flex items-center mt-1">
                     <div className="flex items-center">
                       <span className="ml-1 text-sm text-gray-600">
                         {profile.averageRating.toFixed(1)} (
                         {profile.ratingCount} reviews)
                       </span>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
               <div className="text-right">
