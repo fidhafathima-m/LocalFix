@@ -1,35 +1,35 @@
 import { UserManagementRepository } from "../repositories/admin/UserManagementRepository";
 import { UserManagementService } from "../services/UserManagementService";
-import { UserManagementController } from "../controllers/admin/userManagement";
+import { UserManagementController } from "../controllers/admin/userManagementController";
 
 import { TechnicianManagementRepository } from "../repositories/admin/TechnicianManagemnetRepository";
 import { TechnicianManagementService } from "../services/TechnicianManagementService";
-import { TechnicianManagementController } from "../controllers/admin/technicianManagement";
+import { TechnicianManagementController } from "../controllers/admin/technicianManagementController";
 import { TechnicianApplicationRepository } from "../repositories/technician/TechnicianApplicationRepository";
 import { TechnicianApplicationService } from "../services/TechnicianApplicationService";
-import { TechnicianApplicationController } from "../controllers/technician/technicianApplication";
+import { TechnicianApplicationController } from "../controllers/technician/technicianApplicationController";
 import { TechnicianRepository } from "../repositories/technician/TechnicianRepository";
 import { TechnicianDocumentRepository } from "../repositories/technician/TechnicianDocumentRepository";
 import { UserRepository } from "../repositories/user/UserRepository";
 import { UserAddressRepository } from "../repositories/user/UserAddressRepository";
 import { TechnicianDashboardService } from "../services/TechnicianDashboardService";
-import { TechnicianDashboardController } from "../controllers/technician/technicianDashboard";
+import { TechnicianDashboardController } from "../controllers/technician/technicianDashboardController";
 import { OTPRepository } from "../repositories/user/OTPRepository";
 import { SocialAccountRepository } from "../repositories/user/SocialAccountRepository";
 import { AuthService } from "../services/AuthService";
 import { AuthController } from "../controllers/user/authController";
 import { TechnicianProfileRepository } from "../repositories/technician/TechnicianProfileRepository";
 import { TechnicianProfileService } from "../services/TechnicianProfileService";
-import { TechnicianProfileController } from "../controllers/technician/technicianProfile";
+import { TechnicianProfileController } from "../controllers/technician/technicianProfileController";
 import { CategoryRepository } from "../repositories/admin/CategoryManagementRepository";
 import { CategoryService } from "../services/CategoryManagementService";
-import { CategoryController } from "../controllers/admin/categoryManagement";
+import { CategoryManagementController } from "../controllers/admin/categoryManagementController";
 import { ServiceRepository } from "../repositories/admin/ServiceManagementRepository";
 import { ServiceService } from "../services/ServiceManagementService";
-import { ServiceController } from "../controllers/admin/serviceManagement";
+import { ServiceManagementController } from "../controllers/admin/serviceManagementController";
 import { ItemRepository } from "../repositories/admin/ItemManagementRepository";
-import { ItemController } from "../controllers/admin/itemManagementController";
-import { PublicUserController } from "../controllers/admin/publicUserManagement";
+import { ItemManagementController } from "../controllers/admin/itemManagementController";
+import { PublicUserManagementController } from "../controllers/admin/publicUserManagementController";
 import { UserProfileService } from "../services/UserProfileService";
 import { UserProfileController } from "../controllers/user/userProfileController";
 import { UserLocationService } from "../services/UserLocationService";
@@ -66,32 +66,46 @@ import { NotificationRepository } from "../repositories/NotificationRepository";
 import { NotificationService } from "../services/NotificationService";
 import { NotificationController } from "../controllers/INotificationController";
 import { emailService } from "../services/EmailService";
+import { LoggerService } from "@/services/LoggerService";
+
+const loggerService = new LoggerService();
 
 // User Management Dependencies
 const userManagementRepository = new UserManagementRepository();
 const userManagementService = new UserManagementService(
-  userManagementRepository
+  userManagementRepository,
+  loggerService
 );
 const userManagementController = new UserManagementController(
-  userManagementService
+  userManagementService,
+  loggerService
 );
-const publicUserManagementController = new PublicUserController(
-  userManagementService
+const publicUserManagementController = new PublicUserManagementController(
+  userManagementService,
+  loggerService
 );
 
 // Notification dependencies
 const notificationRepository = new NotificationRepository();
-const notificationService = new NotificationService(notificationRepository);
-const notificationController = new NotificationController(notificationService);
+const notificationService = new NotificationService(
+  notificationRepository,
+  loggerService
+);
+const notificationController = new NotificationController(
+  notificationService,
+  loggerService
+);
 
 // Technician Management Dependencies
 const technicianManagementRepository = new TechnicianManagementRepository();
 const technicianManagementService = new TechnicianManagementService(
   technicianManagementRepository,
-  notificationService
+  notificationService,
+  loggerService
 );
 const technicianManagementController = new TechnicianManagementController(
-  technicianManagementService
+  technicianManagementService,
+  loggerService
 );
 
 // Technician Application Dependencies
@@ -103,10 +117,12 @@ const technicianApplicationService = new TechnicianApplicationService(
   technicianApplicationRepository,
   technicianRepository,
   technicianDocumentRepository,
-  userRepository
+  userRepository,
+  loggerService
 );
 const technicianApplicationController = new TechnicianApplicationController(
-  technicianApplicationService
+  technicianApplicationService,
+  loggerService
 );
 
 // Technician Dashboard Dependencies
@@ -114,10 +130,12 @@ const userAddressRepository = new UserAddressRepository();
 const technicianDashboardService = new TechnicianDashboardService(
   technicianRepository,
   userRepository,
-  userAddressRepository
+  userAddressRepository,
+  loggerService
 );
 const technicianDashboardController = new TechnicianDashboardController(
-  technicianDashboardService
+  technicianDashboardService,
+  loggerService
 );
 
 // Order dependencies
@@ -125,10 +143,14 @@ const orderRepository = new OrderRepository();
 const orderService = new OrderService(
   orderRepository,
   technicianRepository,
-  notificationService
+  notificationService,
+  loggerService
 );
-const orderController = new OrderController(orderService);
-const technicianOrderController = new TechnicianOrderController(orderService);
+const orderController = new OrderController(orderService, loggerService);
+const technicianOrderController = new TechnicianOrderController(
+  orderService,
+  loggerService
+);
 
 // User authentication dependencies
 const otpRepository = new OTPRepository();
@@ -136,9 +158,10 @@ const socialAccountRepository = new SocialAccountRepository();
 const authService = new AuthService(
   userRepository,
   otpRepository,
-  socialAccountRepository
+  socialAccountRepository,
+  loggerService
 );
-const authController = new AuthController(authService);
+const authController = new AuthController(authService, loggerService);
 
 // Technician profile dependencies
 const technicianProfileRepository = new TechnicianProfileRepository();
@@ -149,89 +172,130 @@ const technicianProfileService = new TechnicianProfileService(
   userAddressRepository,
   orderService,
   emailService,
-  notificationService
+  notificationService,
+  loggerService
 );
 const technicianProfileController = new TechnicianProfileController(
-  technicianProfileService
+  technicianProfileService,
+  loggerService
 );
 
 // Category Management dependencies
 const categoryManagementRepository = new CategoryRepository();
 const categoryManagementService = new CategoryService(
-  categoryManagementRepository
+  categoryManagementRepository,
+  loggerService
 );
-const categoryManagementController = new CategoryController(
-  categoryManagementService
+const categoryManagementController = new CategoryManagementController(
+  categoryManagementService,
+  loggerService
 );
 
 // Service Management dependecies
 const serviceMangementRepository = new ServiceRepository();
-const serviceManagementService = new ServiceService(serviceMangementRepository);
-const serviceManagementController = new ServiceController(
-  serviceManagementService
+const serviceManagementService = new ServiceService(
+  serviceMangementRepository,
+  loggerService
+);
+const serviceManagementController = new ServiceManagementController(
+  serviceManagementService,
+  loggerService
 );
 
 // Item Management Dependencies
 const itemManagementRepository = new ItemRepository();
-const itemManagementService = new ItemService(itemManagementRepository);
-const itemManagementController = new ItemController(itemManagementService);
+const itemManagementService = new ItemService(
+  itemManagementRepository,
+  loggerService
+);
+const itemManagementController = new ItemManagementController(
+  itemManagementService,
+  loggerService
+);
 
 // User Profile
 const addressRepository = new AddressRepository();
-const addressService = new AddressService(addressRepository);
-const addressController = new AddressController(addressService);
+const addressService = new AddressService(addressRepository, loggerService);
+const addressController = new AddressController(addressService, loggerService);
 const userProfileService = new UserProfileService(
   userManagementRepository,
-  addressRepository
+  addressRepository,
+  loggerService
 );
-const userProfileController = new UserProfileController(userProfileService);
+const userProfileController = new UserProfileController(
+  userProfileService,
+  loggerService
+);
 
 // User Location
 const userLocationRepository = new UserLocationRepository();
-const userLocationService = new UserLocationService(userLocationRepository);
-const userLocationController = new UserLocationController(userLocationService);
+const userLocationService = new UserLocationService(
+  userLocationRepository,
+  loggerService
+);
+const userLocationController = new UserLocationController(
+  userLocationService,
+  loggerService
+);
 
 // Payment dependencies
 const paymentRepository = new PaymentRepository();
-const paymentService = new PaymentService(paymentRepository);
-const paymentController = new PaymentController(paymentService);
-
+const paymentService = new PaymentService(paymentRepository, loggerService);
+const paymentController = new PaymentController(paymentService, loggerService);
 
 // Booking dependencies
 const bookingRepository = new BookingRepository();
-const bookingService = new BookingService(bookingRepository, orderRepository);
-const bookingController = new BookingController(bookingService);
+const bookingService = new BookingService(
+  bookingRepository,
+  orderRepository,
+  loggerService
+);
+const bookingController = new BookingController(bookingService, loggerService);
 
 // Order managemnet dependencies
 const orderManagementRepository = new OrderManagementRepository();
 const orderManagementService = new OrderManagementService(
-  orderManagementRepository
+  orderManagementRepository,
+  loggerService
 );
 const orderManagementController = new OrderManagementController(
-  orderManagementService
+  orderManagementService,
+  loggerService
 );
 
 // Review dependencies
 const reviewRepository = new ReviewRepository();
-const reviewService = new ReviewService(reviewRepository, notificationService);
-const reviewController = new ReviewController(reviewService, reviewRepository);
+const reviewService = new ReviewService(
+  reviewRepository,
+  notificationService,
+  loggerService
+);
+const reviewController = new ReviewController(
+  reviewService,
+  reviewRepository,
+  loggerService
+);
 
 // Review managemnet dependencies
 const reviewManagementRepository = new ReviewManagementRepository();
 const reviewMangementService = new ReviewManagementService(
-  reviewManagementRepository
+  reviewManagementRepository,
+  loggerService
 );
 const reviewManagementController = new ReviewManagementController(
-  reviewMangementService
+  reviewMangementService,
+  loggerService
 );
 
 // Payment dependencies
 const paymentManagementRepository = new PaymentManagementRepository();
 const paymentManagementService = new PaymentManagementService(
-  paymentManagementRepository
+  paymentManagementRepository,
+  loggerService
 );
 const paymentManagementController = new PaymentManagementController(
-  paymentManagementService
+  paymentManagementService,
+  loggerService
 );
 
 export {

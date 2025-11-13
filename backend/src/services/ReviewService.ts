@@ -15,15 +15,17 @@ import {
 import { ReviewMapper } from "../mappers/reviewMapper";
 import { ApiResponse } from "../utils/responseHelper";
 import { INotificationService } from "../interfaces/services/INotificationService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ReviewService implements IReviewService {
-  private logger: LoggerService;
+  private logger: ILogger;
 
   constructor(
     private reviewRepository: IReviewRepository,
-    private notificationService: INotificationService
+    private notificationService: INotificationService,
+    logger: ILogger
   ) {
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async createReview(

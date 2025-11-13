@@ -9,12 +9,13 @@ import {
   CreateAddressRequestDto,
   UpdateAddressRequestDto,
 } from "../interfaces/dtos/addressDtos";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class AddressService implements IAddressService {
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(private addressRepository: IAddressRepository) {
-    this.logger = new LoggerService();
+  constructor(private addressRepository: IAddressRepository, logger: ILogger) {
+    this.logger = logger;
   }
 
   async getUserAddresses(userId: string): Promise<AddressListResponseDto> {

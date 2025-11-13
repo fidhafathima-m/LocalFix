@@ -17,22 +17,24 @@ import {
   TechnicianProfileDto,
 } from "../interfaces/dtos/technicianDashboardDtos";
 import { TechnicianDashboardMapper } from "../mappers/technicianDashboardMappers";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianDashboardService implements ITechnicianDashboardService {
   private technicianRepository: ITechnicianRepository;
   private userRepository: IUserRepository;
   private userAddressRepository: IUserAddressRepository;
-  private logger: LoggerService;
+  private logger: ILogger;
 
   constructor(
     technicianRepository: ITechnicianRepository,
     userRepository: IUserRepository,
-    userAddressRepository: IUserAddressRepository
+    userAddressRepository: IUserAddressRepository,
+    logger: ILogger
   ) {
     this.technicianRepository = technicianRepository;
     this.userRepository = userRepository;
     this.userAddressRepository = userAddressRepository;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async getDashboardOverview(

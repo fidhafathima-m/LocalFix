@@ -10,16 +10,17 @@ import { ItemMapper } from "../mappers/itemMapper";
 import { ITEM_MESSAGES } from "../constants";
 import { Types } from "mongoose";
 import { LoggerService } from "../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ItemService implements IItemService {
   private itemRepository: IItemRepository;
   private itemMapper: ItemMapper;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(itemRepository: IItemRepository) {
+  constructor(itemRepository: IItemRepository, logger: ILogger) {
     this.itemRepository = itemRepository;
     this.itemMapper = new ItemMapper();
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async createItem(createDto: CreateItemDto): Promise<ItemResponseDto> {

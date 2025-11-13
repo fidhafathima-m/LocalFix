@@ -1,16 +1,19 @@
 import { Response } from "express";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { AuthRequest } from "../../middleware/authMiddleware";
-import { LoggerService } from "../../services/LoggerService";
 import { IPaymentService } from "../../interfaces/services/user/IPaymentService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class PaymentController {
   private paymentService: IPaymentService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(paymentService: IPaymentService) {
+  constructor(
+    paymentService: IPaymentService,
+    logger: ILogger
+  ) {
     this.paymentService = paymentService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   createPaymentOrder = async (

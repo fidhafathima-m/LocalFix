@@ -10,16 +10,17 @@ import { IPaymentRepository } from "../interfaces/repository/admin/IPaymentRepos
 import { Types } from "mongoose";
 import { PAYMENT_MESSAGES } from "../constants";
 import { IPaymentService } from "../interfaces/services/admin/IPaymentManagementService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class PaymentManagementService implements IPaymentService {
   private paymentRepository: IPaymentRepository;
   private paymentMapper: PaymentMapper;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(paymentRepository: IPaymentRepository) {
+  constructor(paymentRepository: IPaymentRepository, logger: ILogger) {
     this.paymentRepository = paymentRepository;
     this.paymentMapper = new PaymentMapper();
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async getPayments(

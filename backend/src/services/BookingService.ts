@@ -14,15 +14,17 @@ import { IOrderRepository } from "@/interfaces/repository/user/IOrderRepository"
 import { ITechnicianRepository } from "@/interfaces/repository/technician/ITechnicianRepository";
 import { ITechnician } from "@/interfaces/technician/ITechnician";
 import { IBooking } from "@/models/BookingSchema";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class BookingService implements IBookingService {
-  private logger: LoggerService;
+  private logger: ILogger;
 
   constructor(
     private bookingRepository: IBookingRepository,
-    private orderRepository: IOrderRepository
+    private orderRepository: IOrderRepository,
+    logger: ILogger
   ) {
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async createBooking(
@@ -50,6 +52,7 @@ export class BookingService implements IBookingService {
           "Please fill in all required booking fields"
         );
       }
+
 
       // Generate booking code
       const bookingCount = await this.bookingRepository.getBookingCount();

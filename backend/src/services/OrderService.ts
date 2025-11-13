@@ -11,16 +11,18 @@ import { ITechnicianRepository } from "@/interfaces/repository/technician/ITechn
 import { INotificationService } from "@/interfaces/services/INotificationService";
 import OrderSchema from "@/models/OrderSchema";
 import { Types } from "mongoose";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class OrderService implements IOrderService {
-  private logger: LoggerService;
+  private logger: ILogger;
 
   constructor(
     private orderRepository: IOrderRepository,
     private technicianRepository: ITechnicianRepository,
-    private notificationService: INotificationService
+    private notificationService: INotificationService,
+    logger: ILogger
   ) {
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async getUserOrders(

@@ -9,14 +9,15 @@ import {
 import { IUserLocation } from "../models/UserLocationSchema";
 import { IUserLocationRepository } from "@/interfaces/repository/user/IUserLocationRepository";
 import { LoggerService } from "./LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class UserLocationService implements IUserLocationService {
   private userLocationRepository: IUserLocationRepository;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(userLocationRepository: IUserLocationRepository) {
+  constructor(userLocationRepository: IUserLocationRepository, logger: ILogger) {
     this.userLocationRepository = userLocationRepository;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async updateUserLocation(

@@ -3,15 +3,18 @@ import { IItemService } from "../../interfaces/services/admin/IItemManagementSer
 import { ResponseHelper } from "../../utils/responseHelper";
 import { ITEM_MESSAGES } from "../../constants";
 import { CreateItemDto, UpdateItemDto } from "../../interfaces/dtos/itemDtos";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
-export class ItemController {
+export class ItemManagementController {
   private itemService: IItemService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(itemService: IItemService) {
+  constructor(
+    itemService: IItemService,
+    logger: ILogger
+  ) {
     this.itemService = itemService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   createItem = async (req: Request, res: Response): Promise<void> => {

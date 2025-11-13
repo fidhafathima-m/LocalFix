@@ -5,15 +5,18 @@ import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
 import { TechnicianProfileResponseDto } from "@/interfaces/dtos/technicianProfileDtos";
 import { TechnicianProfileMapper } from "../../mappers/technicianProfileMappers";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianProfileController {
   private profileService: ITechnicianProfileService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(profileService: ITechnicianProfileService) {
+  constructor(
+    profileService: ITechnicianProfileService,
+    logger: ILogger
+  ) {
     this.profileService = profileService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   // Helper method to handle service responses

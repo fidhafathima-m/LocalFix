@@ -37,13 +37,14 @@ import { LoggerService } from "./LoggerService";
 import { IOrderService } from "@/interfaces/services/user/IOrderService";
 import { IEmailService } from "@/interfaces/services/IEmailService";
 import { INotificationService } from "@/interfaces/services/INotificationService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianProfileService implements ITechnicianProfileService {
   private technicianRepository: ITechnicianRepository;
   private technicianProfileRepository: ITechnicianProfileRepository;
   private userRepository: IUserRepository;
   private userAddressRepository: IUserAddressRepository;
-  private logger: LoggerService;
+  private logger: ILogger;
   private orderService: IOrderService;
   private emailService: IEmailService;
   private notificationService: INotificationService;
@@ -55,13 +56,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     userAddressRepository: IUserAddressRepository,
     orderService: IOrderService,
     emailService: IEmailService,
-    notificationService: INotificationService
+    notificationService: INotificationService,
+    logger: ILogger
   ) {
     this.technicianRepository = technicianRepository;
     this.technicianProfileRepository = technicianProfileRepository;
     this.userRepository = userRepository;
     this.userAddressRepository = userAddressRepository;
-    this.logger = new LoggerService();
+    this.logger = logger;
     this.orderService = orderService;
     this.emailService = emailService;
     this.notificationService = notificationService;

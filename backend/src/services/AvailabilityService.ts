@@ -7,14 +7,15 @@ import SlotRule, {
 import TechnicianAvailability from "../models/technician/TechnicianAvailabilitySchema";
 import { ITechnicianAvailabilityService } from "@/interfaces/services/technician/ITechnicianAvailabilityService";
 import { LoggerService } from "../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianAvailabilityService
   implements ITechnicianAvailabilityService
 {
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor() {
-    this.logger = new LoggerService();
+  constructor(logger: ILogger) {
+    this.logger = logger;
   }
 
   async createTechnicianAvailabilityFromApplication(

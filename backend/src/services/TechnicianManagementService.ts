@@ -56,6 +56,7 @@ import { RRule } from "rrule";
 import { LoggerService } from "./LoggerService";
 import { error } from "winston";
 import { INotificationService } from "@/interfaces/services/INotificationService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 interface DocumentInfo {
   url: string;
@@ -110,15 +111,16 @@ export class TechnicianManagementService
   implements ITechnicianManagementService
 {
   private technicianRepository: ITechnicianManagementRepository;
-  private logger: LoggerService;
+  private logger: ILogger;
   private notificationService: INotificationService;
 
   constructor(
     technicianRepository: ITechnicianManagementRepository,
-    notificationService: INotificationService
+    notificationService: INotificationService,
+    logger: ILogger
   ) {
     this.technicianRepository = technicianRepository;
-    this.logger = new LoggerService();
+    this.logger = logger;
     this.notificationService = notificationService;
   }
 
@@ -1029,7 +1031,7 @@ export class TechnicianManagementService
         );
       }
 
-      const availabilityService = new TechnicianAvailabilityService();
+      const availabilityService = new TechnicianAvailabilityService(this.logger);
 
       // Update application status
       const updatedApplication =

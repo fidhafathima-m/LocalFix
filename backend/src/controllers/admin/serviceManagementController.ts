@@ -6,15 +6,18 @@ import {
   CreateServiceDto,
   UpdateServiceDto,
 } from "../../interfaces/dtos/serviceDtos";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
-export class ServiceController {
+export class ServiceManagementController {
   private serviceService: IServiceService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(serviceService: IServiceService) {
+  constructor(
+    serviceService: IServiceService,
+    logger: ILogger
+  ) {
     this.serviceService = serviceService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   createService = async (req: Request, res: Response): Promise<void> => {

@@ -14,15 +14,18 @@ import {
   TechnicianFiltersDto,
   ApplicationFiltersDto,
 } from "../../interfaces/dtos/technicianDtos";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianManagementController {
   private technicianService: ITechnicianManagementService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(technicianService: ITechnicianManagementService) {
+  constructor(
+    technicianService: ITechnicianManagementService,
+    logger: ILogger
+  ) {
     this.technicianService = technicianService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   // ========== PUBLIC ROUTES ==========

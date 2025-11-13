@@ -11,16 +11,17 @@ import { SERVICE_MESSAGES, ServiceStatus } from "../constants";
 import { Types } from "mongoose";
 import { Item } from "../models/category/itemSchema";
 import { LoggerService } from "../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ServiceService implements IServiceService {
   private serviceRepository: IServiceRepository;
   private serviceMapper: ServiceMapper;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(serviceRepository: IServiceRepository) {
+  constructor(serviceRepository: IServiceRepository, logger: ILogger) {
     this.serviceRepository = serviceRepository;
     this.serviceMapper = new ServiceMapper();
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async createService(

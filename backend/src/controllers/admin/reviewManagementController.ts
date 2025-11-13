@@ -1,16 +1,19 @@
 import { Request, Response } from "express";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { REVIEW_MESSAGES } from "../../constants";
-import { LoggerService } from "../../services/LoggerService";
 import { IAdminReviewService } from "@/interfaces/services/admin/IReviewManagementService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ReviewManagementController {
   private reviewService: IAdminReviewService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(reviewService: IAdminReviewService) {
+  constructor(
+    reviewService: IAdminReviewService,
+    logger: ILogger
+  ) {
     this.reviewService = reviewService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getAllReviews = async (req: Request, res: Response): Promise<void> => {

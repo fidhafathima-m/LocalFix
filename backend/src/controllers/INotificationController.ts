@@ -2,14 +2,18 @@ import { Request, Response } from "express";
 import { INotificationService } from "../interfaces/services/INotificationService";
 import { ResponseHelper } from "../utils/responseHelper";
 import { LoggerService } from "../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class NotificationController {
   private notificationService: INotificationService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(notificationService: INotificationService) {
+  constructor(
+    notificationService: INotificationService,
+    logger: ILogger
+  ) {
     this.notificationService = notificationService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getNotificationsByUser = async (req: Request, res: Response): Promise<void> => {

@@ -6,6 +6,7 @@ import { UserMapper } from "../mappers/userMapper";
 import { IAddressRepository } from "../interfaces/repository/user/IAddressRepository";
 import { AddressMapper } from "../mappers/addressMapper";
 import { LoggerService } from "./LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export interface UpdateUserProfileData {
   fullName?: string;
@@ -17,13 +18,14 @@ export interface UpdateUserProfileData {
 }
 
 export class UserProfileService {
-  private logger: LoggerService;
+  private logger: ILogger;
 
   constructor(
     private userManagementRepository: IUserManagementRepository,
-    private addressRepository: IAddressRepository
+    private addressRepository: IAddressRepository,
+    logger: ILogger
   ) {
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async getUserProfile(userId: string) {

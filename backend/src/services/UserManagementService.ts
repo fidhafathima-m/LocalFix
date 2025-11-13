@@ -16,6 +16,7 @@ import {
 } from "../interfaces/dtos/userDtos";
 import { UserMapper } from "../mappers/userMapper";
 import { LoggerService } from "./LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 // Type guard function for status validation
 function isValidStatus(
@@ -26,11 +27,11 @@ function isValidStatus(
 
 export class UserManagementService implements IUserManagementService {
   private userManagementRepository: IUserManagementRepository;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(userManagementRepository: IUserManagementRepository) {
+  constructor(userManagementRepository: IUserManagementRepository, logger: ILogger) {
     this.userManagementRepository = userManagementRepository;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async getUsers(): Promise<UsersListResponseDto> {

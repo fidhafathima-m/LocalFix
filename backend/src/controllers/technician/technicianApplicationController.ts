@@ -13,15 +13,18 @@ import {
   UploadedFileDto,
   FilesCollectionDto,
 } from "../../interfaces/dtos/technicianApplicationDtos";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianApplicationController {
   private applicationService: ITechnicianApplicationService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(applicationService: ITechnicianApplicationService) {
+  constructor(
+    applicationService: ITechnicianApplicationService,
+    logger: ILogger
+  ) {
     this.applicationService = applicationService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   startApplication = async (req: Request, res: Response): Promise<void> => {

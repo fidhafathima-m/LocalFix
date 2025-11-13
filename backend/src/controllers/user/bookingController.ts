@@ -4,15 +4,18 @@ import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
 import { CreateBookingRequestDto } from "../../interfaces/dtos/bookingDtos";
 import { AuthRequest } from "../../middleware/authMiddleware";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class BookingController {
   private bookingService: IBookingService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(bookingService: IBookingService) {
+  constructor(
+    bookingService: IBookingService,
+    logger: ILogger
+  ) {
     this.bookingService = bookingService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   createBooking = async (req: AuthRequest, res: Response): Promise<void> => {

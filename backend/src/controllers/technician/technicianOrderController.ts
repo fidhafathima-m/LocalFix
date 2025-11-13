@@ -3,15 +3,18 @@ import { IOrderService } from "../../interfaces/services/user/IOrderService";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
 import { AuthRequest } from "../../middleware/authMiddleware";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 class TechnicianOrderController {
   private orderService: IOrderService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(orderService: IOrderService) {
+  constructor(
+    orderService: IOrderService,
+    logger: ILogger
+  ) {
     this.orderService = orderService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getTechnicianOrders = async (

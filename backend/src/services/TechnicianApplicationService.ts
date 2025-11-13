@@ -39,6 +39,7 @@ import { TechnicianApplicationMapper } from "../mappers/technicianApplicationMap
 import { ITechnicianAvailabilityService } from "@/interfaces/services/technician/ITechnicianAvailabilityService";
 import { TechnicianAvailabilityService } from "./AvailabilityService";
 import { LoggerService } from "../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 interface AddressData {
   street?: string;
@@ -86,19 +87,20 @@ export class TechnicianApplicationService
   private technicianRepository: ITechnicianRepository;
   private documentRepository: ITechnicianDocumentRepository;
   private userRepository: IUserRepository;
-  private logger: LoggerService;
+  private logger: ILogger;
 
   constructor(
     applicationRepository: ITechnicianApplicationRepository,
     technicianRepository: ITechnicianRepository,
     documentRepository: ITechnicianDocumentRepository,
-    userRepository: IUserRepository
+    userRepository: IUserRepository,
+    logger: ILogger
   ) {
     this.applicationRepository = applicationRepository;
     this.technicianRepository = technicianRepository;
     this.documentRepository = documentRepository;
     this.userRepository = userRepository;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async startApplication(
@@ -885,7 +887,7 @@ export class TechnicianApplicationService
       });
 
       // Use the new availability service
-      const availabilityService = new TechnicianAvailabilityService();
+      const availabilityService = new TechnicianAvailabilityService(this.logger);
       await availabilityService.createTechnicianAvailabilityFromApplication(
         application.technicianId.toString(),
         availabilityData

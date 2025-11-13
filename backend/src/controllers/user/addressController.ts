@@ -9,15 +9,18 @@ import {
   UpdateAddressRequestDto,
 } from "../../interfaces/dtos/addressDtos";
 import { AuthRequest } from "@/middleware/authMiddleware";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class AddressController {
   private addressService: IAddressService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(addressService: IAddressService) {
+  constructor(
+    addressService: IAddressService,
+    logger: ILogger
+  ) {
     this.addressService = addressService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   // Get all addresses for user

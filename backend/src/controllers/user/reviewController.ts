@@ -10,22 +10,23 @@ import {
   UpdateReviewRequestDto,
 } from "../../interfaces/dtos/reviewDtos";
 import { AuthRequest } from "@/middleware/authMiddleware";
-import { LoggerService } from "../../services/LoggerService";
 import { ReviewMapper } from "../../mappers/reviewMapper";
 import { IReviewRepository } from "../../interfaces/repository/user/IReviewRepository";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ReviewController {
   private reviewService: IReviewService;
   private reviewRepository: IReviewRepository;
-  private logger: LoggerService;
+  private logger: ILogger;
 
   constructor(
     reviewService: IReviewService,
-    reviewRepository: IReviewRepository
+    reviewRepository: IReviewRepository,
+    logger: ILogger
   ) {
     this.reviewService = reviewService;
     this.reviewRepository = reviewRepository;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   createReview = async (req: AuthRequest, res: Response): Promise<void> => {

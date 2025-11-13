@@ -1,15 +1,18 @@
 import { Request, Response } from "express";
 import { UserManagementService } from "../../services/UserManagementService";
 import { ResponseHelper } from "../../utils/responseHelper";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
-export class PublicUserController {
+export class PublicUserManagementController {
   private userService: UserManagementService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(userService: UserManagementService) {
+  constructor(
+    userService: UserManagementService,
+    logger: ILogger
+  ) {
     this.userService = userService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getUserProfile = async (req: Request, res: Response) => {

@@ -2,15 +2,18 @@ import { Request, Response } from "express";
 import { UpdateUserProfileData } from "../../services/UserProfileService";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { IUserProfileService } from "@/interfaces/services/user/IUserProfileService";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class UserProfileController {
   private userProfileService: IUserProfileService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(userProfileService: IUserProfileService) {
+  constructor(
+    userProfileService: IUserProfileService,
+    logger: ILogger
+  ) {
     this.userProfileService = userProfileService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getUserProfile = async (req: Request, res: Response) => {

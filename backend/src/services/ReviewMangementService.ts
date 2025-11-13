@@ -4,16 +4,17 @@ import { GetReviewsFilter, IAdminReviewService, ReviewListResponse, ReviewRespon
 import { LoggerService } from "./LoggerService";
 import { ReviewMapper } from "../mappers/reviewManagementMapper";
 import { REVIEW_MESSAGES } from "../constants";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class ReviewManagementService implements IAdminReviewService {
   private reviewRepository: IReviewRepository;
   private reviewMapper: ReviewMapper;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(reviewRepository: IReviewRepository) {
+  constructor(reviewRepository: IReviewRepository, logger: ILogger) {
     this.reviewRepository = reviewRepository;
     this.reviewMapper = new ReviewMapper();
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async getAllReviews(filters: GetReviewsFilter): Promise<ReviewListResponse> {

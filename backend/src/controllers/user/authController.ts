@@ -19,15 +19,18 @@ import {
   LogoutRequestDto,
   AuthResponseDto,
 } from "../../interfaces/dtos/authDtos";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class AuthController {
   private authService: IAuthService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(authService: IAuthService) {
+  constructor(
+    authService: IAuthService,
+    logger: ILogger
+  ) {
     this.authService = authService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   signup = async (req: Request, res: Response): Promise<void> => {

@@ -7,14 +7,15 @@ import {
 } from "../interfaces/dtos/notificationDtos";
 import { NotificationMapper } from "../mappers/notificationMapper";
 import { LoggerService } from "./LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class NotificationService implements INotificationService {
   private notificationRepository: INotificationRepository;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(notificationRepository: INotificationRepository) {
+  constructor(notificationRepository: INotificationRepository, logger: ILogger) {
     this.notificationRepository = notificationRepository;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async createNotification(

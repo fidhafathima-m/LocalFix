@@ -12,12 +12,13 @@ import {
   CreatePaymentRequest,
   PaymentResponseDto,
 } from "@/interfaces/user/IPayment";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class PaymentService {
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(private paymentRepository: IPaymentRepository) {
-    this.logger = new LoggerService();
+  constructor(private paymentRepository: IPaymentRepository, logger: ILogger) {
+    this.logger = logger;
   }
 
   async createPaymentOrder(

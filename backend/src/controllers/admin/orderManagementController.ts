@@ -3,15 +3,18 @@ import { IOrderService } from "../../interfaces/services/admin/IOrderManagementS
 import { ResponseHelper } from "../../utils/responseHelper";
 import { ORDER_MESSAGES } from "../../constants";
 import { UpdateOrderStatusDto } from "../../interfaces/dtos/orderDtos";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class OrderManagementController {
   private orderService: IOrderService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(orderService: IOrderService) {
+  constructor(
+    orderService: IOrderService,
+    logger: ILogger
+  ) {
     this.orderService = orderService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getOrders = async (req: Request, res: Response): Promise<void> => {

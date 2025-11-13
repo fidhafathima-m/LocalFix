@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
-import { UserLocationService } from "../../services/UserLocationService";
 import { IUserLocationService } from "@/interfaces/services/user/IUserLocationService";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 interface AuthRequest extends Request {
   user?: {
@@ -12,11 +11,14 @@ interface AuthRequest extends Request {
 
 export class UserLocationController {
   private userLocationService: IUserLocationService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(userLocationService: IUserLocationService) {
+  constructor(
+    userLocationService: IUserLocationService,
+    logger: ILogger
+  ) {
     this.userLocationService = userLocationService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   // Update user location

@@ -10,15 +10,16 @@ import { OrderMapper } from "../mappers/orderMapper";
 import { ORDER_MESSAGES } from "../constants";
 import { Types } from "mongoose";
 import { LoggerService } from "../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 export class OrderManagementService implements IOrderService {
   private orderRepository: IOrderRepository;
   private orderMapper: OrderMapper;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(orderRepository: IOrderRepository) {
+  constructor(orderRepository: IOrderRepository, logger: ILogger) {
     this.orderRepository = orderRepository;
     this.orderMapper = new OrderMapper();
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async getOrders(

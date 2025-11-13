@@ -9,15 +9,18 @@ import {
   UpdateUserStatusRequestDto,
   EditUserRequestDto,
 } from "../../interfaces/dtos/userDtos";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class UserManagementController {
   private userManagementService: IUserManagementService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(userManagementService: IUserManagementService) {
+  constructor(
+    userManagementService: IUserManagementService,
+    logger: ILogger
+  ) {
     this.userManagementService = userManagementService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getUsers = async (req: Request, res: Response): Promise<void> => {

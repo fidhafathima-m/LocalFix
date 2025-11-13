@@ -6,15 +6,18 @@ import {
   CreateCategoryDto,
   UpdateCategoryDto,
 } from "../../interfaces/dtos/categoryDtos";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
-export class CategoryController {
+export class CategoryManagementController {
   private categoryService: ICategoryService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(categoryService: ICategoryService) {
+  constructor(
+    categoryService: ICategoryService,
+    logger: ILogger
+  ) {
     this.categoryService = categoryService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   createCategory = async (req: Request, res: Response): Promise<void> => {

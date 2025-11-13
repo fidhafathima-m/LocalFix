@@ -36,24 +36,26 @@ import {
   AuthTokensDto,
 } from "../interfaces/dtos/authDtos";
 import { LoggerService } from "./LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class AuthService implements IAuthService {
   private userRepository: IUserRepository;
   private otpRepository: IOTPRepository;
   private socialAccountRepository: ISocialAccountRepository;
   private googleClient: OAuth2Client;
-  private logger: LoggerService;
+  private logger: ILogger;
 
   constructor(
     userRepository: IUserRepository,
     otpRepository: IOTPRepository,
-    socialAccountRepository: ISocialAccountRepository
+    socialAccountRepository: ISocialAccountRepository,
+    logger: ILogger
   ) {
     this.userRepository = userRepository;
     this.otpRepository = otpRepository;
     this.socialAccountRepository = socialAccountRepository;
     this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async signup(signupData: SignupDataDto): Promise<AuthResponseDto> {

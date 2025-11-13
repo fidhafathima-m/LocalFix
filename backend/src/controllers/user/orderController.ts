@@ -2,16 +2,19 @@ import { Response } from "express";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
 import { AuthRequest } from "../../middleware/authMiddleware";
-import { LoggerService } from "../../services/LoggerService";
 import { IOrderService } from "@/interfaces/services/user/IOrderService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class OrderController {
   private orderService: IOrderService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(orderService: IOrderService) {
+  constructor(
+    orderService: IOrderService,
+    logger: ILogger
+  ) {
     this.orderService = orderService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getUserOrders = async (req: AuthRequest, res: Response): Promise<void> => {

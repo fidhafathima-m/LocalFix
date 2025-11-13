@@ -7,15 +7,18 @@ import {
   DashboardOverviewResponseDto,
   TechnicianProfileResponseDto,
 } from "../../interfaces/dtos/technicianDashboardDtos";
-import { LoggerService } from "../../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class TechnicianDashboardController {
   private dashboardService: ITechnicianDashboardService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(dashboardService: ITechnicianDashboardService) {
+  constructor(
+    dashboardService: ITechnicianDashboardService,
+    logger: ILogger
+  ) {
     this.dashboardService = dashboardService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getDashboardOverview = async (

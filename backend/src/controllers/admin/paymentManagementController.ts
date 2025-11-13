@@ -1,16 +1,19 @@
 import { Request, Response } from "express";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { PAYMENT_MESSAGES } from "../../constants";
-import { LoggerService } from "../../services/LoggerService";
 import { IPaymentService } from "@/interfaces/services/admin/IPaymentManagementService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class PaymentManagementController {
   private paymentService: IPaymentService;
-  private logger: LoggerService;
+  private logger: ILogger;
 
-  constructor(paymentService: IPaymentService) {
+  constructor(
+    paymentService: IPaymentService,
+    logger: ILogger
+  ) {
     this.paymentService = paymentService;
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   getPayments = async (req: Request, res: Response): Promise<void> => {

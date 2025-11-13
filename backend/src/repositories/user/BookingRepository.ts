@@ -6,6 +6,7 @@ import mongoose, { Types } from "mongoose";
 export class BookingRepository implements IBookingRepository {
   async create(bookingData: Partial<IBooking>): Promise<IBooking> {
     const booking = new Booking(bookingData);
+    
     return await booking.save();
   }
 

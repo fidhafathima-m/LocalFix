@@ -10,16 +10,17 @@ import { CategoryMapper } from "../mappers/categoryMapper";
 import { CATEGORY_MESSAGES } from "../constants";
 import { Service } from "../models/category/serviceSchema";
 import { LoggerService } from "../services/LoggerService";
+import { ILogger } from "@/interfaces/utils/ILogger";
 
 export class CategoryService implements ICategoryService {
   private categoryRepository: ICategoryRepository;
   private categoryMapper: CategoryMapper;
-  private logger: LoggerService;
+  private logger: ILogger
 
-  constructor(categoryRepository: ICategoryRepository) {
+  constructor(categoryRepository: ICategoryRepository, logger: ILogger) {
     this.categoryRepository = categoryRepository;
     this.categoryMapper = new CategoryMapper();
-    this.logger = new LoggerService();
+    this.logger = logger;
   }
 
   async createCategory(
