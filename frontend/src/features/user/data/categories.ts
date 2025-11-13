@@ -15,11 +15,9 @@ export interface Category {
 // Service to fetch categories from backend
 export const fetchCategories = async (): Promise<Category[]> => {
   try {
-    console.log("🔄 Fetching categories from backend...");
     
     const response = await CategoryManagementService.getCategories(1, 50);
     
-    console.log("📡 Categories API response:", response);
     
     // Transform the API response to match your frontend needs
     if (response && Array.isArray(response.categories)) {
@@ -38,7 +36,7 @@ export const fetchCategories = async (): Promise<Category[]> => {
     
     return [];
   } catch (error) {
-    console.error("💥 Error fetching categories:", error);
+    console.error("Error fetching categories:", error);
     return getFallbackCategories();
   }
 };

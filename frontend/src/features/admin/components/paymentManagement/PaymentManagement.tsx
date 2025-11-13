@@ -12,7 +12,10 @@ import {
   ReplayOutlined,
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
-import type { IPayment, PaymentStats } from "../../../../interface/admin/IPayment";
+import type {
+  IPayment,
+  PaymentStats,
+} from "../../../../interface/admin/IPayment";
 import { PaymentManagementService } from "../../../../services/admin/PaymentManagementService";
 import { ViewPaymentModal } from "./ViewPaymentModal";
 import { useDebounce } from "../../../../hooks/useDebounce";
@@ -31,23 +34,23 @@ const PaymentManagement: React.FC = () => {
   const itemsPerPage = 10;
   const [searchLoading, setSearchLoading] = useState(false);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500)
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   useEffect(() => {
-        if (searchQuery !== debouncedSearchQuery) {
-          setSearchLoading(true);
-        } else {
-          setSearchLoading(false);
-        }
-      }, [searchQuery, debouncedSearchQuery]);
+    if (searchQuery !== debouncedSearchQuery) {
+      setSearchLoading(true);
+    } else {
+      setSearchLoading(false);
+    }
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Load payments and stats from backend
   const loadPayments = async (page: number = 1, search?: string) => {
     try {
       setLoading(true);
-      
+
       const status = statusFilter !== "All Status" ? statusFilter : undefined;
-      
+
       const response = await PaymentManagementService.getPayments(
         page,
         itemsPerPage,
@@ -57,11 +60,14 @@ const PaymentManagement: React.FC = () => {
 
       console.log("Raw API Response:", response);
 
-       if (response.payments && response.payments.length > 0) {
-      console.log("First payment object:", response.payments[0]);
-      console.log("User data in first payment:", response.payments[0].userId);
-      console.log("Booking data in first payment:", response.payments[0].bookingId);
-    }
+      if (response.payments && response.payments.length > 0) {
+        console.log("First payment object:", response.payments[0]);
+        console.log("User data in first payment:", response.payments[0].userId);
+        console.log(
+          "Booking data in first payment:",
+          response.payments[0].bookingId
+        );
+      }
 
       if (response) {
         setPayments(response.payments || []);
@@ -100,11 +106,18 @@ const PaymentManagement: React.FC = () => {
 
   const handleRefund = async (paymentId: string) => {
     try {
-      if (!window.confirm("Are you sure you want to process a refund for this payment?")) {
+      if (
+        !window.confirm(
+          "Are you sure you want to process a refund for this payment?"
+        )
+      ) {
         return;
       }
 
-      await PaymentManagementService.processRefund(paymentId, "Admin initiated refund");
+      await PaymentManagementService.processRefund(
+        paymentId,
+        "Admin initiated refund"
+      );
       toast.success("Refund processed successfully");
       await loadPayments(currentPage, debouncedSearchQuery);
       await loadStats();
@@ -116,21 +129,21 @@ const PaymentManagement: React.FC = () => {
 
   const handleExport = async () => {
     try {
-      const blob = await PaymentManagementService.exportPayments('csv', {
+      const blob = await PaymentManagementService.exportPayments("csv", {
         search: debouncedSearchQuery,
         status: statusFilter !== "All Status" ? statusFilter : undefined,
       });
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `payments-${new Date().toISOString().split("T")[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast.success("Payments exported successfully");
     } catch (error: any) {
       console.error("Error exporting payments:", error);
@@ -143,7 +156,7 @@ const PaymentManagement: React.FC = () => {
     setShowViewModal(true);
   };
 
-  const getStatusBadge = (status: IPayment['status']) => {
+  const getStatusBadge = (status: IPayment["status"]) => {
     const statusConfig = {
       success: { class: "bg-green-100 text-green-800", label: "Completed" },
       pending: { class: "bg-yellow-100 text-yellow-800", label: "Pending" },
@@ -155,7 +168,9 @@ const PaymentManagement: React.FC = () => {
     const config = statusConfig[status] || statusConfig.pending;
 
     return (
-      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${config.class}`}>
+      <span
+        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${config.class}`}
+      >
         {config.label}
       </span>
     );
@@ -189,17 +204,17 @@ const PaymentManagement: React.FC = () => {
     <>
       <div className="flex h-screen bg-gray-50">
         <AdminSidebar activePage="Payments" />
-        
+
         <div className="flex-1 overflow-y-auto ml-[240px]">
           <div className="p-6">
             {/* Header */}
             <div className="mb-6">
               <h1 className="text-2xl font-bold mb-1">Payment Management</h1>
               <p className="text-gray-600">
-                Manage all payment transactions, refunds, and payouts to technicians.
+                Manage all payment transactions, refunds, and payouts to
+                technicians.
               </p>
             </div>
-
             {/* Stats cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="bg-blue-50 p-4 rounded-lg flex items-start">
@@ -209,7 +224,7 @@ const PaymentManagement: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-600">Total Revenue</p>
                   <p className="text-xl font-bold">
-                    ₹{stats?.totalRevenue?.toLocaleString() || '0'}
+                    ₹{stats?.totalRevenue?.toLocaleString() || "0"}
                   </p>
                 </div>
               </div>
@@ -218,9 +233,9 @@ const PaymentManagement: React.FC = () => {
                   <CheckCircleOutlineOutlined className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Platform Commission</p>
+                  <p className="text-sm text-gray-600">Service Tax Collected</p>
                   <p className="text-xl font-bold">
-                    ₹{stats?.platformCommission?.toLocaleString() || '0'}
+                    ₹{stats?.platformCommission?.toLocaleString() || "0"}
                   </p>
                 </div>
               </div>
@@ -230,7 +245,9 @@ const PaymentManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Pending Payments</p>
-                  <p className="text-xl font-bold">{stats?.pendingPayments || 0}</p>
+                  <p className="text-xl font-bold">
+                    {stats?.pendingPayments || 0}
+                  </p>
                 </div>
               </div>
               <div className="bg-red-50 p-4 rounded-lg flex items-start">
@@ -239,11 +256,12 @@ const PaymentManagement: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Refunded/Failed</p>
-                  <p className="text-xl font-bold">{stats?.failedPayments || 0}</p>
+                  <p className="text-xl font-bold">
+                    {stats?.failedPayments || 0}
+                  </p>
                 </div>
               </div>
             </div>
-
             {/* Search and filters */}
             <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -279,7 +297,7 @@ const PaymentManagement: React.FC = () => {
                       <option>initiated</option>
                     </select>
                   </div>
-                  <button 
+                  <button
                     onClick={handleExport}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
@@ -289,7 +307,6 @@ const PaymentManagement: React.FC = () => {
                 </div>
               </div>
             </div>
-
             {/* Payments table */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
@@ -370,7 +387,7 @@ const PaymentManagement: React.FC = () => {
                               >
                                 <RemoveRedEyeOutlined className="h-5 w-5" />
                               </button>
-                              {payment.status === 'success' && (
+                              {payment.status === "success" && (
                                 <button
                                   className="p-1 rounded-full text-orange-600 hover:bg-orange-100 cursor-pointer"
                                   title="Process Refund"

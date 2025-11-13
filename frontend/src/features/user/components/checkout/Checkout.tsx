@@ -135,6 +135,7 @@ const Checkout: React.FC = () => {
   }, [location.state, navigate]);
 
   // Calculate pricing based on service type
+  // In Checkout component - update calculatePricing function
   const calculatePricing = (serviceType: string) => {
     const basePrices: { [key: string]: number } = {
       "AC Repair": 500,
@@ -148,7 +149,7 @@ const Checkout: React.FC = () => {
     };
 
     const subtotal = basePrices[serviceType] || basePrices["Default"];
-    const serviceTax = Math.round(subtotal * 0.1); // 10% tax
+    const serviceTax = Math.round(subtotal * 0.1); 
     const total = subtotal + serviceTax;
 
     setPricing({ subtotal, serviceTax, total });

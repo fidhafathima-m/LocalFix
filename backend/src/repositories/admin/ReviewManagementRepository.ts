@@ -27,7 +27,7 @@ export class ReviewManagementRepository implements IReviewRepository {
           {
             path: "technicianId",
             model: Technician,
-            select: "name",
+            select: "displayName",
           },
         ],
       })
@@ -53,7 +53,8 @@ export class ReviewManagementRepository implements IReviewRepository {
       customerPhone: (review as any).orderId?.userId?.phone || "Unknown",
       service: (review as any).orderId?.serviceName || "Unknown Service",
       technicianName:
-        (review as any).orderId?.technicianId?.name || "Unknown Technician",
+        (review as any).orderId?.technicianId?.displayName ||
+        "Unknown Technician",
     };
 
     return populatedReview;
@@ -77,57 +78,158 @@ export class ReviewManagementRepository implements IReviewRepository {
       query.status = filters.status;
     }
 
-    if (filters.search) {
-      query.$or = [{ comment: { $regex: filters.search, $options: "i" } }];
-    }
+    let reviews: any[] = [];
+    let total = 0;
 
-    // Get reviews with population
-    const reviews = await Review.find(query)
-      .populate({
-        path: "orderId",
-        select: "serviceName userId technicianId",
-        populate: [
-          {
-            path: "userId",
-            model: UserSchema,
-            select: "fullName email phone",
+    if (filters.search) {
+      const aggregationPipeline: any[] = [
+        // Lookup order details
+        {
+          $lookup: {
+            from: "orders",
+            localField: "orderId",
+            foreignField: "_id",
+            as: "order",
           },
-          {
-            path: "technicianId",
-            model: Technician,
-            select: "name",
+        },
+        { $unwind: { path: "$order", preserveNullAndEmptyArrays: true } },
+        // Lookup user details
+        {
+          $lookup: {
+            from: "users",
+            localField: "order.userId",
+            foreignField: "_id",
+            as: "user",
           },
-        ],
-      })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+        },
+        { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+        // Lookup technician details
+        {
+          $lookup: {
+            from: "technicians",
+            localField: "order.technicianId",
+            foreignField: "_id",
+            as: "technician",
+          },
+        },
+        { $unwind: { path: "$technician", preserveNullAndEmptyArrays: true } },
+        // Add computed fields for search
+        {
+          $addFields: {
+            customerName: "$user.fullName",
+            customerEmail: "$user.email",
+            customerPhone: "$user.phone",
+            service: "$order.serviceName",
+            technicianName: "$technician.displayName",
+          },
+        },
+        // Apply search filter across all fields
+        {
+          $match: {
+            $or: [
+              { comment: { $regex: filters.search, $options: "i" } },
+              { "user.fullName": { $regex: filters.search, $options: "i" } },
+              { "user.email": { $regex: filters.search, $options: "i" } },
+              { "user.phone": { $regex: filters.search, $options: "i" } },
+              {
+                "order.serviceName": { $regex: filters.search, $options: "i" },
+              },
+              {
+                "technician.displayName": {
+                  $regex: filters.search,
+                  $options: "i",
+                },
+              },
+            ],
+          },
+        },
+        // Apply other filters
+        ...(filters.rating ? [{ $match: { rating: filters.rating } }] : []),
+        ...(filters.status ? [{ $match: { status: filters.status } }] : []),
+        // Get total count
+        {
+          $facet: {
+            metadata: [{ $count: "total" }],
+            data: [
+              { $sort: { createdAt: -1 } },
+              { $skip: skip },
+              { $limit: limit },
+            ],
+          },
+        },
+      ];
+
+      const result = await Review.aggregate(aggregationPipeline);
+
+      reviews = result[0]?.data || [];
+      total = result[0]?.metadata[0]?.total || 0;
+    } else {
+      // No search term - use normal query with population
+      if (filters.rating) {
+        query.rating = filters.rating;
+      }
+
+      if (filters.status) {
+        query.status = filters.status;
+      }
+
+      reviews = await Review.find(query)
+        .populate({
+          path: "orderId",
+          select: "serviceName userId technicianId",
+          populate: [
+            {
+              path: "userId",
+              model: UserSchema,
+              select: "fullName email phone",
+            },
+            {
+              path: "technicianId",
+              model: Technician,
+              select: "displayName",
+            },
+          ],
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      total = await Review.countDocuments(query);
+    }
 
     // Transform data with explicit typing
     const reviewsWithDetails: ReviewWithDetails[] = reviews.map(
-      (review: any) => ({
-        _id: review._id,
-        orderId: review.orderId,
-        userId: review.userId,
-        technicianId: review.technicianId,
-        rating: review.rating,
-        comment: review.comment,
-        status: review.status,
-        flagReason: review.flagReason,
-        createdAt: review.createdAt,
-        updatedAt: review.updatedAt,
-        __v: review.__v,
-        customerName: review.orderId?.userId?.fullName || "Unknown",
-        customerEmail: review.orderId?.userId?.email || "Unknown",
-        customerPhone: review.orderId?.userId?.phone || "Unknown",
-        service: review.orderId?.serviceName || "Unknown Service",
-        technicianName:
-          review.orderId?.technicianId?.name || "Unknown Technician",
-      })
-    );
+      (review: any) => {
+        // Handle both aggregation result and populated result
+        const orderData = review.orderId || review.order;
+        const userData = orderData?.userId || review.user;
+        const technicianData = orderData?.technicianId || review.technician;
 
-    const total = await Review.countDocuments(query);
+        return {
+          _id: review._id,
+          orderId: orderData?._id || review.orderId,
+          userId: userData?._id || review.userId,
+          technicianId: technicianData?._id || review.technicianId,
+          rating: review.rating,
+          comment: review.comment,
+          status: review.status,
+          flagReason: review.flagReason,
+          createdAt: review.createdAt,
+          updatedAt: review.updatedAt,
+          __v: review.__v,
+          customerName: userData?.fullName || "Unknown",
+          customerEmail: userData?.email || "Unknown",
+          customerPhone: userData?.phone || "Unknown",
+          service:
+            orderData?.serviceName ||
+            review.service ||
+            review.order?.serviceName ||
+            "Unknown Service",
+          technicianName: technicianData?.displayName || "Unknown Technician",
+        };
+      }
+    );
 
     return { reviews: reviewsWithDetails, total };
   }

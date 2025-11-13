@@ -346,11 +346,13 @@ export class PaymentManagementRepository implements IPaymentRepository {
     ]);
 
     const totalRevenue = totalRevenueResult[0]?.total || 0;
-    const platformCommission = totalRevenue * 0.2;
+    const serviceTaxCollected = totalRevenue[0]?.total
+      ? totalRevenue[0].total * 0.1
+      : 0;
 
     return {
       totalRevenue,
-      platformCommission,
+      platformCommission: serviceTaxCollected,
       pendingPayments: pendingPaymentsCount,
       failedPayments: failedPaymentsCount,
       totalPayments: totalPaymentsCount,

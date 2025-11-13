@@ -17,6 +17,7 @@ import type { Review } from "../../../../interface/admin/IReview";
 import { adminAPI } from "../../../../services/common/adminApi";
 import { AdminSidebar } from "../adminDashboard/actions/AdminSidebar";
 import ReviewCard from "./ReviewCard";
+import { useDebounce } from "../../../../hooks/useDebounce";
 
 interface ReviewStats {
   totalReviews: number;
@@ -39,6 +40,9 @@ const ReviewManagement: React.FC = () => {
     fiveStarReviews: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,6 +53,14 @@ const ReviewManagement: React.FC = () => {
   const fetchReviews = async (page: number = 1, search?: string) => {
     try {
       setLoading(true);
+      console.log("Search parameters:", {
+        page,
+        limit: reviewsPerPage,
+        search: search || undefined,
+        rating: ratingFilter !== "all" ? ratingFilter : undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        service: serviceFilter !== "all" ? serviceFilter : undefined,
+      });
       const response = await adminAPI.getReviews(
         page,
         reviewsPerPage,
@@ -57,6 +69,8 @@ const ReviewManagement: React.FC = () => {
         statusFilter !== "all" ? statusFilter : undefined,
         serviceFilter !== "all" ? serviceFilter : undefined
       );
+
+      console.log("Raw API response:", response.data);
 
       if (response.data.success && response.data.data) {
         setReviews(response.data.data.reviews);
@@ -73,6 +87,14 @@ const ReviewManagement: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (searchQuery !== debouncedSearchQuery) {
+      setSearchLoading(true);
+    } else {
+      setSearchLoading(false);
+    }
+  }, [searchQuery, debouncedSearchQuery]);
 
   const fetchStats = async () => {
     try {
@@ -93,19 +115,25 @@ const ReviewManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchReviews(currentPage, searchQuery);
+    fetchReviews(currentPage, debouncedSearchQuery);
     fetchStats();
-  }, [currentPage, searchQuery, ratingFilter, statusFilter, serviceFilter]);
+  }, [
+    currentPage,
+    debouncedSearchQuery,
+    ratingFilter,
+    statusFilter,
+    serviceFilter,
+  ]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, ratingFilter, statusFilter, serviceFilter]);
+  }, [debouncedSearchQuery, ratingFilter, statusFilter, serviceFilter]);
 
   const handleFlagReview = async (reviewId: string) => {
     try {
       await adminAPI.flagReview(reviewId, "Inappropriate content");
       toast.success("Review flagged successfully");
-      fetchReviews(currentPage, searchQuery); // Refresh the list
+      fetchReviews(currentPage, debouncedSearchQuery); // Refresh the list
       fetchStats(); // Refresh stats
     } catch (error: any) {
       console.error("Error flagging review:", error);
@@ -129,7 +157,7 @@ const ReviewManagement: React.FC = () => {
     try {
       await adminAPI.deleteReview(reviewId);
       toast.success("Review deleted successfully");
-      fetchReviews(currentPage, searchQuery); // Refresh the list
+      fetchReviews(currentPage, debouncedSearchQuery); // Refresh the list
       fetchStats(); // Refresh stats
     } catch (error: any) {
       console.error("Error deleting review:", error);
@@ -137,17 +165,17 @@ const ReviewManagement: React.FC = () => {
     }
   };
 
-  const handleApproveReview = async (reviewId: string) => {
-    try {
-      await adminAPI.updateReviewStatus(reviewId, "published");
-      toast.success("Review approved successfully");
-      fetchReviews(currentPage, searchQuery); // Refresh the list
-      fetchStats(); // Refresh stats
-    } catch (error: any) {
-      console.error("Error approving review:", error);
-      toast.error(error.message || "Failed to approve review");
-    }
-  };
+  // const handleApproveReview = async (reviewId: string) => {
+  //   try {
+  //     await adminAPI.updateReviewStatus(reviewId, "published");
+  //     toast.success("Review approved successfully");
+  //     fetchReviews(currentPage, searchQuery); // Refresh the list
+  //     fetchStats(); // Refresh stats
+  //   } catch (error: any) {
+  //     console.error("Error approving review:", error);
+  //     toast.error(error.message || "Failed to approve review");
+  //   }
+  // };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -247,6 +275,11 @@ const ReviewManagement: React.FC = () => {
                       onChange={(e) => handleSearch(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                    {searchLoading && (
+                      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="w-full md:w-auto flex gap-4">
@@ -310,7 +343,7 @@ const ReviewManagement: React.FC = () => {
               <div className="p-6">
                 {reviews.length === 0 ? (
                   <div className="text-center py-8">
-                    {searchQuery ||
+                    {debouncedSearchQuery ||
                     ratingFilter !== "all" ||
                     statusFilter !== "all" ||
                     serviceFilter !== "all" ? (
@@ -358,11 +391,11 @@ const ReviewManagement: React.FC = () => {
                         review={review.comment}
                         onFlag={() => handleFlagReview(review.id)}
                         onDelete={() => handleDeleteReview(review.id)}
-                        onApprove={
-                          review.status === "pending"
-                            ? () => handleApproveReview(review.id)
-                            : undefined
-                        }
+                        // onApprove={
+                        //   review.status === "pending"
+                        //     ? () => handleApproveReview(review.id)
+                        //     : undefined
+                        // }
                       />
                     ))}
                   </>

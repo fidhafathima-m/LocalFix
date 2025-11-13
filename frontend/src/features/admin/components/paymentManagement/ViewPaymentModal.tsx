@@ -48,8 +48,8 @@ export const ViewPaymentModal: React.FC<ViewPaymentModalProps> = ({
     }
   };
 
-  const platformCommission = payment.amount * 0.2;
-  const technicianPayout = payment.amount - platformCommission;
+  const serviceTax = payment.amount * 0.1;
+  const technicianPayout = payment.amount - serviceTax;
 
   // Safely extract service name and order ID
   const serviceName =
@@ -137,9 +137,9 @@ export const ViewPaymentModal: React.FC<ViewPaymentModalProps> = ({
               <CheckCircleOutlined className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Platform Commission</p>
+              <p className="text-sm text-gray-600">Service Tax (10%)</p>
               <p className="text-xl font-bold">
-                ₹{platformCommission.toLocaleString()}
+                ₹{serviceTax.toLocaleString()}
               </p>
             </div>
           </div>
@@ -303,6 +303,7 @@ export const ViewPaymentModal: React.FC<ViewPaymentModalProps> = ({
           </div>
 
           {/* Transaction Details */}
+          {/* Transaction Details */}
           <div className="bg-gray-50 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <ReceiptOutlined className="w-5 h-5 mr-2 text-purple-600" />
@@ -322,9 +323,9 @@ export const ViewPaymentModal: React.FC<ViewPaymentModalProps> = ({
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-200">
-                <span className="text-gray-600">Platform Commission</span>
+                <span className="text-gray-600">Service Tax (10%)</span>
                 <span className="font-medium text-gray-900">
-                  ₹{platformCommission.toLocaleString()}
+                  ₹{serviceTax.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between py-2">

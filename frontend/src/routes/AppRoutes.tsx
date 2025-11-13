@@ -158,7 +158,7 @@ const OrderManagement = lazy(
   () => import("../features/admin/pages/OrderManagemnetPage")
 );
 const ViewOrder = lazy(
-  () => import("../features/admin/pages/OrderManagemnetPage")
+  () => import("../features/admin/components/orderManagement/ViewOrder")
 );
 const ReviewManagement = lazy(
   () => import("../features/admin/pages/ReviewManagementPage")

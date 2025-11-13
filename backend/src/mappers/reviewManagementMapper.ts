@@ -17,7 +17,7 @@ export class ReviewMapper {
       customerEmail: review.customerEmail,
       customerPhone: review.customerPhone,
       service: review.service,
-      technicianName: review.technicianName,
+      technicianName: review.technicianName || "Unknown Technician",
     };
   }
 }

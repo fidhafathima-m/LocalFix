@@ -788,6 +788,7 @@ const BookingPage: React.FC = () => {
           // Show loading state
           toast.loading("Updating your profile...", { id: "phone-update" });
 
+          // Use the existing updateUserProfile method
           const updateResponse = await userService.updateUserProfile({
             phone: `+91${phoneNumber}`, // Format with country code
           });
@@ -796,6 +797,9 @@ const BookingPage: React.FC = () => {
             toast.success("Phone number updated successfully", {
               id: "phone-update",
             });
+
+            // Optional: Refresh user data in Redux store if needed
+            // dispatch(refreshUserProfile());
           } else {
             toast.error(
               "Failed to update phone number, but continuing with booking",
