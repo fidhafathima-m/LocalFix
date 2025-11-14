@@ -13,7 +13,7 @@ import {
   toAddressDto,
   toAddressDtoList,
   toAddressUpdateModel,
-} from "@/mappers/addressMapper";
+} from "../mappers/addressMapper";
 
 export class AddressService implements IAddressService {
   private _addressRepository: IAddressRepository;
@@ -65,7 +65,7 @@ export class AddressService implements IAddressService {
 
   async getAddressById(
     userId: string,
-    addressId: string
+    addressId: string,
   ): Promise<AddressResponseDto> {
     const context = {
       operation: "getAddressById",
@@ -77,7 +77,7 @@ export class AddressService implements IAddressService {
 
       const address = await this._addressRepository.findByIdAndUserId(
         addressId,
-        userId
+        userId,
       );
 
       if (!address) {
@@ -108,7 +108,7 @@ export class AddressService implements IAddressService {
 
   async createAddress(
     userId: string,
-    addressData: CreateAddressRequestDto
+    addressData: CreateAddressRequestDto,
   ): Promise<AddressResponseDto> {
     const context = {
       operation: "createAddress",
@@ -144,7 +144,7 @@ export class AddressService implements IAddressService {
           },
         });
         return ResponseHelper.badRequest(
-          "Please fill in all required address fields"
+          "Please fill in all required address fields",
         );
       }
 
@@ -152,7 +152,7 @@ export class AddressService implements IAddressService {
       if (addressData.isDefault) {
         this._logger.info(
           "Setting address as default, unsetting other defaults",
-          context
+          context,
         );
         await this._addressRepository.unsetAllDefaults(userId);
       }
@@ -198,7 +198,7 @@ export class AddressService implements IAddressService {
   async updateAddress(
     userId: string,
     addressId: string,
-    addressData: UpdateAddressRequestDto
+    addressData: UpdateAddressRequestDto,
   ): Promise<AddressResponseDto> {
     const context = {
       operation: "updateAddress",
@@ -214,7 +214,7 @@ export class AddressService implements IAddressService {
 
       const existingAddress = await this._addressRepository.findByIdAndUserId(
         addressId,
-        userId
+        userId,
       );
 
       if (!existingAddress) {
@@ -231,7 +231,7 @@ export class AddressService implements IAddressService {
       if (addressData.isDefault && !existingAddress.isDefault) {
         this._logger.info(
           "Setting address as default, unsetting other defaults",
-          context
+          context,
         );
         await this._addressRepository.unsetAllDefaults(userId);
       }
@@ -245,7 +245,7 @@ export class AddressService implements IAddressService {
 
       const updatedAddress = await this._addressRepository.update(
         addressId,
-        updateModel
+        updateModel,
       );
 
       if (!updatedAddress) {
@@ -273,7 +273,7 @@ export class AddressService implements IAddressService {
 
   async deleteAddress(
     userId: string,
-    addressId: string
+    addressId: string,
   ): Promise<AddressResponseDto> {
     const context = {
       operation: "deleteAddress",
@@ -285,7 +285,7 @@ export class AddressService implements IAddressService {
 
       const address = await this._addressRepository.findByIdAndUserId(
         addressId,
-        userId
+        userId,
       );
 
       if (!address) {
@@ -338,7 +338,7 @@ export class AddressService implements IAddressService {
 
   async setDefaultAddress(
     userId: string,
-    addressId: string
+    addressId: string,
   ): Promise<AddressResponseDto> {
     const context = {
       operation: "setDefaultAddress",
@@ -350,7 +350,7 @@ export class AddressService implements IAddressService {
 
       const address = await this._addressRepository.findByIdAndUserId(
         addressId,
-        userId
+        userId,
       );
 
       if (!address) {
@@ -376,7 +376,7 @@ export class AddressService implements IAddressService {
       if (!updatedAddress) {
         this._logger.error(
           "Failed to set address as default in repository",
-          context
+          context,
         );
         return ResponseHelper.error("Failed to set default address");
       }

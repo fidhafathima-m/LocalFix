@@ -16,7 +16,7 @@ export class OrderRepository implements IOrderRepository {
       status: "pending" | "paid" | "failed";
       transactionId?: string;
       paidAt?: Date;
-    }
+    },
   ): Promise<IOrder | null> {
     try {
       const booking = await Booking.findById(bookingId)
@@ -107,7 +107,7 @@ export class OrderRepository implements IOrderRepository {
       .populate("userId", "fullName email phone")
       .populate(
         "technicianId",
-        "displayName profilePictureUrl averageRating ratingCount services skills"
+        "displayName profilePictureUrl averageRating ratingCount services skills",
       )
       .exec();
   }
@@ -115,7 +115,7 @@ export class OrderRepository implements IOrderRepository {
   async findByUserId(
     userId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<{ orders: IOrder[]; total: number }> {
     const skip = (page - 1) * limit;
 
@@ -123,7 +123,7 @@ export class OrderRepository implements IOrderRepository {
       Order.find({ userId: new Types.ObjectId(userId) })
         .populate(
           "technicianId",
-          "displayName profilePictureUrl averageRating ratingCount services skills"
+          "displayName profilePictureUrl averageRating ratingCount services skills",
         )
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -139,7 +139,7 @@ export class OrderRepository implements IOrderRepository {
     orderId: string,
     status: string,
     updatedBy: string,
-    reason?: string
+    reason?: string,
   ): Promise<IOrder | null> {
     const order = await Order.findById(orderId);
     if (!order) return null;
@@ -190,7 +190,7 @@ export class OrderRepository implements IOrderRepository {
     // Recalculate total amount
     order.totalAmount = order.orderItems.reduce(
       (total, item) => total + item.totalPrice,
-      0
+      0,
     );
 
     return await order.save();
@@ -198,7 +198,7 @@ export class OrderRepository implements IOrderRepository {
   async findByTechnicianId(
     technicianId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<{ orders: IOrder[]; total: number }> {
     const skip = (page - 1) * limit;
 
@@ -207,7 +207,7 @@ export class OrderRepository implements IOrderRepository {
         .populate("userId", "fullName email phone")
         .populate(
           "technicianId",
-          "displayName profilePictureUrl averageRating ratingCount services skills"
+          "displayName profilePictureUrl averageRating ratingCount services skills",
         )
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -294,7 +294,7 @@ export class OrderRepository implements IOrderRepository {
     orderId: string,
     newDate: string,
     newTimeSlot: string,
-    updatedBy: string
+    updatedBy: string,
   ): Promise<IOrder | null> {
     try {
       const order = await Order.findById(orderId);
@@ -311,7 +311,7 @@ export class OrderRepository implements IOrderRepository {
       order.history.push({
         status: order.status,
         description: `Order rescheduled from ${oldScheduledAt.toLocaleDateString()} ${oldTimeSlot} to ${new Date(
-          newDate
+          newDate,
         ).toLocaleDateString()} ${newTimeSlot}`,
         updatedBy: "user" as "user" | "technician" | "system",
         timestamp: new Date(),
@@ -331,7 +331,7 @@ export class OrderRepository implements IOrderRepository {
       await this.updateBookingSchedule(
         order.bookingId.toString(),
         newDate,
-        newTimeSlot
+        newTimeSlot,
       );
 
       return savedOrder;
@@ -344,7 +344,7 @@ export class OrderRepository implements IOrderRepository {
   private async updateBookingSchedule(
     bookingId: string,
     newDate: string,
-    newTimeSlot: string
+    newTimeSlot: string,
   ): Promise<void> {
     try {
       await Booking.findByIdAndUpdate(bookingId, {
@@ -362,7 +362,7 @@ export class OrderRepository implements IOrderRepository {
     technicianId: string,
     date: string,
     timeSlot: string,
-    excludeOrderId?: string
+    excludeOrderId?: string,
   ): Promise<IOrder[]> {
     try {
       const scheduledAt = new Date(date);
@@ -390,13 +390,21 @@ export class OrderRepository implements IOrderRepository {
     }
   }
   async findByBookingId(bookingId: string): Promise<IOrderPopulated | null> {
-    return await Order.findOne({ bookingId: new Types.ObjectId(bookingId) })
+    const order = await Order.findOne({
+      bookingId: new Types.ObjectId(bookingId),
+    })
       .populate<{ technicianId: ITechnician }>(
         "technicianId",
-        "displayName profilePictureUrl averageRating ratingCount services skills phone"
+        "displayName profilePictureUrl averageRating ratingCount services skills phone",
       )
       .populate<{ userId: IUser }>("userId", "fullName email phone")
+      .populate<{ bookingId: { _id: Types.ObjectId; bookingCode: string } }>(
+        "bookingId",
+        "bookingCode",
+      )
       .exec();
+
+    return order as unknown as IOrderPopulated | null;
   }
   async updatePaymentDetails(
     orderId: string,
@@ -406,7 +414,7 @@ export class OrderRepository implements IOrderRepository {
       status: "pending" | "paid" | "failed";
       transactionId?: string;
       paidAt?: Date;
-    }
+    },
   ): Promise<IOrder | null> {
     try {
       const updateData: any = {
@@ -445,7 +453,7 @@ export class OrderRepository implements IOrderRepository {
           $set: updateData,
           $push: { history: historyEntry },
         },
-        { new: true }
+        { new: true },
       )
         .populate("userId", "fullName email phone")
         .populate("technicianId", "displayName profilePictureUrl services")
@@ -459,7 +467,7 @@ export class OrderRepository implements IOrderRepository {
   }
   async getOrdersByTechnicianAndDate(
     technicianId: string,
-    date: Date
+    date: Date,
   ): Promise<IOrder[]> {
     try {
       const startOfDay = new Date(date);

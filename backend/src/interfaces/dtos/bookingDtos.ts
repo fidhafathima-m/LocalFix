@@ -47,6 +47,7 @@ export interface BookingListResponseDto {
 export interface TrackingDetailsDto {
   _id: string;
   bookingId: string;
+  bookingCode: string;
   userId: string;
   technicianId: {
     _id: string;

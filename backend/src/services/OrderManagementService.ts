@@ -13,7 +13,7 @@ import {
   toOrderListResponseDto,
   toOrderResponseDto,
   toOrderStatsDto,
-} from "@/mappers/orderMapper";
+} from "../mappers/orderMapper";
 export class OrderManagementService implements IOrderService {
   private _orderRepository: IOrderRepository;
   private _logger: ILogger;
@@ -27,7 +27,7 @@ export class OrderManagementService implements IOrderService {
     page: number = 1,
     limit: number = 10,
     search?: string,
-    status?: string
+    status?: string,
   ): Promise<OrderListResponseDto> {
     const context = {
       operation: "getOrders",
@@ -152,7 +152,7 @@ export class OrderManagementService implements IOrderService {
 
   async updateOrderStatus(
     orderId: string,
-    updateData: UpdateOrderStatusDto
+    updateData: UpdateOrderStatusDto,
   ): Promise<OrderResponseDto> {
     const context = {
       operation: "updateOrderStatus",
@@ -200,12 +200,12 @@ export class OrderManagementService implements IOrderService {
 
       const updatedOrder = await this._orderRepository.update(
         orderId,
-        updatePayload
+        updatePayload,
       );
       if (!updatedOrder) {
         this._logger.error(
           "Order status update failed - repository returned null",
-          context
+          context,
         );
         throw new Error(ORDER_MESSAGES.FAILED_UPDATE_STATUS);
       }
@@ -230,7 +230,7 @@ export class OrderManagementService implements IOrderService {
   async getOrdersByTechnician(
     technicianId: string,
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<OrderListResponseDto> {
     const context = {
       operation: "getOrdersByTechnician",

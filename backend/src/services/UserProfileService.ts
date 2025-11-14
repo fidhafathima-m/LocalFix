@@ -3,7 +3,7 @@ import { ResponseHelper } from "../utils/responseHelper";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import { IAddressRepository } from "../interfaces/repository/user/IAddressRepository";
 import { ILogger } from "@/interfaces/utils/ILogger";
-import { toAddressDtoList } from "@/mappers/addressMapper";
+import { toAddressDtoList } from "../mappers/addressMapper";
 
 export interface UpdateUserProfileData {
   fullName?: string;
@@ -22,7 +22,7 @@ export class UserProfileService {
   constructor(
     userManagementRepository: IUserManagementRepository,
     addressRepository: IAddressRepository,
-    logger: ILogger
+    logger: ILogger,
   ) {
     this._logger = logger;
     this._userManagementRepository = userManagementRepository;
@@ -161,7 +161,7 @@ export class UserProfileService {
 
         // Check if email already exists
         const existingUser = await this._userManagementRepository.findByEmail(
-          updateData.email
+          updateData.email,
         );
         if (existingUser && existingUser._id.toString() !== userId) {
           this._logger.warn("Email already exists", {
@@ -207,7 +207,7 @@ export class UserProfileService {
 
       const updatedUser = await this._userManagementRepository.update(
         userId,
-        updatePayload
+        updatePayload,
       );
 
       if (!updatedUser) {
@@ -299,7 +299,7 @@ export class UserProfileService {
       if (!updatedUser) {
         this._logger.error(
           "Failed to update user profile picture in database",
-          context
+          context,
         );
         return ResponseHelper.error("Failed to update profile picture");
       }
@@ -328,7 +328,7 @@ export class UserProfileService {
     userId: string,
     currentPassword: string,
     newPassword: string,
-    confirmPassword: string
+    confirmPassword: string,
   ) {
     const context = {
       operation: "changePassword",
@@ -349,7 +349,7 @@ export class UserProfileService {
       if (user.isDeleted) {
         this._logger.warn(
           "Attempt to change password for deleted account",
-          context
+          context,
         );
         return ResponseHelper.forbidden("Account has been deleted");
       }
@@ -367,7 +367,7 @@ export class UserProfileService {
           passwordLength: newPassword.length,
         });
         return ResponseHelper.badRequest(
-          "Password must be at least 6 characters long"
+          "Password must be at least 6 characters long",
         );
       }
 
@@ -377,7 +377,7 @@ export class UserProfileService {
       const isCurrentPasswordValid =
         await this._userManagementRepository.verifyPassword(
           userId,
-          currentPassword
+          currentPassword,
         );
 
       if (!isCurrentPasswordValid) {
@@ -390,7 +390,7 @@ export class UserProfileService {
       // Update password
       const updatedUser = await this._userManagementRepository.updatePassword(
         userId,
-        newPassword
+        newPassword,
       );
 
       if (!updatedUser) {

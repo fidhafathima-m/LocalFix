@@ -1,6 +1,7 @@
 export interface ServiceTracking {
   _id: string;
   bookingId: string;
+  bookingCode: string;
   userId: string;
   technicianId: {
     _id: string;
@@ -23,7 +24,14 @@ export interface ServiceTracking {
     pincode: string;
     landmark?: string;
   };
-  status: 'pending' | 'accepted' | 'assigned' | 'on_the_way' | 'in_progress' | 'completed' | 'cancelled';
+  status:
+    | "pending"
+    | "accepted"
+    | "assigned"
+    | "on_the_way"
+    | "in_progress"
+    | "completed"
+    | "cancelled";
   amount: number;
   estimatedDuration: string;
   statusHistory: StatusHistory[];
@@ -41,5 +49,5 @@ export interface StatusHistory {
   status: string;
   timestamp: string;
   description: string;
-  updatedBy: 'user' | 'technician' | 'system';
+  updatedBy: "user" | "technician" | "system";
 }

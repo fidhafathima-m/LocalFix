@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { NotificationsNoneOutlined } from "@mui/icons-material";
 import { useNotification } from "../../context/notificationContext/NotificationContext";
+import { useSocket } from "../../context/SocketContext";
 
 interface HeaderProps {
   isApproved?: boolean;
@@ -22,6 +23,19 @@ const Header: React.FC<HeaderProps> = ({
   const [isClient, setIsClient] = useState(false);
 
   const { notificationCount } = useNotification();
+  const { isConnected } = useSocket();
+
+  useEffect(() => {
+    console.log("🔔 Current notification count:", notificationCount);
+  }, [notificationCount]);
+
+  // Optional: Log socket connection status
+  useEffect(() => {
+    console.log(
+      "🔌 Socket connection status:",
+      isConnected ? "Connected" : "Disconnected"
+    );
+  }, [isConnected]);
 
   const dispatch = useAppDispatch();
   const { isLoggedIn, user } = useAppSelector((state) => state.auth);
@@ -50,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({
       closeMobileMenu();
     }
   };
- const handleNotificationClick = () => {
+  const handleNotificationClick = () => {
     if (userType === "serviceProvider") {
       navigate("/technician/dashboard?tab=notifications");
     } else {

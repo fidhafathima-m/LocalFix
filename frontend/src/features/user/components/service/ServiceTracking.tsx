@@ -293,7 +293,7 @@ const ServiceTrackingComponent: React.FC = () => {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Tracking Service</h1>
           <span className="text-sm text-gray-600">
-            Booking ID: {trackingData.bookingId}
+            Booking ID: {trackingData.bookingCode}
           </span>
         </div>
         {/* Service Details */}

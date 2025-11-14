@@ -5,7 +5,7 @@ import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
 import { TechnicianProfileResponseDto } from "@/interfaces/dtos/technicianProfileDtos";
 import { ILogger } from "@/interfaces/utils/ILogger";
-import { toStaticDataDto } from "@/mappers/technicianProfileMappers";
+import { toStaticDataDto } from "../../mappers/technicianProfileMappers";
 
 export class TechnicianProfileController {
   private _profileService: ITechnicianProfileService;
@@ -20,7 +20,7 @@ export class TechnicianProfileController {
   private handleServiceResponse(
     result: any,
     res: Response,
-    successMessage?: string
+    successMessage?: string,
   ): void {
     // Check if result already has statusCode (is a response object)
     if (result && "statusCode" in result) {
@@ -29,7 +29,7 @@ export class TechnicianProfileController {
       // If it's a raw data object, wrap it in a success response
       const successResponse = ResponseHelper.success(
         successMessage || "Operation completed successfully",
-        result
+        result,
       );
       res.status(successResponse.statusCode).json(successResponse);
     }
@@ -49,10 +49,10 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Get profile failed - authentication required",
-          context
+          context,
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -81,7 +81,7 @@ export class TechnicianProfileController {
 
   updatePersonalInfo = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
@@ -99,10 +99,10 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Update personal info failed - authentication required",
-          context
+          context,
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -111,7 +111,7 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updatePersonalInformation(
           technicianId,
-          updateData
+          updateData,
         );
 
       this._logger.info("Personal information updated successfully", {
@@ -122,7 +122,7 @@ export class TechnicianProfileController {
       this.handleServiceResponse(
         result,
         res,
-        "Personal information updated successfully"
+        "Personal information updated successfully",
       );
     } catch (error: unknown) {
       this._logger.error("Update personal info controller error", {
@@ -155,10 +155,10 @@ export class TechnicianProfileController {
         if (!technicianId) {
           this._logger.warn(
             "Upload photo failed - authentication required",
-            context
+            context,
           );
           const unauthorizedResponse = ResponseHelper.unauthorized(
-            "Authentication required"
+            "Authentication required",
           );
           res
             .status(unauthorizedResponse.statusCode)
@@ -176,7 +176,7 @@ export class TechnicianProfileController {
 
         const result = await this._profileService.uploadPhoto(
           technicianId,
-          file
+          file,
         );
 
         this._logger.info("Profile photo uploaded successfully", {
@@ -200,7 +200,7 @@ export class TechnicianProfileController {
 
   updateIdentityVerification = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
@@ -218,10 +218,10 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Update identity verification failed - authentication required",
-          context
+          context,
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -230,7 +230,7 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updateIdentityVerification(
           technicianId,
-          updateData
+          updateData,
         );
 
       this._logger.info("Identity verification updated successfully", {
@@ -241,7 +241,7 @@ export class TechnicianProfileController {
       this.handleServiceResponse(
         result,
         res,
-        "Identity verification updated successfully"
+        "Identity verification updated successfully",
       );
     } catch (error: unknown) {
       this._logger.error("Update identity verification controller error", {
@@ -257,7 +257,7 @@ export class TechnicianProfileController {
 
   updateSkillsServices = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
@@ -275,10 +275,10 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Update skills services failed - authentication required",
-          context
+          context,
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -287,7 +287,7 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updateSkillsServices(
           technicianId,
-          updateData
+          updateData,
         );
 
       this._logger.info("Skills and services updated successfully", {
@@ -298,7 +298,7 @@ export class TechnicianProfileController {
       this.handleServiceResponse(
         result,
         res,
-        "Skills and services updated successfully"
+        "Skills and services updated successfully",
       );
     } catch (error: unknown) {
       this._logger.error("Update skills services controller error", {
@@ -314,7 +314,7 @@ export class TechnicianProfileController {
 
   updateAvailability = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
@@ -332,10 +332,10 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Update availability failed - authentication required",
-          context
+          context,
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -344,7 +344,7 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updateAvailabilityPreferences(
           technicianId,
-          updateData
+          updateData,
         );
 
       this._logger.info("Availability updated successfully", {
@@ -355,7 +355,7 @@ export class TechnicianProfileController {
       this.handleServiceResponse(
         result,
         res,
-        "Availability updated successfully"
+        "Availability updated successfully",
       );
     } catch (error: unknown) {
       this._logger.error("Update availability controller error", {
@@ -371,7 +371,7 @@ export class TechnicianProfileController {
 
   updateBankPayment = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
@@ -389,10 +389,10 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Update bank payment failed - authentication required",
-          context
+          context,
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -401,18 +401,18 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updateBankPaymentDetails(
           technicianId,
-          updateData
+          updateData,
         );
 
       this._logger.info(
         "Bank and payment details updated successfully",
-        context
+        context,
       );
 
       this.handleServiceResponse(
         result,
         res,
-        "Bank and payment details updated successfully"
+        "Bank and payment details updated successfully",
       );
     } catch (error: unknown) {
       this._logger.error("Update bank payment controller error", {
@@ -442,10 +442,10 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Update password failed - authentication required",
-          context
+          context,
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -490,10 +490,10 @@ export class TechnicianProfileController {
         if (!technicianId) {
           this._logger.warn(
             "Upload document failed - authentication required",
-            context
+            context,
           );
           const unauthorizedResponse = ResponseHelper.unauthorized(
-            "Authentication required"
+            "Authentication required",
           );
           res
             .status(unauthorizedResponse.statusCode)
@@ -504,7 +504,7 @@ export class TechnicianProfileController {
         if (!file) {
           this._logger.warn(
             "Upload document failed - no file uploaded",
-            context
+            context,
           );
           const badRequestResponse =
             ResponseHelper.badRequest("No file uploaded");
@@ -515,10 +515,10 @@ export class TechnicianProfileController {
         if (!documentType) {
           this._logger.warn(
             "Upload document failed - document type required",
-            context
+            context,
           );
           const badRequestResponse = ResponseHelper.badRequest(
-            "Document type is required"
+            "Document type is required",
           );
           res.status(badRequestResponse.statusCode).json(badRequestResponse);
           return;
@@ -527,7 +527,7 @@ export class TechnicianProfileController {
         const result = await this._profileService.uploadDocument(
           technicianId,
           file,
-          documentType
+          documentType,
         );
 
         this._logger.info("Document uploaded successfully", {
@@ -564,7 +564,7 @@ export class TechnicianProfileController {
 
       const successResponse = ResponseHelper.success(
         "Static data retrieved successfully",
-        staticData
+        staticData,
       );
       res.status(successResponse.statusCode).json(successResponse);
     } catch (error: unknown) {
@@ -581,7 +581,7 @@ export class TechnicianProfileController {
 
   deactivateProfile = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const context = {
@@ -596,10 +596,10 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Deactivate profile failed - authentication required",
-          context
+          context,
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -617,7 +617,7 @@ export class TechnicianProfileController {
       this.handleServiceResponse(
         result,
         res,
-        "Profile deactivated successfully"
+        "Profile deactivated successfully",
       );
     } catch (error: unknown) {
       this._logger.error("Deactivate profile error", {
@@ -627,7 +627,7 @@ export class TechnicianProfileController {
       });
 
       const errorResponse = ResponseHelper.error(
-        "Failed to deactivate profile"
+        "Failed to deactivate profile",
       );
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -647,10 +647,10 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Delete account failed - authentication required",
-          context
+          context,
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -659,7 +659,7 @@ export class TechnicianProfileController {
       this._logger.info("Account deletion request received", context);
 
       const successResponse = ResponseHelper.success(
-        "Account deletion request received. This action will be processed within 24 hours."
+        "Account deletion request received. This action will be processed within 24 hours.",
       );
       res.status(successResponse.statusCode).json(successResponse);
     } catch (error: unknown) {
@@ -670,7 +670,7 @@ export class TechnicianProfileController {
       });
 
       const errorResponse = ResponseHelper.error(
-        "Failed to process account deletion"
+        "Failed to process account deletion",
       );
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -690,7 +690,7 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Get slot rules failed - authentication required",
-          context
+          context,
         );
         res.status(401).json({ success: false, message: "Unauthorized" });
         return;
@@ -719,7 +719,7 @@ export class TechnicianProfileController {
 
   getTechnicianAvailability = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const context = {
@@ -734,15 +734,14 @@ export class TechnicianProfileController {
       if (!technicianId) {
         this._logger.warn(
           "Get technician availability failed - authentication required",
-          context
+          context,
         );
         res.status(401).json({ success: false, message: "Unauthorized" });
         return;
       }
 
-      const result = await this._profileService.getTechnicianAvailability(
-        technicianId
-      );
+      const result =
+        await this._profileService.getTechnicianAvailability(technicianId);
 
       this._logger.info("Technician availability retrieved successfully", {
         ...context,

@@ -19,26 +19,27 @@ import {
   toReviewDto,
   toReviewDtoList,
   toReviewUpdateModel,
-} from "@/mappers/reviewMapper";
+} from "../mappers/reviewMapper";
+import { SocketService } from "./SocketService";
 
 export class ReviewService implements IReviewService {
   private _logger: ILogger;
   private _reviewRepository: IReviewRepository;
-  private _notificationService: INotificationService;
+  private _socketService: SocketService;
 
   constructor(
     reviewRepository: IReviewRepository,
-    notificationService: INotificationService,
-    logger: ILogger
+    logger: ILogger,
+    socketService: SocketService,
   ) {
     this._logger = logger;
     this._reviewRepository = reviewRepository;
-    this._notificationService = notificationService;
+    this._socketService = socketService;
   }
 
   async createReview(
     userId: string,
-    reviewData: CreateReviewRequestDto
+    reviewData: CreateReviewRequestDto,
   ): Promise<ApiResponse<ReviewResponseDto>> {
     const context = {
       operation: "createReview",
@@ -66,13 +67,13 @@ export class ReviewService implements IReviewService {
       // Check if user can review this order
       const canReview = await this._reviewRepository.canUserReviewOrder(
         userId,
-        reviewData.orderId
+        reviewData.orderId,
       );
 
       if (!canReview) {
         this._logger.warn("User cannot review this order", context);
         return ResponseHelper.badRequest(
-          "Cannot review this order. Order may not be completed, doesn't exist, or already has a review."
+          "Cannot review this order. Order may not be completed, doesn't exist, or already has a review.",
         );
       }
 
@@ -102,7 +103,20 @@ export class ReviewService implements IReviewService {
       await this.notifyTechnicianAboutNewReview(newReview, order);
 
       // NOTIFICATION: Notify user that review was submitted successfully
-      await this.notifyUserAboutReviewSubmission(userId, order.serviceName);
+      // await this.notifyUserAboutReviewSubmission(userId, order.serviceName);
+
+      await this._socketService.sendLiveNotification(userId, {
+        userId,
+        userType: "customer",
+        type: "review_created",
+        title: "Review Submitted! ✅",
+        message: `Your review for ${order.serviceName} has been submitted successfully.`,
+        priority: "medium",
+        data: {
+          reviewId: newReview._id.toString(),
+          serviceName: order.serviceName,
+        },
+      });
 
       const reviewDto = toReviewDto(newReview);
       return ResponseHelper.success("Review submitted successfully", reviewDto);
@@ -121,7 +135,7 @@ export class ReviewService implements IReviewService {
   async updateReview(
     userId: string,
     reviewId: string,
-    reviewData: UpdateReviewRequestDto
+    reviewData: UpdateReviewRequestDto,
   ): Promise<ApiResponse<ReviewResponseDto>> {
     const context = {
       operation: "updateReview",
@@ -155,7 +169,7 @@ export class ReviewService implements IReviewService {
       const updateModel = toReviewUpdateModel(reviewData);
       const updatedReview = await this._reviewRepository.update(
         reviewId,
-        updateModel
+        updateModel,
       );
 
       if (!updatedReview) {
@@ -186,7 +200,7 @@ export class ReviewService implements IReviewService {
 
   async deleteReview(
     userId: string,
-    reviewId: string
+    reviewId: string,
   ): Promise<ApiResponse<ReviewResponseDto>> {
     const context = {
       operation: "deleteReview",
@@ -236,7 +250,7 @@ export class ReviewService implements IReviewService {
   }
 
   async getReviewById(
-    reviewId: string
+    reviewId: string,
   ): Promise<ApiResponse<ReviewResponseDto>> {
     const context = {
       operation: "getReviewById",
@@ -270,7 +284,7 @@ export class ReviewService implements IReviewService {
   }
 
   async getUserReviews(
-    userId: string
+    userId: string,
   ): Promise<ApiResponse<ReviewListResponseDto>> {
     const context = {
       operation: "getUserReviews",
@@ -319,7 +333,7 @@ export class ReviewService implements IReviewService {
   async getTechnicianReviews(
     technicianId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ApiResponse<ReviewListResponseDto>> {
     const context = {
       operation: "getTechnicianReviews",
@@ -333,7 +347,7 @@ export class ReviewService implements IReviewService {
         await this._reviewRepository.findByTechnicianId(
           technicianId,
           page,
-          limit
+          limit,
         );
 
       if (!reviews || reviews.length === 0) {
@@ -374,7 +388,7 @@ export class ReviewService implements IReviewService {
   }
 
   async getOrderReview(
-    orderId: string
+    orderId: string,
   ): Promise<ApiResponse<ReviewResponseDto> | null> {
     const context = {
       operation: "getOrderReview",
@@ -408,7 +422,7 @@ export class ReviewService implements IReviewService {
   }
 
   async getTechnicianReviewStats(
-    technicianId: string
+    technicianId: string,
   ): Promise<ApiResponse<ReviewStatsResponseDto>> {
     const context = {
       operation: "getTechnicianReviewStats",
@@ -418,9 +432,8 @@ export class ReviewService implements IReviewService {
     try {
       this._logger.info("Fetching technician review stats", context);
 
-      const stats = await this._reviewRepository.getTechnicianStats(
-        technicianId
-      );
+      const stats =
+        await this._reviewRepository.getTechnicianStats(technicianId);
 
       this._logger.info("Technician review stats retrieved successfully", {
         ...context,
@@ -430,7 +443,7 @@ export class ReviewService implements IReviewService {
 
       return ResponseHelper.success(
         "Review stats retrieved successfully",
-        stats
+        stats,
       );
     } catch (error) {
       const errorMessage =
@@ -451,7 +464,7 @@ export class ReviewService implements IReviewService {
   async reportReview(
     userId: string,
     reviewId: string,
-    reportData: ReportReviewRequest
+    reportData: ReportReviewRequest,
   ): Promise<ApiResponse<{ reportId: string }>> {
     const context = {
       operation: "reportReview",
@@ -491,20 +504,13 @@ export class ReviewService implements IReviewService {
       // Save the report
       const result = await this._reviewRepository.reportReview(
         reviewId,
-        reportDataForRepo
+        reportDataForRepo,
       );
 
       this._logger.info("Review reported successfully", {
         ...context,
         reportId: result.reportId,
       });
-
-      // NOTIFICATION: Notify admin about reported review
-      await this.notifyAdminAboutReportedReview(
-        review,
-        reportData.reason,
-        userId
-      );
 
       // NOTIFICATION: Notify user that report was submitted
       await this.notifyUserAboutReportSubmission(userId);
@@ -516,7 +522,7 @@ export class ReviewService implements IReviewService {
         "Review reported successfully. Our team will review it shortly.",
         {
           reportId: result.reportId,
-        }
+        },
       );
     } catch (error) {
       const errorMessage =
@@ -530,7 +536,7 @@ export class ReviewService implements IReviewService {
       // Check if it's an "already reported" error and return appropriate response
       if (errorMessage.includes("already reported")) {
         return ResponseHelper.badRequest(
-          "You have already reported this review"
+          "You have already reported this review",
         );
       }
 
@@ -542,7 +548,7 @@ export class ReviewService implements IReviewService {
 
   private async notifyTechnicianAboutNewReview(
     review: any,
-    order: any
+    order: any,
   ): Promise<void> {
     try {
       const context = {
@@ -554,7 +560,7 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Sending new review notification to technician",
-        context
+        context,
       );
 
       // Get user details for personalized notification
@@ -563,15 +569,15 @@ export class ReviewService implements IReviewService {
 
       const customerName = user?.fullName || "A customer";
 
-      await this._notificationService.createRatingReceivedNotification(
+      await this._socketService.notifyReviewReceived(
         review.technicianId.toString(),
         review.rating,
-        customerName
+        customerName,
       );
 
       this._logger.info(
         "New review notification sent to technician successfully",
-        context
+        context,
       );
     } catch (error) {
       // Don't fail the review creation if notification fails
@@ -581,14 +587,14 @@ export class ReviewService implements IReviewService {
           reviewId: review._id.toString(),
           technicianId: review.technicianId.toString(),
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }
 
   private async notifyUserAboutReviewSubmission(
     userId: string,
-    serviceName: string
+    serviceName: string,
   ): Promise<void> {
     try {
       const context = {
@@ -599,10 +605,9 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Sending review submission confirmation to user",
-        context
+        context,
       );
-
-      await this._notificationService.createNotification({
+      await this._socketService.sendLiveNotification(userId, {
         userId,
         userType: "customer",
         type: "system",
@@ -617,7 +622,7 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Review submission confirmation sent to user successfully",
-        context
+        context,
       );
     } catch (error) {
       this._logger.error(
@@ -625,7 +630,7 @@ export class ReviewService implements IReviewService {
         {
           userId,
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }
@@ -641,26 +646,28 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Sending review update notification to technician",
-        context
+        context,
       );
-
-      await this._notificationService.createNotification({
-        userId: review.technicianId.toString(),
-        userType: "technician",
-        type: "rating_received",
-        title: "Review Updated",
-        message: `A customer updated their review and gave you a ${review.rating}-star rating.`,
-        priority: "medium",
-        data: {
-          reviewId: review._id.toString(),
-          rating: review.rating,
-          action: "review_updated",
+      await this._socketService.sendLiveNotification(
+        review.technciianId.toString(),
+        {
+          userId: review.technicianId.toString(),
+          userType: "technician",
+          type: "rating_received",
+          title: "Review Updated",
+          message: `A customer updated their review and gave you a ${review.rating}-star rating.`,
+          priority: "medium",
+          data: {
+            reviewId: review._id.toString(),
+            rating: review.rating,
+            action: "review_updated",
+          },
         },
-      });
+      );
 
       this._logger.info(
         "Review update notification sent to technician successfully",
-        context
+        context,
       );
     } catch (error) {
       this._logger.error(
@@ -669,13 +676,13 @@ export class ReviewService implements IReviewService {
           reviewId: review._id.toString(),
           technicianId: review.technicianId.toString(),
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }
 
   private async notifyTechnicianAboutReviewDeletion(
-    review: any
+    review: any,
   ): Promise<void> {
     try {
       const context = {
@@ -686,25 +693,28 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Sending review deletion notification to technician",
-        context
+        context,
       );
 
-      await this._notificationService.createNotification({
-        userId: review.technicianId.toString(),
-        userType: "technician",
-        type: "system",
-        title: "Review Deleted",
-        message: "A customer has deleted their review for your service.",
-        priority: "low",
-        data: {
-          reviewId: review._id.toString(),
-          action: "review_deleted",
+      await this._socketService.sendLiveNotification(
+        review.technicianId.toString(),
+        {
+          userId: review.technicianId.toString(),
+          userType: "technician",
+          type: "system",
+          title: "Review Deleted",
+          message: "A customer has deleted their review for your service.",
+          priority: "low",
+          data: {
+            reviewId: review._id.toString(),
+            action: "review_deleted",
+          },
         },
-      });
+      );
 
       this._logger.info(
         "Review deletion notification sent to technician successfully",
-        context
+        context,
       );
     } catch (error) {
       this._logger.error(
@@ -713,55 +723,7 @@ export class ReviewService implements IReviewService {
           reviewId: review._id.toString(),
           technicianId: review.technicianId.toString(),
           error: error instanceof Error ? error.message : "Unknown error",
-        }
-      );
-    }
-  }
-
-  private async notifyAdminAboutReportedReview(
-    review: any,
-    reason: string,
-    reportedBy: string
-  ): Promise<void> {
-    try {
-      const context = {
-        operation: "notifyAdminAboutReportedReview",
-        reviewId: review._id.toString(),
-        reportedBy,
-      };
-
-      this._logger.info(
-        "Sending reported review notification to admin",
-        context
-      );
-
-      // Get admin users
-      await this._notificationService.createNotification({
-        userId: "admin",
-        userType: "admin",
-        type: "system",
-        title: "Review Reported",
-        message: `A review has been reported for violating community guidelines. Reason: ${reason}`,
-        priority: "high",
-        data: {
-          reviewId: review._id.toString(),
-          reportedBy,
-          reason,
-          action: "review_reported",
         },
-      });
-
-      this._logger.info(
-        "Reported review notification sent to admin successfully",
-        context
-      );
-    } catch (error) {
-      this._logger.error(
-        "Failed to send reported review notification to admin",
-        {
-          reviewId: review._id.toString(),
-          error: error instanceof Error ? error.message : "Unknown error",
-        }
       );
     }
   }
@@ -775,10 +737,10 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Sending report submission confirmation to user",
-        context
+        context,
       );
 
-      await this._notificationService.createNotification({
+      await this._socketService.sendLiveNotification(userId, {
         userId,
         userType: "customer",
         type: "system",
@@ -793,7 +755,7 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Report submission confirmation sent to user successfully",
-        context
+        context,
       );
     } catch (error) {
       this._logger.error(
@@ -801,14 +763,14 @@ export class ReviewService implements IReviewService {
         {
           userId,
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }
 
   private async notifyReviewAuthorAboutReport(
     review: any,
-    reason: string
+    reason: string,
   ): Promise<void> {
     try {
       const context = {
@@ -819,10 +781,9 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Sending report notification to review author",
-        context
+        context,
       );
-
-      await this._notificationService.createNotification({
+      await this._socketService.sendLiveNotification(review.userId.toString(), {
         userId: review.userId.toString(),
         userType: "customer",
         type: "system",
@@ -838,7 +799,7 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Report notification sent to review author successfully",
-        context
+        context,
       );
     } catch (error) {
       this._logger.error(
@@ -847,14 +808,14 @@ export class ReviewService implements IReviewService {
           reviewId: review._id.toString(),
           authorId: review.userId.toString(),
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }
 
   async notifyTechnicianAboutMilestone(
     technicianId: string,
-    milestone: string
+    milestone: string,
   ): Promise<void> {
     try {
       const context = {
@@ -865,10 +826,10 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Sending milestone notification to technician",
-        context
+        context,
       );
 
-      await this._notificationService.createNotification({
+      await this._socketService.sendLiveNotification(technicianId, {
         userId: technicianId,
         userType: "technician",
         type: "system",
@@ -883,7 +844,7 @@ export class ReviewService implements IReviewService {
 
       this._logger.info(
         "Milestone notification sent to technician successfully",
-        context
+        context,
       );
     } catch (error) {
       this._logger.error(
@@ -892,7 +853,7 @@ export class ReviewService implements IReviewService {
           technicianId,
           milestone,
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }

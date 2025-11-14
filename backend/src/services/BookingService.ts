@@ -13,6 +13,7 @@ import { IOrderRepository } from "@/interfaces/repository/user/IOrderRepository"
 import { ITechnician } from "@/interfaces/technician/ITechnician";
 import { IBooking } from "@/models/BookingSchema";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import { IOrderPopulated } from "../interfaces/user/IOrder";
 
 export class BookingService implements IBookingService {
   private _logger: ILogger;
@@ -22,16 +23,16 @@ export class BookingService implements IBookingService {
   constructor(
     bookingRepository: IBookingRepository,
     orderRepository: IOrderRepository,
-    logger: ILogger
+    logger: ILogger,
   ) {
     this._logger = logger;
     this._bookingRepository = bookingRepository;
-    this._orderRepository = orderRepository
+    this._orderRepository = orderRepository;
   }
 
   async createBooking(
     userId: string,
-    bookingData: CreateBookingRequestDto
+    bookingData: CreateBookingRequestDto,
   ): Promise<ApiResponse<BookingResponseDto>> {
     const context = {
       operation: "createBooking",
@@ -51,10 +52,9 @@ export class BookingService implements IBookingService {
       ) {
         this._logger.warn("Missing required booking fields", context);
         return ResponseHelper.badRequest(
-          "Please fill in all required booking fields"
+          "Please fill in all required booking fields",
         );
       }
-
 
       // Generate booking code
       const bookingCount = await this._bookingRepository.getBookingCount();
@@ -122,7 +122,7 @@ export class BookingService implements IBookingService {
 
   async getBookingById(
     userId: string,
-    bookingId: string
+    bookingId: string,
   ): Promise<ApiResponse<BookingResponseDto>> {
     const context = {
       operation: "getBookingById",
@@ -147,9 +147,12 @@ export class BookingService implements IBookingService {
 
       // Check if user has access to this booking
       if (bookingUserId !== userId && bookingTechnicianId !== userId) {
-        this._logger.warn("User not authorized to access this booking", context);
+        this._logger.warn(
+          "User not authorized to access this booking",
+          context,
+        );
         return ResponseHelper.forbidden(
-          "Not authorized to access this booking"
+          "Not authorized to access this booking",
         );
       }
 
@@ -158,7 +161,7 @@ export class BookingService implements IBookingService {
       const bookingDto = this.mapToDto(booking);
       return ResponseHelper.success(
         "Booking retrieved successfully",
-        bookingDto
+        bookingDto,
       );
     } catch (error) {
       const errorMessage =
@@ -175,7 +178,7 @@ export class BookingService implements IBookingService {
   async getUserBookings(
     userId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ApiResponse<BookingListResponseDto>> {
     const context = {
       operation: "getUserBookings",
@@ -188,7 +191,7 @@ export class BookingService implements IBookingService {
       const result = await this._bookingRepository.findByUserId(
         userId,
         page,
-        limit
+        limit,
       );
 
       this._logger.info("User bookings retrieved successfully", {
@@ -198,7 +201,7 @@ export class BookingService implements IBookingService {
       });
 
       const bookingDtos = result.bookings.map((booking: any) =>
-        this.mapToDto(booking)
+        this.mapToDto(booking),
       );
 
       return ResponseHelper.success("Bookings retrieved successfully", {
@@ -225,7 +228,7 @@ export class BookingService implements IBookingService {
   async getTechnicianBookings(
     technicianId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ApiResponse<BookingListResponseDto>> {
     const context = {
       operation: "getTechnicianBookings",
@@ -238,7 +241,7 @@ export class BookingService implements IBookingService {
       const result = await this._bookingRepository.findByTechnicianId(
         technicianId,
         page,
-        limit
+        limit,
       );
 
       this._logger.info("Technician bookings retrieved successfully", {
@@ -248,7 +251,7 @@ export class BookingService implements IBookingService {
       });
 
       const bookingDtos = result.bookings.map((booking: any) =>
-        this.mapToDto(booking)
+        this.mapToDto(booking),
       );
 
       return ResponseHelper.success("Bookings retrieved successfully", {
@@ -275,7 +278,7 @@ export class BookingService implements IBookingService {
   async updateBooking(
     userId: string,
     bookingId: string,
-    updateData: Partial<BookingResponseDto>
+    updateData: Partial<BookingResponseDto>,
   ): Promise<ApiResponse<BookingResponseDto>> {
     const context = {
       operation: "updateBooking",
@@ -298,9 +301,12 @@ export class BookingService implements IBookingService {
 
       // Check if user owns the booking
       if (bookingUserId !== userId) {
-        this._logger.warn("User not authorized to update this booking", context);
+        this._logger.warn(
+          "User not authorized to update this booking",
+          context,
+        );
         return ResponseHelper.forbidden(
-          "Not authorized to update this booking"
+          "Not authorized to update this booking",
         );
       }
 
@@ -311,7 +317,7 @@ export class BookingService implements IBookingService {
           currentStatus: existingBooking.status,
         });
         return ResponseHelper.badRequest(
-          `Booking cannot be updated in ${existingBooking.status} status`
+          `Booking cannot be updated in ${existingBooking.status} status`,
         );
       }
 
@@ -334,14 +340,14 @@ export class BookingService implements IBookingService {
       // Handle address update
       if (updateData.addressId) {
         repositoryUpdateData.addressId = new Types.ObjectId(
-          updateData.addressId
+          updateData.addressId,
         );
       }
 
       // Update the booking in repository
       const updatedBooking = await this._bookingRepository.update(
         bookingId,
-        repositoryUpdateData
+        repositoryUpdateData,
       );
 
       if (!updatedBooking) {
@@ -372,7 +378,7 @@ export class BookingService implements IBookingService {
     bookingId: string,
     status: string,
     updatedBy: string,
-    reason?: string
+    reason?: string,
   ): Promise<ApiResponse<BookingResponseDto>> {
     const context = {
       operation: "updateBookingStatus",
@@ -386,7 +392,7 @@ export class BookingService implements IBookingService {
         bookingId,
         status,
         updatedBy,
-        reason
+        reason,
       );
 
       if (!updatedBooking) {
@@ -399,7 +405,7 @@ export class BookingService implements IBookingService {
       const bookingDto = this.mapToDto(updatedBooking);
       return ResponseHelper.success(
         "Booking status updated successfully",
-        bookingDto
+        bookingDto,
       );
     } catch (error) {
       const errorMessage =
@@ -416,7 +422,7 @@ export class BookingService implements IBookingService {
   async cancelBooking(
     userId: string,
     bookingId: string,
-    reason: string
+    reason: string,
   ): Promise<ApiResponse<BookingResponseDto>> {
     const context = {
       operation: "cancelBooking",
@@ -438,9 +444,12 @@ export class BookingService implements IBookingService {
 
       // Check if user owns the booking
       if (bookingUserId !== userId) {
-        this._logger.warn("User not authorized to cancel this booking", context);
+        this._logger.warn(
+          "User not authorized to cancel this booking",
+          context,
+        );
         return ResponseHelper.forbidden(
-          "Not authorized to cancel this booking"
+          "Not authorized to cancel this booking",
         );
       }
 
@@ -451,7 +460,7 @@ export class BookingService implements IBookingService {
           currentStatus: booking.status,
         });
         return ResponseHelper.badRequest(
-          `Booking cannot be cancelled in ${booking.status} status`
+          `Booking cannot be cancelled in ${booking.status} status`,
         );
       }
 
@@ -459,7 +468,7 @@ export class BookingService implements IBookingService {
         bookingId,
         "cancelled",
         "user",
-        reason
+        reason,
       );
 
       if (!updatedBooking) {
@@ -472,7 +481,7 @@ export class BookingService implements IBookingService {
       const bookingDto = this.mapToDto(updatedBooking);
       return ResponseHelper.success(
         "Booking cancelled successfully",
-        bookingDto
+        bookingDto,
       );
     } catch (error) {
       const errorMessage =
@@ -517,7 +526,7 @@ export class BookingService implements IBookingService {
   }
   async getTrackingDetails(
     userId: string,
-    bookingId: string
+    bookingId: string,
   ): Promise<ApiResponse<TrackingDetailsDto>> {
     const context = {
       operation: "getTrackingDetails",
@@ -550,7 +559,7 @@ export class BookingService implements IBookingService {
       if (!technician || !isTechnicianPopulated(technician)) {
         this._logger.warn(
           "Technician data not properly populated in order",
-          context
+          context,
         );
         return ResponseHelper.notFound("Technician details not found");
       }
@@ -560,7 +569,7 @@ export class BookingService implements IBookingService {
       // Get technician location if available
       const technicianLocation =
         await this._bookingRepository.getTechnicianLocation(
-          technician._id.toString()
+          technician._id.toString(),
         );
 
       // Calculate estimated arrival and distance if technician is on the way
@@ -570,7 +579,7 @@ export class BookingService implements IBookingService {
       if (order.status === "on_the_way" && technicianLocation) {
         distance = this.calculateDistance(
           technicianLocation.latitude,
-          technicianLocation.longitude
+          technicianLocation.longitude,
         );
         estimatedArrival = this.calculateEstimatedArrival(distance);
       }
@@ -578,6 +587,7 @@ export class BookingService implements IBookingService {
       const trackingDetails: TrackingDetailsDto = {
         _id: order._id.toString(),
         bookingId: order.bookingId.toString(),
+        bookingCode: this._getBookingCode(order),
         userId: order.userId.toString(),
         technicianId: {
           _id: technician._id.toString(),
@@ -625,7 +635,7 @@ export class BookingService implements IBookingService {
 
       return ResponseHelper.success(
         "Tracking details retrieved successfully",
-        trackingDetails
+        trackingDetails,
       );
     } catch (error) {
       const errorMessage =
@@ -638,8 +648,18 @@ export class BookingService implements IBookingService {
       return ResponseHelper.error("Failed to fetch tracking details");
     }
   }
+  private _getBookingCode(order: IOrderPopulated): string {
+    if (
+      order.bookingId &&
+      typeof order.bookingId === "object" &&
+      "bookingCode" in order.bookingId
+    ) {
+      return (order.bookingId as { bookingCode: string }).bookingCode;
+    }
+    return "N/A"; // Fallback if not populated
+  }
   async getTechnicianLocation(
-    bookingId: string
+    bookingId: string,
   ): Promise<ApiResponse<TechnicianLocationDto>> {
     const context = {
       operation: "getTechnicianLocation",
@@ -659,7 +679,7 @@ export class BookingService implements IBookingService {
       // Get technician location
       const technicianLocation =
         await this._bookingRepository.getTechnicianLocation(
-          booking.technicianId.toString()
+          booking.technicianId.toString(),
         );
 
       if (!technicianLocation) {
@@ -674,7 +694,7 @@ export class BookingService implements IBookingService {
       if (booking.status === "on_the_way") {
         distance = this.calculateDistance(
           technicianLocation.latitude,
-          technicianLocation.longitude
+          technicianLocation.longitude,
         );
         estimatedArrival = this.calculateEstimatedArrival(distance);
       }
@@ -693,7 +713,7 @@ export class BookingService implements IBookingService {
 
       return ResponseHelper.success(
         "Technician location retrieved successfully",
-        locationData
+        locationData,
       );
     } catch (error) {
       const errorMessage =

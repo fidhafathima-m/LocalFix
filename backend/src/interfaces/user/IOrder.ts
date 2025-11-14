@@ -78,9 +78,38 @@ export interface IOrder extends Document {
   updatedAt: Date;
 }
 
-export interface IOrderPopulated extends Omit<IOrder, 'technicianId' | 'userId'> {
-  technicianId: ITechnician | Types.ObjectId;
+export interface IOrderPopulated {
+  _id: Types.ObjectId;
+  bookingId: {
+    _id: Types.ObjectId;
+    bookingCode: string;
+  };
   userId: IUser | Types.ObjectId;
+  technicianId: ITechnician | Types.ObjectId;
+  orderCode: string;
+  serviceName: string;
+  problemDescription?: string;
+  scheduledAt: Date;
+  timeSlot: string;
+  address: {
+    label: string;
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    landmark?: string;
+  };
+  status: IOrder["status"];
+  payment: IOrder["payment"];
+  orderItems: IOrder["orderItems"];
+  totalAmount: number;
+  technicianRating?: number;
+  userReview?: string;
+  cancellation?: IOrder["cancellation"];
+  rescheduleInfo?: IOrder["rescheduleInfo"];
+  history: IOrder["history"];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface OrderResponseDto {

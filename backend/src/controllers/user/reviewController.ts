@@ -12,7 +12,7 @@ import {
 import { AuthRequest } from "@/middleware/authMiddleware";
 import { IReviewRepository } from "../../interfaces/repository/user/IReviewRepository";
 import { ILogger } from "@/interfaces/utils/ILogger";
-import { toReviewDto } from "@/mappers/reviewMapper";
+import { toReviewDto } from "../../mappers/reviewMapper";
 
 export class ReviewController {
   private _reviewService: IReviewService;
@@ -22,7 +22,7 @@ export class ReviewController {
   constructor(
     reviewService: IReviewService,
     reviewRepository: IReviewRepository,
-    logger: ILogger
+    logger: ILogger,
   ) {
     this._reviewService = reviewService;
     this._reviewRepository = reviewRepository;
@@ -46,10 +46,10 @@ export class ReviewController {
       if (!userId) {
         this._logger.warn(
           "Create review failed - authentication required",
-          context
+          context,
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -93,10 +93,10 @@ export class ReviewController {
       if (!userId) {
         this._logger.warn(
           "Update review failed - authentication required",
-          context
+          context,
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -105,7 +105,7 @@ export class ReviewController {
       const result = await this._reviewService.updateReview(
         userId,
         reviewId,
-        reviewData
+        reviewData,
       );
 
       this._logger.info("Review updated successfully", context);
@@ -140,10 +140,10 @@ export class ReviewController {
       if (!userId) {
         this._logger.warn(
           "Delete review failed - authentication required",
-          context
+          context,
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -210,10 +210,10 @@ export class ReviewController {
       if (!userId) {
         this._logger.warn(
           "Get user reviews failed - authentication required",
-          context
+          context,
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -241,7 +241,7 @@ export class ReviewController {
 
   getTechnicianReviews = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const { technicianId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
@@ -261,7 +261,7 @@ export class ReviewController {
       const result = await this._reviewService.getTechnicianReviews(
         technicianId,
         page,
-        limit
+        limit,
       );
 
       this._logger.info("Technician reviews retrieved successfully", {
@@ -300,7 +300,7 @@ export class ReviewController {
         this._logger.info("No review found for order", context);
         const response = ResponseHelper.success(
           "No review found for this order",
-          null
+          null,
         );
         res.status(response.statusCode).json(response);
         return;
@@ -311,7 +311,7 @@ export class ReviewController {
       const reviewDto = toReviewDto(review);
       const response = ResponseHelper.success(
         "Review retrieved successfully",
-        reviewDto
+        reviewDto,
       );
       res.status(response.statusCode).json(response);
     } catch (error: unknown) {
@@ -327,7 +327,7 @@ export class ReviewController {
 
   getTechnicianReviewStats = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const { technicianId } = req.params;
 
@@ -340,13 +340,12 @@ export class ReviewController {
     try {
       this._logger.info("Fetching technician review stats", context);
 
-      const result = await this._reviewService.getTechnicianReviewStats(
-        technicianId
-      );
+      const result =
+        await this._reviewService.getTechnicianReviewStats(technicianId);
 
       this._logger.info(
         "Technician review stats retrieved successfully",
-        context
+        context,
       );
 
       res.status(result.statusCode).json(result);
@@ -364,7 +363,7 @@ export class ReviewController {
 
   canUserReviewOrder = async (
     req: AuthRequest,
-    res: Response
+    res: Response,
   ): Promise<void> => {
     const userId = req.user?.id;
     const { orderId } = req.params;
@@ -382,10 +381,10 @@ export class ReviewController {
       if (!userId) {
         this._logger.warn(
           "Check review permission failed - authentication required",
-          context
+          context,
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -393,14 +392,14 @@ export class ReviewController {
 
       const canReview = await this._reviewService.canUserReviewOrder(
         userId,
-        orderId
+        orderId,
       );
 
       const response = ResponseHelper.success(
         "Review permission checked successfully",
         {
           canReview,
-        }
+        },
       );
 
       res.status(response.statusCode).json(response);
@@ -434,10 +433,10 @@ export class ReviewController {
       if (!userId) {
         this._logger.warn(
           "Report review failed - authentication required",
-          context
+          context,
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          "Authentication required",
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -454,7 +453,7 @@ export class ReviewController {
       const result = await this._reviewService.reportReview(
         userId,
         reviewId,
-        reportData
+        reportData,
       );
 
       this._logger.info("Review reported successfully", context);

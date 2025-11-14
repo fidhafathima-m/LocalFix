@@ -40,7 +40,7 @@ import { ILogger } from "@/interfaces/utils/ILogger";
 import {
   toApplicationDataDto,
   toApplicationListDto,
-} from "@/mappers/technicianApplicationMappers";
+} from "../mappers/technicianApplicationMappers";
 
 interface AddressData {
   street?: string;
@@ -95,7 +95,7 @@ export class TechnicianApplicationService
     technicianRepository: ITechnicianRepository,
     documentRepository: ITechnicianDocumentRepository,
     userRepository: IUserRepository,
-    logger: ILogger
+    logger: ILogger,
   ) {
     this._applicationRepository = applicationRepository;
     this._technicianRepository = technicianRepository;
@@ -105,7 +105,7 @@ export class TechnicianApplicationService
   }
 
   async startApplication(
-    data: StartApplicationRequestDto
+    data: StartApplicationRequestDto,
   ): Promise<ApplicationResponseDto> {
     const context = {
       operation: "startApplication",
@@ -143,7 +143,7 @@ export class TechnicianApplicationService
       if (isEditPath) {
         this._logger.debug(
           "Edit mode detected, checking for existing application",
-          context
+          context,
         );
 
         const existingApplication =
@@ -154,7 +154,7 @@ export class TechnicianApplicationService
               APPLICATION_STATUS.SUBMITTED,
               APPLICATION_STATUS.UNDER_REVIEW,
               APPLICATION_STATUS.REJECTED,
-            ]
+            ],
           );
 
         if (existingApplication) {
@@ -196,14 +196,14 @@ export class TechnicianApplicationService
             {
               ...context,
               applicationId: existingUserApplication._id.toString(),
-            }
+            },
           );
           return ResponseHelper.success(
             TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_APPROVED,
             {
               applicationId: existingUserApplication._id.toString(),
               redirectTo: REDIRECT_PATHS.TECHNICIAN_DASHBOARD,
-            }
+            },
           );
         }
 
@@ -212,7 +212,7 @@ export class TechnicianApplicationService
           {
             applicationId: existingUserApplication._id.toString(),
             redirectTo: null,
-          }
+          },
         );
       }
 
@@ -240,7 +240,7 @@ export class TechnicianApplicationService
             existingTechnicianId: existingAppTechnicianId,
           });
           return ResponseHelper.conflict(
-            TECH_APPLICATION_MESSAGES.EMAIL_ALREADY_IN_USE
+            TECH_APPLICATION_MESSAGES.EMAIL_ALREADY_IN_USE,
           );
         }
       }
@@ -262,9 +262,8 @@ export class TechnicianApplicationService
         agreement: false,
       };
 
-      const application = await this._applicationRepository.create(
-        applicationData
-      );
+      const application =
+        await this._applicationRepository.create(applicationData);
 
       this._logger.info("New application created successfully", {
         ...context,
@@ -276,7 +275,7 @@ export class TechnicianApplicationService
         {
           applicationId: application._id.toString(),
           redirectTo: null,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -287,14 +286,14 @@ export class TechnicianApplicationService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECH_APPLICATION_MESSAGES.FAILED_TO_START_APPLICATION
+        TECH_APPLICATION_MESSAGES.FAILED_TO_START_APPLICATION,
       );
     }
   }
 
   async saveStep(
     data: SaveStepRequestDto,
-    files?: FilesCollectionDto
+    files?: FilesCollectionDto,
   ): Promise<ApplicationResponseDto> {
     const context = {
       operation: "saveStep",
@@ -314,17 +313,16 @@ export class TechnicianApplicationService
       if (!applicationId || !step) {
         this._logger.warn("Missing required parameters for save step", context);
         return ResponseHelper.badRequest(
-          TECH_APPLICATION_MESSAGES.APPLICATION_ID_AND_STEP_REQUIRED
+          TECH_APPLICATION_MESSAGES.APPLICATION_ID_AND_STEP_REQUIRED,
         );
       }
 
-      const application = await this._applicationRepository.findById(
-        applicationId
-      );
+      const application =
+        await this._applicationRepository.findById(applicationId);
       if (!application) {
         this._logger.warn("Application not found for save step", context);
         return ResponseHelper.notFound(
-          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND,
         );
       }
 
@@ -332,7 +330,7 @@ export class TechnicianApplicationService
       if (step === APPLICATION_STEPS.PERSONAL_INFORMATION) {
         const validation = await this.validatePersonalInfoStep(
           application,
-          stepData
+          stepData,
         );
         if (!validation.isValid) {
           this._logger.warn("Personal information validation failed", {
@@ -341,7 +339,7 @@ export class TechnicianApplicationService
           });
           // Return the specific validation error message that will be shown to user
           return ResponseHelper.badRequest(
-            validation.message || "Personal information validation failed"
+            validation.message || "Personal information validation failed",
           );
         }
       }
@@ -368,7 +366,7 @@ export class TechnicianApplicationService
         ) {
           try {
             processedStepData[field] = JSON.parse(
-              processedStepData[field] as string
+              processedStepData[field] as string,
             );
             this._logger.debug("Parsed JSON field", {
               ...context,
@@ -389,7 +387,7 @@ export class TechnicianApplicationService
         this._logger.debug("Processing identity verification step", context);
         await this.handleIdentityVerificationStep(
           application,
-          processedStepData
+          processedStepData,
         );
       } else if (step === APPLICATION_STEPS.DOCUMENTS) {
         this._logger.debug("Processing documents step", {
@@ -451,14 +449,14 @@ export class TechnicianApplicationService
       }
 
       return ResponseHelper.error(
-        TECH_APPLICATION_MESSAGES.FAILED_TO_SAVE_STEP
+        TECH_APPLICATION_MESSAGES.FAILED_TO_SAVE_STEP,
       );
     }
   }
 
   private async handleIdentityVerificationStep(
     application: ITechnicianApplication,
-    stepData: StepData
+    stepData: StepData,
   ): Promise<void> {
     const context = {
       operation: "handleIdentityVerificationStep",
@@ -555,7 +553,7 @@ export class TechnicianApplicationService
 
   private async handleDocumentsStep(
     application: ITechnicianApplication,
-    files?: FilesCollectionDto
+    files?: FilesCollectionDto,
   ): Promise<void> {
     const context = {
       operation: "handleDocumentsStep",
@@ -742,7 +740,7 @@ export class TechnicianApplicationService
 
   private async handleAgreementStep(
     application: ITechnicianApplication,
-    stepData: StepData
+    stepData: StepData,
   ): Promise<void> {
     const context = {
       operation: "handleAgreementStep",
@@ -777,7 +775,7 @@ export class TechnicianApplicationService
   }
 
   private async handleReviewStep(
-    application: ITechnicianApplication
+    application: ITechnicianApplication,
   ): Promise<void> {
     const context = {
       operation: "handleReviewStep",
@@ -801,7 +799,7 @@ export class TechnicianApplicationService
   private async handleGenericStep(
     application: ITechnicianApplication,
     step: string,
-    stepData: StepData
+    stepData: StepData,
   ): Promise<void> {
     const context = {
       operation: "handleGenericStep",
@@ -857,7 +855,7 @@ export class TechnicianApplicationService
 
   private async handleAvailabilityStep(
     application: ITechnicianApplication,
-    stepData: StepData
+    stepData: StepData,
   ): Promise<void> {
     const context = {
       operation: "handleAvailabilityStep",
@@ -873,7 +871,7 @@ export class TechnicianApplicationService
       if (!application.technicianId) {
         this._logger.warn(
           "No technician ID found for availability setup",
-          context
+          context,
         );
         return;
       }
@@ -891,11 +889,11 @@ export class TechnicianApplicationService
 
       // Use the new availability service
       const availabilityService = new TechnicianAvailabilityService(
-        this._logger
+        this._logger,
       );
       await availabilityService.createTechnicianAvailabilityFromApplication(
         application.technicianId.toString(),
-        availabilityData
+        availabilityData,
       );
 
       this._logger.info("Technician availability setup completed", context);
@@ -937,13 +935,12 @@ export class TechnicianApplicationService
         return ResponseHelper.badRequest("Invalid application ID format");
       }
 
-      const application = await this._applicationRepository.findById(
-        applicationId
-      );
+      const application =
+        await this._applicationRepository.findById(applicationId);
       if (!application) {
         this._logger.warn("Application not found", context);
         return ResponseHelper.notFound(
-          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND,
         );
       }
 
@@ -979,7 +976,7 @@ export class TechnicianApplicationService
         TECH_APPLICATION_MESSAGES.APPLICATION_RETRIEVED,
         {
           application: applicationDto,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -990,14 +987,14 @@ export class TechnicianApplicationService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION
+        TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION,
       );
     }
   }
 
   async submitApplication(
     applicationId: string,
-    userId: string
+    userId: string,
   ): Promise<ApplicationResponseDto> {
     const context = {
       operation: "submitApplication",
@@ -1007,13 +1004,12 @@ export class TechnicianApplicationService
     try {
       this._logger.info("Submitting application", context);
 
-      const application = await this._applicationRepository.findById(
-        applicationId
-      );
+      const application =
+        await this._applicationRepository.findById(applicationId);
       if (!application) {
         this._logger.warn("Application not found for submission", context);
         return ResponseHelper.notFound(
-          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND,
         );
       }
 
@@ -1021,7 +1017,7 @@ export class TechnicianApplicationService
       if (phoneNumber) {
         const phoneValidation = await this.validatePhoneNumber(
           phoneNumber,
-          userId
+          userId,
         );
 
         if (!phoneValidation.isValid) {
@@ -1030,7 +1026,7 @@ export class TechnicianApplicationService
             validationError: phoneValidation.message,
           });
           return ResponseHelper.badRequest(
-            phoneValidation.message || "Phone number validation failed"
+            phoneValidation.message || "Phone number validation failed",
           );
         }
       }
@@ -1042,7 +1038,7 @@ export class TechnicianApplicationService
 
       if (Array.isArray(skillsLanguages)) {
         languagesArray = (skillsLanguages as string[]).filter(
-          (lang) => lang && String(lang).trim() !== ""
+          (lang) => lang && String(lang).trim() !== "",
         );
       } else if (
         skillsLanguages &&
@@ -1053,7 +1049,7 @@ export class TechnicianApplicationService
           const parsed = JSON.parse(skillsLanguages);
           if (Array.isArray(parsed)) {
             languagesArray = parsed.filter(
-              (lang: string) => lang && String(lang).trim() !== ""
+              (lang: string) => lang && String(lang).trim() !== "",
             );
           }
         } catch (e) {
@@ -1081,7 +1077,7 @@ export class TechnicianApplicationService
           requestingUserId: userId,
         });
         return ResponseHelper.forbidden(
-          TECH_APPLICATION_MESSAGES.ACCESS_DENIED
+          TECH_APPLICATION_MESSAGES.ACCESS_DENIED,
         );
       }
 
@@ -1091,14 +1087,14 @@ export class TechnicianApplicationService
           currentStatus: application.status,
         });
         return ResponseHelper.badRequest(
-          TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_SUBMITTED
+          TECH_APPLICATION_MESSAGES.APPLICATION_ALREADY_SUBMITTED,
         );
       }
 
       // Validate all required steps are completed
       const requiredSteps = REQUIRED_STEPS;
       const missingSteps = requiredSteps.filter(
-        (step) => !application.stepsCompleted.includes(step)
+        (step) => !application.stepsCompleted.includes(step),
       );
 
       if (missingSteps.length > 0) {
@@ -1110,13 +1106,13 @@ export class TechnicianApplicationService
           TECH_APPLICATION_MESSAGES.COMPLETE_ALL_STEPS_REQUIRED,
           {
             missingSteps,
-          }
+          },
         );
       }
 
       this._logger.debug(
         "Checking for existing submitted applications",
-        context
+        context,
       );
 
       const existingSubmittedApp =
@@ -1134,7 +1130,7 @@ export class TechnicianApplicationService
           existingApplicationId: existingSubmittedApp._id.toString(),
         });
         return ResponseHelper.badRequest(
-          "You already have an application in review. Please wait for it to be processed."
+          "You already have an application in review. Please wait for it to be processed.",
         );
       }
 
@@ -1143,12 +1139,12 @@ export class TechnicianApplicationService
       // Update user
       const user = await this._userRepository.updateApplicationStatus(
         userId,
-        APPLICATION_STATUS.SUBMITTED
+        APPLICATION_STATUS.SUBMITTED,
       );
       if (!user) {
         this._logger.warn("User not found during submission", context);
         return ResponseHelper.notFound(
-          TECH_APPLICATION_MESSAGES.USER_NOT_FOUND
+          TECH_APPLICATION_MESSAGES.USER_NOT_FOUND,
         );
       }
 
@@ -1172,8 +1168,8 @@ export class TechnicianApplicationService
       const workRadius = applicationAvailability?.workRadius
         ? parseInt(applicationAvailability.workRadius as string)
         : application.skills?.workRadius
-        ? parseInt(application.skills.workRadius as string)
-        : 10;
+          ? parseInt(application.skills.workRadius as string)
+          : 10;
 
       // Create or update technician record
       let technician = await this._technicianRepository.findByUserId(userId);
@@ -1301,7 +1297,7 @@ export class TechnicianApplicationService
         TECH_APPLICATION_MESSAGES.APPLICATION_SUBMITTED,
         {
           applicationId: application._id.toString(),
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1312,13 +1308,13 @@ export class TechnicianApplicationService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.badRequest(
-        TECH_APPLICATION_MESSAGES.FAILED_TO_SUBMIT_APPLICATION
+        TECH_APPLICATION_MESSAGES.FAILED_TO_SUBMIT_APPLICATION,
       );
     }
   }
 
   async getApplicationStatus(
-    applicationId: string
+    applicationId: string,
   ): Promise<ApplicationResponseDto> {
     const context = {
       operation: "getApplicationStatus",
@@ -1328,13 +1324,12 @@ export class TechnicianApplicationService
     try {
       this._logger.info("Fetching application status", context);
 
-      const application = await this._applicationRepository.findById(
-        applicationId
-      );
+      const application =
+        await this._applicationRepository.findById(applicationId);
       if (!application) {
         this._logger.warn("Application not found for status check", context);
         return ResponseHelper.notFound(
-          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND,
         );
       }
 
@@ -1352,7 +1347,7 @@ export class TechnicianApplicationService
         TECH_APPLICATION_MESSAGES.APPLICATION_STATUS_RETRIEVED,
         {
           application: applicationData,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1363,13 +1358,13 @@ export class TechnicianApplicationService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECH_APPLICATION_MESSAGES.FAILED_TO_GET_STATUS
+        TECH_APPLICATION_MESSAGES.FAILED_TO_GET_STATUS,
       );
     }
   }
 
   async getUserApplications(
-    userId: string
+    userId: string,
   ): Promise<ApplicationListResponseDto> {
     const context = {
       operation: "getUserApplications",
@@ -1379,9 +1374,8 @@ export class TechnicianApplicationService
     try {
       this._logger.info("Fetching user applications", context);
 
-      const applications = await this._applicationRepository.findByTechnicianId(
-        userId
-      );
+      const applications =
+        await this._applicationRepository.findByTechnicianId(userId);
 
       const applicationDtos = toApplicationListDto(applications);
 
@@ -1394,7 +1388,7 @@ export class TechnicianApplicationService
         TECH_APPLICATION_MESSAGES.USER_APPLICATIONS_RETRIEVED,
         {
           applications: applicationDtos,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1405,14 +1399,14 @@ export class TechnicianApplicationService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION
+        TECH_APPLICATION_MESSAGES.FAILED_TO_RETRIEVE_APPLICATION,
       );
     }
   }
 
   async resubmitApplication(
     applicationId: string,
-    userId: string
+    userId: string,
   ): Promise<ApplicationResponseDto> {
     const context = {
       operation: "resubmitApplication",
@@ -1422,13 +1416,12 @@ export class TechnicianApplicationService
     try {
       this._logger.info("Resubmitting application", context);
 
-      const application = await this._applicationRepository.findById(
-        applicationId
-      );
+      const application =
+        await this._applicationRepository.findById(applicationId);
       if (!application) {
         this._logger.warn("Application not found for resubmission", context);
         return ResponseHelper.notFound(
-          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND,
         );
       }
 
@@ -1436,7 +1429,7 @@ export class TechnicianApplicationService
       if (!application.technicianId) {
         this._logger.warn("No technician assigned to application", context);
         return ResponseHelper.badRequest(
-          TECH_APPLICATION_MESSAGES.NO_TECHNICIAN_ASSIGNED
+          TECH_APPLICATION_MESSAGES.NO_TECHNICIAN_ASSIGNED,
         );
       }
 
@@ -1447,10 +1440,10 @@ export class TechnicianApplicationService
             ...context,
             applicationTechnicianId: application.technicianId.toString(),
             requestingUserId: userId,
-          }
+          },
         );
         return ResponseHelper.forbidden(
-          TECH_APPLICATION_MESSAGES.ACCESS_DENIED
+          TECH_APPLICATION_MESSAGES.ACCESS_DENIED,
         );
       }
 
@@ -1461,13 +1454,13 @@ export class TechnicianApplicationService
           currentStatus: application.status,
         });
         return ResponseHelper.badRequest(
-          TECH_APPLICATION_MESSAGES.ONLY_REJECTED_CAN_RESUBMIT
+          TECH_APPLICATION_MESSAGES.ONLY_REJECTED_CAN_RESUBMIT,
         );
       }
 
       this._logger.debug(
         "Updating application status for resubmission",
-        context
+        context,
       );
 
       // Update application status and clear rejection details
@@ -1500,7 +1493,7 @@ export class TechnicianApplicationService
         TECH_APPLICATION_MESSAGES.APPLICATION_RESUBMITTED,
         {
           applicationId: application._id.toString(),
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1511,14 +1504,14 @@ export class TechnicianApplicationService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECH_APPLICATION_MESSAGES.FAILED_TO_RESUBMIT_APPLICATION
+        TECH_APPLICATION_MESSAGES.FAILED_TO_RESUBMIT_APPLICATION,
       );
     }
   }
 
   async startNewApplicationAfterRejection(
     userId: string,
-    email: string
+    email: string,
   ): Promise<ApplicationResponseDto> {
     const context = {
       operation: "startNewApplicationAfterRejection",
@@ -1537,7 +1530,7 @@ export class TechnicianApplicationService
       if (!rejectedApplication) {
         this._logger.warn("No rejected application found", context);
         return ResponseHelper.notFound(
-          TECH_APPLICATION_MESSAGES.NO_REJECTED_APPLICATION_FOUND
+          TECH_APPLICATION_MESSAGES.NO_REJECTED_APPLICATION_FOUND,
         );
       }
 
@@ -1579,7 +1572,7 @@ export class TechnicianApplicationService
           applicationId: newApplication._id.toString(),
           redirectTo: null,
           isFreshStart: true,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1590,17 +1583,17 @@ export class TechnicianApplicationService
           ...context,
           error: errorMessage,
           stack: error instanceof Error ? error.stack : undefined,
-        }
+        },
       );
       return ResponseHelper.error(
-        TECH_APPLICATION_MESSAGES.FAILED_TO_START_NEW_APPLICATION
+        TECH_APPLICATION_MESSAGES.FAILED_TO_START_NEW_APPLICATION,
       );
     }
   }
 
   async getApplicationForEdit(
     applicationId: string,
-    userId?: string
+    userId?: string,
   ): Promise<ApplicationResponseDto> {
     const context = {
       operation: "getApplicationForEdit",
@@ -1610,13 +1603,12 @@ export class TechnicianApplicationService
     try {
       this._logger.info("Fetching application for editing", context);
 
-      const application = await this._applicationRepository.findById(
-        applicationId
-      );
+      const application =
+        await this._applicationRepository.findById(applicationId);
       if (!application) {
         this._logger.warn("Application not found for editing", context);
         return ResponseHelper.notFound(
-          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND
+          TECH_APPLICATION_MESSAGES.APPLICATION_NOT_FOUND,
         );
       }
 
@@ -1631,10 +1623,10 @@ export class TechnicianApplicationService
             ...context,
             applicationTechnicianId: application.technicianId?.toString(),
             requestingUserId: userId,
-          }
+          },
         );
         return ResponseHelper.forbidden(
-          TECH_APPLICATION_MESSAGES.ACCESS_DENIED
+          TECH_APPLICATION_MESSAGES.ACCESS_DENIED,
         );
       }
 
@@ -1673,7 +1665,7 @@ export class TechnicianApplicationService
 
   private async validatePhoneNumber(
     phoneNumber: string,
-    excludeUserId?: string
+    excludeUserId?: string,
   ): Promise<{ isValid: boolean; message?: string }> {
     const context = {
       operation: "validatePhoneNumber",
@@ -1722,7 +1714,7 @@ export class TechnicianApplicationService
             APPLICATION_STATUS.SUBMITTED,
             APPLICATION_STATUS.UNDER_REVIEW,
           ],
-          excludeUserId
+          excludeUserId,
         );
 
       if (existingApplication) {
@@ -1731,7 +1723,7 @@ export class TechnicianApplicationService
           {
             ...context,
             existingApplicationId: existingApplication._id.toString(),
-          }
+          },
         );
         return {
           isValid: false,
@@ -1741,9 +1733,8 @@ export class TechnicianApplicationService
       }
 
       // Check if phone number exists in approved technicians
-      const existingTechnician = await this._technicianRepository.findByPhone(
-        cleanPhone
-      );
+      const existingTechnician =
+        await this._technicianRepository.findByPhone(cleanPhone);
       if (
         existingTechnician &&
         existingTechnician.userId?.toString() !== excludeUserId
@@ -1753,7 +1744,7 @@ export class TechnicianApplicationService
           {
             ...context,
             existingTechnicianId: existingTechnician._id.toString(),
-          }
+          },
         );
         return {
           isValid: false,
@@ -1781,7 +1772,7 @@ export class TechnicianApplicationService
 
   private async validatePersonalInfoStep(
     application: ITechnicianApplication,
-    stepData: StepData
+    stepData: StepData,
   ): Promise<{ isValid: boolean; message?: string }> {
     const context = {
       operation: "validatePersonalInfoStep",
@@ -1818,7 +1809,7 @@ export class TechnicianApplicationService
       // Validate phone number with better error messages
       const phoneValidation = await this.validatePhoneNumber(
         cleanPhone,
-        application.technicianId?.toString()
+        application.technicianId?.toString(),
       );
 
       if (!phoneValidation.isValid) {
@@ -1837,7 +1828,7 @@ export class TechnicianApplicationService
         return {
           isValid: false,
           message: `Please fill in all required fields: ${missingFields.join(
-            ", "
+            ", ",
           )}`,
         };
       }
@@ -1849,7 +1840,7 @@ export class TechnicianApplicationService
         const minDate = new Date(
           today.getFullYear() - 18,
           today.getMonth(),
-          today.getDate()
+          today.getDate(),
         );
 
         if (dob > minDate) {

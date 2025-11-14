@@ -13,7 +13,7 @@ import { ILogger } from "@/interfaces/utils/ILogger";
 import {
   toServiceListResponseDto,
   toServiceResponseDto,
-} from "@/mappers/serviceMapper";
+} from "../mappers/serviceMapper";
 
 export class ServiceService implements IServiceService {
   private _serviceRepository: IServiceRepository;
@@ -25,7 +25,7 @@ export class ServiceService implements IServiceService {
   }
 
   async createService(
-    createDto: CreateServiceDto
+    createDto: CreateServiceDto,
   ): Promise<ServiceResponseDto> {
     const context = {
       operation: "createService",
@@ -48,7 +48,7 @@ export class ServiceService implements IServiceService {
       });
 
       const existingService = await this._serviceRepository.findByName(
-        createDto.name
+        createDto.name,
       );
 
       if (existingService) {
@@ -206,7 +206,7 @@ export class ServiceService implements IServiceService {
     categoryId: string,
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
   ): Promise<ServiceListResponseDto> {
     const context = {
       operation: "getServicesByCategoryId",
@@ -245,7 +245,7 @@ export class ServiceService implements IServiceService {
         services = await this._serviceRepository.searchByCategory(
           categoryId,
           search,
-          limit
+          limit,
         );
         total = services.length;
 
@@ -260,13 +260,13 @@ export class ServiceService implements IServiceService {
             ...context,
             skip,
             limit,
-          }
+          },
         );
 
         services = await this._serviceRepository.findAll(
           { categoryId: new Types.ObjectId(categoryId) },
           skip,
-          limit
+          limit,
         );
         total = await this._serviceRepository.count({
           categoryId: new Types.ObjectId(categoryId),
@@ -295,7 +295,7 @@ export class ServiceService implements IServiceService {
             ...service.toObject(),
             itemCount,
           };
-        })
+        }),
       );
 
       this._logger.debug("Item counts calculated for all services", {
@@ -307,7 +307,7 @@ export class ServiceService implements IServiceService {
         servicesWithCounts,
         total,
         page,
-        limit
+        limit,
       );
 
       this._logger.info("Services by category retrieved successfully", {
@@ -334,7 +334,7 @@ export class ServiceService implements IServiceService {
     limit: number = 10,
     search?: string,
     sortBy: string = "name",
-    sortOrder: string = "asc"
+    sortOrder: string = "asc",
   ): Promise<ServiceListResponseDto> {
     const context = {
       operation: "getAllServices",
@@ -379,7 +379,7 @@ export class ServiceService implements IServiceService {
         services = await this._serviceRepository.search(
           search,
           limit,
-          sortOptions
+          sortOptions,
         );
         total = services.length;
 
@@ -399,7 +399,7 @@ export class ServiceService implements IServiceService {
           {},
           skip,
           limit,
-          sortOptions
+          sortOptions,
         );
         total = await this._serviceRepository.count();
 
@@ -433,7 +433,7 @@ export class ServiceService implements IServiceService {
 
   async updateService(
     serviceId: string,
-    updateDto: UpdateServiceDto
+    updateDto: UpdateServiceDto,
   ): Promise<ServiceResponseDto> {
     const context = {
       operation: "updateService",
@@ -469,11 +469,11 @@ export class ServiceService implements IServiceService {
           {
             ...context,
             newName: updateDto.name,
-          }
+          },
         );
 
         const duplicateService = await this._serviceRepository.findByName(
-          updateDto.name
+          updateDto.name,
         );
 
         if (
@@ -489,7 +489,7 @@ export class ServiceService implements IServiceService {
 
         this._logger.debug(
           "No duplicate name found, proceeding with update",
-          context
+          context,
         );
       }
 
@@ -500,7 +500,7 @@ export class ServiceService implements IServiceService {
         delete updatePayload.rating;
         this._logger.debug(
           "Rating field removed from update payload as it was undefined",
-          context
+          context,
         );
       }
 
@@ -526,7 +526,7 @@ export class ServiceService implements IServiceService {
 
       const updatedService = await this._serviceRepository.update(
         serviceId,
-        updatePayload as any
+        updatePayload as any,
       );
 
       if (!updatedService) {
@@ -581,7 +581,7 @@ export class ServiceService implements IServiceService {
       if (!deleted) {
         this._logger.error(
           "Service repository deletion returned false",
-          context
+          context,
         );
         throw new Error(SERVICE_MESSAGES.FAILED_DELETE_SERVICE);
       }
@@ -601,7 +601,7 @@ export class ServiceService implements IServiceService {
 
   async searchServices(
     query: string,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ServiceResponseDto[]> {
     const context = {
       operation: "searchServices",

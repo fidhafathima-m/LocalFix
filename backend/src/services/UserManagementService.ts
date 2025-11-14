@@ -19,11 +19,11 @@ import {
   toUserDetailDto,
   toUserListDto,
   toUserStatsDto,
-} from "@/mappers/userMapper";
+} from "../mappers/userMapper";
 
 // Type guard function for status validation
 function isValidStatus(
-  status: string
+  status: string,
 ): status is "Active" | "Inactive" | "Blocked" {
   return VALID_STATUSES.includes(status as any);
 }
@@ -34,7 +34,7 @@ export class UserManagementService implements IUserManagementService {
 
   constructor(
     userManagementRepository: IUserManagementRepository,
-    logger: ILogger
+    logger: ILogger,
   ) {
     this._userManagementRepository = userManagementRepository;
     this._logger = logger;
@@ -72,7 +72,7 @@ export class UserManagementService implements IUserManagementService {
 
   async updateUserStatus(
     userId: string,
-    statusData: UpdateUserStatusRequestDto
+    statusData: UpdateUserStatusRequestDto,
   ): Promise<UserManagementResponseDto> {
     const context = {
       operation: "updateUserStatus",
@@ -89,7 +89,7 @@ export class UserManagementService implements IUserManagementService {
           ...context,
         });
         return ResponseHelper.badRequest(
-          USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE
+          USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE,
         );
       }
 
@@ -107,19 +107,19 @@ export class UserManagementService implements IUserManagementService {
       if (user.isDeleted) {
         this._logger.warn("Deleted user cannot be updated", context);
         return ResponseHelper.forbidden(
-          USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER
+          USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER,
         );
       }
 
       const updatedUser = await this._userManagementRepository.updateUserStatus(
         userId,
-        status
+        status,
       );
 
       if (!updatedUser) {
         this._logger.error("Failed to update user status", context);
         return ResponseHelper.conflict(
-          USER_MANAGEMENT_MESSAGES.UPDATE_CONFLICT
+          USER_MANAGEMENT_MESSAGES.UPDATE_CONFLICT,
         );
       }
 
@@ -134,7 +134,7 @@ export class UserManagementService implements IUserManagementService {
         USER_MANAGEMENT_MESSAGES.USER_STATUS_UPDATED,
         {
           user: userDto,
-        }
+        },
       );
     } catch (error) {
       console.error("Error updating user status:", error);
@@ -144,14 +144,14 @@ export class UserManagementService implements IUserManagementService {
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        USER_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS
+        USER_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS,
       );
     }
   }
 
   async editUser(
     userId: string,
-    userData: EditUserRequestDto
+    userData: EditUserRequestDto,
   ): Promise<UserManagementResponseDto> {
     const context = {
       operation: "editUser",
@@ -166,7 +166,7 @@ export class UserManagementService implements IUserManagementService {
         if (!isValidStatus(status)) {
           this._logger.warn("Invalid status value", context);
           return ResponseHelper.badRequest(
-            USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE
+            USER_MANAGEMENT_MESSAGES.INVALID_STATUS_VALUE,
           );
         }
       }
@@ -180,7 +180,7 @@ export class UserManagementService implements IUserManagementService {
       if (user.isDeleted) {
         this._logger.warn("Deleted user cannot be updated", context);
         return ResponseHelper.forbidden(
-          USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER
+          USER_MANAGEMENT_MESSAGES.CANNOT_UPDATE_DELETED_USER,
         );
       }
 
@@ -188,7 +188,7 @@ export class UserManagementService implements IUserManagementService {
       if (email && !VALIDATION.EMAIL_REGEX.test(email)) {
         this._logger.warn("not a valid email", context);
         return ResponseHelper.badRequest(
-          "Please provide a valid email address"
+          "Please provide a valid email address",
         );
       }
 
@@ -199,10 +199,10 @@ export class UserManagementService implements IUserManagementService {
           fullName.length > VALIDATION.MAX_FULL_NAME_LENGTH)
       ) {
         this._logger.warn(
-          `Full name must be between ${VALIDATION.MIN_FULL_NAME_LENGTH} and ${VALIDATION.MAX_FULL_NAME_LENGTH} characters`
+          `Full name must be between ${VALIDATION.MIN_FULL_NAME_LENGTH} and ${VALIDATION.MAX_FULL_NAME_LENGTH} characters`,
         );
         return ResponseHelper.badRequest(
-          `Full name must be between ${VALIDATION.MIN_FULL_NAME_LENGTH} and ${VALIDATION.MAX_FULL_NAME_LENGTH} characters`
+          `Full name must be between ${VALIDATION.MIN_FULL_NAME_LENGTH} and ${VALIDATION.MAX_FULL_NAME_LENGTH} characters`,
         );
       }
 
@@ -213,10 +213,10 @@ export class UserManagementService implements IUserManagementService {
           phone.length > VALIDATION.MAX_PHONE_LENGTH)
       ) {
         this._logger.warn(
-          `Phone number must be between ${VALIDATION.MIN_PHONE_LENGTH} and ${VALIDATION.MAX_PHONE_LENGTH} characters`
+          `Phone number must be between ${VALIDATION.MIN_PHONE_LENGTH} and ${VALIDATION.MAX_PHONE_LENGTH} characters`,
         );
         return ResponseHelper.badRequest(
-          `Phone number must be between ${VALIDATION.MIN_PHONE_LENGTH} and ${VALIDATION.MAX_PHONE_LENGTH} characters`
+          `Phone number must be between ${VALIDATION.MIN_PHONE_LENGTH} and ${VALIDATION.MAX_PHONE_LENGTH} characters`,
         );
       }
 
@@ -228,13 +228,13 @@ export class UserManagementService implements IUserManagementService {
 
       const updatedUser = await this._userManagementRepository.update(
         userId,
-        updateData
+        updateData,
       );
 
       if (!updatedUser) {
         this._logger.error("Failed to update user", context);
         return ResponseHelper.conflict(
-          USER_MANAGEMENT_MESSAGES.UPDATE_USER_CONFLICT
+          USER_MANAGEMENT_MESSAGES.UPDATE_USER_CONFLICT,
         );
       }
 
@@ -276,18 +276,17 @@ export class UserManagementService implements IUserManagementService {
       if (user.isDeleted) {
         this._logger.error("User already deleted", context);
         return ResponseHelper.badRequest(
-          USER_MANAGEMENT_MESSAGES.USER_ALREADY_DELETED
+          USER_MANAGEMENT_MESSAGES.USER_ALREADY_DELETED,
         );
       }
 
-      const deletedUser = await this._userManagementRepository.softDeleteUser(
-        userId
-      );
+      const deletedUser =
+        await this._userManagementRepository.softDeleteUser(userId);
 
       if (!deletedUser) {
         this._logger.error("Failed to delete user", context);
         return ResponseHelper.conflict(
-          USER_MANAGEMENT_MESSAGES.DELETE_CONFLICT
+          USER_MANAGEMENT_MESSAGES.DELETE_CONFLICT,
         );
       }
 
@@ -332,7 +331,7 @@ export class UserManagementService implements IUserManagementService {
         USER_MANAGEMENT_MESSAGES.USER_STATS_RETRIEVED,
         {
           stats: statsDto,
-        }
+        },
       );
     } catch (error) {
       console.error("Error fetching user stats:", error);
@@ -362,7 +361,7 @@ export class UserManagementService implements IUserManagementService {
       if (user.isDeleted) {
         this._logger.warn("User has been deleted", context);
         return ResponseHelper.forbidden(
-          USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER
+          USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER,
         );
       }
 
@@ -409,7 +408,7 @@ export class UserManagementService implements IUserManagementService {
       if (user.isDeleted) {
         this._logger.warn("User has been deleted", context);
         return ResponseHelper.forbidden(
-          USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER
+          USER_MANAGEMENT_MESSAGES.CANNOT_ACCESS_DELETED_USER,
         );
       }
 

@@ -12,7 +12,7 @@ import { ILogger } from "@/interfaces/utils/ILogger";
 import {
   toCategoryListResponseDto,
   toCategoryResponseDto,
-} from "@/mappers/categoryMapper";
+} from "../mappers/categoryMapper";
 
 export class CategoryService implements ICategoryService {
   private _categoryRepository: ICategoryRepository;
@@ -24,7 +24,7 @@ export class CategoryService implements ICategoryService {
   }
 
   async createCategory(
-    createDto: CreateCategoryDto
+    createDto: CreateCategoryDto,
   ): Promise<CategoryResponseDto> {
     const context = {
       operation: "createCategory",
@@ -45,7 +45,7 @@ export class CategoryService implements ICategoryService {
       });
 
       const existingCategory = await this._categoryRepository.findByName(
-        createDto.name
+        createDto.name,
       );
 
       if (existingCategory) {
@@ -54,14 +54,14 @@ export class CategoryService implements ICategoryService {
           {
             ...context,
             existingCategoryId: existingCategory._id?.toString(),
-          }
+          },
         );
         throw new Error(CATEGORY_MESSAGES.CATEGORY_ALREADY_EXISTS);
       }
 
       this._logger.debug(
         "No duplicate found, proceeding with category creation",
-        context
+        context,
       );
 
       const category = await this._categoryRepository.create(createDto);
@@ -177,7 +177,7 @@ export class CategoryService implements ICategoryService {
   async getAllCategories(
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
   ): Promise<CategoryListResponseDto> {
     const context = {
       operation: "getAllCategories",
@@ -242,7 +242,7 @@ export class CategoryService implements ICategoryService {
             ...category.toObject(),
             serviceCount,
           };
-        })
+        }),
       );
 
       this._logger.debug("Service counts calculated for all categories", {
@@ -254,7 +254,7 @@ export class CategoryService implements ICategoryService {
         categoriesWithCounts,
         total,
         page,
-        limit
+        limit,
       );
 
       this._logger.info("All categories retrieved successfully", {
@@ -278,7 +278,7 @@ export class CategoryService implements ICategoryService {
 
   async updateCategory(
     categoryId: string,
-    updateDto: UpdateCategoryDto
+    updateDto: UpdateCategoryDto,
   ): Promise<CategoryResponseDto> {
     const context = {
       operation: "updateCategory",
@@ -294,9 +294,8 @@ export class CategoryService implements ICategoryService {
       // Check if category exists
       this._logger.debug("Checking if category exists", context);
 
-      const existingCategory = await this._categoryRepository.findById(
-        categoryId
-      );
+      const existingCategory =
+        await this._categoryRepository.findById(categoryId);
 
       if (!existingCategory) {
         this._logger.warn("Category not found for update", context);
@@ -316,11 +315,11 @@ export class CategoryService implements ICategoryService {
           {
             ...context,
             newName: updateDto.name,
-          }
+          },
         );
 
         const duplicateCategory = await this._categoryRepository.findByName(
-          updateDto.name
+          updateDto.name,
         );
 
         if (
@@ -336,7 +335,7 @@ export class CategoryService implements ICategoryService {
 
         this._logger.debug(
           "No duplicate name found, proceeding with update",
-          context
+          context,
         );
       }
 
@@ -344,7 +343,7 @@ export class CategoryService implements ICategoryService {
 
       const updatedCategory = await this._categoryRepository.update(
         categoryId,
-        updateDto
+        updateDto,
       );
 
       if (!updatedCategory) {
@@ -382,9 +381,8 @@ export class CategoryService implements ICategoryService {
       // Check if category exists
       this._logger.debug("Checking if category exists for deletion", context);
 
-      const existingCategory = await this._categoryRepository.findById(
-        categoryId
-      );
+      const existingCategory =
+        await this._categoryRepository.findById(categoryId);
 
       if (!existingCategory) {
         this._logger.warn("Category not found for deletion", context);
@@ -401,7 +399,7 @@ export class CategoryService implements ICategoryService {
       if (!deleted) {
         this._logger.error(
           "Category repository deletion returned false",
-          context
+          context,
         );
         throw new Error(CATEGORY_MESSAGES.FAILED_DELETE_CATEGORY);
       }
@@ -421,7 +419,7 @@ export class CategoryService implements ICategoryService {
 
   async searchCategories(
     query: string,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<CategoryResponseDto[]> {
     const context = {
       operation: "searchCategories",

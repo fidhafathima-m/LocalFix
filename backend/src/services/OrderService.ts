@@ -9,29 +9,30 @@ import { IOrderService } from "@/interfaces/services/user/IOrderService";
 import { ITechnicianRepository } from "@/interfaces/repository/technician/ITechnicianRepository";
 import { INotificationService } from "@/interfaces/services/INotificationService";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import { SocketService } from "./SocketService";
 
 export class OrderService implements IOrderService {
   private _logger: ILogger;
   private _orderRepository: IOrderRepository;
   private _technicianRepository: ITechnicianRepository;
-  private _notificationService: INotificationService;
+  private _socketService: SocketService;
 
   constructor(
     orderRepository: IOrderRepository,
     technicianRepository: ITechnicianRepository,
-    notificationService: INotificationService,
-    logger: ILogger
+    socketService: SocketService,
+    logger: ILogger,
   ) {
     this._logger = logger;
     this._orderRepository = orderRepository;
     this._technicianRepository = technicianRepository;
-    this._notificationService = notificationService
+    this._socketService = socketService;
   }
 
   async getUserOrders(
     userId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ApiResponse<OrderListResponseDto>> {
     const context = {
       operation: "getUserOrders",
@@ -44,7 +45,7 @@ export class OrderService implements IOrderService {
       const result = await this._orderRepository.findByUserId(
         userId,
         page,
-        limit
+        limit,
       );
 
       this._logger.info("User orders retrieved successfully", {
@@ -78,7 +79,7 @@ export class OrderService implements IOrderService {
 
   async getOrderById(
     userId: string,
-    orderId: string
+    orderId: string,
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
       operation: "getOrderById",
@@ -131,99 +132,105 @@ export class OrderService implements IOrderService {
   }
 
   // In orderService.ts - update createOrderFromBooking method
-async createOrderFromBooking(
-  bookingId: string,
-  paymentData: {
-    method: 'online' | 'cod';
-    amount: number;
-    status: 'pending' | 'paid' | 'failed';
-    transactionId?: string;
-    paidAt?: Date;
-  }
-): Promise<ApiResponse<OrderResponseDto>> {
-  const context = {
-    operation: "createOrderFromBooking",
-    data: { bookingId, ...paymentData },
-  };
+  async createOrderFromBooking(
+    bookingId: string,
+    paymentData: {
+      method: "online" | "cod";
+      amount: number;
+      status: "pending" | "paid" | "failed";
+      transactionId?: string;
+      paidAt?: Date;
+    },
+  ): Promise<ApiResponse<OrderResponseDto>> {
+    const context = {
+      operation: "createOrderFromBooking",
+      data: { bookingId, ...paymentData },
+    };
 
-  try {
-    this._logger.info("Creating/updating order from booking", context);
+    try {
+      this._logger.info("Creating/updating order from booking", context);
 
-    const existingOrder = await this._orderRepository.findByBookingId(bookingId);
+      const existingOrder =
+        await this._orderRepository.findByBookingId(bookingId);
 
-    let order;
+      let order;
 
-    if (existingOrder) {
-      this._logger.info("Updating existing order for payment retry", {
-        ...context,
-        existingOrderId: existingOrder._id.toString(),
-      });
+      if (existingOrder) {
+        this._logger.info("Updating existing order for payment retry", {
+          ...context,
+          existingOrderId: existingOrder._id.toString(),
+        });
 
-      // Update payment details and status - allow status updates for failed payments
-      order = await this._orderRepository.updatePaymentDetails(
-        existingOrder._id.toString(),
-        paymentData
+        // Update payment details and status - allow status updates for failed payments
+        order = await this._orderRepository.updatePaymentDetails(
+          existingOrder._id.toString(),
+          paymentData,
+        );
+
+        if (!order) {
+          this._logger.error("Failed to update existing order", context);
+          return ResponseHelper.error(
+            "Failed to update order for payment retry",
+          );
+        }
+
+        this._logger.info("Existing order updated successfully", {
+          ...context,
+          orderId: order._id.toString(),
+        });
+      } else {
+        // CREATE new order - even for failed payments
+        this._logger.info("Creating new order from booking", context);
+        order = await this._orderRepository.createFromBooking(
+          bookingId,
+          paymentData,
+        );
+
+        if (!order) {
+          this._logger.error("Failed to create order from booking", context);
+          return ResponseHelper.error("Failed to create order");
+        }
+
+        this._logger.info("New order created successfully", {
+          ...context,
+          orderId: order._id.toString(),
+          orderCode: order.orderCode,
+          paymentStatus: paymentData.status,
+        });
+
+        // Only send notifications for successful payments
+        if (paymentData.status === "paid") {
+          await this.notifyUserAboutOrderStatusChange(order, "confirmed");
+          await this.notifyTechnicianAboutNewOrder(order);
+        } else if (paymentData.status === "failed") {
+          // Send failure notification
+          await this.notifyUserAboutPayment(order, "failed");
+        }
+      }
+
+      const orderDto = this.mapToDto(order);
+      return ResponseHelper.created(
+        existingOrder
+          ? "Order updated successfully"
+          : "Order created successfully",
+        orderDto,
       );
-
-      if (!order) {
-        this._logger.error("Failed to update existing order", context);
-        return ResponseHelper.error("Failed to update order for payment retry");
-      }
-
-      this._logger.info("Existing order updated successfully", {
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this._logger.error("Error creating/updating order from booking", {
         ...context,
-        orderId: order._id.toString(),
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
       });
-    } else {
-      // CREATE new order - even for failed payments
-      this._logger.info("Creating new order from booking", context);
-      order = await this._orderRepository.createFromBooking(
-        bookingId,
-        paymentData
-      );
-
-      if (!order) {
-        this._logger.error("Failed to create order from booking", context);
-        return ResponseHelper.error("Failed to create order");
-      }
-
-      this._logger.info("New order created successfully", {
-        ...context,
-        orderId: order._id.toString(),
-        orderCode: order.orderCode,
-        paymentStatus: paymentData.status,
-      });
-
-      // Only send notifications for successful payments
-      if (paymentData.status === 'paid') {
-        await this.notifyUserAboutOrderStatusChange(order, "confirmed");
-        await this.notifyTechnicianAboutNewOrder(order);
-      } else if (paymentData.status === 'failed') {
-        // Send failure notification
-        await this.notifyUserAboutPayment(order, 'failed');
-      }
+      return ResponseHelper.error("Failed to process order");
     }
-
-    const orderDto = this.mapToDto(order);
-    return ResponseHelper.created(
-      existingOrder ? "Order updated successfully" : "Order created successfully",
-      orderDto
-    );
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    this._logger.error("Error creating/updating order from booking", {
-      ...context,
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return ResponseHelper.error("Failed to process order");
   }
-}
 
   async cancelOrder(
     userId: string,
     orderId: string,
-    reason: string
+    reason: string,
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
       operation: "cancelOrder",
@@ -256,7 +263,7 @@ async createOrderFromBooking(
           currentStatus: order.status,
         });
         return ResponseHelper.badRequest(
-          `Order cannot be cancelled in ${order.status} status`
+          `Order cannot be cancelled in ${order.status} status`,
         );
       }
 
@@ -264,7 +271,7 @@ async createOrderFromBooking(
         orderId,
         "cancelled",
         "user",
-        reason
+        reason,
       );
 
       if (!updatedOrder) {
@@ -360,7 +367,7 @@ async createOrderFromBooking(
   async getTechnicianOrders(
     userId: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ApiResponse<OrderListResponseDto>> {
     const context = {
       operation: "getTechnicianOrders",
@@ -395,7 +402,7 @@ async createOrderFromBooking(
       const result = await this._orderRepository.findByTechnicianId(
         technicianId,
         page,
-        limit
+        limit,
       );
 
       this._logger.info("Technician orders retrieved successfully", {
@@ -430,7 +437,7 @@ async createOrderFromBooking(
 
   async getTechnicianOrderById(
     technicianId: string,
-    orderId: string
+    orderId: string,
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
       operation: "getTechnicianOrderById",
@@ -480,7 +487,7 @@ async createOrderFromBooking(
     orderId: string,
     status: string,
     updatedBy: string,
-    reason?: string
+    reason?: string,
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
       operation: "updateOrderStatus",
@@ -494,7 +501,7 @@ async createOrderFromBooking(
         orderId,
         status,
         updatedBy,
-        reason
+        reason,
       );
 
       if (!updatedOrder) {
@@ -503,7 +510,7 @@ async createOrderFromBooking(
       }
 
       this._logger.info(
-        "Order updated successfully, now triggering notifications"
+        "Order updated successfully, now triggering notifications",
       );
 
       await this.notifyUserAboutOrderStatusChange(updatedOrder, status);
@@ -522,7 +529,7 @@ async createOrderFromBooking(
       const orderDto = this.mapToDto(updatedOrder);
       return ResponseHelper.success(
         "Order status updated successfully",
-        orderDto
+        orderDto,
       );
     } catch (error) {
       const errorMessage =
@@ -553,16 +560,17 @@ async createOrderFromBooking(
     try {
       this._logger.info("Fetching technician order stats", context);
 
-      const stats = await this._orderRepository.getTechnicianStats(technicianId);
+      const stats =
+        await this._orderRepository.getTechnicianStats(technicianId);
 
       this._logger.info(
         "Technician order stats retrieved successfully",
-        context
+        context,
       );
 
       return ResponseHelper.success(
         "Order stats retrieved successfully",
-        stats
+        stats,
       );
     } catch (error) {
       const errorMessage =
@@ -579,7 +587,7 @@ async createOrderFromBooking(
     technicianId: string,
     date: string,
     timeSlot: string,
-    excludeOrderId?: string
+    excludeOrderId?: string,
   ): Promise<boolean> {
     try {
       const conflictingOrders =
@@ -587,7 +595,7 @@ async createOrderFromBooking(
           technicianId,
           date,
           timeSlot,
-          excludeOrderId
+          excludeOrderId,
         );
 
       return conflictingOrders.length === 0;
@@ -606,7 +614,7 @@ async createOrderFromBooking(
     userId: string,
     orderId: string,
     newDate: string,
-    newTimeSlot: string
+    newTimeSlot: string,
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
       operation: "rescheduleOrder",
@@ -630,10 +638,10 @@ async createOrderFromBooking(
       if (realOrderId !== userId) {
         this._logger.warn(
           "User not authorized to reschedule this order",
-          context
+          context,
         );
         return ResponseHelper.forbidden(
-          "Not authorized to reschedule this order"
+          "Not authorized to reschedule this order",
         );
       }
 
@@ -644,7 +652,7 @@ async createOrderFromBooking(
           currentStatus: order.status,
         });
         return ResponseHelper.badRequest(
-          `Order cannot be rescheduled in ${order.status} status`
+          `Order cannot be rescheduled in ${order.status} status`,
         );
       }
 
@@ -660,10 +668,10 @@ async createOrderFromBooking(
             ...context,
             scheduledAt,
             fourHoursFromNow,
-          }
+          },
         );
         return ResponseHelper.badRequest(
-          "New date must be at least 4 hours from now"
+          "New date must be at least 4 hours from now",
         );
       }
 
@@ -672,16 +680,16 @@ async createOrderFromBooking(
         order.technicianId.toString(),
         newDate,
         newTimeSlot,
-        orderId
+        orderId,
       );
 
       if (!isAvailable) {
         this._logger.warn(
           "Technician not available for the selected slot",
-          context
+          context,
         );
         return ResponseHelper.badRequest(
-          "Technician is not available for the selected date and time"
+          "Technician is not available for the selected date and time",
         );
       }
 
@@ -689,7 +697,7 @@ async createOrderFromBooking(
         orderId,
         newDate,
         newTimeSlot,
-        "user"
+        "user",
       );
 
       if (!updatedOrder) {
@@ -723,7 +731,7 @@ async createOrderFromBooking(
   }
 
   private async getTechnicianIdByUserId(
-    userId: string
+    userId: string,
   ): Promise<string | null> {
     try {
       this._logger.debug("Looking up technician ID for user", { userId });
@@ -751,7 +759,7 @@ async createOrderFromBooking(
   }
   async getOrderByBookingId(
     userId: string,
-    bookingId: string
+    bookingId: string,
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
       operation: "getOrderByBookingId",
@@ -804,7 +812,7 @@ async createOrderFromBooking(
       status: "pending" | "paid" | "failed";
       transactionId?: string;
       paidAt?: Date;
-    }
+    },
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
       operation: "updateOrderPayment",
@@ -816,7 +824,7 @@ async createOrderFromBooking(
 
       const updatedOrder = await this._orderRepository.updatePaymentDetails(
         orderId,
-        paymentData
+        paymentData,
       );
 
       if (!updatedOrder) {
@@ -830,7 +838,7 @@ async createOrderFromBooking(
       const orderDto = this.mapToDto(updatedOrder);
       return ResponseHelper.success(
         "Order payment updated successfully",
-        orderDto
+        orderDto,
       );
     } catch (error) {
       const errorMessage =
@@ -852,23 +860,24 @@ async createOrderFromBooking(
         technicianId: order.technicianId.toString(),
       };
 
-      this._logger.info("Sending new order notification to technician", context);
+      this._logger.info(
+        "Sending new order notification to technician",
+        context,
+      );
 
       // Get technician details for personalized notification
       const technician = await this._technicianRepository.findById(
-        order.technicianId.toString()
+        order.technicianId.toString(),
       );
 
       if (!technician) {
         this._logger.warn("Technician not found for notification", context);
         return;
       }
-
-      // Create notification for technician
-      await this._notificationService.createNewBookingNotification(
-        technician._id.toString(),
+      await this._socketService.notifyNewBookingToTechnician(
+        order.technicianId.toString(),
         order._id.toString(),
-        order.serviceName || "Service"
+        order.serviceName,
       );
 
       this._logger.info("New order notification sent successfully", {
@@ -888,7 +897,7 @@ async createOrderFromBooking(
 
   private async notifyTechnicianAboutOrderStatusChange(
     order: any,
-    newStatus: string
+    newStatus: string,
   ): Promise<void> {
     try {
       const context = {
@@ -900,18 +909,18 @@ async createOrderFromBooking(
 
       this._logger.info(
         "Sending order status change notification to technician",
-        context
+        context,
       );
 
       // Get technician details
       const technician = await this._technicianRepository.findById(
-        order.technicianId.toString()
+        order.technicianId.toString(),
       );
 
       if (!technician) {
         this._logger.warn(
           "Technician not found for status change notification",
-          context
+          context,
         );
         return;
       }
@@ -939,24 +948,26 @@ async createOrderFromBooking(
         default:
           return; // Don't send notification for other status changes
       }
-
-      await this._notificationService.createNotification({
-        userId: technician._id.toString(),
-        userType: "technician",
-        type: "order_update",
-        title: notificationTitle,
-        message: notificationMessage,
-        priority: "medium",
-        data: {
-          orderId: order._id.toString(),
-          serviceType: order.serviceName,
-          newStatus,
+      await this._socketService.sendLiveNotification(
+        technician._id.toString(),
+        {
+          userId: technician._id.toString(),
+          userType: "technician",
+          type: "order_update",
+          title: notificationTitle,
+          message: notificationMessage,
+          priority: "medium",
+          data: {
+            orderId: order._id.toString(),
+            serviceType: order.serviceName,
+            newStatus,
+          },
         },
-      });
+      );
 
       this._logger.info(
         "Order status change notification sent successfully",
-        context
+        context,
       );
     } catch (error) {
       // Don't fail the order update if notification fails
@@ -966,13 +977,13 @@ async createOrderFromBooking(
           orderId: order._id.toString(),
           technicianId: order.technicianId.toString(),
           error: error instanceof Error ? error.message : "Unknown error",
-        }
+        },
       );
     }
   }
   private async notifyUserAboutOrderStatusChange(
     order: any,
-    newStatus: string
+    newStatus: string,
   ): Promise<void> {
     try {
       const context = {
@@ -1035,24 +1046,12 @@ async createOrderFromBooking(
         actionUrl,
       });
 
-      await this._notificationService.createNotification({
-        userId: order.userId.toString(),
-        userType: "customer",
-        type: notificationType,
-        title: notificationTitle,
-        message: notificationMessage,
-        priority,
-        actionUrl,
-        data: {
-          orderId: order._id.toString(),
-          bookingId: order.bookingId.toString(),
-          serviceType: order.serviceName,
-          newStatus,
-          technicianName: order.technicianId?.displayName || "Technician",
-          trackingEnabled: newStatus === "on_the_way",
-          liveLocationUrl: `/tracking/${order.orderId}`,
-        },
-      });
+      await this._socketService.notifyOrderStatusUpdate(
+        order.userId.toString(),
+        order._id.toString(),
+        newStatus,
+        order.serviceName,
+      );
 
       this._logger.info("=== NOTIFICATION CREATED SUCCESSFULLY ===", {
         userId: order.userId.toString(),
@@ -1069,7 +1068,7 @@ async createOrderFromBooking(
   // Remove the sendPushNotification method entirely
   private async notifyUserAboutPayment(
     order: any,
-    paymentStatus: string
+    paymentStatus: string,
   ): Promise<void> {
     try {
       const context = {
@@ -1100,20 +1099,13 @@ async createOrderFromBooking(
         message: notificationMessage,
       });
 
-      await this._notificationService.createNotification({
-        userId: order.userId.toString(),
-        userType: "customer",
-        type: "payment_success",
-        title: notificationTitle,
-        message: notificationMessage,
-        priority: "high",
-        data: {
-          orderId: order._id.toString(),
-          serviceType: order.serviceName,
-          amount: order.payment.amount,
-          paymentStatus,
-        },
-      });
+      if (paymentStatus === "paid") {
+        await this._socketService.notifyPaymentSuccess(
+          order.userId.toString(),
+          order.payment.amount,
+          order.serviceName,
+        );
+      }
 
       this._logger.info("=== PAYMENT NOTIFICATION CREATED SUCCESSFULLY ===");
     } catch (error) {
@@ -1126,7 +1118,7 @@ async createOrderFromBooking(
   }
   async getOrdersByTechnicianAndDate(
     technicianId: string,
-    date: Date
+    date: Date,
   ): Promise<IOrder[]> {
     const context = {
       operation: "getOrdersByTechnicianAndDate",
@@ -1138,7 +1130,7 @@ async createOrderFromBooking(
 
       const orders = await this._orderRepository.getOrdersByTechnicianAndDate(
         technicianId,
-        date
+        date,
       );
 
       this._logger.info("Orders retrieved successfully", {

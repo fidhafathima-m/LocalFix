@@ -10,7 +10,10 @@ import { ITEM_MESSAGES } from "../constants";
 import { Types } from "mongoose";
 import { LoggerService } from "../services/LoggerService";
 import { ILogger } from "@/interfaces/utils/ILogger";
-import { toItemListResponseDto, toItemResponseDto } from "@/mappers/itemMapper";
+import {
+  toItemListResponseDto,
+  toItemResponseDto,
+} from "../mappers/itemMapper";
 
 export class ItemService implements IItemService {
   private _itemRepository: IItemRepository;
@@ -35,7 +38,7 @@ export class ItemService implements IItemService {
 
       // Check if item with same name already exists for this service
       const existingItem = await this._itemRepository.findByName(
-        createDto.name
+        createDto.name,
       );
       if (existingItem) {
         this._logger.warn("Item creation failed - item already exists", {
@@ -113,7 +116,7 @@ export class ItemService implements IItemService {
     serviceId: string,
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
   ): Promise<ItemListResponseDto> {
     const context = {
       operation: "getItemsByServiceId",
@@ -144,7 +147,7 @@ export class ItemService implements IItemService {
         items = await this._itemRepository.searchByService(
           serviceId,
           search,
-          limit
+          limit,
         );
         total = items.length;
       } else {
@@ -174,7 +177,7 @@ export class ItemService implements IItemService {
   async getAllItems(
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
   ): Promise<ItemListResponseDto> {
     const context = {
       operation: "getAllItems",
@@ -224,7 +227,7 @@ export class ItemService implements IItemService {
 
   async updateItem(
     itemId: string,
-    updateDto: UpdateItemDto
+    updateDto: UpdateItemDto,
   ): Promise<ItemResponseDto> {
     const context = {
       operation: "updateItem",
@@ -252,7 +255,7 @@ export class ItemService implements IItemService {
         });
 
         const duplicateItem = await this._itemRepository.findByName(
-          updateDto.name
+          updateDto.name,
         );
         if (duplicateItem && duplicateItem._id.toString() !== itemId) {
           this._logger.warn("Update failed - item name already exists", {
@@ -317,7 +320,7 @@ export class ItemService implements IItemService {
       if (!deleted) {
         this._logger.error(
           "Delete failed - repository returned false",
-          context
+          context,
         );
         throw new Error(ITEM_MESSAGES.FAILED_DELETE_ITEM);
       }
@@ -335,7 +338,7 @@ export class ItemService implements IItemService {
 
   async searchItems(
     query: string,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<ItemResponseDto[]> {
     const context = {
       operation: "searchItems",

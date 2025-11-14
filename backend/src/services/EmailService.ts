@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import { IEmailOptions } from "../interfaces/IEmailOptions";
 import { IEmailService } from "../interfaces/services/IEmailService";
 
-class EmailService implements IEmailService {
+export class EmailService implements IEmailService {
   private _transporter: nodemailer.Transporter;
 
   constructor() {
@@ -32,7 +32,7 @@ class EmailService implements IEmailService {
 
   async sendApplicationApprovalEmail(
     technicianEmail: string,
-    technicianName: string
+    technicianName: string,
   ): Promise<boolean> {
     const subject = "Your Technician Application Has Been Approved!";
     const html = `
@@ -90,7 +90,7 @@ class EmailService implements IEmailService {
   async sendApplicationRejectionEmail(
     technicianEmail: string,
     technicianName: string,
-    rejectionReason: string
+    rejectionReason: string,
   ): Promise<boolean> {
     const subject = "Update on Your Technician Application";
     const html = `
@@ -162,7 +162,7 @@ class EmailService implements IEmailService {
     technicianEmail: string,
     technicianName: string,
     newStatus: string,
-    reason?: string
+    reason?: string,
   ): Promise<boolean> {
     const subject = `🔄 Account Status Update: ${newStatus.toUpperCase()}`;
 
@@ -235,13 +235,13 @@ class EmailService implements IEmailService {
 
     return await this.sendEmail({ to: technicianEmail, subject, html });
   }
-   async sendTechnicianUnavailableNotification(
+  async sendTechnicianUnavailableNotification(
     customerEmail: string,
     customerName: string,
     technicianName: string,
     serviceDate: string,
     serviceType: string,
-    orderId: string
+    orderId: string,
   ): Promise<boolean> {
     const subject = `Service Update: Your ${serviceType} appointment needs rescheduling`;
     const html = `

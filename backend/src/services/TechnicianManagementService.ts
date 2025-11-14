@@ -53,11 +53,12 @@ import { TechnicianAvailabilityService } from "./AvailabilityService";
 import { RRule } from "rrule";
 import { INotificationService } from "@/interfaces/services/INotificationService";
 import { ILogger } from "@/interfaces/utils/ILogger";
-import { toTechnicianDetailDto } from "@/mappers/technicianMappers";
+import { toTechnicianDetailDto } from "../mappers/technicianMappers";
 import {
   toApplicationDetailDto,
   toApplicationListDto,
-} from "@/mappers/applicationMapper";
+} from "../mappers/applicationMapper";
+import { SocketService } from "./SocketService";
 
 interface DocumentInfo {
   url: string;
@@ -113,16 +114,16 @@ export class TechnicianManagementService
 {
   private _technicianRepository: ITechnicianManagementRepository;
   private _logger: ILogger;
-  private _notificationService: INotificationService;
+  private _socketService: SocketService;
 
   constructor(
     technicianRepository: ITechnicianManagementRepository,
-    notificationService: INotificationService,
-    logger: ILogger
+    socketService: SocketService,
+    logger: ILogger,
   ) {
     this._technicianRepository = technicianRepository;
     this._logger = logger;
-    this._notificationService = notificationService;
+    this._socketService = socketService;
   }
 
   private formatApplicationDocuments(documents: unknown): FormattedDocuments {
@@ -146,7 +147,7 @@ export class TechnicianManagementService
   }
 
   async getAllTechnicians(
-    filters: TechnicianFiltersDto
+    filters: TechnicianFiltersDto,
   ): Promise<TechnicianListResponseDto> {
     const context = {
       operation: "getAllTechnicians",
@@ -224,7 +225,7 @@ export class TechnicianManagementService
       const technicians = await this._technicianRepository.findAllTechnicians(
         filter,
         skip,
-        limitNum
+        limitNum,
       );
       const total = await this._technicianRepository.countTechnicians(filter);
 
@@ -234,14 +235,14 @@ export class TechnicianManagementService
           ...context,
           count: technicians.length,
           total,
-        }
+        },
       );
 
       const technicianDtos: TechnicianListDto[] = await Promise.all(
         technicians.map(async (tech: ITechnician) => {
           const adminTechnician = await this.convertToAdminTechnician(tech);
           return this.mapAdminTechnicianToListDto(adminTechnician);
-        })
+        }),
       );
 
       this._logger.info("Successfully retrieved technicians", {
@@ -261,7 +262,7 @@ export class TechnicianManagementService
             hasNext: pageNum < Math.ceil(total / limitNum),
             hasPrev: pageNum > 1,
           },
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -272,13 +273,13 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS,
       );
     }
   }
 
   private mapAdminTechnicianToListDto(
-    adminTechnician: IAdminTechnician
+    adminTechnician: IAdminTechnician,
   ): TechnicianListDto {
     return {
       _id: adminTechnician._id.toString(),
@@ -309,13 +310,12 @@ export class TechnicianManagementService
     };
     try {
       this._logger.info("Fetching technician by ID", context);
-      const technician = await this._technicianRepository.findTechnicianById(
-        id
-      );
+      const technician =
+        await this._technicianRepository.findTechnicianById(id);
 
       if (!technician) {
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -330,7 +330,7 @@ export class TechnicianManagementService
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_RETRIEVED,
         {
           technician: technicianDto,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -341,13 +341,13 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN,
       );
     }
   }
 
   private async convertToAdminTechnician(
-    technician: ITechnician
+    technician: ITechnician,
   ): Promise<IAdminTechnician> {
     const context = {
       operation: "convertToAdminTechnician",
@@ -357,21 +357,21 @@ export class TechnicianManagementService
     try {
       this._logger.debug("Converting technician to admin view", context);
       const user = await this._technicianRepository.findUserById(
-        technician.userId as Types.ObjectId
+        technician.userId as Types.ObjectId,
       );
 
       // Get technician's application data for personal info
       const application =
         await this._technicianRepository.findApplicationByTechnicianId(
-          technician._id.toString()
+          technician._id.toString(),
         );
 
       const userAddress = await this._technicianRepository.findUserAddress(
-        technician.userId as Types.ObjectId
+        technician.userId as Types.ObjectId,
       );
 
       const availabilityData = await this.getAvailabilityForFrontend(
-        technician._id.toString()
+        technician._id.toString(),
       );
       let finalAvailability = availabilityData;
       if (technician.availability?.weeklyPattern) {
@@ -382,7 +382,7 @@ export class TechnicianManagementService
       }
       const mapStatus = (
         status: string,
-        application?: ITechnicianApplication
+        application?: ITechnicianApplication,
       ): "pending" | "approved" | "rejected" | "suspended" => {
         if (
           application &&
@@ -408,7 +408,7 @@ export class TechnicianManagementService
       const getPersonalInfo = (
         technician: ITechnician,
         application?: ITechnicianApplication,
-        userAddress?: IAddress | null | IUserAddress
+        userAddress?: IAddress | null | IUserAddress,
       ): PersonalInfo => {
         const hasRealTechnicianData =
           technician.personalInfo &&
@@ -499,16 +499,16 @@ export class TechnicianManagementService
       const personalInfo = getPersonalInfo(
         technician,
         application || undefined,
-        userAddress
+        userAddress,
       );
 
       const getDocuments = (
         technician: ITechnician,
-        application?: ITechnicianApplication
+        application?: ITechnicianApplication,
       ): FormattedDocuments => {
         if (application?.documents) {
           const formattedDocs = this.formatApplicationDocuments(
-            application.documents
+            application.documents,
           );
           return formattedDocs;
         }
@@ -569,7 +569,7 @@ export class TechnicianManagementService
       };
       this._logger.debug(
         "Successfully converted technician to admin view",
-        context
+        context,
       );
 
       return adminTechnician;
@@ -588,14 +588,13 @@ export class TechnicianManagementService
   private async getAvailabilityForFrontend(technicianId: string): Promise<any> {
     try {
       // Get active slot rules
-      const slotRules = await this._technicianRepository.getActiveSlotRules(
-        technicianId
-      );
+      const slotRules =
+        await this._technicianRepository.getActiveSlotRules(technicianId);
 
       // Convert slot rules to frontend schedule format
       const schedule = await this.convertSlotRulesToSchedule(
         slotRules,
-        technicianId
+        technicianId,
       );
 
       return {
@@ -617,7 +616,7 @@ export class TechnicianManagementService
 
   private async convertSlotRulesToSchedule(
     slotRules: any[],
-    technicianId: string
+    technicianId: string,
   ): Promise<any[]> {
     const days = [
       "monday",
@@ -748,7 +747,7 @@ export class TechnicianManagementService
 
   async updateTechnicianStatus(
     id: string,
-    statusData: UpdateStatusRequestDto
+    statusData: UpdateStatusRequestDto,
   ): Promise<SingleTechnicianResponseDto> {
     const context = {
       operation: "updateTechnicianStatus",
@@ -767,7 +766,7 @@ export class TechnicianManagementService
       if (
         !status ||
         !VALID_STATUS_VALUES.includes(
-          status as "approved" | "rejected" | "suspended"
+          status as "approved" | "rejected" | "suspended",
         )
       ) {
         this._logger.warn("Invalid status provided", {
@@ -775,7 +774,7 @@ export class TechnicianManagementService
           providedStatus: status,
         });
         return ResponseHelper.badRequest(
-          TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED
+          TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED,
         );
       }
       // Prepare update data
@@ -804,13 +803,13 @@ export class TechnicianManagementService
         await this._technicianRepository.updateTechnicianStatus(
           id,
           status,
-          updateData
+          updateData,
         );
 
       if (!technician) {
         this._logger.warn("Technician not found for status update", context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -818,7 +817,7 @@ export class TechnicianManagementService
 
       // Get user data for email
       const user = await this._technicianRepository.findUserById(
-        technician.userId as Types.ObjectId
+        technician.userId as Types.ObjectId,
       );
 
       let emailSent = false;
@@ -834,7 +833,7 @@ export class TechnicianManagementService
         if (status === TECHNICIAN_STATUS.APPROVED) {
           emailSent = await emailService.sendApplicationApprovalEmail(
             user.email,
-            technician.displayName
+            technician.displayName,
           );
           emailMessage = emailSent
             ? TECHNICIAN_MANAGEMENT_MESSAGES.APPROVAL_EMAIL_SENT
@@ -842,19 +841,19 @@ export class TechnicianManagementService
 
           await this._technicianRepository.updateApplicationStatus(
             id,
-            APPLICATION_STATUS.APPROVED
+            APPLICATION_STATUS.APPROVED,
           );
         } else {
           emailSent = await emailService.sendStatusUpdateEmail(
             user.email,
             technician.displayName,
             status,
-            reason
+            reason,
           );
           emailMessage = emailSent
             ? TECHNICIAN_MANAGEMENT_MESSAGES.STATUS_EMAIL_SENT.replace(
                 "${status}",
-                status
+                status,
               )
             : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
         }
@@ -863,7 +862,7 @@ export class TechnicianManagementService
           {
             ...context,
             emailSent,
-          }
+          },
         );
       }
 
@@ -875,11 +874,11 @@ export class TechnicianManagementService
       return ResponseHelper.success(
         `${TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATUS_UPDATED.replace(
           "${status}",
-          status
+          status,
         )}${emailMessage}`,
         {
           technician: technicianDto,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -890,7 +889,7 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS,
       );
     }
   }
@@ -911,7 +910,7 @@ export class TechnicianManagementService
 
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATS_RETRIEVED,
-        stats
+        stats,
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -922,13 +921,13 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS,
       );
     }
   }
 
   async getPendingApplications(
-    filters: ApplicationFiltersDto
+    filters: ApplicationFiltersDto,
   ): Promise<ApplicationListResponseDto> {
     const context = {
       operation: "getPendingApplications",
@@ -977,12 +976,12 @@ export class TechnicianManagementService
       const applications = await this._technicianRepository.findAllApplications(
         filter,
         skip,
-        limitNum
+        limitNum,
       );
       const total = await this._technicianRepository.countApplications(filter);
 
       const applicationDtos: ApplicationListDto[] = applications.map((app) =>
-        toApplicationListDto(app)
+        toApplicationListDto(app),
       );
 
       this._logger.info(`Found application`, {
@@ -1001,7 +1000,7 @@ export class TechnicianManagementService
             total,
             pages: Math.ceil(total / limitNum),
           },
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1012,7 +1011,7 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS,
       );
     }
   }
@@ -1025,34 +1024,33 @@ export class TechnicianManagementService
     };
     try {
       this._logger.info("Approving application", context);
-      const application = await this._technicianRepository.findApplicationById(
-        id
-      );
+      const application =
+        await this._technicianRepository.findApplicationById(id);
       if (!application) {
         this._logger.warn("Application not found for approval", context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND,
         );
       }
 
       const availabilityService = new TechnicianAvailabilityService(
-        this._logger
+        this._logger,
       );
 
       // Update application status
       const updatedApplication =
         await this._technicianRepository.updateApplicationStatus(
           id,
-          APPLICATION_STATUS.APPROVED
+          APPLICATION_STATUS.APPROVED,
         );
 
       if (!updatedApplication) {
         this._logger.error(
           "Failed to update application status in repostory",
-          context
+          context,
         );
         return ResponseHelper.badRequest(
-          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
+          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED,
         );
       }
 
@@ -1061,7 +1059,7 @@ export class TechnicianManagementService
       // Update user's application status
       await this._technicianRepository.updateUserApplicationStatus(
         application.technicianId as Types.ObjectId,
-        APPLICATION_STATUS.APPROVED
+        APPLICATION_STATUS.APPROVED,
       );
 
       this._logger.info("User application status updated", context);
@@ -1109,7 +1107,7 @@ export class TechnicianManagementService
       if (technician && locationCoordinates) {
         await this._technicianRepository.updateTechnicianLocation(
           technician._id.toString(),
-          locationCoordinates
+          locationCoordinates,
         );
 
         this._logger.info("Technician location updated in repository", {
@@ -1123,22 +1121,22 @@ export class TechnicianManagementService
           // Convert application availability format to technician availability format
           const technicianAvailability =
             this.convertApplicationAvailabilityToTechnicianAvailability(
-              application.availability
+              application.availability,
             );
 
           this._logger.info(
             "Creating technician availability from application",
-            context
+            context,
           );
 
           await availabilityService.createTechnicianAvailabilityFromApplication(
             technician._id.toString(),
-            technicianAvailability
+            technicianAvailability,
           );
 
           // VERIFY the slot rules were actually created with correct timings
           const slotRules = await this._technicianRepository.getActiveSlotRules(
-            technician._id.toString()
+            technician._id.toString(),
           );
 
           this._logger.debug("Fetching active slot rules of technician", {
@@ -1166,7 +1164,7 @@ export class TechnicianManagementService
                   {
                     expected: `${mondayTiming.startTime}-${mondayTiming.endTime}`,
                     actual: slotRules.map((r) => `${r.startTime}-${r.endTime}`),
-                  }
+                  },
                 );
               } else {
                 this._logger.info("Monday timing verified correctly", {
@@ -1187,11 +1185,11 @@ export class TechnicianManagementService
             {
               ...context,
               error: availabilityError,
-            }
+            },
           );
           console.error(
             "CRITICAL ERROR in availability transfer:",
-            availabilityError
+            availabilityError,
           );
         }
       } else {
@@ -1212,12 +1210,12 @@ export class TechnicianManagementService
                 verifiedAt: new Date(),
               });
             }
-          }
+          },
         );
 
         await this._technicianRepository.updateTechnicianDocuments(
           technician._id.toString(),
-          technicianDocuments
+          technicianDocuments,
         );
         this._logger.info("Updated technician documents during approval", {
           ...context,
@@ -1279,7 +1277,7 @@ export class TechnicianManagementService
             ...technician.personalInfo,
             languages: languagesArray,
             address: addressData,
-          }
+          },
         );
 
         this._logger.info("Updated technician profile info during approval", {
@@ -1290,7 +1288,7 @@ export class TechnicianManagementService
 
         await this._technicianRepository.updateTechnicianIdentityVerification(
           technician._id.toString(),
-          identityVerificationData
+          identityVerificationData,
         );
         this._logger.info(
           "Updated technician identification and verification during approval",
@@ -1298,7 +1296,7 @@ export class TechnicianManagementService
             ...context,
             technicianId: technician._id?.toString(),
             identityVerificationData,
-          }
+          },
         );
 
         if (application.documents) {
@@ -1312,12 +1310,12 @@ export class TechnicianManagementService
               verified: true,
               status: "approved" as const,
               verifiedAt: new Date(),
-            })
+            }),
           );
 
           await this._technicianRepository.updateTechnicianDocuments(
             technician._id.toString(),
-            technicianDocuments
+            technicianDocuments,
           );
 
           this._logger.info("Updated technician documents during approval", {
@@ -1345,7 +1343,7 @@ export class TechnicianManagementService
         const updateResult =
           await this._technicianRepository.updateTechnicianPaymentDetails(
             technician._id.toString(),
-            paymentDetails
+            paymentDetails,
           );
 
         this._logger.info(
@@ -1354,7 +1352,7 @@ export class TechnicianManagementService
             ...context,
             technicianId: technician._id?.toString(),
             paymentDetails,
-          }
+          },
         );
       }
 
@@ -1365,7 +1363,7 @@ export class TechnicianManagementService
       if (application.email) {
         emailSent = await emailService.sendApplicationApprovalEmail(
           application.email,
-          application.personal?.fullName || "Technician"
+          application.personal?.fullName || "Technician",
         );
         emailMessage = emailSent
           ? TECHNICIAN_MANAGEMENT_MESSAGES.APPROVAL_EMAIL_SENT
@@ -1380,9 +1378,10 @@ export class TechnicianManagementService
       });
 
       if (technician) {
-        await this._notificationService.createApplicationApprovedNotification(
+        await this._socketService.notifyApplicationStatus(
           technician._id.toString(),
-          application.personal?.fullName || "Technician"
+          "approved",
+          application.personal?.fullName || "Technician",
         );
       }
 
@@ -1391,7 +1390,7 @@ export class TechnicianManagementService
         {
           applications: [applicationDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1402,12 +1401,12 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION,
       );
     }
   }
   private convertApplicationAvailabilityToTechnicianAvailability(
-    applicationAvailability: any
+    applicationAvailability: any,
   ): any {
     if (!applicationAvailability) {
       return {
@@ -1447,7 +1446,7 @@ export class TechnicianManagementService
           startTime: dayData.startTime,
           endTime: dayData.endTime,
         };
-      }
+      },
     );
 
     const result = {
@@ -1465,7 +1464,7 @@ export class TechnicianManagementService
   }
   async rejectApplication(
     id: string,
-    rejectData: RejectApplicationRequestDto
+    rejectData: RejectApplicationRequestDto,
   ): Promise<ApplicationListResponseDto> {
     const context = {
       operation: "rejectApplication",
@@ -1480,19 +1479,18 @@ export class TechnicianManagementService
         emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION,
       } = rejectData;
 
-      const application = await this._technicianRepository.findApplicationById(
-        id
-      );
+      const application =
+        await this._technicianRepository.findApplicationById(id);
       if (!application) {
         this._logger.warn("Technician application not found", context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND,
         );
       }
 
       if (application.technicianId) {
         const technician = await this._technicianRepository.findTechnicianById(
-          application.technicianId.toString()
+          application.technicianId.toString(),
         );
 
         if (technician) {
@@ -1502,7 +1500,7 @@ export class TechnicianManagementService
           });
           await this._technicianRepository.updateTechnicianStatus(
             application.technicianId.toString(),
-            TECHNICIAN_STATUS.REJECTED
+            TECHNICIAN_STATUS.REJECTED,
           );
           this._logger.info("Technician status updated to reject", {
             ...context,
@@ -1512,7 +1510,7 @@ export class TechnicianManagementService
         } else {
           const technicianByUser =
             await this._technicianRepository.findTechnicianByUserId(
-              application.technicianId.toString()
+              application.technicianId.toString(),
             );
           if (technicianByUser) {
             this._logger.info("Technician found by userId to reject", {
@@ -1521,7 +1519,7 @@ export class TechnicianManagementService
             });
             await this._technicianRepository.updateTechnicianStatus(
               technicianByUser._id.toString(),
-              TECHNICIAN_STATUS.REJECTED
+              TECHNICIAN_STATUS.REJECTED,
             );
             this._logger.info("Technician status updated to reject", {
               ...context,
@@ -1539,13 +1537,13 @@ export class TechnicianManagementService
           {
             rejectionReason,
             rejectedAt: new Date(),
-          }
+          },
         );
 
       if (!updatedApplication) {
         this._logger.warn("Technician's status update failed", context);
         return ResponseHelper.badRequest(
-          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
+          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED,
         );
       }
 
@@ -1557,7 +1555,7 @@ export class TechnicianManagementService
 
       await this._technicianRepository.updateUserApplicationStatus(
         application.technicianId as Types.ObjectId,
-        APPLICATION_STATUS.REJECTED
+        APPLICATION_STATUS.REJECTED,
       );
 
       // Send rejection email
@@ -1568,7 +1566,7 @@ export class TechnicianManagementService
         emailSent = await emailService.sendApplicationRejectionEmail(
           application.email,
           application.personal?.fullName || "Applicant",
-          rejectionReason
+          rejectionReason,
         );
         emailMessage = emailSent
           ? TECHNICIAN_MANAGEMENT_MESSAGES.REJECTION_EMAIL_SENT
@@ -1587,7 +1585,7 @@ export class TechnicianManagementService
         {
           applications: [applicationDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1598,7 +1596,7 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION,
       );
     }
   }
@@ -1610,13 +1608,12 @@ export class TechnicianManagementService
     };
     try {
       this._logger.info("Fetching application by id", context);
-      const application = await this._technicianRepository.findApplicationById(
-        id
-      );
+      const application =
+        await this._technicianRepository.findApplicationById(id);
       if (!application) {
         this._logger.warn("Application not found", context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND,
         );
       }
       this._logger.info("Application found in repository", {
@@ -1627,12 +1624,12 @@ export class TechnicianManagementService
       // Get user data
       const user = await this._technicianRepository.updateUserApplicationStatus(
         application.technicianId as Types.ObjectId,
-        application.status
+        application.status,
       );
 
       // Format documents from TechnicianApplication.documents for frontend
       const formattedDocuments = this.formatApplicationDocuments(
-        application.documents || {}
+        application.documents || {},
       );
 
       const applicationData: ITechnicianApplication = {
@@ -1656,7 +1653,7 @@ export class TechnicianManagementService
         {
           applications: [applicationDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1667,7 +1664,7 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION,
       );
     }
   }
@@ -1688,7 +1685,7 @@ export class TechnicianManagementService
 
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_STATS_RETRIEVED,
-        stats
+        stats,
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1699,13 +1696,13 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION_STATS
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION_STATS,
       );
     }
   }
 
   async getTechnicianByApplicationId(
-    applicationId: string
+    applicationId: string,
   ): Promise<TechnicianListResponseDto> {
     const context = {
       operation: "getTechnicianByApplicationId",
@@ -1716,13 +1713,13 @@ export class TechnicianManagementService
       this._logger.info("Fetchnicng technician by application id", context);
       const technician =
         await this._technicianRepository.findTechnicianByApplicationId(
-          applicationId
+          applicationId,
         );
 
       if (!technician) {
         this._logger.warn("Technician not found for application", context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND_FOR_APPLICATION
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND_FOR_APPLICATION,
         );
       }
 
@@ -1741,7 +1738,7 @@ export class TechnicianManagementService
         {
           technicians: [technicianDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -1752,12 +1749,12 @@ export class TechnicianManagementService
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP,
       );
     }
   }
   async getPublicTechnicians(
-    filters: TechnicianFiltersDto
+    filters: TechnicianFiltersDto,
   ): Promise<TechnicianListResponseDto> {
     const context = {
       operation: "getPublicTechnicians",
@@ -1849,12 +1846,11 @@ export class TechnicianManagementService
           repoFilters,
           skip,
           limitNum,
-          sortOptions
+          sortOptions,
         );
 
-      const total = await this._technicianRepository.countPublicTechnicians(
-        repoFilters
-      );
+      const total =
+        await this._technicianRepository.countPublicTechnicians(repoFilters);
 
       this._logger.debug("Technicians returned in sorted order", {
         ...context,
@@ -1882,7 +1878,7 @@ export class TechnicianManagementService
           };
 
           return publicTechnician;
-        })
+        }),
       );
 
       this._logger.info("Technicians retrieved with sorting", {
@@ -1916,7 +1912,7 @@ export class TechnicianManagementService
     } catch (error) {
       console.error(
         "Backend Service: Error getting public technicians:",
-        error
+        error,
       );
       this._logger.error("Failed to get public technicians", {
         ...context,
@@ -1927,7 +1923,7 @@ export class TechnicianManagementService
     }
   }
   async getPublicTechnicianById(
-    id: string
+    id: string,
   ): Promise<SingleTechnicianResponseDto> {
     const context = {
       operation: "getPublicTechnicianById",
@@ -1936,14 +1932,13 @@ export class TechnicianManagementService
     };
     try {
       this._logger.info("Get technician by id", context);
-      const technician = await this._technicianRepository.findTechnicianById(
-        id
-      );
+      const technician =
+        await this._technicianRepository.findTechnicianById(id);
 
       if (!technician) {
         this._logger.warn("Technician not found", context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -1951,7 +1946,7 @@ export class TechnicianManagementService
       if (technician.status !== "approved") {
         this._logger.warn("Technician with approved status not found", context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -1964,7 +1959,7 @@ export class TechnicianManagementService
         await this._technicianRepository.getUpcomingAvailabilityProfile(
           id,
           startDate,
-          endDate
+          endDate,
         );
 
       // Get active slot rules to understand the pattern
@@ -2004,7 +1999,7 @@ export class TechnicianManagementService
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED,
         {
           technician: responseData,
-        }
+        },
       );
     } catch (error) {
       this._logger.error("Failed to get public technicians by id", {
@@ -2027,7 +2022,7 @@ export class TechnicianManagementService
         };
       };
       availableWeeks?: number[];
-    }
+    },
   ): Promise<void> {
     try {
       const SlotRule = require("../models/technician/SlotRuleSchema").default;
@@ -2055,7 +2050,7 @@ export class TechnicianManagementService
         },
         {
           $set: { isActive: false },
-        }
+        },
       );
 
       const days = [
@@ -2152,7 +2147,7 @@ export class TechnicianManagementService
         } catch (ruleError) {
           console.error(
             `Error processing slot rule ${slotRule.name}:`,
-            ruleError
+            ruleError,
           );
         }
       }
@@ -2183,18 +2178,16 @@ export class TechnicianManagementService
       this._logger.info("Fetching public technician slot rules", context);
 
       // First verify technician exists and is approved
-      const technician = await this._technicianRepository.findTechnicianById(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findTechnicianById(technicianId);
 
       if (!technician || technician.status !== "approved") {
         this._logger.warn("Technician not found or not approved", context);
         return ResponseHelper.notFound("Technician not found");
       }
 
-      const slotRules = await this._technicianRepository.getActiveSlotRules(
-        technicianId
-      );
+      const slotRules =
+        await this._technicianRepository.getActiveSlotRules(technicianId);
 
       this._logger.info(`Found ${slotRules.length} public slot rules`, {
         ...context,
@@ -2219,7 +2212,7 @@ export class TechnicianManagementService
   async getTechnicianAvailability(
     technicianId: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
   ): Promise<any> {
     const context = {
       operation: "getPublicTechnicianAvailability",
@@ -2233,9 +2226,8 @@ export class TechnicianManagementService
       this._logger.info("Fetching public technician availability", context);
 
       // First verify technician exists and is approved
-      const technician = await this._technicianRepository.findTechnicianById(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findTechnicianById(technicianId);
 
       if (!technician || technician.status !== "approved") {
         this._logger.warn("Technician not found or not approved", context);
@@ -2251,7 +2243,7 @@ export class TechnicianManagementService
         await this._technicianRepository.getUpcomingAvailabilityProfile(
           technicianId,
           start,
-          end
+          end,
         );
 
       this._logger.info(
@@ -2259,7 +2251,7 @@ export class TechnicianManagementService
         {
           ...context,
           availabilityCount: availability.length,
-        }
+        },
       );
 
       return ResponseHelper.success("Availability retrieved successfully", {
@@ -2280,7 +2272,7 @@ export class TechnicianManagementService
   async getTechnicianPublicAvailability(
     technicianId: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
   ): Promise<any> {
     const context = {
       operation: "getTechnicianPublicAvailability",
@@ -2294,9 +2286,8 @@ export class TechnicianManagementService
       this._logger.info("Fetching public technician availability", context);
 
       // First verify technician exists and is approved
-      const technician = await this._technicianRepository.findTechnicianById(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findTechnicianById(technicianId);
 
       if (!technician || technician.status !== "approved") {
         this._logger.warn("Technician not found or not approved", context);
@@ -2312,7 +2303,7 @@ export class TechnicianManagementService
         await this._technicianRepository.getUpcomingAvailabilityProfile(
           technicianId,
           start,
-          end
+          end,
         );
 
       // Format the availability for frontend display
@@ -2324,7 +2315,7 @@ export class TechnicianManagementService
         {
           ...context,
           availabilityCount: availability.length,
-        }
+        },
       );
 
       return ResponseHelper.success("Availability retrieved successfully", {

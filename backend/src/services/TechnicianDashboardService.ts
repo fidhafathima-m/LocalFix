@@ -15,7 +15,7 @@ import { ILogger } from "@/interfaces/utils/ILogger";
 import {
   toDashboardOverviewDto,
   toTechnicianProfileDto,
-} from "@/mappers/technicianDashboardMappers";
+} from "../mappers/technicianDashboardMappers";
 
 export class TechnicianDashboardService implements ITechnicianDashboardService {
   private _technicianRepository: ITechnicianRepository;
@@ -27,7 +27,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     technicianRepository: ITechnicianRepository,
     userRepository: IUserRepository,
     userAddressRepository: IUserAddressRepository,
-    logger: ILogger
+    logger: ILogger,
   ) {
     this._technicianRepository = technicianRepository;
     this._userRepository = userRepository;
@@ -36,7 +36,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
   }
 
   async getDashboardOverview(
-    technicianId: string
+    technicianId: string,
   ): Promise<DashboardOverviewResponseDto> {
     const context = {
       operation: "getDashboardOverview",
@@ -46,14 +46,13 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     try {
       this._logger.info("Fetching dashboard overview for technician", context);
 
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
 
       if (!technician) {
         this._logger.warn(
           "Technician not found for dashboard overview",
-          context
+          context,
         );
         return ResponseHelper.notFound(DASHBOARD_MESSAGES.TECHNICIAN_NOT_FOUND);
       }
@@ -83,7 +82,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         DASHBOARD_MESSAGES.DASHBOARD_OVERVIEW_RETRIEVED,
         {
           overview: overviewDto,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -98,7 +97,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
   }
 
   async getTechnicianProfile(
-    technicianId: string
+    technicianId: string,
   ): Promise<TechnicianProfileResponseDto> {
     const context = {
       operation: "getTechnicianProfile",
@@ -108,14 +107,13 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
     try {
       this._logger.info("Fetching technician profile", context);
 
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
 
       if (!technician) {
         this._logger.warn("Technician record not found", context);
         return ResponseHelper.notFound(
-          DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_NOT_FOUND
+          DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_NOT_FOUND,
         );
       }
 
@@ -133,7 +131,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
           technicianId,
         });
         return ResponseHelper.notFound(
-          DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_NOT_FOUND
+          DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_NOT_FOUND,
         );
       }
 
@@ -146,7 +144,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
       let userAddress = null;
       if (technician.userId) {
         userAddress = await this._userAddressRepository.findByUserId(
-          technician.userId as Types.ObjectId
+          technician.userId as Types.ObjectId,
         );
 
         if (userAddress) {
@@ -175,7 +173,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
       const profileDto = toTechnicianProfileDto(
         technician,
         user,
-        userAddress as IAddress | undefined
+        userAddress as IAddress | undefined,
       );
 
       this._logger.info("Technician profile generated successfully", {
@@ -193,7 +191,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         DASHBOARD_MESSAGES.TECHNICIAN_PROFILE_RETRIEVED,
         {
           profile: profileDto,
-        }
+        },
       );
     } catch (error: unknown) {
       const errorMessage =

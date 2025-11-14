@@ -13,7 +13,7 @@ import {
   toPaymentListResponseDto,
   toPaymentResponseDto,
   toPaymentStatsDto,
-} from "@/mappers/paymentMapper";
+} from "../mappers/paymentMapper";
 
 export class PaymentManagementService implements IPaymentService {
   private _paymentRepository: IPaymentRepository;
@@ -30,7 +30,7 @@ export class PaymentManagementService implements IPaymentService {
     search?: string,
     status?: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
   ): Promise<PaymentListResponseDto> {
     const context = {
       operation: "getPayments",
@@ -74,7 +74,7 @@ export class PaymentManagementService implements IPaymentService {
         const allSearchResults = await this._paymentRepository.search(
           search,
           10000,
-          filter
+          filter,
         );
         total = allSearchResults.length;
 
@@ -175,7 +175,7 @@ export class PaymentManagementService implements IPaymentService {
 
   async processRefund(
     paymentId: string,
-    refundData?: RefundRequestDto
+    refundData?: RefundRequestDto,
   ): Promise<void> {
     const context = {
       operation: "processRefund",
@@ -236,7 +236,7 @@ export class PaymentManagementService implements IPaymentService {
 
   async exportPayments(
     format: "csv" | "excel",
-    filters?: any
+    filters?: any,
   ): Promise<{ data: Buffer; filename: string }> {
     const context = {
       operation: "exportPayments",

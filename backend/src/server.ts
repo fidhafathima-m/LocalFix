@@ -1,20 +1,21 @@
 import express, { Application, Request, Response } from "express";
 import dotenv from "dotenv";
-import morgan from "morgan"
+import morgan from "morgan";
 dotenv.config();
 import cors from "cors";
 import connectDB from "./config/db";
-import { stream } from './utils/logger';
+import { stream } from "./utils/logger";
 import { requestLogger } from "./middleware/requestLoger";
 import { errorHandler } from "./middleware/errorHandler";
 import http from "http";
 
+// Import route creators
 import userAuth from "./routes/userRoutes";
 import userRoutes from "./routes/admin/userManagementRoutes";
-import adminTechnicianRoutes from "./routes/admin/technicianManagementRoutes";
+import createTechnicianRoutes from "./routes/admin/technicianManagementRoutes";
 import technicianRoutes from "./routes/technician/technicianRoutes";
 import technicianDashboardRoutes from "./routes/technician/technicianDashboardRoutes";
-import technicianProfileRoutes from "./routes/technician/technicianProfileRoutes";
+import createTechnicianProfileRoutes from "./routes/technician/technicianProfileRoutes";
 import categoryManagementRoutes from "./routes/admin/categoryManagementRoutes";
 import serviceMangementRoutes from "./routes/admin/serviceManagementRoutes";
 import itemManagementRoutes from "./routes/admin/itemManagementRoutes";
@@ -22,22 +23,67 @@ import orderManagementRoutes from "./routes/admin/orderManagementRoutes";
 import reviewManagementRoutes from "./routes/admin/reviewManagemnetRoutes";
 import paymentManagementRoutes from "./routes/admin/paymentManagementRoutes";
 import pubicUserRoutes from "./routes/publicUserRoutes";
-import userProfileRoutes from "./routes/user/userProfileRoutes"
-import bookingRoutes from "./routes/user/bookingRoutes";
-import technicianOrderRoutes from "./routes/technician/technicianOrderRoutes";
+import createUserProfileRoutes from "./routes/user/userProfileRoutes";
+import createBookingRoutes from "./routes/user/bookingRoutes";
+import createTechnicianOrderRoutes from "./routes/technician/technicianOrderRoutes";
 import paymentRoutes from "./routes/user/paymentRoutes";
-import orderRoutes from "./routes/user/orderRoutes";
+import createOrderRoutes from "./routes/user/orderRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
-import { SocketService } from "./services/SocketService";
+
+// Import container functions
+import {
+  createSocketDependentServices,
+  userManagementController,
+  authController,
+  categoryManagementController,
+  serviceManagementController,
+  itemManagementController,
+  orderManagementController,
+  reviewManagementController,
+  paymentManagementController,
+  technicianApplicationController,
+  technicianDashboardController,
+  userProfileController,
+  addressController,
+  userLocationController,
+  paymentController,
+  notificationController,
+} from "./config/container";
 
 connectDB();
 
 const app: Application = express();
 const server = http.createServer(app);
 
-const socketService = new SocketService(server);
+const {
+  socketService,
+  technicianManagementController,
+  orderController,
+  reviewController,
+  technicianOrderController,
+  bookingController,
+  technicianProfileController,
+} = createSocketDependentServices(server);
 
-app.use(morgan('combined', { stream }));
+const adminTechnicianRoutes = createTechnicianRoutes(
+  technicianManagementController,
+);
+const technicianProfileRoutes = createTechnicianProfileRoutes(
+  technicianProfileController,
+);
+const technicianOrderRoutes = createTechnicianOrderRoutes(
+  technicianOrderController,
+);
+const bookingRoutes = createBookingRoutes(bookingController);
+const orderRoutes = createOrderRoutes(orderController);
+const userProfileRoutes = createUserProfileRoutes(
+  userLocationController,
+  userProfileController,
+  addressController,
+  reviewController,
+);
+
+app.use(morgan("combined", { stream }));
 app.use(requestLogger);
 
 app.use(express.json());
@@ -47,11 +93,12 @@ app.use(
     methods: ["GET", "POST", "OPTIONS", "PATCH", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  })
+  }),
 );
 
 app.use("/uploads", express.static("uploads"));
 
+// Use your routes
 app.use("/api/auth", userAuth);
 app.use("/api/admin/users", userRoutes);
 app.use("/api/admin/technicians", adminTechnicianRoutes);
@@ -83,4 +130,5 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Socket.IO server running on port ${PORT}`);
+  console.log("All real-time features are active! 🚀");
 });

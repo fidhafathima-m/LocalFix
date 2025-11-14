@@ -39,7 +39,8 @@ import { ILogger } from "@/interfaces/utils/ILogger";
 import {
   toStaticDataDto,
   toTechnicianProfileDto,
-} from "@/mappers/technicianProfileMappers";
+} from "../mappers/technicianProfileMappers";
+import { SocketService } from "./SocketService";
 
 export class TechnicianProfileService implements ITechnicianProfileService {
   private _technicianRepository: ITechnicianRepository;
@@ -59,7 +60,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     orderService: IOrderService,
     emailService: IEmailService,
     notificationService: INotificationService,
-    logger: ILogger
+    logger: ILogger,
   ) {
     this._technicianRepository = technicianRepository;
     this._technicianProfileRepository = technicianProfileRepository;
@@ -72,17 +73,16 @@ export class TechnicianProfileService implements ITechnicianProfileService {
   }
 
   async getTechnicianProfile(
-    technicianId: string
+    technicianId: string,
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_PROFILE_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_PROFILE_NOT_FOUND,
         );
       }
 
@@ -133,30 +133,29 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         TECHNICIAN_PROFILE_MESSAGES.PROFILE_RETRIEVED,
         {
           profile: profileDto,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("Get technician profile error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
-        TECHNICIAN_PROFILE_MESSAGES.FAILED_FETCH_PROFILE
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_FETCH_PROFILE,
       );
     }
   }
   async updatePersonalInformation(
     technicianId: string,
-    updateData: PersonalInfoUpdateDto
+    updateData: PersonalInfoUpdateDto,
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -197,23 +196,23 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const updatedTechnician =
         await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
-          updatePayload
+          updatePayload,
         );
 
       if (!updatedTechnician) {
         return ResponseHelper.error(
-          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PERSONAL_INFO
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PERSONAL_INFO,
         );
       }
 
       // Update user email if provided
       if (updateData.email && updateData.email !== user.email) {
         const existingUser = await this._userRepository.findByEmail(
-          updateData.email
+          updateData.email,
         );
         if (existingUser && existingUser._id!.toString() !== technicianId) {
           return ResponseHelper.error(
-            TECHNICIAN_PROFILE_MESSAGES.EMAIL_ALREADY_EXISTS
+            TECHNICIAN_PROFILE_MESSAGES.EMAIL_ALREADY_EXISTS,
           );
         }
         await this._technicianProfileRepository.updateUser(technicianId, {
@@ -224,38 +223,37 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const updatedUser = await this._userRepository.findById(technicianId);
       const profileDto = toTechnicianProfileDto(
         updatedTechnician,
-        updatedUser || user
+        updatedUser || user,
       );
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.PERSONAL_INFO_UPDATED,
         {
           profile: profileDto,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("Update personal information error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
-        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PERSONAL_INFO
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PERSONAL_INFO,
       );
     }
   }
 
   async updateIdentityVerification(
     technicianId: string,
-    updateData: IdentityVerificationUpdateDto
+    updateData: IdentityVerificationUpdateDto,
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -287,13 +285,13 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const updatedTechnician =
         await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
-          updatePayload
+          updatePayload,
         );
 
       if (!updatedTechnician) {
         console.error("Repository returned null/undefined");
         return ResponseHelper.error(
-          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_IDENTITY_VERIFICATION
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_IDENTITY_VERIFICATION,
         );
       }
 
@@ -304,30 +302,29 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         TECHNICIAN_PROFILE_MESSAGES.IDENTITY_VERIFICATION_UPDATED,
         {
           profile: profileDto,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("Update identity verification error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
-        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_IDENTITY_VERIFICATION
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_IDENTITY_VERIFICATION,
       );
     }
   }
   async updateSkillsServices(
     technicianId: string,
-    updateData: SkillsServicesUpdateDto
+    updateData: SkillsServicesUpdateDto,
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -347,12 +344,12 @@ export class TechnicianProfileService implements ITechnicianProfileService {
               updateData.basePrices ||
               technician.basePrices ||
               SKILLS_DEFAULTS.BASE_PRICES,
-          }
+          },
         );
 
       if (!updatedTechnician) {
         return ResponseHelper.error(
-          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_SKILLS_SERVICES
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_SKILLS_SERVICES,
         );
       }
 
@@ -362,36 +359,35 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         TECHNICIAN_PROFILE_MESSAGES.SKILLS_SERVICES_UPDATED,
         {
           profile: profileDto,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("Update skills services error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
-        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_SKILLS_SERVICES
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_SKILLS_SERVICES,
       );
     }
   }
 
   async updateAvailabilityPreferences(
     technicianId: string,
-    updateData: AvailabilityPreferencesUpdateDto
+    updateData: AvailabilityPreferencesUpdateDto,
   ): Promise<TechnicianProfileResponseDto> {
     try {
       console.log(
         "UPDATE AVAILABILITY - Starting update for technician:",
-        technicianId
+        technicianId,
       );
 
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -418,15 +414,15 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const updatedTechnician =
         await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
-          updateDataForRepo
+          updateDataForRepo,
         );
 
       if (!updatedTechnician) {
         console.error(
-          "UPDATE AVAILABILITY - Failed to update technician work preferences"
+          "UPDATE AVAILABILITY - Failed to update technician work preferences",
         );
         return ResponseHelper.error(
-          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY,
         );
       }
 
@@ -435,12 +431,12 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         try {
           await this.processAvailabilityData(
             technicianId,
-            updateData.availability
+            updateData.availability,
           );
         } catch (availabilityError) {
           console.error(
             "UPDATE AVAILABILITY - Error processing availability data:",
-            availabilityError
+            availabilityError,
           );
         }
       }
@@ -451,14 +447,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         TECHNICIAN_PROFILE_MESSAGES.AVAILABILITY_UPDATED,
         {
           profile: profileDto,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("UPDATE AVAILABILITY - Error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
-        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_AVAILABILITY,
       );
     }
   }
@@ -474,7 +470,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         };
       };
       availableWeeks?: number[];
-    }
+    },
   ): Promise<void> {
     try {
       const SlotRule = require("../models/technician/SlotRuleSchema").default;
@@ -502,7 +498,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         },
         {
           $set: { isActive: false },
-        }
+        },
       );
 
       const days = [
@@ -599,7 +595,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         } catch (ruleError) {
           console.error(
             `Error processing slot rule ${slotRule.name}:`,
-            ruleError
+            ruleError,
           );
         }
       }
@@ -613,7 +609,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
     date: Date,
     startTime: string,
     endTime: string,
-    slotDurationMinutes: number
+    slotDurationMinutes: number,
   ): any[] {
     const timeSlots = [];
 
@@ -631,7 +627,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
     while (currentTime < endDateTime) {
       const slotEnd = new Date(
-        currentTime.getTime() + slotDurationMinutes * 60000
+        currentTime.getTime() + slotDurationMinutes * 60000,
       );
 
       // Don't create slots that extend beyond the end time
@@ -657,17 +653,16 @@ export class TechnicianProfileService implements ITechnicianProfileService {
   }
   async updateBankPaymentDetails(
     technicianId: string,
-    updateData: BankPaymentUpdateDto
+    updateData: BankPaymentUpdateDto,
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -688,7 +683,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       // Validate required fields
       if (!paymentData.accountHolderName?.trim()) {
         return ResponseHelper.badRequest(
-          "Bank account holder name is required"
+          "Bank account holder name is required",
         );
       }
 
@@ -703,11 +698,11 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const allowedWithdrawalPrefs = ["auto", "manual"] as const;
       const inputPref = paymentData.withdrawalPreference;
       const resolvedWithdrawalPreference = allowedWithdrawalPrefs.includes(
-        inputPref as any
+        inputPref as any,
       )
         ? (inputPref as (typeof allowedWithdrawalPrefs)[number])
-        : technician.paymentDetails?.withdrawalPreference ??
-          PAYMENT_DEFAULTS.WITHDRAWAL_PREFERENCE;
+        : (technician.paymentDetails?.withdrawalPreference ??
+          PAYMENT_DEFAULTS.WITHDRAWAL_PREFERENCE);
 
       const updatePayload = {
         paymentDetails: {
@@ -741,12 +736,12 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const updatedTechnician =
         await this._technicianProfileRepository.updateTechnician(
           technician._id!.toString(),
-          updatePayload
+          updatePayload,
         );
 
       if (!updatedTechnician) {
         return ResponseHelper.error(
-          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_BANK_PAYMENT
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_BANK_PAYMENT,
         );
       }
 
@@ -756,31 +751,30 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         TECHNICIAN_PROFILE_MESSAGES.BANK_PAYMENT_UPDATED,
         {
           profile: profileDto,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("UPDATE BANK PAYMENT - Error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
-        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_BANK_PAYMENT
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_BANK_PAYMENT,
       );
     }
   }
 
   async updatePassword(
     technicianId: string,
-    updateData: SecuritySettingsUpdateDto
+    updateData: SecuritySettingsUpdateDto,
   ): Promise<TechnicianProfileResponseDto> {
     try {
       const user = await this._userRepository.findById(technicianId);
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
 
       if (!user || !technician) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.USER_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.USER_NOT_FOUND,
         );
       }
 
@@ -789,12 +783,12 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         const isCurrentPasswordValid =
           await this._technicianProfileRepository.verifyPassword(
             technicianId,
-            updateData.currentPassword
+            updateData.currentPassword,
           );
 
         if (!isCurrentPasswordValid) {
           return ResponseHelper.badRequest(
-            TECHNICIAN_PROFILE_MESSAGES.CURRENT_PASSWORD_INCORRECT
+            TECHNICIAN_PROFILE_MESSAGES.CURRENT_PASSWORD_INCORRECT,
           );
         }
       } else {
@@ -805,19 +799,19 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       if (updateData.newPassword) {
         if (updateData.newPassword !== updateData.confirmPassword) {
           return ResponseHelper.badRequest(
-            TECHNICIAN_PROFILE_MESSAGES.PASSWORDS_DO_NOT_MATCH
+            TECHNICIAN_PROFILE_MESSAGES.PASSWORDS_DO_NOT_MATCH,
           );
         }
 
         const updateResult =
           await this._technicianProfileRepository.updateUserPassword(
             technicianId,
-            updateData.newPassword
+            updateData.newPassword,
           );
 
         if (!updateResult) {
           return ResponseHelper.error(
-            TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PASSWORD
+            TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PASSWORD,
           );
         }
       } else {
@@ -830,14 +824,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         TECHNICIAN_PROFILE_MESSAGES.PASSWORD_UPDATED,
         {
           profile: profileDto,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("UPDATE PASSWORD - Error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
-        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PASSWORD
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPDATE_PASSWORD,
       );
     }
   }
@@ -845,17 +839,16 @@ export class TechnicianProfileService implements ITechnicianProfileService {
   async uploadDocument(
     technicianId: string,
     documentData: DocumentUploadDto | Express.Multer.File,
-    documentType?: string
+    documentType?: string,
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -874,7 +867,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
         if (!documentType) {
           return ResponseHelper.badRequest(
-            "Document type is required for file uploads"
+            "Document type is required for file uploads",
           );
         }
         // Upload to Cloudinary
@@ -883,7 +876,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         if (!uploadResult || !uploadResult.secure_url) {
           console.error("Service - Cloudinary upload failed");
           return ResponseHelper.error(
-            TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_DOCUMENT
+            TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_DOCUMENT,
           );
         }
 
@@ -894,7 +887,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       if (!finalDocumentType || !fileUrl || !fileName) {
         return ResponseHelper.badRequest(
-          TECHNICIAN_PROFILE_MESSAGES.DOCUMENT_TYPE_REQUIRED
+          TECHNICIAN_PROFILE_MESSAGES.DOCUMENT_TYPE_REQUIRED,
         );
       }
 
@@ -911,12 +904,12 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const updatedTechnician =
         await this._technicianProfileRepository.addDocument(
           technician._id!.toString(),
-          newDocument as any
+          newDocument as any,
         );
 
       if (!updatedTechnician) {
         return ResponseHelper.error(
-          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_DOCUMENT
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_DOCUMENT,
         );
       }
 
@@ -926,14 +919,14 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         TECHNICIAN_PROFILE_MESSAGES.DOCUMENT_UPLOADED,
         {
           profile: profileDto,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("Upload document error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
-        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_DOCUMENT
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_DOCUMENT,
       );
     }
   }
@@ -954,17 +947,16 @@ export class TechnicianProfileService implements ITechnicianProfileService {
   }
   async uploadPhoto(
     technicianId: string,
-    file: Express.Multer.File
+    file: Express.Multer.File,
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -974,7 +966,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       if (!uploadResult || !uploadResult.secure_url) {
         console.error("Service - Cloudinary upload failed");
         return ResponseHelper.error(
-          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_PHOTO
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_PHOTO,
         );
       }
 
@@ -986,13 +978,13 @@ export class TechnicianProfileService implements ITechnicianProfileService {
           technician._id!.toString(),
           {
             profilePictureUrl: profilePictureUrl,
-          }
+          },
         );
 
       if (!updatedTechnician) {
         console.error("Service - Failed to update technician profile");
         return ResponseHelper.error(
-          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_PHOTO
+          TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_PHOTO,
         );
       }
 
@@ -1003,29 +995,28 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         {
           profile: profileDto,
           profilePictureUrl: profilePictureUrl,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("Upload photo error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
       return ResponseHelper.error(
-        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_PHOTO
+        TECHNICIAN_PROFILE_MESSAGES.FAILED_UPLOAD_PHOTO,
       );
     }
   }
   async getSlotRules(
-    technicianId: string
+    technicianId: string,
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -1046,17 +1037,16 @@ export class TechnicianProfileService implements ITechnicianProfileService {
   }
 
   async getTechnicianAvailability(
-    technicianId: string
+    technicianId: string,
   ): Promise<TechnicianProfileResponseDto> {
     try {
-      const technician = await this._technicianRepository.findByUserId(
-        technicianId
-      );
+      const technician =
+        await this._technicianRepository.findByUserId(technicianId);
       const user = await this._userRepository.findById(technicianId);
 
       if (!technician || !user) {
         return ResponseHelper.notFound(
-          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND
+          TECHNICIAN_PROFILE_MESSAGES.TECHNICIAN_NOT_FOUND,
         );
       }
 
@@ -1071,7 +1061,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         {
           profile: profileDto,
           availability: availabilityData,
-        }
+        },
       );
     } catch (error: unknown) {
       console.error("Get technician availability error:", error);
@@ -1083,7 +1073,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   // Update the helper method to fetch real availability data
   private async getTechnicianAvailabilityFromRepository(
-    technicianId: string
+    technicianId: string,
   ): Promise<any[]> {
     try {
       const TechnicianAvailability =
@@ -1096,21 +1086,21 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       this._logger.info(
         "Availability Data from technciian",
-        availabilityRecords
+        availabilityRecords,
       );
 
       return availabilityRecords;
     } catch (error) {
       console.error(
         "Error fetching technician availability from repository:",
-        error
+        error,
       );
       return [];
     }
   }
 
   private async getSlotRulesFromRepository(
-    technicianId: string
+    technicianId: string,
   ): Promise<any[]> {
     try {
       const SlotRule = require("../models/technician/SlotRuleSchema").default;
@@ -1130,7 +1120,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   private async handleTechnicianUnavailability(
     technicianId: string,
-    unavailableDate: Date
+    unavailableDate: Date,
   ): Promise<void> {
     const context = {
       operation: "handleTechnicianUnavailability",
@@ -1142,7 +1132,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       const orders = await this._orderService.getOrdersByTechnicianAndDate(
         technicianId,
-        unavailableDate
+        unavailableDate,
       );
 
       if (orders.length === 0) {
@@ -1169,7 +1159,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
             order._id.toString(),
             "cancelled",
             "system",
-            "Technician unavailable"
+            "Technician unavailable",
           );
 
           if (updatedOrder.success) {
@@ -1184,7 +1174,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
                 (order.technicianId as any)?.displayName || "Technician",
                 new Date(order.scheduledAt).toLocaleDateString(),
                 order.serviceName,
-                order._id.toString()
+                order._id.toString(),
               );
             }
 
@@ -1194,7 +1184,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
               (order.technicianId as any)?.displayName || "Technician",
               order.serviceName,
               new Date(order.scheduledAt).toLocaleDateString(),
-              order._id.toString()
+              order._id.toString(),
             );
 
             this._logger.info("Order processed successfully", orderContext);
@@ -1217,7 +1207,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         await this._notificationService.createAvailabilityChangeImpactNotification(
           technicianId,
           orders.length,
-          unavailableDate.toLocaleDateString()
+          unavailableDate.toLocaleDateString(),
         );
       }
 

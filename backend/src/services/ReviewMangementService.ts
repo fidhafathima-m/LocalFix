@@ -8,7 +8,7 @@ import {
 } from "@/interfaces/services/admin/IReviewManagementService";
 import { REVIEW_MESSAGES } from "../constants";
 import { ILogger } from "@/interfaces/utils/ILogger";
-import { toAdminReviewResponseDto } from "@/mappers/reviewManagementMapper";
+import { toAdminReviewResponseDto } from "../mappers/reviewManagementMapper";
 
 export class ReviewManagementService implements IAdminReviewService {
   private _reviewRepository: IReviewRepository;
@@ -93,7 +93,7 @@ export class ReviewManagementService implements IAdminReviewService {
 
   async updateReviewStatus(
     reviewId: string,
-    status: string
+    status: string,
   ): Promise<ReviewResponseDto> {
     const context = {
       operation: "updateReviewStatus",
@@ -112,7 +112,7 @@ export class ReviewManagementService implements IAdminReviewService {
 
       const updatedReview = await this._reviewRepository.updateStatus(
         reviewId,
-        status
+        status,
       );
 
       if (!updatedReview) {
@@ -143,7 +143,7 @@ export class ReviewManagementService implements IAdminReviewService {
 
   async flagReview(
     reviewId: string,
-    reason?: string
+    reason?: string,
   ): Promise<ReviewResponseDto> {
     const context = {
       operation: "flagReview",
@@ -162,7 +162,7 @@ export class ReviewManagementService implements IAdminReviewService {
 
       const updatedReview = await this._reviewRepository.flagReview(
         reviewId,
-        reason
+        reason,
       );
 
       if (!updatedReview) {
@@ -212,7 +212,7 @@ export class ReviewManagementService implements IAdminReviewService {
       if (!deleted) {
         this._logger.error(
           "Review repository deletion returned false",
-          context
+          context,
         );
         throw new Error(REVIEW_MESSAGES.FAILED_DELETE_REVIEW);
       }

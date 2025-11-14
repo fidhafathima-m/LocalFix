@@ -9,7 +9,7 @@ import { ILogger } from "@/interfaces/utils/ILogger";
 import {
   toNotificationListResponseDto,
   toNotificationResponseDto,
-} from "@/mappers/notificationMapper";
+} from "../mappers/notificationMapper";
 
 export class NotificationService implements INotificationService {
   private _notificationRepository: INotificationRepository;
@@ -17,14 +17,14 @@ export class NotificationService implements INotificationService {
 
   constructor(
     notificationRepository: INotificationRepository,
-    logger: ILogger
+    logger: ILogger,
   ) {
     this._notificationRepository = notificationRepository;
     this._logger = logger;
   }
 
   async createNotification(
-    createDto: CreateNotificationDto
+    createDto: CreateNotificationDto,
   ): Promise<NotificationResponseDto> {
     const context = {
       operation: "createNotification",
@@ -59,7 +59,7 @@ export class NotificationService implements INotificationService {
   async getNotificationsByUser(
     userId: string,
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
   ): Promise<NotificationListResponseDto> {
     const context = {
       operation: "getNotificationsByUser",
@@ -82,7 +82,7 @@ export class NotificationService implements INotificationService {
         notifications,
         total,
         page,
-        limit
+        limit,
       );
 
       this._logger.info("Notifications retrieved successfully", {
@@ -112,9 +112,8 @@ export class NotificationService implements INotificationService {
     try {
       this._logger.info("Marking notification as read", context);
 
-      const notification = await this._notificationRepository.markAsRead(
-        notificationId
-      );
+      const notification =
+        await this._notificationRepository.markAsRead(notificationId);
       if (!notification) {
         this._logger.warn("Notification not found", context);
         throw new Error("Notification not found");
@@ -136,7 +135,7 @@ export class NotificationService implements INotificationService {
   }
 
   async markAllAsRead(
-    userId: string
+    userId: string,
   ): Promise<{ success: boolean; message: string }> {
     const context = {
       operation: "markAllAsRead",
@@ -172,7 +171,7 @@ export class NotificationService implements INotificationService {
   }
 
   async getUnreadCount(
-    userId: string
+    userId: string,
   ): Promise<{ success: boolean; count: number; message?: string }> {
     const context = {
       operation: "getUnreadCount",
@@ -183,9 +182,8 @@ export class NotificationService implements INotificationService {
     try {
       this._logger.info("Getting unread notification count", context);
 
-      const count = await this._notificationRepository.countUnreadByUser(
-        userId
-      );
+      const count =
+        await this._notificationRepository.countUnreadByUser(userId);
 
       this._logger.info("Unread count retrieved", {
         ...context,
@@ -213,7 +211,7 @@ export class NotificationService implements INotificationService {
   // Helper methods for common notification types
   async createApplicationApprovedNotification(
     technicianId: string,
-    technicianName: string
+    technicianName: string,
   ): Promise<NotificationResponseDto> {
     return this.createNotification({
       userId: technicianId,
@@ -231,7 +229,7 @@ export class NotificationService implements INotificationService {
   async createNewBookingNotification(
     technicianId: string,
     orderId: string,
-    serviceType: string
+    serviceType: string,
   ): Promise<NotificationResponseDto> {
     return this.createNotification({
       userId: technicianId,
@@ -250,7 +248,7 @@ export class NotificationService implements INotificationService {
   async createRatingReceivedNotification(
     technicianId: string,
     rating: number,
-    customerName: string
+    customerName: string,
   ): Promise<NotificationResponseDto> {
     return this.createNotification({
       userId: technicianId,
@@ -269,7 +267,7 @@ export class NotificationService implements INotificationService {
   async createPaymentSuccessNotification(
     technicianId: string,
     amount: number,
-    paymentId: string
+    paymentId: string,
   ): Promise<NotificationResponseDto> {
     return this.createNotification({
       userId: technicianId,
@@ -287,7 +285,7 @@ export class NotificationService implements INotificationService {
   async createBookingConfirmedNotification(
     userId: string,
     serviceType: string,
-    date: string
+    date: string,
   ): Promise<NotificationResponseDto> {
     return this.createNotification({
       userId,
@@ -306,7 +304,7 @@ export class NotificationService implements INotificationService {
   async createServiceReminderNotification(
     userId: string,
     serviceType: string,
-    date: string
+    date: string,
   ): Promise<NotificationResponseDto> {
     return this.createNotification({
       userId,
@@ -326,7 +324,7 @@ export class NotificationService implements INotificationService {
     technicianName: string,
     serviceType: string,
     scheduledDate: string,
-    orderId: string
+    orderId: string,
   ): Promise<NotificationResponseDto> {
     return this.createNotification({
       userId: customerId,
@@ -348,7 +346,7 @@ export class NotificationService implements INotificationService {
   async createAvailabilityChangeImpactNotification(
     technicianId: string,
     cancelledOrdersCount: number,
-    date: string
+    date: string,
   ): Promise<NotificationResponseDto> {
     return this.createNotification({
       userId: technicianId,
