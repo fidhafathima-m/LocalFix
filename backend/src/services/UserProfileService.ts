@@ -2,8 +2,8 @@ import { IUserManagementRepository } from "../interfaces/repository/admin/IUserM
 import { ResponseHelper } from "../utils/responseHelper";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import { IAddressRepository } from "../interfaces/repository/user/IAddressRepository";
-import { AddressMapper } from "../mappers/addressMapper";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import { toAddressDtoList } from "@/mappers/addressMapper";
 
 export interface UpdateUserProfileData {
   fullName?: string;
@@ -26,7 +26,7 @@ export class UserProfileService {
   ) {
     this._logger = logger;
     this._userManagementRepository = userManagementRepository;
-    this._addressRepository = addressRepository
+    this._addressRepository = addressRepository;
   }
 
   async getUserProfile(userId: string) {
@@ -54,7 +54,7 @@ export class UserProfileService {
       this._logger.debug("User found, fetching addresses", context);
 
       const addresses = await this._addressRepository.findByUserId(userId);
-      const addressDtos = AddressMapper.toDtoList(addresses);
+      const addressDtos = toAddressDtoList(addresses);
 
       this._logger.debug(`Found ${addresses.length} addresses for user`, {
         ...context,
@@ -180,19 +180,19 @@ export class UserProfileService {
         this._logger.debug("Updating date of birth", context);
       }
 
-     if (updateData.gender !== undefined) {
-      if (updateData.gender.trim() !== "") {
-        updatePayload.gender = updateData.gender;
-        updatedFields.push("gender");
-        this._logger.debug("Updating gender", {
-          ...context,
-          newGender: updateData.gender,
-        });
-      } else {
-        updatePayload.gender = undefined;
-        this._logger.debug("Removing gender field", context);
+      if (updateData.gender !== undefined) {
+        if (updateData.gender.trim() !== "") {
+          updatePayload.gender = updateData.gender;
+          updatedFields.push("gender");
+          this._logger.debug("Updating gender", {
+            ...context,
+            newGender: updateData.gender,
+          });
+        } else {
+          updatePayload.gender = undefined;
+          this._logger.debug("Removing gender field", context);
+        }
       }
-    }
 
       if (updatedFields.length === 0) {
         this._logger.warn("No valid fields to update", context);
@@ -231,7 +231,7 @@ export class UserProfileService {
         status: freshUser!.status || "Active",
         role: freshUser!.roles?.[0] || "user",
         dateOfBirth: freshUser!.dateOfBirth,
-         gender: freshUser!.gender || "",
+        gender: freshUser!.gender || "",
       };
 
       this._logger.info("Successfully updated user profile", {

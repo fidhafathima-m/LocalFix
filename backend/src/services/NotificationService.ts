@@ -5,14 +5,20 @@ import {
   NotificationResponseDto,
   NotificationListResponseDto,
 } from "../interfaces/dtos/notificationDtos";
-import { NotificationMapper } from "../mappers/notificationMapper";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import {
+  toNotificationListResponseDto,
+  toNotificationResponseDto,
+} from "@/mappers/notificationMapper";
 
 export class NotificationService implements INotificationService {
   private _notificationRepository: INotificationRepository;
   private _logger: ILogger;
 
-  constructor(notificationRepository: INotificationRepository, logger: ILogger) {
+  constructor(
+    notificationRepository: INotificationRepository,
+    logger: ILogger
+  ) {
     this._notificationRepository = notificationRepository;
     this._logger = logger;
   }
@@ -32,7 +38,7 @@ export class NotificationService implements INotificationService {
       this._logger.info("Creating notification", context);
 
       const notification = await this._notificationRepository.create(createDto);
-      const responseDto = NotificationMapper.toResponseDto(notification);
+      const responseDto = toNotificationResponseDto(notification);
 
       this._logger.info("Notification created successfully", {
         ...context,
@@ -72,7 +78,7 @@ export class NotificationService implements INotificationService {
         this._notificationRepository.countByUser(userId),
       ]);
 
-      const responseDto = NotificationMapper.toListResponseDto(
+      const responseDto = toNotificationListResponseDto(
         notifications,
         total,
         page,
@@ -114,7 +120,7 @@ export class NotificationService implements INotificationService {
         throw new Error("Notification not found");
       }
 
-      const responseDto = NotificationMapper.toResponseDto(notification);
+      const responseDto = toNotificationResponseDto(notification);
 
       this._logger.info("Notification marked as read successfully", context);
 
@@ -177,7 +183,9 @@ export class NotificationService implements INotificationService {
     try {
       this._logger.info("Getting unread notification count", context);
 
-      const count = await this._notificationRepository.countUnreadByUser(userId);
+      const count = await this._notificationRepository.countUnreadByUser(
+        userId
+      );
 
       this._logger.info("Unread count retrieved", {
         ...context,
@@ -332,7 +340,7 @@ export class NotificationService implements INotificationService {
         serviceType,
         scheduledDate,
         technicianName,
-        reason: "technician_unavailable"
+        reason: "technician_unavailable",
       },
     });
   }

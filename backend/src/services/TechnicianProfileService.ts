@@ -30,13 +30,16 @@ import {
   TechnicianProfileDto,
   DocumentDataDto,
 } from "../interfaces/dtos/technicianProfileDtos";
-import { TechnicianProfileMapper } from "../mappers/technicianProfileMappers";
 import { uploadToCloudinary } from "../utils/cloudinary";
 import { RRule } from "rrule";
 import { IOrderService } from "@/interfaces/services/user/IOrderService";
 import { IEmailService } from "@/interfaces/services/IEmailService";
 import { INotificationService } from "@/interfaces/services/INotificationService";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import {
+  toStaticDataDto,
+  toTechnicianProfileDto,
+} from "@/mappers/technicianProfileMappers";
 
 export class TechnicianProfileService implements ITechnicianProfileService {
   private _technicianRepository: ITechnicianRepository;
@@ -124,10 +127,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         documents: technician.documents || technicianObject.documents || [],
       };
 
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        profileData,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(profileData, user);
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.PROFILE_RETRIEVED,
@@ -222,7 +222,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       }
 
       const updatedUser = await this._userRepository.findById(technicianId);
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
+      const profileDto = toTechnicianProfileDto(
         updatedTechnician,
         updatedUser || user
       );
@@ -298,10 +298,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       }
 
       // Map to DTO
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        updatedTechnician,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(updatedTechnician, user);
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.IDENTITY_VERIFICATION_UPDATED,
@@ -359,10 +356,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        updatedTechnician,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(updatedTechnician, user);
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.SKILLS_SERVICES_UPDATED,
@@ -451,10 +445,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         }
       }
 
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        updatedTechnician,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(updatedTechnician, user);
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.AVAILABILITY_UPDATED,
@@ -759,10 +750,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        updatedTechnician,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(updatedTechnician, user);
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.BANK_PAYMENT_UPDATED,
@@ -836,10 +824,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         return ResponseHelper.badRequest("New password is required");
       }
 
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        technician,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(technician, user);
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.PASSWORD_UPDATED,
@@ -935,10 +920,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        updatedTechnician,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(updatedTechnician, user);
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.DOCUMENT_UPLOADED,
@@ -958,7 +940,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   async getStaticData(): Promise<StaticDataResponseDto> {
     try {
-      const staticDataDto = TechnicianProfileMapper.toStaticDataDto();
+      const staticDataDto = toStaticDataDto();
 
       return ResponseHelper.success("Static data retrieved successfully", {
         staticData: staticDataDto,
@@ -1014,10 +996,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         );
       }
 
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        updatedTechnician,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(updatedTechnician, user);
 
       return ResponseHelper.success(
         TECHNICIAN_PROFILE_MESSAGES.PHOTO_UPLOADED,
@@ -1052,10 +1031,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
       const slotRules = await this.getSlotRulesFromRepository(technicianId);
 
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        technician,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(technician, user);
 
       return ResponseHelper.success("Slot rules retrieved successfully", {
         profile: profileDto,
@@ -1088,10 +1064,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
       const availabilityData =
         await this.getTechnicianAvailabilityFromRepository(technicianId);
 
-      const profileDto = TechnicianProfileMapper.toTechnicianProfileDto(
-        technician,
-        user
-      );
+      const profileDto = toTechnicianProfileDto(technician, user);
 
       return ResponseHelper.success(
         "Technician availability retrieved successfully",

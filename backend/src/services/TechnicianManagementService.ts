@@ -49,12 +49,15 @@ import {
   TechnicianListResponseDto,
   UpdateStatusRequestDto,
 } from "@/interfaces/dtos/technicianDtos";
-import { TechnicianMapper } from "../mappers/technicianMappers";
-import { ApplicationMapper } from "../mappers/applicationMapper";
 import { TechnicianAvailabilityService } from "./AvailabilityService";
 import { RRule } from "rrule";
 import { INotificationService } from "@/interfaces/services/INotificationService";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import { toTechnicianDetailDto } from "@/mappers/technicianMappers";
+import {
+  toApplicationDetailDto,
+  toApplicationListDto,
+} from "@/mappers/applicationMapper";
 
 interface DocumentInfo {
   url: string;
@@ -306,7 +309,9 @@ export class TechnicianManagementService
     };
     try {
       this._logger.info("Fetching technician by ID", context);
-      const technician = await this._technicianRepository.findTechnicianById(id);
+      const technician = await this._technicianRepository.findTechnicianById(
+        id
+      );
 
       if (!technician) {
         return ResponseHelper.notFound(
@@ -317,7 +322,7 @@ export class TechnicianManagementService
       this._logger.debug("Technician found, converting to admin view", context);
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      const technicianDto = TechnicianMapper.toDetailDto(adminTechnician);
+      const technicianDto = toTechnicianDetailDto(adminTechnician);
 
       this._logger.info("Successfully retrieved technician", context);
 
@@ -795,11 +800,12 @@ export class TechnicianManagementService
         this._logger.debug("Clearing suspension data for approval", context);
       }
 
-      const technician = await this._technicianRepository.updateTechnicianStatus(
-        id,
-        status,
-        updateData
-      );
+      const technician =
+        await this._technicianRepository.updateTechnicianStatus(
+          id,
+          status,
+          updateData
+        );
 
       if (!technician) {
         this._logger.warn("Technician not found for status update", context);
@@ -862,7 +868,7 @@ export class TechnicianManagementService
       }
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
-      const technicianDto = TechnicianMapper.toDetailDto(adminTechnician);
+      const technicianDto = toTechnicianDetailDto(adminTechnician);
 
       this._logger.info("Successfully updated technician status", context);
 
@@ -976,7 +982,7 @@ export class TechnicianManagementService
       const total = await this._technicianRepository.countApplications(filter);
 
       const applicationDtos: ApplicationListDto[] = applications.map((app) =>
-        ApplicationMapper.toListDto(app)
+        toApplicationListDto(app)
       );
 
       this._logger.info(`Found application`, {
@@ -1029,7 +1035,9 @@ export class TechnicianManagementService
         );
       }
 
-      const availabilityService = new TechnicianAvailabilityService(this._logger);
+      const availabilityService = new TechnicianAvailabilityService(
+        this._logger
+      );
 
       // Update application status
       const updatedApplication =
@@ -1059,9 +1067,8 @@ export class TechnicianManagementService
       this._logger.info("User application status updated", context);
 
       // Update or create technician record
-      const technician = await this._technicianRepository.findOrCreateTechnician(
-        application
-      );
+      const technician =
+        await this._technicianRepository.findOrCreateTechnician(application);
 
       this._logger.debug("Technician record processed", {
         ...context,
@@ -1175,10 +1182,13 @@ export class TechnicianManagementService
             throw new Error("Failed to create slot rules during approval");
           }
         } catch (availabilityError) {
-          this._logger.error("Failed to transfer availability during approval", {
-            ...context,
-            error: availabilityError,
-          });
+          this._logger.error(
+            "Failed to transfer availability during approval",
+            {
+              ...context,
+              error: availabilityError,
+            }
+          );
           console.error(
             "CRITICAL ERROR in availability transfer:",
             availabilityError
@@ -1338,11 +1348,14 @@ export class TechnicianManagementService
             paymentDetails
           );
 
-        this._logger.info("Updated technician payment details during approval", {
-          ...context,
-          technicianId: technician._id?.toString(),
-          paymentDetails,
-        });
+        this._logger.info(
+          "Updated technician payment details during approval",
+          {
+            ...context,
+            technicianId: technician._id?.toString(),
+            paymentDetails,
+          }
+        );
       }
 
       // Send approval email
@@ -1359,7 +1372,7 @@ export class TechnicianManagementService
           : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
       }
 
-      const applicationDto = ApplicationMapper.toListDto(updatedApplication);
+      const applicationDto = toApplicationListDto(updatedApplication);
 
       this._logger.info(`Email notification ${emailSent ? "sent" : "failed"}`, {
         ...context,
@@ -1562,7 +1575,7 @@ export class TechnicianManagementService
           : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
       }
 
-      const applicationDto = ApplicationMapper.toListDto(updatedApplication);
+      const applicationDto = toApplicationListDto(updatedApplication);
 
       this._logger.info(`Email notification ${emailSent ? "sent" : "failed"}`, {
         ...context,
@@ -1630,7 +1643,7 @@ export class TechnicianManagementService
         documents: formattedDocuments,
       } as ITechnicianApplication;
 
-      const applicationDto = ApplicationMapper.toDetailDto(applicationData);
+      const applicationDto = toApplicationDetailDto(applicationData);
 
       this._logger.info("Application retrieved", {
         ...context,
@@ -1715,7 +1728,7 @@ export class TechnicianManagementService
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
-      const technicianDto = TechnicianMapper.toDetailDto(adminTechnician);
+      const technicianDto = toTechnicianDetailDto(adminTechnician);
 
       this._logger.info("Technician by application retrieved", {
         ...context,
@@ -1831,12 +1844,13 @@ export class TechnicianManagementService
       });
 
       // Get public technicians with pagination AND sorting
-      const technicians = await this._technicianRepository.findPublicTechnicians(
-        repoFilters,
-        skip,
-        limitNum,
-        sortOptions
-      );
+      const technicians =
+        await this._technicianRepository.findPublicTechnicians(
+          repoFilters,
+          skip,
+          limitNum,
+          sortOptions
+        );
 
       const total = await this._technicianRepository.countPublicTechnicians(
         repoFilters
@@ -1922,7 +1936,9 @@ export class TechnicianManagementService
     };
     try {
       this._logger.info("Get technician by id", context);
-      const technician = await this._technicianRepository.findTechnicianById(id);
+      const technician = await this._technicianRepository.findTechnicianById(
+        id
+      );
 
       if (!technician) {
         this._logger.warn("Technician not found", context);
@@ -1968,7 +1984,7 @@ export class TechnicianManagementService
         slotRules: slotRules,
       };
 
-      const technicianDto = TechnicianMapper.toDetailDto(publicTechnician);
+      const technicianDto = toTechnicianDetailDto(publicTechnician);
 
       // Add the actual data to response
       const responseData = {

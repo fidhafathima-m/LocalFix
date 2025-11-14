@@ -10,11 +10,12 @@ import { IAddress } from "@/interfaces/user/IAddress";
 import {
   DashboardOverviewResponseDto,
   TechnicianProfileResponseDto,
-  DashboardOverviewDto,
-  TechnicianProfileDto,
 } from "../interfaces/dtos/technicianDashboardDtos";
-import { TechnicianDashboardMapper } from "../mappers/technicianDashboardMappers";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import {
+  toDashboardOverviewDto,
+  toTechnicianProfileDto,
+} from "@/mappers/technicianDashboardMappers";
 
 export class TechnicianDashboardService implements ITechnicianDashboardService {
   private _technicianRepository: ITechnicianRepository;
@@ -64,8 +65,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         status: technician.status,
       });
 
-      const overviewDto =
-        TechnicianDashboardMapper.toDashboardOverviewDto(technician);
+      const overviewDto = toDashboardOverviewDto(technician);
 
       this._logger.info("Dashboard overview generated successfully", {
         ...context,
@@ -172,7 +172,7 @@ export class TechnicianDashboardService implements ITechnicianDashboardService {
         hasAddressData: !!userAddress,
       });
 
-      const profileDto = TechnicianDashboardMapper.toTechnicianProfileDto(
+      const profileDto = toTechnicianProfileDto(
         technician,
         user,
         userAddress as IAddress | undefined

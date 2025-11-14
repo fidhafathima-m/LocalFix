@@ -14,8 +14,12 @@ import {
   UpdateUserStatusRequestDto,
   EditUserRequestDto,
 } from "../interfaces/dtos/userDtos";
-import { UserMapper } from "../mappers/userMapper";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import {
+  toUserDetailDto,
+  toUserListDto,
+  toUserStatsDto,
+} from "@/mappers/userMapper";
 
 // Type guard function for status validation
 function isValidStatus(
@@ -28,7 +32,10 @@ export class UserManagementService implements IUserManagementService {
   private _userManagementRepository: IUserManagementRepository;
   private _logger: ILogger;
 
-  constructor(userManagementRepository: IUserManagementRepository, logger: ILogger) {
+  constructor(
+    userManagementRepository: IUserManagementRepository,
+    logger: ILogger
+  ) {
     this._userManagementRepository = userManagementRepository;
     this._logger = logger;
   }
@@ -42,7 +49,7 @@ export class UserManagementService implements IUserManagementService {
       this._logger.info("Finding all users", context);
       const users = await this._userManagementRepository.findAllUsers();
 
-      const userDtos = users.map((user) => UserMapper.toListDto(user));
+      const userDtos = users.map((user) => toUserListDto(user));
 
       this._logger.debug("Users retrieved", {
         ...context,
@@ -116,7 +123,7 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      const userDto = UserMapper.toDetailDto(updatedUser);
+      const userDto = toUserDetailDto(updatedUser);
 
       this._logger.info("User status updated", {
         ...context,
@@ -231,7 +238,7 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      const userDto = UserMapper.toDetailDto(updatedUser);
+      const userDto = toUserDetailDto(updatedUser);
 
       this._logger.info("user updated", {
         ...context,
@@ -284,7 +291,7 @@ export class UserManagementService implements IUserManagementService {
         );
       }
 
-      const userDto = UserMapper.toDetailDto(deletedUser);
+      const userDto = toUserDetailDto(deletedUser);
 
       this._logger.info("User deleted", {
         ...context,
@@ -314,7 +321,7 @@ export class UserManagementService implements IUserManagementService {
       this._logger.info("Fetchning user stats", context);
       const stats = await this._userManagementRepository.getUserStats();
 
-      const statsDto = UserMapper.toStatsDto(stats);
+      const statsDto = toUserStatsDto(stats);
 
       this._logger.info("User stats retriened", {
         ...context,
@@ -363,7 +370,7 @@ export class UserManagementService implements IUserManagementService {
       const userAddresses =
         await this._userManagementRepository.findUserAddresses(userId);
 
-      const userDto = UserMapper.toDetailDto(user, userAddresses);
+      const userDto = toUserDetailDto(user, userAddresses);
 
       this._logger.info("User retrieved", {
         ...context,

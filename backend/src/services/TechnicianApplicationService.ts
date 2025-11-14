@@ -35,10 +35,12 @@ import {
   StartApplicationRequestDto,
   UploadedFileDto,
 } from "@/interfaces/dtos/technicianApplicationDtos";
-import { TechnicianApplicationMapper } from "../mappers/technicianApplicationMappers";
-import { ITechnicianAvailabilityService } from "@/interfaces/services/technician/ITechnicianAvailabilityService";
 import { TechnicianAvailabilityService } from "./AvailabilityService";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import {
+  toApplicationDataDto,
+  toApplicationListDto,
+} from "@/mappers/technicianApplicationMappers";
 
 interface AddressData {
   street?: string;
@@ -145,12 +147,15 @@ export class TechnicianApplicationService
         );
 
         const existingApplication =
-          await this._applicationRepository.findByTechnicianIdAndStatus(userId, [
-            APPLICATION_STATUS.DRAFT,
-            APPLICATION_STATUS.SUBMITTED,
-            APPLICATION_STATUS.UNDER_REVIEW,
-            APPLICATION_STATUS.REJECTED,
-          ]);
+          await this._applicationRepository.findByTechnicianIdAndStatus(
+            userId,
+            [
+              APPLICATION_STATUS.DRAFT,
+              APPLICATION_STATUS.SUBMITTED,
+              APPLICATION_STATUS.UNDER_REVIEW,
+              APPLICATION_STATUS.REJECTED,
+            ]
+          );
 
         if (existingApplication) {
           this._logger.info("Existing application found for editing", {
@@ -417,8 +422,7 @@ export class TechnicianApplicationService
 
       await this._applicationRepository.save(application);
 
-      const applicationDto =
-        TechnicianApplicationMapper.toApplicationDataDto(application);
+      const applicationDto = toApplicationDataDto(application);
 
       this._logger.info("Step saved successfully", {
         ...context,
@@ -886,7 +890,9 @@ export class TechnicianApplicationService
       });
 
       // Use the new availability service
-      const availabilityService = new TechnicianAvailabilityService(this._logger);
+      const availabilityService = new TechnicianAvailabilityService(
+        this._logger
+      );
       await availabilityService.createTechnicianAvailabilityFromApplication(
         application.technicianId.toString(),
         availabilityData
@@ -961,8 +967,7 @@ export class TechnicianApplicationService
         updatedAt: application.updatedAt,
       };
 
-      const applicationDto =
-        TechnicianApplicationMapper.toApplicationDataDto(application);
+      const applicationDto = toApplicationDataDto(application);
 
       this._logger.info("Application retrieved successfully", {
         ...context,
@@ -1378,8 +1383,7 @@ export class TechnicianApplicationService
         userId
       );
 
-      const applicationDtos =
-        TechnicianApplicationMapper.toApplicationListDto(applications);
+      const applicationDtos = toApplicationListDto(applications);
 
       this._logger.info("User applications retrieved successfully", {
         ...context,
@@ -1642,8 +1646,7 @@ export class TechnicianApplicationService
         APPLICATION_STATUS.REJECTED,
       ];
 
-      const applicationDto =
-        TechnicianApplicationMapper.toApplicationDataDto(application);
+      const applicationDto = toApplicationDataDto(application);
 
       this._logger.info("Application loaded for editing", {
         ...context,
@@ -1723,10 +1726,13 @@ export class TechnicianApplicationService
         );
 
       if (existingApplication) {
-        this._logger.warn("Phone number already in use in another application", {
-          ...context,
-          existingApplicationId: existingApplication._id.toString(),
-        });
+        this._logger.warn(
+          "Phone number already in use in another application",
+          {
+            ...context,
+            existingApplicationId: existingApplication._id.toString(),
+          }
+        );
         return {
           isValid: false,
           message:

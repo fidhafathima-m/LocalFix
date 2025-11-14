@@ -11,10 +11,15 @@ import {
   ReviewListResponseDto,
   ReviewStatsResponseDto,
 } from "../interfaces/dtos/reviewDtos";
-import { ReviewMapper } from "../mappers/reviewMapper";
 import { ApiResponse } from "../utils/responseHelper";
 import { INotificationService } from "../interfaces/services/INotificationService";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import {
+  toReviewCreateModel,
+  toReviewDto,
+  toReviewDtoList,
+  toReviewUpdateModel,
+} from "@/mappers/reviewMapper";
 
 export class ReviewService implements IReviewService {
   private _logger: ILogger;
@@ -28,7 +33,7 @@ export class ReviewService implements IReviewService {
   ) {
     this._logger = logger;
     this._reviewRepository = reviewRepository;
-    this._notificationService = notificationService
+    this._notificationService = notificationService;
   }
 
   async createReview(
@@ -80,7 +85,7 @@ export class ReviewService implements IReviewService {
         return ResponseHelper.notFound("Order not found");
       }
 
-      const reviewModel = ReviewMapper.toCreateModel({
+      const reviewModel = toReviewCreateModel({
         ...reviewData,
         userId,
         technicianId: order.technicianId.toString(),
@@ -99,7 +104,7 @@ export class ReviewService implements IReviewService {
       // NOTIFICATION: Notify user that review was submitted successfully
       await this.notifyUserAboutReviewSubmission(userId, order.serviceName);
 
-      const reviewDto = ReviewMapper.toDto(newReview);
+      const reviewDto = toReviewDto(newReview);
       return ResponseHelper.success("Review submitted successfully", reviewDto);
     } catch (error) {
       const errorMessage =
@@ -147,7 +152,7 @@ export class ReviewService implements IReviewService {
         return ResponseHelper.badRequest("Rating must be between 1 and 5");
       }
 
-      const updateModel = ReviewMapper.toUpdateModel(reviewData);
+      const updateModel = toReviewUpdateModel(reviewData);
       const updatedReview = await this._reviewRepository.update(
         reviewId,
         updateModel
@@ -165,7 +170,7 @@ export class ReviewService implements IReviewService {
         await this.notifyTechnicianAboutReviewUpdate(updatedReview);
       }
 
-      const reviewDto = ReviewMapper.toDto(updatedReview);
+      const reviewDto = toReviewDto(updatedReview);
       return ResponseHelper.success("Review updated successfully", reviewDto);
     } catch (error) {
       const errorMessage =
@@ -216,7 +221,7 @@ export class ReviewService implements IReviewService {
       // NOTIFICATION: Notify technician about review deletion
       await this.notifyTechnicianAboutReviewDeletion(existingReview);
 
-      const reviewDto = ReviewMapper.toDto(existingReview);
+      const reviewDto = toReviewDto(existingReview);
       return ResponseHelper.success("Review deleted successfully", reviewDto);
     } catch (error) {
       const errorMessage =
@@ -250,7 +255,7 @@ export class ReviewService implements IReviewService {
 
       this._logger.info("Review retrieved successfully", context);
 
-      const reviewDto = ReviewMapper.toDto(review);
+      const reviewDto = toReviewDto(review);
       return ResponseHelper.success("Review retrieved successfully", reviewDto);
     } catch (error) {
       const errorMessage =
@@ -292,7 +297,7 @@ export class ReviewService implements IReviewService {
         reviewCount: reviews.length,
       });
 
-      const reviewDtos = ReviewMapper.toDtoList(reviews);
+      const reviewDtos = toReviewDtoList(reviews);
       return ResponseHelper.success("Reviews retrieved successfully", {
         reviews: reviewDtos,
         totalCount: reviewDtos.length,
@@ -347,7 +352,7 @@ export class ReviewService implements IReviewService {
         totalCount,
       });
 
-      const reviewDtos = ReviewMapper.toDtoList(reviews);
+      const reviewDtos = toReviewDtoList(reviews);
       const totalPages = Math.ceil(totalCount / limit);
 
       return ResponseHelper.success("Reviews retrieved successfully", {
@@ -388,7 +393,7 @@ export class ReviewService implements IReviewService {
 
       this._logger.info("Order review retrieved successfully", context);
 
-      const reviewDto = ReviewMapper.toDto(review);
+      const reviewDto = toReviewDto(review);
       return ResponseHelper.success("Review retrieved successfully", reviewDto);
     } catch (error) {
       const errorMessage =
@@ -812,7 +817,10 @@ export class ReviewService implements IReviewService {
         authorId: review.userId.toString(),
       };
 
-      this._logger.info("Sending report notification to review author", context);
+      this._logger.info(
+        "Sending report notification to review author",
+        context
+      );
 
       await this._notificationService.createNotification({
         userId: review.userId.toString(),
@@ -833,11 +841,14 @@ export class ReviewService implements IReviewService {
         context
       );
     } catch (error) {
-      this._logger.error("Failed to send report notification to review author", {
-        reviewId: review._id.toString(),
-        authorId: review.userId.toString(),
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      this._logger.error(
+        "Failed to send report notification to review author",
+        {
+          reviewId: review._id.toString(),
+          authorId: review.userId.toString(),
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      );
     }
   }
 
@@ -852,7 +863,10 @@ export class ReviewService implements IReviewService {
         milestone,
       };
 
-      this._logger.info("Sending milestone notification to technician", context);
+      this._logger.info(
+        "Sending milestone notification to technician",
+        context
+      );
 
       await this._notificationService.createNotification({
         userId: technicianId,
@@ -872,11 +886,14 @@ export class ReviewService implements IReviewService {
         context
       );
     } catch (error) {
-      this._logger.error("Failed to send milestone notification to technician", {
-        technicianId,
-        milestone,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+      this._logger.error(
+        "Failed to send milestone notification to technician",
+        {
+          technicianId,
+          milestone,
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
+      );
     }
   }
 }

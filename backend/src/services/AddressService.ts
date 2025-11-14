@@ -1,7 +1,6 @@
 import { IAddressRepository } from "../interfaces/repository/user/IAddressRepository";
 import { IAddressService } from "../interfaces/services/user/IAddressService";
 import { ResponseHelper } from "../utils/responseHelper";
-import { AddressMapper } from "../mappers/addressMapper";
 import {
   AddressListResponseDto,
   AddressResponseDto,
@@ -9,6 +8,12 @@ import {
   UpdateAddressRequestDto,
 } from "../interfaces/dtos/addressDtos";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import {
+  toAddressCreateModel,
+  toAddressDto,
+  toAddressDtoList,
+  toAddressUpdateModel,
+} from "@/mappers/addressMapper";
 
 export class AddressService implements IAddressService {
   private _addressRepository: IAddressRepository;
@@ -16,7 +21,7 @@ export class AddressService implements IAddressService {
 
   constructor(addressRepository: IAddressRepository, logger: ILogger) {
     this._logger = logger;
-    this._addressRepository = addressRepository
+    this._addressRepository = addressRepository;
   }
 
   async getUserAddresses(userId: string): Promise<AddressListResponseDto> {
@@ -42,7 +47,7 @@ export class AddressService implements IAddressService {
         addressCount: addresses.length,
       });
 
-      const addressDtos = AddressMapper.toDtoList(addresses);
+      const addressDtos = toAddressDtoList(addresses);
       return ResponseHelper.success("Addresses retrieved successfully", {
         addresses: addressDtos,
       });
@@ -85,7 +90,7 @@ export class AddressService implements IAddressService {
         addressFound: true,
       });
 
-      const addressDto = AddressMapper.toDto(address);
+      const addressDto = toAddressDto(address);
       return ResponseHelper.success("Address retrieved successfully", {
         address: addressDto,
       });
@@ -152,7 +157,7 @@ export class AddressService implements IAddressService {
         await this._addressRepository.unsetAllDefaults(userId);
       }
 
-      const addressModel = AddressMapper.toCreateModel(userId, addressData);
+      const addressModel = toAddressCreateModel(userId, addressData);
 
       this._logger.debug("Creating address in repository", {
         ...context,
@@ -174,7 +179,7 @@ export class AddressService implements IAddressService {
         addressId: newAddress._id?.toString(),
       });
 
-      const addressDto = AddressMapper.toDto(newAddress);
+      const addressDto = toAddressDto(newAddress);
       return ResponseHelper.success("Address added successfully", {
         address: addressDto,
       });
@@ -231,7 +236,7 @@ export class AddressService implements IAddressService {
         await this._addressRepository.unsetAllDefaults(userId);
       }
 
-      const updateModel = AddressMapper.toUpdateModel(addressData);
+      const updateModel = toAddressUpdateModel(addressData);
 
       this._logger.debug("Updating address in repository", {
         ...context,
@@ -250,7 +255,7 @@ export class AddressService implements IAddressService {
 
       this._logger.info("Address updated successfully", context);
 
-      const addressDto = AddressMapper.toDto(updatedAddress);
+      const addressDto = toAddressDto(updatedAddress);
       return ResponseHelper.success("Address updated successfully", {
         address: addressDto,
       });
@@ -378,7 +383,7 @@ export class AddressService implements IAddressService {
 
       this._logger.info("Default address set successfully", context);
 
-      const addressDto = AddressMapper.toDto(updatedAddress);
+      const addressDto = toAddressDto(updatedAddress);
       return ResponseHelper.success("Default address updated successfully", {
         address: addressDto,
       });

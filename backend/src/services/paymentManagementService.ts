@@ -1,4 +1,3 @@
-import { PaymentMapper } from "../mappers/paymentMapper";
 import {
   PaymentListResponseDto,
   PaymentResponseDto,
@@ -10,15 +9,18 @@ import { Types } from "mongoose";
 import { PAYMENT_MESSAGES } from "../constants";
 import { IPaymentService } from "../interfaces/services/admin/IPaymentManagementService";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import {
+  toPaymentListResponseDto,
+  toPaymentResponseDto,
+  toPaymentStatsDto,
+} from "@/mappers/paymentMapper";
 
 export class PaymentManagementService implements IPaymentService {
   private _paymentRepository: IPaymentRepository;
-  private _paymentMapper: PaymentMapper;
   private _logger: ILogger;
 
   constructor(paymentRepository: IPaymentRepository, logger: ILogger) {
     this._paymentRepository = paymentRepository;
-    this._paymentMapper = new PaymentMapper();
     this._logger = logger;
   }
 
@@ -94,12 +96,7 @@ export class PaymentManagementService implements IPaymentService {
         hasSearch: !!search,
       });
 
-      return this._paymentMapper.toPaymentListResponseDto(
-        payments,
-        total,
-        page,
-        limit
-      );
+      return toPaymentListResponseDto(payments, total, page, limit);
     } catch (error: any) {
       this._logger.error("Get payments error", {
         ...context,
@@ -137,7 +134,7 @@ export class PaymentManagementService implements IPaymentService {
         status: payment.status,
       });
 
-      return this._paymentMapper.toPaymentResponseDto(payment);
+      return toPaymentResponseDto(payment);
     } catch (error: any) {
       this._logger.error("Get payment by ID error", {
         ...context,
@@ -165,7 +162,7 @@ export class PaymentManagementService implements IPaymentService {
         totalPayments: stats.totalPayments,
       });
 
-      return this._paymentMapper.toPaymentStatsDto(stats);
+      return toPaymentStatsDto(stats);
     } catch (error: any) {
       this._logger.error("Get payment stats error", {
         ...context,
@@ -301,7 +298,7 @@ export class PaymentManagementService implements IPaymentService {
     ].join(",");
 
     const rows = payments.map((payment) => {
-      const paymentDto = this._paymentMapper.toPaymentResponseDto(payment);
+      const paymentDto = toPaymentResponseDto(payment);
       return [
         paymentDto.providerOrderId,
         paymentDto.orderId,

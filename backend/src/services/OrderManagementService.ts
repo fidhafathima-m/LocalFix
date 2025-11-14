@@ -6,18 +6,20 @@ import {
   OrderStatsDto,
   UpdateOrderStatusDto,
 } from "../interfaces/dtos/orderDtos";
-import { OrderMapper } from "../mappers/orderMapper";
 import { ORDER_MESSAGES } from "../constants";
 import { Types } from "mongoose";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import {
+  toOrderListResponseDto,
+  toOrderResponseDto,
+  toOrderStatsDto,
+} from "@/mappers/orderMapper";
 export class OrderManagementService implements IOrderService {
   private _orderRepository: IOrderRepository;
-  private _orderMapper: OrderMapper;
   private _logger: ILogger;
 
   constructor(orderRepository: IOrderRepository, logger: ILogger) {
     this._orderRepository = orderRepository;
-    this._orderMapper = new OrderMapper();
     this._logger = logger;
   }
 
@@ -72,12 +74,7 @@ export class OrderManagementService implements IOrderService {
         totalOrders: total,
       });
 
-      return this._orderMapper.toOrderListResponseDto(
-        orders,
-        total,
-        page,
-        limit
-      );
+      return toOrderListResponseDto(orders, total, page, limit);
     } catch (error: any) {
       this._logger.error("Get orders error", {
         ...context,
@@ -114,7 +111,7 @@ export class OrderManagementService implements IOrderService {
         orderCode: order.orderCode,
       });
 
-      return this._orderMapper.toOrderResponseDto(order);
+      return toOrderResponseDto(order);
     } catch (error: any) {
       this._logger.error("Get order by ID error", {
         ...context,
@@ -142,7 +139,7 @@ export class OrderManagementService implements IOrderService {
         totalRevenue: stats.totalRevenue,
       });
 
-      return this._orderMapper.toOrderStatsDto(stats);
+      return toOrderStatsDto(stats);
     } catch (error: any) {
       this._logger.error("Get order stats error", {
         ...context,
@@ -220,7 +217,7 @@ export class OrderManagementService implements IOrderService {
         newStatus: updatedOrder.status,
       });
 
-      return this._orderMapper.toOrderResponseDto(updatedOrder);
+      return toOrderResponseDto(updatedOrder);
     } catch (error: any) {
       this._logger.error("Update order status error", {
         ...context,
@@ -266,12 +263,7 @@ export class OrderManagementService implements IOrderService {
         totalOrders: total,
       });
 
-      return this._orderMapper.toOrderListResponseDto(
-        orders,
-        total,
-        page,
-        limit
-      );
+      return toOrderListResponseDto(orders, total, page, limit);
     } catch (error: any) {
       this._logger.error("Get technician orders error", {
         ...context,
