@@ -8,7 +8,11 @@
     "dev": "npx ts-node-dev src/server.ts",
     "cleanup-logs": "node scripts/logCleanup.js",
     "logs:dev": "tail -f logs/combined-$(date +%Y-%m-%d).log",
-    "logs:error": "tail -f logs/error-$(date +%Y-%m-%d).log"
+    "logs:error": "tail -f logs/error-$(date +%Y-%m-%d).log",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint:strict": "eslint . --ext .ts,.tsx --max-warnings=0",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -50,6 +54,12 @@
     "@types/nodemailer": "^7.0.1",
     "@types/socket.io-client": "^1.4.36",
     "@types/winston": "^2.4.4",
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.46.4",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prettier": "^5.5.4",
     "module-alias": "^2.2.3",
     "nodemon": "^3.1.10",
     "ts-node-dev": "^2.0.0"

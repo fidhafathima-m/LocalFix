@@ -10,9 +10,9 @@ import {
   UpdateReviewRequestDto,
 } from "../../interfaces/dtos/reviewDtos";
 import { AuthRequest } from "@/middleware/authMiddleware";
-import { ReviewMapper } from "../../mappers/reviewMapper";
 import { IReviewRepository } from "../../interfaces/repository/user/IReviewRepository";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import { toReviewDto } from "@/mappers/reviewMapper";
 
 export class ReviewController {
   private _reviewService: IReviewService;
@@ -63,11 +63,11 @@ export class ReviewController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Create review controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -111,11 +111,11 @@ export class ReviewController {
       this._logger.info("Review updated successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update review controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -154,11 +154,11 @@ export class ReviewController {
       this._logger.info("Review deleted successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Delete review controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -183,11 +183,11 @@ export class ReviewController {
       this._logger.info("Review retrieved successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get review by ID controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -227,11 +227,11 @@ export class ReviewController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get user reviews controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -270,11 +270,11 @@ export class ReviewController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get technician reviews controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -308,17 +308,17 @@ export class ReviewController {
 
       this._logger.info("Order review retrieved successfully", context);
 
-      const reviewDto = ReviewMapper.toDto(review);
+      const reviewDto = toReviewDto(review);
       const response = ResponseHelper.success(
         "Review retrieved successfully",
         reviewDto
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get order review controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
@@ -350,11 +350,11 @@ export class ReviewController {
       );
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get technician review stats controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -404,11 +404,11 @@ export class ReviewController {
       );
 
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Check review permission controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -460,11 +460,11 @@ export class ReviewController {
       this._logger.info("Review reported successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Report review controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);

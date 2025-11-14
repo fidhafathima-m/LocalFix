@@ -71,11 +71,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get public technicians controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -117,11 +117,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get technicians by service controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -152,11 +152,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get public technician controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -187,11 +187,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get technicians controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -220,11 +220,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get technician controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -261,11 +261,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update technician status controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -291,11 +291,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get technician stats controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -327,11 +327,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get pending applications controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -364,11 +364,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Approve application controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -412,11 +412,11 @@ export class TechnicianManagementController {
       this._logger.info("Application rejected successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Reject application controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -445,11 +445,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get application controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -475,11 +475,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get application stats controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -513,11 +513,11 @@ export class TechnicianManagementController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get technician by application controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -611,12 +611,15 @@ export class TechnicianManagementController {
       );
 
       res.status(result.statusCode || 200).json(result);
-    } catch (error: any) {
-      this._logger.error("Get technician public availability controller error", {
-        ...context,
-        error: error.message,
-        stack: error.stack,
-      });
+    } catch (error: unknown) {
+      this._logger.error(
+        "Get technician public availability controller error",
+        {
+          ...context,
+          error: error instanceof Error ? error.message : undefined,
+          stack: error instanceof Error ? error.stack : undefined,
+        }
+      );
 
       const errorResponse = ResponseHelper.error(
         "Failed to fetch technician availability"

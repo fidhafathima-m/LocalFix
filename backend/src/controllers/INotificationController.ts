@@ -8,15 +8,15 @@ export class NotificationController {
   private _notificationService: INotificationService;
   private _logger: ILogger;
 
-  constructor(
-    notificationService: INotificationService,
-    logger: ILogger
-  ) {
+  constructor(notificationService: INotificationService, logger: ILogger) {
     this._notificationService = notificationService;
     this._logger = logger;
   }
 
-  getNotificationsByUser = async (req: Request, res: Response): Promise<void> => {
+  getNotificationsByUser = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     const { userId } = req.query;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -26,7 +26,7 @@ export class NotificationController {
       userId,
       page,
       limit,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
@@ -38,20 +38,27 @@ export class NotificationController {
         return;
       }
 
-      const result = await this._notificationService.getNotificationsByUser(userId, page, limit);
+      const result = await this._notificationService.getNotificationsByUser(
+        userId,
+        page,
+        limit
+      );
 
       this._logger.info("Notifications retrieved successfully", {
         ...context,
-        count: result.notifications.length
+        count: result.notifications.length,
       });
 
-      const response = ResponseHelper.success("Notifications retrieved successfully", result);
+      const response = ResponseHelper.success(
+        "Notifications retrieved successfully",
+        result
+      );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get notifications controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error("Failed to retrieve notifications");
@@ -65,7 +72,7 @@ export class NotificationController {
     const context = {
       operation: "markAsRead",
       notificationId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
@@ -76,20 +83,21 @@ export class NotificationController {
       this._logger.info("Notification marked as read successfully", context);
 
       const response = ResponseHelper.success("Notification marked as read", {
-        notification: result
+        notification: result,
       });
       res.status(response.statusCode).json(response);
     } catch (error: any) {
       this._logger.error("Mark as read controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const response = error.message === "Notification not found" 
-        ? ResponseHelper.notFound("Notification not found")
-        : ResponseHelper.error("Failed to mark notification as read");
-      
+      const response =
+        error.message === "Notification not found"
+          ? ResponseHelper.notFound("Notification not found")
+          : ResponseHelper.error("Failed to mark notification as read");
+
       res.status(response.statusCode).json(response);
     }
   };
@@ -100,7 +108,7 @@ export class NotificationController {
     const context = {
       operation: "markAllAsRead",
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
@@ -117,16 +125,18 @@ export class NotificationController {
       const response = result.success
         ? ResponseHelper.success(result.message)
         : ResponseHelper.error(result.message);
-      
+
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Mark all as read controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const response = ResponseHelper.error("Failed to mark all notifications as read");
+      const response = ResponseHelper.error(
+        "Failed to mark all notifications as read"
+      );
       res.status(response.statusCode).json(response);
     }
   };
@@ -137,7 +147,7 @@ export class NotificationController {
     const context = {
       operation: "getUnreadCount",
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     try {
@@ -152,15 +162,17 @@ export class NotificationController {
       const result = await this._notificationService.getUnreadCount(userId);
 
       const response = result.success
-        ? ResponseHelper.success("Unread count retrieved", { count: result.count })
+        ? ResponseHelper.success("Unread count retrieved", {
+            count: result.count,
+          })
         : ResponseHelper.error(result.message || "Failed to get unread count");
-      
+
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get unread count controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error("Failed to get unread count");

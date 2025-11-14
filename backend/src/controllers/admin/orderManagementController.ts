@@ -52,12 +52,12 @@ export class OrderManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ORDER_MESSAGES.FAILED_FETCH_ORDERS;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ORDER_MESSAGES.FAILED_FETCH_ORDERS;
       this._logger.error("Get orders controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -87,12 +87,12 @@ export class OrderManagementController {
         order,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ORDER_MESSAGES.ORDER_NOT_FOUND;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ORDER_MESSAGES.ORDER_NOT_FOUND;
       this._logger.error("Get order by ID controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -117,12 +117,12 @@ export class OrderManagementController {
         stats,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ORDER_MESSAGES.FAILED_FETCH_STATS;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ORDER_MESSAGES.FAILED_FETCH_STATS;
       this._logger.error("Get order stats controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -191,12 +191,12 @@ export class OrderManagementController {
         order,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ORDER_MESSAGES.FAILED_UPDATE_STATUS;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ORDER_MESSAGES.FAILED_UPDATE_STATUS;
       this._logger.error("Update order status controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -238,12 +238,12 @@ export class OrderManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ORDER_MESSAGES.FAILED_FETCH_ORDERS;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ORDER_MESSAGES.FAILED_FETCH_ORDERS;
       this._logger.error("Get technician orders controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);

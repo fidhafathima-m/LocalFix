@@ -9,10 +9,7 @@ export class OrderController {
   private _orderService: IOrderService;
   private _logger: ILogger;
 
-  constructor(
-    orderService: IOrderService,
-    logger: ILogger
-  ) {
+  constructor(orderService: IOrderService, logger: ILogger) {
     this._orderService = orderService;
     this._logger = logger;
   }
@@ -45,7 +42,11 @@ export class OrderController {
         return;
       }
 
-      const result = await this._orderService.getUserOrders(userId, page, limit);
+      const result = await this._orderService.getUserOrders(
+        userId,
+        page,
+        limit
+      );
 
       this._logger.info("User orders retrieved successfully", {
         ...context,
@@ -53,11 +54,11 @@ export class OrderController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get user orders controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -80,7 +81,10 @@ export class OrderController {
       this._logger.info("Fetching order by ID", context);
 
       if (!userId) {
-        this._logger.warn("Get order failed - authentication required", context);
+        this._logger.warn(
+          "Get order failed - authentication required",
+          context
+        );
         const errorResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -96,11 +100,11 @@ export class OrderController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get order by ID controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -154,11 +158,11 @@ export class OrderController {
       this._logger.info("Order cancelled successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Cancel order controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -252,11 +256,11 @@ export class OrderController {
       }
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Reschedule order controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -312,11 +316,11 @@ export class OrderController {
       this._logger.info("Order created successfully from booking", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Create order from booking controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -341,7 +345,10 @@ export class OrderController {
       this._logger.info("Fetching order by booking ID", context);
 
       if (!userId) {
-        this._logger.warn("Get order failed - authentication required", context);
+        this._logger.warn(
+          "Get order failed - authentication required",
+          context
+        );
         const errorResponse = ResponseHelper.unauthorized(
           "Authentication required"
         );
@@ -360,11 +367,11 @@ export class OrderController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get order by booking ID controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -409,11 +416,11 @@ export class OrderController {
       this._logger.info("Order payment updated successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update order payment controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);

@@ -15,10 +15,7 @@ export class AddressController {
   private _addressService: IAddressService;
   private _logger: ILogger;
 
-  constructor(
-    addressService: IAddressService,
-    logger: ILogger
-  ) {
+  constructor(addressService: IAddressService, logger: ILogger) {
     this._addressService = addressService;
     this._logger = logger;
   }
@@ -56,11 +53,11 @@ export class AddressController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get user addresses controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -114,11 +111,11 @@ export class AddressController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Create address controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -173,7 +170,11 @@ export class AddressController {
       });
 
       const result: AddressResponseDto =
-        await this._addressService.updateAddress(userId, addressId, addressData);
+        await this._addressService.updateAddress(
+          userId,
+          addressId,
+          addressData
+        );
 
       this._logger.info("Address updated successfully", {
         ...context,
@@ -181,11 +182,11 @@ export class AddressController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update address controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -226,11 +227,11 @@ export class AddressController {
       this._logger.info("Address deleted successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Delete address controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -274,11 +275,11 @@ export class AddressController {
       this._logger.info("Default address set successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Set default address controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -323,11 +324,11 @@ export class AddressController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get address by ID controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);

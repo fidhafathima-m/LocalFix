@@ -8,10 +8,7 @@ export class UserProfileController {
   private _userProfileService: IUserProfileService;
   private _logger: ILogger;
 
-  constructor(
-    userProfileService: IUserProfileService,
-    logger: ILogger
-  ) {
+  constructor(userProfileService: IUserProfileService, logger: ILogger) {
     this._userProfileService = userProfileService;
     this._logger = logger;
   }
@@ -55,11 +52,11 @@ export class UserProfileController {
       });
 
       return res.status(200).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get user profile error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       return res
@@ -128,11 +125,11 @@ export class UserProfileController {
       });
 
       return res.status(200).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update user profile error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       return res
@@ -200,11 +197,11 @@ export class UserProfileController {
       });
 
       return res.status(200).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Upload profile picture error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       return res
@@ -279,11 +276,11 @@ export class UserProfileController {
       this._logger.info("Password changed successfully", context);
 
       return res.status(200).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Change password error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       return res

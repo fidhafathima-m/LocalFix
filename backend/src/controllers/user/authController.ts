@@ -25,10 +25,7 @@ export class AuthController {
   private _addressService: IAuthService;
   private _logger: ILogger;
 
-  constructor(
-    authService: IAuthService,
-    logger: ILogger
-  ) {
+  constructor(authService: IAuthService, logger: ILogger) {
     this._addressService = authService;
     this._logger = logger;
   }
@@ -48,7 +45,9 @@ export class AuthController {
     try {
       this._logger.info("Signup request received", context);
 
-      const result: AuthResponseDto = await this._addressService.signup(signupData);
+      const result: AuthResponseDto = await this._addressService.signup(
+        signupData
+      );
 
       this._logger.info("Signup completed successfully", {
         ...context,
@@ -57,11 +56,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Signup controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -81,7 +80,9 @@ export class AuthController {
     try {
       this._logger.info("OTP verification request received", context);
 
-      const result: AuthResponseDto = await this._addressService.verifyOtp(otpData);
+      const result: AuthResponseDto = await this._addressService.verifyOtp(
+        otpData
+      );
 
       this._logger.info("OTP verification completed", {
         ...context,
@@ -90,11 +91,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Verify OTP controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -125,11 +126,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Verify reset OTP controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -151,7 +152,9 @@ export class AuthController {
     try {
       this._logger.info("Login request received", context);
 
-      const result: AuthResponseDto = await this._addressService.login(credentials);
+      const result: AuthResponseDto = await this._addressService.login(
+        credentials
+      );
 
       this._logger.info("Login completed", {
         ...context,
@@ -160,11 +163,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Login controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -199,11 +202,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Forgot password controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -233,11 +236,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Reset password controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -273,11 +276,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Resend OTP controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -308,11 +311,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Google auth controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -345,11 +348,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Facebook login controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -380,11 +383,11 @@ export class AuthController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Refresh token controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -424,11 +427,11 @@ export class AuthController {
       this._logger.info("Logout completed successfully", context);
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Logout controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);

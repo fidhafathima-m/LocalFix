@@ -99,13 +99,13 @@ export class ServiceManagementController {
         { service }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || SERVICE_MESSAGES.FAILED_CREATE_SERVICE;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ?
+        error.message : SERVICE_MESSAGES.FAILED_CREATE_SERVICE;
       this._logger.error("Create service controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ?error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -137,12 +137,12 @@ export class ServiceManagementController {
         { service }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || SERVICE_MESSAGES.SERVICE_NOT_FOUND;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : SERVICE_MESSAGES.SERVICE_NOT_FOUND;
       this._logger.error("Get service by ID controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -174,12 +174,12 @@ export class ServiceManagementController {
         { service }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || SERVICE_MESSAGES.SERVICE_NOT_FOUND;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : SERVICE_MESSAGES.SERVICE_NOT_FOUND;
       this._logger.error("Get service by slug controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -225,13 +225,13 @@ export class ServiceManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? 
+        error.message : SERVICE_MESSAGES.FAILED_FETCH_SERVICES;
       this._logger.error("Get services by category controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -277,13 +277,13 @@ export class ServiceManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || SERVICE_MESSAGES.FAILED_FETCH_SERVICES;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? 
+        error.message : SERVICE_MESSAGES.FAILED_FETCH_SERVICES;
       this._logger.error("Get all services controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -318,13 +318,13 @@ export class ServiceManagementController {
         { service }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || SERVICE_MESSAGES.FAILED_UPDATE_SERVICE;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? 
+        error.message : SERVICE_MESSAGES.FAILED_UPDATE_SERVICE;
       this._logger.error("Update service controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -349,13 +349,13 @@ export class ServiceManagementController {
 
       const response = ResponseHelper.success(SERVICE_MESSAGES.SERVICE_DELETED);
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || SERVICE_MESSAGES.FAILED_DELETE_SERVICE;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? 
+        error.message : SERVICE_MESSAGES.FAILED_DELETE_SERVICE;
       this._logger.error("Delete service controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -395,11 +395,11 @@ export class ServiceManagementController {
         services,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Search services controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error("Failed to search services");

@@ -13,10 +13,7 @@ export class UserLocationController {
   private _userLocationService: IUserLocationService;
   private _logger: ILogger;
 
-  constructor(
-    userLocationService: IUserLocationService,
-    logger: ILogger
-  ) {
+  constructor(userLocationService: IUserLocationService, logger: ILogger) {
     this._userLocationService = userLocationService;
     this._logger = logger;
   }
@@ -71,10 +68,13 @@ export class UserLocationController {
         latitude: coordinates[1],
       });
 
-      const result = await this._userLocationService.updateUserLocation(userId, {
-        coordinates: coordinates as [number, number],
-        address,
-      });
+      const result = await this._userLocationService.updateUserLocation(
+        userId,
+        {
+          coordinates: coordinates as [number, number],
+          address,
+        }
+      );
 
       if (!result.success) {
         this._logger.warn("Update location service returned failure", {
@@ -95,11 +95,11 @@ export class UserLocationController {
         message: "Location updated successfully",
         data: result.data,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update location error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       res.status(500).json({
@@ -170,11 +170,11 @@ export class UserLocationController {
         success: true,
         data: result.data,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get location error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       res.status(500).json({
@@ -225,11 +225,11 @@ export class UserLocationController {
         success: true,
         message: "Location deleted successfully",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Delete location error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       res.status(500).json({
@@ -304,11 +304,11 @@ export class UserLocationController {
         data: result.data,
         count: result.count,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Nearby technicians error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       res.status(500).json({

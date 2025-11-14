@@ -55,12 +55,12 @@ export class PublicUserManagementController {
       });
 
       return res.status(200).json(result);
-    } catch (error: any) {
-      const errorMessage = error.message || "Failed to fetch user profile";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch user profile";
       this._logger.error("Get user profile error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error("Failed to fetch user profile");
@@ -106,12 +106,12 @@ export class PublicUserManagementController {
       });
 
       return res.status(200).json(result);
-    } catch (error: any) {
-      const errorMessage = error.message || "Failed to fetch user";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch user";
       this._logger.error("Get public user error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error("Failed to fetch user");

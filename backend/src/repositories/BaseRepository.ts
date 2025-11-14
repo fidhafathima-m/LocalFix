@@ -1,21 +1,35 @@
 import { Model, Types, Document, FilterQuery, UpdateQuery } from "mongoose";
 import { IBaseRepository } from "../interfaces/repository/IBaseRepository";
 
-export abstract class BaseRepository<T extends Document> implements IBaseRepository<T> {
+export abstract class BaseRepository<T extends Document>
+  implements IBaseRepository<T>
+{
   protected constructor(protected readonly model: Model<T>) {}
 
   private handleError(operation: string, error: any): never {
     // Check if it's a MongoDB connection error
-    if (error.name === 'MongooseError' && error.message.includes('buffering timed out')) {
-      throw new Error(`Database connection timeout during ${operation}: ${error.message}`);
+    if (
+      error.name === "MongooseError" &&
+      error.message.includes("buffering timed out")
+    ) {
+      throw new Error(
+        `Database connection timeout during ${operation}: ${error.message}`
+      );
     }
-    
+
     // Check if it's a connection error
-    if (error.name === 'MongoNetworkError' || error.name === 'MongoTimeoutError') {
-      throw new Error(`Database connection failed during ${operation}: ${error.message}`);
+    if (
+      error.name === "MongoNetworkError" ||
+      error.name === "MongoTimeoutError"
+    ) {
+      throw new Error(
+        `Database connection failed during ${operation}: ${error.message}`
+      );
     }
-    
-    throw new Error(`Failed to ${operation} ${this.model.modelName}: ${error.message}`);
+
+    throw new Error(
+      `Failed to ${operation} ${this.model.modelName}: ${error.message}`
+    );
   }
 
   async create(data: Partial<T>): Promise<T> {
@@ -23,80 +37,72 @@ export abstract class BaseRepository<T extends Document> implements IBaseReposit
       const created = new this.model(data);
       return await created.save();
     } catch (error) {
-      this.handleError('create', error);
+      this.handleError("create", error);
     }
   }
 
   async findById(id: string | Types.ObjectId): Promise<T | null> {
     try {
-      return await this.model.findById(id)
-        .maxTimeMS(15000) // Set timeout for this specific query
-        .exec();
+      return await this.model.findById(id).exec();
     } catch (error) {
-      this.handleError('find by ID', error);
+      this.handleError("find by ID", error);
     }
   }
 
   async findOne(filter: FilterQuery<T>): Promise<T | null> {
     try {
-      return await this.model.findOne(filter)
-        .maxTimeMS(15000) // Set timeout for this specific query
-        .exec();
+      return await this.model.findOne(filter).exec();
     } catch (error) {
-      this.handleError('find one', error);
+      this.handleError("find one", error);
     }
   }
 
   async find(filter: FilterQuery<T> = {}): Promise<T[]> {
     try {
-      return await this.model.find(filter)
-        .maxTimeMS(15000)
-        .exec();
+      return await this.model.find(filter).exec();
     } catch (error) {
-      this.handleError('find', error);
+      this.handleError("find", error);
     }
   }
 
-  async update(id: string | Types.ObjectId, data: UpdateQuery<T>): Promise<T | null> {
+  async update(
+    id: string | Types.ObjectId,
+    data: UpdateQuery<T>
+  ): Promise<T | null> {
     try {
-      return await this.model.findByIdAndUpdate(id, data, { 
-        new: true,
-        maxTimeMS: 15000
-      }).exec();
+      return await this.model
+        .findByIdAndUpdate(id, data, {
+          new: true,
+        })
+        .exec();
     } catch (error) {
-      this.handleError('update', error);
+      this.handleError("update", error);
     }
   }
 
   async delete(id: string | Types.ObjectId): Promise<boolean> {
     try {
-      const result = await this.model.findByIdAndDelete(id)
-        .maxTimeMS(15000)
-        .exec();
+      const result = await this.model.findByIdAndDelete(id).exec();
       return result !== null;
     } catch (error) {
-      this.handleError('delete', error);
+      this.handleError("delete", error);
     }
   }
 
   async count(filter: FilterQuery<T> = {}): Promise<number> {
     try {
-      return await this.model.countDocuments(filter)
-        .maxTimeMS(15000)
-        .exec();
+      return await this.model.countDocuments(filter).exec();
     } catch (error) {
-      this.handleError('count', error);
+      this.handleError("count", error);
     }
   }
 
   async exists(filter: FilterQuery<T>): Promise<boolean> {
     try {
-      const count = await this.model.countDocuments(filter)
-        .maxTimeMS(15000)
-        .exec();
+      const count = await this.model.countDocuments(filter).exec();
       return count > 0;
     } catch (error) {
-      this.handleError('check existence', error);
+      this.handleError("check existence", error);
     }
   }
 
@@ -104,7 +110,7 @@ export abstract class BaseRepository<T extends Document> implements IBaseReposit
     try {
       return await entity.save();
     } catch (error) {
-      this.handleError('save', error);
+      this.handleError("save", error);
     }
   }
 }

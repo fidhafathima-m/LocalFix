@@ -4,17 +4,14 @@ import { AuthRequest } from "../../middleware/authMiddleware";
 import { ResponseHelper } from "../../utils/responseHelper";
 import { GENERAL_MESSAGES } from "../../constants";
 import { TechnicianProfileResponseDto } from "@/interfaces/dtos/technicianProfileDtos";
-import { TechnicianProfileMapper } from "../../mappers/technicianProfileMappers";
 import { ILogger } from "@/interfaces/utils/ILogger";
+import { toStaticDataDto } from "@/mappers/technicianProfileMappers";
 
 export class TechnicianProfileController {
   private _profileService: ITechnicianProfileService;
   private _logger: ILogger;
 
-  constructor(
-    profileService: ITechnicianProfileService,
-    logger: ILogger
-  ) {
+  constructor(profileService: ITechnicianProfileService, logger: ILogger) {
     this._profileService = profileService;
     this._logger = logger;
   }
@@ -70,11 +67,11 @@ export class TechnicianProfileController {
       });
 
       this.handleServiceResponse(result, res, "Profile retrieved successfully");
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get profile controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -127,11 +124,11 @@ export class TechnicianProfileController {
         res,
         "Personal information updated successfully"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update personal info controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -188,11 +185,11 @@ export class TechnicianProfileController {
         });
 
         res.status(result.statusCode).json(result);
-      } catch (error: any) {
+      } catch (error: unknown) {
         this._logger.error("Upload photo controller error", {
           ...context,
-          error: error.message,
-          stack: error.stack,
+          error: error instanceof Error ? error.message : undefined,
+          stack: error instanceof Error ? error.stack : undefined,
         });
 
         const errorResponse = ResponseHelper.error("Failed to upload photo");
@@ -246,11 +243,11 @@ export class TechnicianProfileController {
         res,
         "Identity verification updated successfully"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update identity verification controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -303,11 +300,11 @@ export class TechnicianProfileController {
         res,
         "Skills and services updated successfully"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update skills services controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -360,11 +357,11 @@ export class TechnicianProfileController {
         res,
         "Availability updated successfully"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update availability controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -417,11 +414,11 @@ export class TechnicianProfileController {
         res,
         "Bank and payment details updated successfully"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update bank payment controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -460,11 +457,11 @@ export class TechnicianProfileController {
       this._logger.info("Password updated successfully", context);
 
       this.handleServiceResponse(result, res, "Password updated successfully");
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Update password controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
@@ -539,11 +536,11 @@ export class TechnicianProfileController {
         });
 
         res.status(result.statusCode).json(result);
-      } catch (error: any) {
+      } catch (error: unknown) {
         this._logger.error("Upload document controller error", {
           ...context,
-          error: error.message,
-          stack: error.stack,
+          error: error instanceof Error ? error.message : undefined,
+          stack: error instanceof Error ? error.stack : undefined,
         });
 
         const errorResponse = ResponseHelper.error("Failed to upload document");
@@ -561,7 +558,7 @@ export class TechnicianProfileController {
     try {
       this._logger.info("Fetching static data", context);
 
-      const staticData = TechnicianProfileMapper.toStaticDataDto();
+      const staticData = toStaticDataDto();
 
       this._logger.info("Static data retrieved successfully", context);
 
@@ -570,11 +567,11 @@ export class TechnicianProfileController {
         staticData
       );
       res.status(successResponse.statusCode).json(successResponse);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get static data error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error("Failed to fetch static data");
@@ -622,11 +619,11 @@ export class TechnicianProfileController {
         res,
         "Profile deactivated successfully"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Deactivate profile error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(
@@ -665,11 +662,11 @@ export class TechnicianProfileController {
         "Account deletion request received. This action will be processed within 24 hours."
       );
       res.status(successResponse.statusCode).json(successResponse);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Delete account error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(
@@ -706,11 +703,11 @@ export class TechnicianProfileController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get slot rules controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       res.status(500).json({
@@ -753,11 +750,11 @@ export class TechnicianProfileController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Get technician availability controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       res.status(500).json({

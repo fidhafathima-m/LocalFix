@@ -8,10 +8,7 @@ export class ReviewManagementController {
   private _reviewService: IAdminReviewService;
   private _logger: ILogger;
 
-  constructor(
-    reviewService: IAdminReviewService,
-    logger: ILogger
-  ) {
+  constructor(reviewService: IAdminReviewService, logger: ILogger) {
     this._reviewService = reviewService;
     this._logger = logger;
   }
@@ -57,13 +54,15 @@ export class ReviewManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || REVIEW_MESSAGES.FAILED_FETCH_REVIEWS;
+        error instanceof Error
+          ? error.message
+          : REVIEW_MESSAGES.FAILED_FETCH_REVIEWS;
       this._logger.error("Get all reviews controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -94,13 +93,15 @@ export class ReviewManagementController {
         { review }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || REVIEW_MESSAGES.REVIEW_NOT_FOUND;
+        error instanceof Error
+          ? error.message
+          : REVIEW_MESSAGES.REVIEW_NOT_FOUND;
       this._logger.error("Get review by ID controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -136,18 +137,19 @@ export class ReviewManagementController {
         reviewId: review.id,
       });
 
-      const response = ResponseHelper.success(
-        REVIEW_MESSAGES.REVIEW_UPDATED,
-        { review }
-      );
+      const response = ResponseHelper.success(REVIEW_MESSAGES.REVIEW_UPDATED, {
+        review,
+      });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || REVIEW_MESSAGES.FAILED_UPDATE_REVIEW;
+        error instanceof Error
+          ? error.message
+          : REVIEW_MESSAGES.FAILED_UPDATE_REVIEW;
       this._logger.error("Update review status controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -176,18 +178,19 @@ export class ReviewManagementController {
         reviewId: review.id,
       });
 
-      const response = ResponseHelper.success(
-        REVIEW_MESSAGES.REVIEW_FLAGGED,
-        { review }
-      );
+      const response = ResponseHelper.success(REVIEW_MESSAGES.REVIEW_FLAGGED, {
+        review,
+      });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || REVIEW_MESSAGES.FAILED_FLAG_REVIEW;
+        error instanceof Error
+          ? error.message
+          : REVIEW_MESSAGES.FAILED_FLAG_REVIEW;
       this._logger.error("Flag review controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -210,17 +213,17 @@ export class ReviewManagementController {
 
       this._logger.info("Review deleted successfully", context);
 
-      const response = ResponseHelper.success(
-        REVIEW_MESSAGES.REVIEW_DELETED
-      );
+      const response = ResponseHelper.success(REVIEW_MESSAGES.REVIEW_DELETED);
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || REVIEW_MESSAGES.FAILED_DELETE_REVIEW;
+        error instanceof Error
+          ? error.message
+          : REVIEW_MESSAGES.FAILED_DELETE_REVIEW;
       this._logger.error("Delete review controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -246,12 +249,15 @@ export class ReviewManagementController {
         stats
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || "Failed to fetch review statistics";
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch review statistics";
       this._logger.error("Get review stats controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);

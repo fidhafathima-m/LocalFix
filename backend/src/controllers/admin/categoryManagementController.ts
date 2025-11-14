@@ -72,13 +72,14 @@ export class CategoryManagementController {
         { category }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || CATEGORY_MESSAGES.FAILED_CREATE_CATEGORY;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error
+        ? error.message 
+        : CATEGORY_MESSAGES.FAILED_CREATE_CATEGORY;
       this._logger.error("Create category controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -109,13 +110,14 @@ export class CategoryManagementController {
         { category }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || CATEGORY_MESSAGES.CATEGORY_NOT_FOUND;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error
+        ? error.message 
+        : CATEGORY_MESSAGES.CATEGORY_NOT_FOUND;
       this._logger.error("Get category by ID controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -147,13 +149,14 @@ export class CategoryManagementController {
         { category }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || CATEGORY_MESSAGES.CATEGORY_NOT_FOUND;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error
+        ? error.message 
+        : CATEGORY_MESSAGES.CATEGORY_NOT_FOUND;
       this._logger.error("Get category by slug controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -193,13 +196,14 @@ export class CategoryManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || CATEGORY_MESSAGES.FAILED_FETCH_CATEGORIES;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error
+        ? error.message 
+        : CATEGORY_MESSAGES.FAILED_FETCH_CATEGORIES;
       this._logger.error("Get all categories controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -234,13 +238,14 @@ export class CategoryManagementController {
         { category }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || CATEGORY_MESSAGES.FAILED_UPDATE_CATEGORY;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error
+        ? error.message 
+        : CATEGORY_MESSAGES.FAILED_UPDATE_CATEGORY;
       this._logger.error("Update category controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -267,13 +272,14 @@ export class CategoryManagementController {
         CATEGORY_MESSAGES.CATEGORY_DELETED
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage =
-        error.message || CATEGORY_MESSAGES.FAILED_DELETE_CATEGORY;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error
+        ? error.message 
+        : CATEGORY_MESSAGES.FAILED_DELETE_CATEGORY;
       this._logger.error("Delete category controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -313,11 +319,11 @@ export class CategoryManagementController {
         categories,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Search categories controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error("Failed to search categories");

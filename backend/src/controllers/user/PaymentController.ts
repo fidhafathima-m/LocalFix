@@ -8,10 +8,7 @@ export class PaymentController {
   private _paymentService: IPaymentService;
   private _logger: ILogger;
 
-  constructor(
-    paymentService: IPaymentService,
-    logger: ILogger
-  ) {
+  constructor(paymentService: IPaymentService, logger: ILogger) {
     this._paymentService = paymentService;
     this._logger = logger;
   }
@@ -75,11 +72,11 @@ export class PaymentController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Create payment order controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(
@@ -140,11 +137,11 @@ export class PaymentController {
       });
 
       res.status(result.statusCode).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Verify payment controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error("Failed to verify payment");

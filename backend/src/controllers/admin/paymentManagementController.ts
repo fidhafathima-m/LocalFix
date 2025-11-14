@@ -57,12 +57,12 @@ export class PaymentManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || PAYMENT_MESSAGES.FAILED_FETCH_PAYMENTS;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.FAILED_FETCH_PAYMENTS;
       this._logger.error("Get payments controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -98,12 +98,12 @@ export class PaymentManagementController {
         payment,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || PAYMENT_MESSAGES.PAYMENT_NOT_FOUND;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.PAYMENT_NOT_FOUND;
       this._logger.error("Get payment by ID controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -132,12 +132,12 @@ export class PaymentManagementController {
         { stats }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || PAYMENT_MESSAGES.FAILED_FETCH_STATS;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.FAILED_FETCH_STATS;
       this._logger.error("Get payment stats controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -171,12 +171,12 @@ export class PaymentManagementController {
 
       const response = ResponseHelper.success(PAYMENT_MESSAGES.REFUND_PROCESSED);
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || PAYMENT_MESSAGES.FAILED_PROCESS_REFUND;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.FAILED_PROCESS_REFUND;
       this._logger.error("Process refund controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -204,12 +204,12 @@ export class PaymentManagementController {
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
       res.send(data);
-    } catch (error: any) {
-      const errorMessage = error.message || PAYMENT_MESSAGES.FAILED_EXPORT_PAYMENTS;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.FAILED_EXPORT_PAYMENTS;
       this._logger.error("Export payments controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);

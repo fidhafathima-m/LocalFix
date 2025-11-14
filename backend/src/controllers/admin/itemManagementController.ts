@@ -88,12 +88,12 @@ export class ItemManagementController {
         item,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ITEM_MESSAGES.FAILED_CREATE_ITEM;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ITEM_MESSAGES.FAILED_CREATE_ITEM;
       this._logger.error("Create item controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -124,12 +124,12 @@ export class ItemManagementController {
         item,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ITEM_MESSAGES.ITEM_NOT_FOUND;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ITEM_MESSAGES.ITEM_NOT_FOUND;
       this._logger.error("Get item by ID controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -172,12 +172,12 @@ export class ItemManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ITEM_MESSAGES.FAILED_FETCH_ITEMS;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ITEM_MESSAGES.FAILED_FETCH_ITEMS;
       this._logger.error("Get items by service controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -213,12 +213,12 @@ export class ItemManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ITEM_MESSAGES.FAILED_FETCH_ITEMS;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ITEM_MESSAGES.FAILED_FETCH_ITEMS;
       this._logger.error("Get all items controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -252,12 +252,12 @@ export class ItemManagementController {
         item,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ITEM_MESSAGES.FAILED_UPDATE_ITEM;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ITEM_MESSAGES.FAILED_UPDATE_ITEM;
       this._logger.error("Update item controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -282,12 +282,12 @@ export class ItemManagementController {
 
       const response = ResponseHelper.success(ITEM_MESSAGES.ITEM_DELETED);
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || ITEM_MESSAGES.FAILED_DELETE_ITEM;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : ITEM_MESSAGES.FAILED_DELETE_ITEM;
       this._logger.error("Delete item controller error", {
         ...context,
         error: errorMessage,
-        stack: error.stack,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -327,11 +327,11 @@ export class ItemManagementController {
         items,
       });
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error("Search items controller error", {
         ...context,
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       const response = ResponseHelper.error("Failed to search items");
