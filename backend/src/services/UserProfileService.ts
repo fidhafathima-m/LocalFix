@@ -4,6 +4,8 @@ import { uploadToCloudinary } from "../utils/cloudinary";
 import { IAddressRepository } from "../interfaces/repository/user/IAddressRepository";
 import { ILogger } from "@/interfaces/utils/ILogger";
 import { toAddressDtoList } from "../mappers/addressMapper";
+import { IUserProfileService } from "../interfaces/services/user/IUserProfileService";
+import { Types } from "mongoose";
 
 export interface UpdateUserProfileData {
   fullName?: string;
@@ -14,7 +16,7 @@ export interface UpdateUserProfileData {
   profilePicture?: string;
 }
 
-export class UserProfileService {
+export class UserProfileService implements IUserProfileService {
   private _logger: ILogger;
   private _userManagementRepository: IUserManagementRepository;
   private _addressRepository: IAddressRepository;
@@ -410,6 +412,176 @@ export class UserProfileService {
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error("Failed to change password");
+    }
+  }
+  async getUserTransactions(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    const context = {
+      operation: "getUserTransactions",
+      userId,
+      page,
+      limit,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info("Fetching user transactions", context);
+
+      const user = await this._userManagementRepository.findById(userId);
+
+      if (!user) {
+        this._logger.warn("User not found for transactions", context);
+        return ResponseHelper.notFound("User not found");
+      }
+
+      if (user.isDeleted) {
+        this._logger.warn(
+          "Attempt to access transactions for deleted account",
+          context,
+        );
+        return ResponseHelper.forbidden("Account has been deleted");
+      }
+
+      // Import Payment and Order models
+      const PaymentModel = (await import("../models/PaymentSchema")).default;
+      const OrderModel = (await import("../models/OrderSchema")).default;
+
+      const skip = (page - 1) * limit;
+
+      // Fetch payments with order details (not booking)
+      const payments = await PaymentModel.find({
+        userId: new Types.ObjectId(userId),
+      })
+        .populate({
+          path: "bookingId",
+          select: "serviceName scheduledAt", // Get basic booking info
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      const total = await PaymentModel.countDocuments({
+        userId: new Types.ObjectId(userId),
+      });
+
+      // Get order codes for each payment
+      const transactions = await Promise.all(
+        payments.map(async (payment) => {
+          // Find the order that matches this booking
+          const order = await OrderModel.findOne({
+            bookingId: payment.bookingId,
+          })
+            .select("orderCode serviceName")
+            .lean();
+
+          return {
+            _id: payment._id.toString(),
+            bookingId: payment.bookingId?._id?.toString() || "N/A",
+            orderCode:
+              order?.orderCode ||
+              `PAY-${payment._id.toString().slice(-8).toUpperCase()}`,
+            serviceName:
+              order?.serviceName ||
+              (payment.bookingId as any)?.serviceName ||
+              "Service",
+            amount: payment.amount,
+            status: payment.status,
+            type: payment.type,
+            paymentProvider: payment.paymentProvider,
+            createdAt: payment.createdAt,
+            confirmedAt: payment.confirmedAt,
+            refundedAt: payment.refundedAt,
+          };
+        }),
+      );
+
+      this._logger.info("Successfully retrieved user transactions", {
+        ...context,
+        transactionCount: transactions.length,
+        totalTransactions: total,
+      });
+
+      return ResponseHelper.success("Transactions retrieved successfully", {
+        transactions,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this._logger.error("Failed to fetch user transactions", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return ResponseHelper.error("Failed to fetch transactions");
+    }
+  }
+
+  async getWalletTransactions(userId: string) {
+    const context = {
+      operation: "getWalletTransactions",
+      userId,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info("Fetching wallet transactions", context);
+
+      const user = await this._userManagementRepository.findById(userId);
+
+      if (!user) {
+        this._logger.warn("User not found for wallet transactions", context);
+        return ResponseHelper.notFound("User not found");
+      }
+
+      if (user.isDeleted) {
+        this._logger.warn(
+          "Attempt to access wallet for deleted account",
+          context,
+        );
+        return ResponseHelper.forbidden("Account has been deleted");
+      }
+
+      // Return wallet transactions from user schema
+      const walletTransactions = user.wallet?.transactions || [];
+
+      // Sort transactions by date (newest first)
+      const sortedTransactions = walletTransactions.sort(
+        (a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+
+      this._logger.info("Successfully retrieved wallet transactions", {
+        ...context,
+        transactionCount: sortedTransactions.length,
+        currentBalance: user.wallet?.balance || 0,
+      });
+
+      return ResponseHelper.success(
+        "Wallet transactions retrieved successfully",
+        {
+          transactions: sortedTransactions,
+          balance: user.wallet?.balance || 0,
+        },
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      this._logger.error("Failed to fetch wallet transactions", {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return ResponseHelper.error("Failed to fetch wallet transactions");
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Document, Types } from "mongoose";
+import { Date, Document, Types } from "mongoose";
 
 interface IWalletTransaction {
   txId: string;
@@ -46,6 +46,16 @@ export interface IUser extends Document {
   profilePictureUrl?: string;
   gender?: string;
   dateOfBirth?: string;
+  bankAccounts?: {
+    accountNumber: string;
+    accountHolderName: string;
+    bankName: string;
+    ifscCode: string;
+    isDefault: boolean;
+    isVerified: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  };
 }
 
 export interface IUserCreate {

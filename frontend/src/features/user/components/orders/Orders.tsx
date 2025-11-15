@@ -52,10 +52,10 @@ const MyOrders: React.FC = () => {
   const currentUser = useAppSelector(selectUser);
   const navigate = useNavigate();
 
-   const [dismissedPayments, setDismissedPayments] = useState<string[]>([]);
+  const [dismissedPayments, setDismissedPayments] = useState<string[]>([]);
 
-   useEffect(() => {
-    const savedDismissed = localStorage.getItem('dismissedFailedPayments');
+  useEffect(() => {
+    const savedDismissed = localStorage.getItem("dismissedFailedPayments");
     if (savedDismissed) {
       setDismissedPayments(JSON.parse(savedDismissed));
     }
@@ -63,7 +63,10 @@ const MyOrders: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('dismissedFailedPayments', JSON.stringify(dismissedPayments));
+    localStorage.setItem(
+      "dismissedFailedPayments",
+      JSON.stringify(dismissedPayments)
+    );
   }, [dismissedPayments]);
 
   useEffect(() => {
@@ -297,11 +300,11 @@ const MyOrders: React.FC = () => {
           return false;
         }
 
+        // Only include orders where payment actually failed and order is still active
         const isFailedPayment =
-          order.payment.status === "failed" ||
-          (order.status === "cancelled" &&
-            order.payment.method === "online" &&
-            order.payment.status !== "paid");
+          order.payment.status === "failed" &&
+          order.status !== "cancelled" && // Exclude cancelled orders
+          order.status !== "refunded"; // Exclude refunded orders
 
         const isRecent =
           new Date(order.createdAt) >
@@ -314,37 +317,42 @@ const MyOrders: React.FC = () => {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
   };
-
   const handleDismissPayment = (orderId: string) => {
-    setDismissedPayments(prev => [...prev, orderId]);
+    setDismissedPayments((prev) => [...prev, orderId]);
     toast.success("Failed payment dismissed");
   };
 
   const handleCleanupOldPayments = async () => {
     const result = await Swal.fire({
-      title: 'Clear Old Failed Payments?',
-      text: 'This will remove all failed payments older than 7 days. This action cannot be undone.',
-      icon: 'info',
+      title: "Clear Old Failed Payments?",
+      text: "This will remove all failed payments older than 7 days. This action cannot be undone.",
+      icon: "info",
       showCancelButton: true,
-      confirmButtonText: 'Yes, Clear All',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#3085d6',
+      confirmButtonText: "Yes, Clear All",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#3085d6",
     });
 
     if (result.isConfirmed) {
       // Get all failed payment orders that are older than 7 days
       const oldFailedPayments = orders
-        .filter(order => {
-          const isFailed = order.payment.status === "failed" || 
-            (order.status === "cancelled" && order.payment.method === "online");
-          const isOld = new Date(order.createdAt) <= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        .filter((order) => {
+          const isFailed =
+            order.payment.status === "failed" &&
+            order.status !== "cancelled" &&
+            order.status !== "refunded";
+          const isOld =
+            new Date(order.createdAt) <=
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
           return isFailed && isOld;
         })
-        .map(order => order._id);
+        .map((order) => order._id);
 
       if (oldFailedPayments.length > 0) {
-        setDismissedPayments(prev => [...prev, ...oldFailedPayments]);
-        toast.success(`Cleared ${oldFailedPayments.length} old failed payments`);
+        setDismissedPayments((prev) => [...prev, ...oldFailedPayments]);
+        toast.success(
+          `Cleared ${oldFailedPayments.length} old failed payments`
+        );
       } else {
         toast.success("No old failed payments to clear");
       }
@@ -352,6 +360,12 @@ const MyOrders: React.FC = () => {
   };
 
   const handleRetryPayment = (order: OrderResponse) => {
+    // Check if order is still eligible for payment retry
+    if (order.status === "cancelled" || order.status === "refunded") {
+      toast.error("This order has been cancelled and cannot be paid for");
+      return;
+    }
+
     navigate("/retry-payment", {
       state: {
         bookingId: order.bookingId,
@@ -563,10 +577,9 @@ const MyOrders: React.FC = () => {
                   No Failed Payments
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  {dismissedPayments.length > 0 
+                  {dismissedPayments.length > 0
                     ? "All failed payments have been dismissed or cleared."
-                    : "You don't have any failed payments to retry."
-                  }
+                    : "You don't have any failed payments to retry."}
                 </p>
                 {dismissedPayments.length > 0 && (
                   <button
@@ -590,8 +603,9 @@ const MyOrders: React.FC = () => {
                     <WarningOutlined className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     <div>
                       <p className="text-blue-800 text-sm">
-                        Failed payments are automatically cleared after 7 days. 
-                        You can dismiss individual payments or clear all old ones.
+                        Failed payments are automatically cleared after 7 days.
+                        You can dismiss individual payments or clear all old
+                        ones.
                       </p>
                     </div>
                   </div>

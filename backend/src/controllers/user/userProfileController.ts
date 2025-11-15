@@ -27,7 +27,7 @@ export class UserProfileController {
       if (!userId) {
         this._logger.warn(
           "Get user profile failed - user not authenticated",
-          context
+          context,
         );
         return res
           .status(401)
@@ -82,7 +82,7 @@ export class UserProfileController {
       if (!userId) {
         this._logger.warn(
           "Update user profile failed - user not authenticated",
-          context
+          context,
         );
         return res
           .status(401)
@@ -92,7 +92,7 @@ export class UserProfileController {
       if (Object.keys(updateData).length === 0) {
         this._logger.warn(
           "Update user profile failed - no fields to update",
-          context
+          context,
         );
         return res
           .status(400)
@@ -106,7 +106,7 @@ export class UserProfileController {
 
       const result = await this._userProfileService.updateUserProfile(
         userId,
-        updateData
+        updateData,
       );
 
       if (!result.success) {
@@ -156,7 +156,7 @@ export class UserProfileController {
       if (!userId) {
         this._logger.warn(
           "Upload profile picture failed - user not authenticated",
-          context
+          context,
         );
         return res
           .status(401)
@@ -166,7 +166,7 @@ export class UserProfileController {
       if (!file) {
         this._logger.warn(
           "Upload profile picture failed - no file uploaded",
-          context
+          context,
         );
         return res.status(400).json(ResponseHelper.error("No file uploaded"));
       }
@@ -178,7 +178,7 @@ export class UserProfileController {
 
       const result = await this._userProfileService.uploadProfilePicture(
         userId,
-        file
+        file,
       );
 
       if (!result.success) {
@@ -226,7 +226,7 @@ export class UserProfileController {
       if (!userId) {
         this._logger.warn(
           "Change password failed - user not authenticated",
-          context
+          context,
         );
         return res
           .status(401)
@@ -248,7 +248,7 @@ export class UserProfileController {
       if (newPassword !== confirmPassword) {
         this._logger.warn(
           "Change password failed - password confirmation mismatch",
-          context
+          context,
         );
         return res
           .status(400)
@@ -261,7 +261,7 @@ export class UserProfileController {
         userId,
         currentPassword,
         newPassword,
-        confirmPassword
+        confirmPassword,
       );
 
       if (!result.success) {
@@ -286,6 +286,119 @@ export class UserProfileController {
       return res
         .status(500)
         .json(ResponseHelper.error("Failed to change password"));
+    }
+  };
+  getUserTransactions = async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const context = {
+      operation: "getUserTransactions",
+      userId,
+      page,
+      limit,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info("Fetching user transactions", context);
+
+      if (!userId) {
+        this._logger.warn(
+          "Get user transactions failed - user not authenticated",
+          context,
+        );
+        return res
+          .status(401)
+          .json(ResponseHelper.error("User not authenticated"));
+      }
+
+      const result = await this._userProfileService.getUserTransactions(
+        userId,
+        page,
+        limit,
+      );
+
+      if (!result.success) {
+        this._logger.warn("Get user transactions service returned failure", {
+          ...context,
+          error: result.message,
+          statusCode: result.statusCode,
+        });
+        return res.status(result.statusCode || 404).json(result);
+      }
+
+      this._logger.info("User transactions retrieved successfully", {
+        ...context,
+        transactionCount: result.data?.transactions?.length || 0,
+      });
+
+      return res.status(200).json(result);
+    } catch (error: unknown) {
+      this._logger.error("Get user transactions error", {
+        ...context,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      return res
+        .status(500)
+        .json(ResponseHelper.error("Failed to fetch transactions"));
+    }
+  };
+
+  getWalletTransactions = async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id;
+
+    const context = {
+      operation: "getWalletTransactions",
+      userId,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info("Fetching wallet transactions", context);
+
+      if (!userId) {
+        this._logger.warn(
+          "Get wallet transactions failed - user not authenticated",
+          context,
+        );
+        return res
+          .status(401)
+          .json(ResponseHelper.error("User not authenticated"));
+      }
+
+      const result =
+        await this._userProfileService.getWalletTransactions(userId);
+
+      if (!result.success) {
+        this._logger.warn("Get wallet transactions service returned failure", {
+          ...context,
+          error: result.message,
+          statusCode: result.statusCode,
+        });
+        return res.status(result.statusCode || 404).json(result);
+      }
+
+      this._logger.info("Wallet transactions retrieved successfully", {
+        ...context,
+        transactionCount: result.data?.transactions?.length || 0,
+        balance: result.data?.balance || 0,
+      });
+
+      return res.status(200).json(result);
+    } catch (error: unknown) {
+      this._logger.error("Get wallet transactions error", {
+        ...context,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      return res
+        .status(500)
+        .json(ResponseHelper.error("Failed to fetch wallet transactions"));
     }
   };
 }

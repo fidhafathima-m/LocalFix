@@ -48,9 +48,10 @@ export interface SkillsServicesUpdateDto {
 export interface AvailabilityPreferencesUpdateDto {
   availability?: {
     isAvailable: boolean;
-    weeklyPattern?: {  // Changed from weeklyAvailability
+    weeklyPattern?: {
+      // Changed from weeklyAvailability
       [key: string]: {
-        available: boolean;  // Changed from enabled
+        available: boolean; // Changed from enabled
         startTime: string;
         endTime: string;
       };
@@ -211,7 +212,6 @@ export interface TechnicianProfileDto {
   };
 
   documents: DocumentDataDto[];
-  securitySettings: SecuritySettingsDto;
 }
 
 // Response DTOs

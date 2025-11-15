@@ -68,6 +68,9 @@ import { TechnicianProfileController } from "../controllers/technician/technicia
 import { BookingRepository } from "../repositories/user/BookingRepository";
 import { BookingService } from "../services/BookingService";
 import { BookingController } from "../controllers/user/bookingController";
+import { WalletRepository } from "../repositories/user/WalletRepository";
+import { WalletService } from "../services/WalletService";
+import { WalletController } from "../controllers/user/walletController";
 
 const loggerService = new LoggerService();
 
@@ -148,6 +151,11 @@ const categoryManagementController = new CategoryManagementController(
   categoryManagementService,
   loggerService,
 );
+
+// Wallet dependencies
+const walletRepository = new WalletRepository();
+const walletService = new WalletService(walletRepository, loggerService);
+const walletController = new WalletController(walletService, loggerService);
 
 // Service Management dependecies
 const serviceMangementRepository = new ServiceRepository();
@@ -363,4 +371,7 @@ export {
   notificationRepository,
   notificationService,
   notificationController,
+  walletRepository,
+  walletService,
+  walletController,
 };

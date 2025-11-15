@@ -65,8 +65,20 @@ const UserSchema = new Schema<IUser>(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+    bankAccounts: [
+      {
+        accountNumber: { type: String, required: true },
+        accountHolderName: { type: String, required: true },
+        bankName: { type: String, required: true },
+        ifscCode: { type: String, required: true },
+        isDefault: { type: Boolean, default: false },
+        isVerified: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 UserSchema.index(
@@ -75,7 +87,7 @@ UserSchema.index(
     sparse: true,
     unique: true,
     partialFilterExpression: { phone: { $exists: true, $ne: null } },
-  }
+  },
 );
 
 UserSchema.index(
@@ -84,7 +96,7 @@ UserSchema.index(
     sparse: true,
     unique: true,
     partialFilterExpression: { email: { $exists: true, $ne: null } },
-  }
+  },
 );
 
 // Compound index for email/phone + role queries

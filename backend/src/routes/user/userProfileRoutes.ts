@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { protect } from "../../middleware/authMiddleware";
 import multer from "multer";
+import { walletController } from "../../config/container";
 
 export const createUserProfileRoutes = (
   userLocationController: any,
@@ -93,6 +94,56 @@ export const createUserProfileRoutes = (
     "/reviews/:reviewId/report",
     protect,
     reviewController.reportReview,
+  );
+
+  router.get(
+    "/payments/transactions",
+    protect,
+    userProfileController.getUserTransactions,
+  );
+  router.get(
+    "/wallet/transactions",
+    protect,
+    userProfileController.getWalletTransactions,
+  );
+  router.get("/wallet/balance", protect, walletController.getWalletBalance);
+  router.post(
+    "/wallet/add-money/order",
+    protect,
+    walletController.createAddMoneyOrder,
+  );
+  router.post(
+    "/wallet/add-money/verify",
+    protect,
+    walletController.verifyAddMoneyPayment,
+  );
+  router.post("/wallet/withdraw", protect, walletController.withdrawMoney);
+  router.get(
+    "/wallet/transactions",
+    protect,
+    walletController.getWalletTransactions,
+  );
+
+  // Bank account routes
+  router.get(
+    "/wallet/bank-accounts",
+    protect,
+    walletController.getBankAccounts,
+  );
+  router.post(
+    "/wallet/bank-accounts",
+    protect,
+    walletController.addBankAccount,
+  );
+  router.patch(
+    "/wallet/bank-accounts/:accountId/default",
+    protect,
+    walletController.setDefaultBankAccount,
+  );
+  router.delete(
+    "/wallet/bank-accounts/:accountId",
+    protect,
+    walletController.deleteBankAccount,
   );
 
   return router;

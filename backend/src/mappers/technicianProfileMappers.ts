@@ -24,7 +24,7 @@ import {
 
 export const toTechnicianProfileDto = (
   technician: ITechnician,
-  user: IUser
+  user: IUser,
 ): TechnicianProfileDto => {
   const bankPaymentDetails = _mapBankPaymentDetails(technician);
 
@@ -67,7 +67,6 @@ export const toTechnicianProfileDto = (
     skillsServices: _mapSkillsServices(technician),
     availabilityPreferences: _mapAvailabilityPreferences(technician),
     documents: mappedDocuments,
-    securitySettings: _mapSecuritySettings(user),
   };
 
   return result;
@@ -141,7 +140,7 @@ export const toStaticDataDto = (): StaticDataDto => {
 
 const _mapPersonalInfo = (
   technician: ITechnician,
-  user: IUser
+  user: IUser,
 ): PersonalInfoDto => {
   return {
     fullName:
@@ -175,7 +174,7 @@ const _mapPersonalInfo = (
 };
 
 const _mapIdentityVerification = (
-  technician: ITechnician
+  technician: ITechnician,
 ): IdentityVerificationDto => {
   return {
     verificationStatus:
@@ -197,7 +196,7 @@ const _mapSkillsServices = (technician: ITechnician): SkillsServicesDto => {
 };
 
 const _mapAvailabilityPreferences = (
-  technician: ITechnician
+  technician: ITechnician,
 ): AvailabilityPreferencesDto => {
   return {
     isAvailable:
@@ -210,7 +209,7 @@ const _mapAvailabilityPreferences = (
 };
 
 const _mapBankPaymentDetails = (
-  technician: ITechnician
+  technician: ITechnician,
 ): BankPaymentDetailsDto => {
   if (technician.paymentDetails) {
     return {
@@ -269,11 +268,4 @@ const _mapDocuments = (technician: ITechnician): DocumentDataDto[] => {
   });
 
   return mappedDocuments;
-};
-
-const _mapSecuritySettings = (user: IUser): SecuritySettingsDto => {
-  return {
-    lastLogin: user.lastLogin || SECURITY_SETTINGS_DEFAULTS.LAST_LOGIN,
-    loginDevice: user.loginDevice || SECURITY_SETTINGS_DEFAULTS.LOGIN_DEVICE,
-  };
 };

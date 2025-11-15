@@ -48,7 +48,7 @@ export class AuthService implements IAuthService {
     userRepository: IUserRepository,
     otpRepository: IOTPRepository,
     socialAccountRepository: ISocialAccountRepository,
-    logger: ILogger
+    logger: ILogger,
   ) {
     this._userRepository = userRepository;
     this._otpRepository = otpRepository;
@@ -149,7 +149,7 @@ export class AuthService implements IAuthService {
       });
 
       return ResponseHelper.success(
-        `OTP sent to ${sentChannels.join(", ")}. Verify to complete signup.`
+        `OTP sent to ${sentChannels.join(", ")}. Verify to complete signup.`,
       );
     } catch (error: unknown) {
       const errorMessage =
@@ -182,7 +182,7 @@ export class AuthService implements IAuthService {
       if (!userType) {
         this._logger.warn(
           "OTP verification attempted without user type",
-          context
+          context,
         );
         return ResponseHelper.badRequest("User type is required");
       }
@@ -190,7 +190,7 @@ export class AuthService implements IAuthService {
       const record = await this._otpRepository.findLatest(
         phone,
         email,
-        OTP_PURPOSES.SIGNUP
+        OTP_PURPOSES.SIGNUP,
       );
 
       if (!record) {
@@ -249,7 +249,7 @@ export class AuthService implements IAuthService {
             user._id!.toString(),
             {
               roles: updatedRoles,
-            }
+            },
           );
 
           if (!updateResult) {
@@ -269,7 +269,7 @@ export class AuthService implements IAuthService {
               user._id!.toString(),
               {
                 passwordHash,
-              }
+              },
             );
             if (passwordUpdateResult) {
               user = passwordUpdateResult;
@@ -282,7 +282,7 @@ export class AuthService implements IAuthService {
               user._id!.toString(),
               {
                 fullName,
-              }
+              },
             );
             if (nameUpdateResult) {
               user = nameUpdateResult;
@@ -300,7 +300,7 @@ export class AuthService implements IAuthService {
             {
               ...context,
               userId: user._id,
-            }
+            },
           );
 
           let updatedUser = user;
@@ -311,7 +311,7 @@ export class AuthService implements IAuthService {
               user._id!.toString(),
               {
                 passwordHash,
-              }
+              },
             );
             if (passwordUpdateResult) {
               updatedUser = passwordUpdateResult;
@@ -323,7 +323,7 @@ export class AuthService implements IAuthService {
               user._id!.toString(),
               {
                 fullName,
-              }
+              },
             );
             if (nameUpdateResult) {
               updatedUser = nameUpdateResult;
@@ -370,7 +370,7 @@ export class AuthService implements IAuthService {
       if (!user) {
         this._logger.error(
           "User creation/update resulted in null user",
-          context
+          context,
         );
         return ResponseHelper.error("User creation/update failed");
       }
@@ -380,7 +380,7 @@ export class AuthService implements IAuthService {
       // Store refresh token in database
       await this._userRepository.storeRefreshToken(
         user._id.toString(),
-        tokens.refreshToken
+        tokens.refreshToken,
       );
 
       // Delete used OTP
@@ -429,7 +429,7 @@ export class AuthService implements IAuthService {
       // Verify refresh token
       const decoded = jwt.verify(
         refreshToken,
-        process.env.REFRESH_TOKEN_SECRET as string
+        process.env.REFRESH_TOKEN_SECRET as string,
       ) as JwtPayloadDto;
 
       if (decoded.type !== "refresh") {
@@ -443,7 +443,7 @@ export class AuthService implements IAuthService {
       // Check if refresh token exists in database
       const user = await this._userRepository.findByRefreshToken(
         decoded._id,
-        refreshToken
+        refreshToken,
       );
 
       if (!user) {
@@ -461,7 +461,7 @@ export class AuthService implements IAuthService {
       await this._userRepository.updateRefreshToken(
         user._id.toString(),
         refreshToken,
-        tokens.refreshToken
+        tokens.refreshToken,
       );
 
       this._logger.info("Token refresh completed successfully", {
@@ -531,7 +531,7 @@ export class AuthService implements IAuthService {
 
         user = await this._userRepository.findByIdentifier(
           normalizedIdentifier,
-          role
+          role,
         );
 
         if (!user) {
@@ -540,12 +540,11 @@ export class AuthService implements IAuthService {
             {
               ...context,
               role: role,
-            }
+            },
           );
 
-          user = await this._userRepository.findByIdentifier(
-            normalizedIdentifier
-          );
+          user =
+            await this._userRepository.findByIdentifier(normalizedIdentifier);
 
           if (user && !user.roles.includes(role)) {
             this._logger.warn("User found but does not have required role", {
@@ -555,13 +554,14 @@ export class AuthService implements IAuthService {
               requiredRole: role,
             });
             return ResponseHelper.notFound(
-              `${AUTH_MESSAGES.USER_NOT_FOUND} for ${role} role`
+              `${AUTH_MESSAGES.USER_NOT_FOUND} for ${role} role`,
             );
           }
         }
       } else {
         this._logger.debug("Searching user without role filter", context);
-        user = await this._userRepository.findByIdentifier(normalizedIdentifier);
+        user =
+          await this._userRepository.findByIdentifier(normalizedIdentifier);
       }
 
       if (!user) {
@@ -625,7 +625,7 @@ export class AuthService implements IAuthService {
       // Store refresh token in database
       await this._userRepository.storeRefreshToken(
         user._id.toString(),
-        tokens.refreshToken
+        tokens.refreshToken,
       );
 
       this._logger.debug("Refresh token stored in database", {
@@ -661,7 +661,7 @@ export class AuthService implements IAuthService {
   async forgotPassword(
     phone?: string,
     email?: string,
-    userType?: string
+    userType?: string,
   ): Promise<AuthResponseDto> {
     const context = {
       operation: "forgotPassword",
@@ -674,7 +674,7 @@ export class AuthService implements IAuthService {
       if (!phone && !email) {
         this._logger.warn(
           "Forgot password attempted without email or phone",
-          context
+          context,
         );
         return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
       }
@@ -691,7 +691,10 @@ export class AuthService implements IAuthService {
 
       // Check if user exists
       if (!user) {
-        this._logger.warn("User not found for forgot password request", context);
+        this._logger.warn(
+          "User not found for forgot password request",
+          context,
+        );
         return ResponseHelper.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
       }
 
@@ -727,10 +730,10 @@ export class AuthService implements IAuthService {
               userId: user._id,
               userRoles: user.roles,
               expectedRole: expectedRole,
-            }
+            },
           );
           return ResponseHelper.notFound(
-            `${AUTH_MESSAGES.USER_NOT_FOUND} for ${userType} role`
+            `${AUTH_MESSAGES.USER_NOT_FOUND} for ${userType} role`,
           );
         }
       }
@@ -832,7 +835,7 @@ export class AuthService implements IAuthService {
   }
 
   async resetPassword(
-    resetData: ResetPasswordDataDto
+    resetData: ResetPasswordDataDto,
   ): Promise<AuthResponseDto> {
     const context = {
       operation: "resetPassword",
@@ -852,7 +855,7 @@ export class AuthService implements IAuthService {
       if (!password) {
         this._logger.warn(
           "Password reset attempted without new password",
-          context
+          context,
         );
         return ResponseHelper.badRequest(AUTH_MESSAGES.PASSWORD_REQUIRED);
       }
@@ -903,7 +906,7 @@ export class AuthService implements IAuthService {
         try {
           const decoded = jwt.verify(
             token,
-            process.env.JWT_SECRET as string
+            process.env.JWT_SECRET as string,
           ) as JwtPayloadDto;
 
           // Verify token purpose and expiration
@@ -948,13 +951,13 @@ export class AuthService implements IAuthService {
             error: error instanceof Error ? error.message : "Unknown error",
           });
           return ResponseHelper.badRequest(
-            AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN
+            AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN,
           );
         }
       } else {
         this._logger.warn(
           "Password reset attempted without OTP or token",
-          context
+          context,
         );
         return ResponseHelper.badRequest(AUTH_MESSAGES.OTP_OR_TOKEN_REQUIRED);
       }
@@ -971,7 +974,7 @@ export class AuthService implements IAuthService {
       await this._userRepository.updatePassword(
         identifier,
         passwordHash,
-        userType
+        userType,
       );
 
       // Delete OTP record if OTP was used
@@ -1003,7 +1006,7 @@ export class AuthService implements IAuthService {
   }
 
   async verifyResetOtp(
-    otpData: OTPVerificationDataDto
+    otpData: OTPVerificationDataDto,
   ): Promise<AuthResponseDto> {
     const context = {
       operation: "verifyResetOtp",
@@ -1020,7 +1023,11 @@ export class AuthService implements IAuthService {
       const { phone, email, otp, userType } = otpData;
 
       // Find the OTP record with purpose "reset"
-      const record = await this._otpRepository.findLatest(phone, email, "reset");
+      const record = await this._otpRepository.findLatest(
+        phone,
+        email,
+        "reset",
+      );
 
       if (!record) {
         this._logger.warn("Reset OTP record not found", context);
@@ -1063,7 +1070,7 @@ export class AuthService implements IAuthService {
         const identifier = phone || email!;
         const user = await this._userRepository.findByIdentifier(
           identifier,
-          USER_ROLES.SERVICE_PROVIDER
+          USER_ROLES.SERVICE_PROVIDER,
         );
         if (!user) {
           this._logger.warn(
@@ -1072,7 +1079,7 @@ export class AuthService implements IAuthService {
               ...context,
               identifier,
               userType: USER_ROLES.SERVICE_PROVIDER,
-            }
+            },
           );
           return ResponseHelper.notFound(`${userType} not found`);
         }
@@ -1092,7 +1099,7 @@ export class AuthService implements IAuthService {
           timestamp: Date.now(),
         },
         process.env.JWT_SECRET as string,
-        { expiresIn: "15m" }
+        { expiresIn: "15m" },
       );
 
       this._logger.info(
@@ -1100,7 +1107,7 @@ export class AuthService implements IAuthService {
         {
           ...context,
           tokenExpiresIn: "15m",
-        }
+        },
       );
 
       return ResponseHelper.success(AUTH_MESSAGES.OTP_SENT, {
@@ -1124,7 +1131,7 @@ export class AuthService implements IAuthService {
     phone?: string,
     email?: string,
     purpose?: string,
-    userType?: string
+    userType?: string,
   ): Promise<AuthResponseDto> {
     const context = {
       operation: "resendOTP",
@@ -1137,7 +1144,7 @@ export class AuthService implements IAuthService {
       if (!email && !phone) {
         this._logger.warn(
           "OTP resend attempted without email or phone",
-          context
+          context,
         );
         return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
       }
@@ -1250,7 +1257,7 @@ export class AuthService implements IAuthService {
 
   async facebookLogin(
     accessToken: string,
-    userID: string
+    userID: string,
   ): Promise<AuthResponseDto> {
     const context = {
       operation: "facebookLogin",
@@ -1263,7 +1270,7 @@ export class AuthService implements IAuthService {
       // Verify token with Facebook Graph API
       this._logger.debug("Verifying Facebook token with Graph API", context);
       const fbRes = await axios.get<FacebookGraphResponseDto>(
-        `https://graph.facebook.com/${userID}?fields=id,name,email,picture&access_token=${accessToken}`
+        `https://graph.facebook.com/${userID}?fields=id,name,email,picture&access_token=${accessToken}`,
       );
 
       const { id, name, email, picture } = fbRes.data;
@@ -1285,7 +1292,7 @@ export class AuthService implements IAuthService {
           {
             ...context,
             facebookId: id,
-          }
+          },
         );
 
         // Create a new user if doesn't exist
@@ -1352,7 +1359,7 @@ export class AuthService implements IAuthService {
       // Store refresh token in database
       await this._userRepository.storeRefreshToken(
         user._id.toString(),
-        tokens.refreshToken
+        tokens.refreshToken,
       );
 
       this._logger.debug("Refresh token stored for Facebook user", {
@@ -1411,7 +1418,7 @@ export class AuthService implements IAuthService {
       if (!payload) {
         this._logger.warn("Invalid Google token payload", context);
         return ResponseHelper.badRequest(
-          AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN
+          AUTH_MESSAGES.INVALID_OR_EXPIRED_TOKEN,
         );
       }
 
@@ -1430,9 +1437,8 @@ export class AuthService implements IAuthService {
       });
 
       // Check if social account exists
-      let socialAccount = await this._socialAccountRepository.findByProviderId(
-        googleId
-      );
+      let socialAccount =
+        await this._socialAccountRepository.findByProviderId(googleId);
       let user: IUser | null;
 
       if (socialAccount) {
@@ -1443,7 +1449,7 @@ export class AuthService implements IAuthService {
         });
 
         user = await this._userRepository.findById(
-          socialAccount.userId.toString()
+          socialAccount.userId.toString(),
         );
       } else {
         this._logger.info(
@@ -1451,7 +1457,7 @@ export class AuthService implements IAuthService {
           {
             ...context,
             googleId: googleId,
-          }
+          },
         );
 
         // Check if user exists with this email
@@ -1510,7 +1516,7 @@ export class AuthService implements IAuthService {
         socialAccount =
           await this._socialAccountRepository.findByUserIdAndProvider(
             user!._id!,
-            "google"
+            "google",
           );
 
         if (!socialAccount) {
@@ -1543,7 +1549,7 @@ export class AuthService implements IAuthService {
       // Store refresh token in database
       await this._userRepository.storeRefreshToken(
         user._id.toString(),
-        tokens.refreshToken
+        tokens.refreshToken,
       );
 
       this._logger.debug("Refresh token stored for Google user", {
@@ -1578,7 +1584,7 @@ export class AuthService implements IAuthService {
 
   async logout(
     userId: string,
-    refreshToken?: string
+    refreshToken?: string,
   ): Promise<AuthResponseDto> {
     const context = {
       operation: "logout",
@@ -1653,7 +1659,7 @@ export class AuthService implements IAuthService {
       };
 
       return jwt.sign(payload, jwtSecret, {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "24h",
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "5m",
       } as jwt.SignOptions);
     } catch (error) {
       this._logger.error("Failed to generate access token", {
@@ -1670,7 +1676,7 @@ export class AuthService implements IAuthService {
       const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
       if (!refreshTokenSecret) {
         throw new Error(
-          "REFRESH_TOKEN_SECRET environment variable is not defined"
+          "REFRESH_TOKEN_SECRET environment variable is not defined",
         );
       }
 
