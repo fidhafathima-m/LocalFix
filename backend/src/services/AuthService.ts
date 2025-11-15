@@ -460,7 +460,7 @@ export class AuthService implements IAuthService {
       this._logger.info('New tokens generated', {
         ...context,
         userId: user._id,
-        accessTokenExpiry: process.env.ACCESS_TOKEN_EXPIRY || '5m',
+        accessTokenExpiry: process.env.ACCESS_TOKEN_EXPIRY || '15m',
         refreshTokenExpiry: process.env.REFRESH_TOKEN_EXPIRY || '7d',
       });
 

@@ -70,6 +70,10 @@ const orderSchema = new Schema<IOrder>(
       required: true,
       unique: true,
     },
+    serviceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Service',
+    },
     serviceName: {
       type: String,
       required: true,

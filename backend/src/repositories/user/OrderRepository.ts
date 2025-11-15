@@ -1,32 +1,41 @@
-import { IOrderRepository } from "../../interfaces/repository/user/IOrderRepository";
-import Order from "../../models/OrderSchema";
-import Booking, { isAddressPopulated } from "../../models/BookingSchema";
-import { Types } from "mongoose";
-import { IOrder, IOrderPopulated } from "@/interfaces/user/IOrder";
-import UserAddressSchema from "@/models/UserAddressSchema";
-import { ITechnician } from "../../interfaces/technician/ITechnician";
-import { IUser } from "../../interfaces/user/IUser";
+import { IOrderRepository } from '../../interfaces/repository/user/IOrderRepository';
+import Order from '../../models/OrderSchema';
+import Booking, { isAddressPopulated } from '../../models/BookingSchema';
+import { Types } from 'mongoose';
+import { IOrder, IOrderPopulated } from '@/interfaces/user/IOrder';
+import UserAddressSchema from '@/models/UserAddressSchema';
+import { ITechnician } from '../../interfaces/technician/ITechnician';
+import { IUser } from '../../interfaces/user/IUser';
 
 export class OrderRepository implements IOrderRepository {
   async createFromBooking(
     bookingId: string,
     paymentData: {
-      method: "online" | "cod";
+      method: 'online' | 'cod';
       amount: number;
-      status: "pending" | "paid" | "failed";
+      status: 'pending' | 'paid' | 'failed';
       transactionId?: string;
       paidAt?: Date;
-    },
+    }
   ): Promise<IOrder | null> {
     try {
       const booking = await Booking.findById(bookingId)
-        .populate("userId")
-        .populate("technicianId")
-        .populate("addressId")
+        .populate('userId')
+        .populate('technicianId')
+        .populate('addressId')
         .exec();
 
       if (!booking) {
-        throw new Error("Booking not found");
+        throw new Error('Booking not found');
+      }
+
+      console.log('🔍 Booking serviceId:', booking.serviceId);
+      console.log('🔍 Booking serviceName:', booking.serviceName);
+      console.log('🔍 Booking keys:', Object.keys(booking));
+
+      if (!booking.serviceId) {
+        console.log('❌ No serviceId found in booking!');
+        // We need to handle this case
       }
 
       // Get address details
@@ -34,21 +43,21 @@ export class OrderRepository implements IOrderRepository {
 
       // Check if address is properly populated
       if (!isAddressPopulated(address)) {
-        console.error("Address not properly populated:", address);
-        throw new Error("Address details not found or not populated");
+        console.error('Address not properly populated:', address);
+        throw new Error('Address details not found or not populated');
       }
 
       // Generate order code manually
       const orderCount = await Order.countDocuments();
-      const orderCode = `ORD${String(orderCount + 1).padStart(6, "0")}`;
+      const orderCode = `ORD${String(orderCount + 1).padStart(6, '0')}`;
 
       const userId = booking.userId._id || booking.userId;
 
-      let orderStatus = "pending";
-      if (paymentData.status === "paid") {
-        orderStatus = "confirmed";
-      } else if (paymentData.status === "failed") {
-        orderStatus = "cancelled";
+      let orderStatus = 'pending';
+      if (paymentData.status === 'paid') {
+        orderStatus = 'confirmed';
+      } else if (paymentData.status === 'failed') {
+        orderStatus = 'cancelled';
       }
 
       // Create order data
@@ -58,6 +67,7 @@ export class OrderRepository implements IOrderRepository {
         userId: userId,
         technicianId: booking.technicianId._id,
         serviceName: booking.serviceName,
+        serviceId: booking.serviceId,
         problemDescription: booking.notes,
         scheduledAt: booking.scheduledAt,
         timeSlot: booking.timeSlot,
@@ -83,10 +93,10 @@ export class OrderRepository implements IOrderRepository {
           {
             status: orderStatus,
             description:
-              paymentData.method === "cod"
-                ? "Order confirmed with cash on delivery"
-                : "Order created with online payment",
-            updatedBy: "system",
+              paymentData.method === 'cod'
+                ? 'Order confirmed with cash on delivery'
+                : 'Order created with online payment',
+            updatedBy: 'system',
             timestamp: new Date(),
           },
         ],
@@ -97,17 +107,17 @@ export class OrderRepository implements IOrderRepository {
 
       return savedOrder;
     } catch (error) {
-      console.error("Error creating order from booking:", error);
+      console.error('Error creating order from booking:', error);
       return null;
     }
   }
 
   async findById(orderId: string): Promise<IOrder | null> {
     return await Order.findById(orderId)
-      .populate("userId", "fullName email phone")
+      .populate('userId', 'fullName email phone')
       .populate(
-        "technicianId",
-        "displayName profilePictureUrl averageRating ratingCount services skills",
+        'technicianId',
+        'displayName profilePictureUrl averageRating ratingCount services skills'
       )
       .exec();
   }
@@ -115,15 +125,15 @@ export class OrderRepository implements IOrderRepository {
   async findByUserId(
     userId: string,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 10
   ): Promise<{ orders: IOrder[]; total: number }> {
     const skip = (page - 1) * limit;
 
     const [orders, total] = await Promise.all([
       Order.find({ userId: new Types.ObjectId(userId) })
         .populate(
-          "technicianId",
-          "displayName profilePictureUrl averageRating ratingCount services skills",
+          'technicianId',
+          'displayName profilePictureUrl averageRating ratingCount services skills'
         )
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -139,7 +149,7 @@ export class OrderRepository implements IOrderRepository {
     orderId: string,
     status: string,
     updatedBy: string,
-    reason?: string,
+    reason?: string
   ): Promise<IOrder | null> {
     const order = await Order.findById(orderId);
     if (!order) return null;
@@ -152,24 +162,24 @@ export class OrderRepository implements IOrderRepository {
     order.history.push({
       status,
       description,
-      updatedBy: updatedBy as "user" | "technician" | "system",
+      updatedBy: updatedBy as 'user' | 'technician' | 'system',
       timestamp: new Date(),
     });
 
     order.status = status as any;
 
     // Handle cancellation
-    if (status === "cancelled" && reason) {
+    if (status === 'cancelled' && reason) {
       order.cancellation = {
         reason,
-        cancelledBy: updatedBy as "user" | "technician" | "admin",
+        cancelledBy: updatedBy as 'user' | 'technician' | 'admin',
         cancelledAt: new Date(),
-        refundAmount: order.payment.method === "online" ? order.totalAmount : 0,
+        refundAmount: order.payment.method === 'online' ? order.totalAmount : 0,
       };
 
       // Update payment status for refund
-      if (order.payment.method === "online") {
-        order.payment.status = "refunded";
+      if (order.payment.method === 'online') {
+        order.payment.status = 'refunded';
       }
     }
 
@@ -190,7 +200,7 @@ export class OrderRepository implements IOrderRepository {
     // Recalculate total amount
     order.totalAmount = order.orderItems.reduce(
       (total, item) => total + item.totalPrice,
-      0,
+      0
     );
 
     return await order.save();
@@ -198,16 +208,16 @@ export class OrderRepository implements IOrderRepository {
   async findByTechnicianId(
     technicianId: string,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 10
   ): Promise<{ orders: IOrder[]; total: number }> {
     const skip = (page - 1) * limit;
 
     const [orders, total] = await Promise.all([
       Order.find({ technicianId: new Types.ObjectId(technicianId) })
-        .populate("userId", "fullName email phone")
+        .populate('userId', 'fullName email phone')
         .populate(
-          "technicianId",
-          "displayName profilePictureUrl averageRating ratingCount services skills",
+          'technicianId',
+          'displayName profilePictureUrl averageRating ratingCount services skills'
         )
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -244,19 +254,19 @@ export class OrderRepository implements IOrderRepository {
       // Pending orders
       Order.countDocuments({
         technicianId: technicianObjectId,
-        status: "pending",
+        status: 'pending',
       }),
 
       // In progress orders
       Order.countDocuments({
         technicianId: technicianObjectId,
-        status: "in_progress",
+        status: 'in_progress',
       }),
 
       // Completed orders
       Order.countDocuments({
         technicianId: technicianObjectId,
-        status: "completed",
+        status: 'completed',
       }),
 
       // Monthly earnings (only from completed orders)
@@ -264,14 +274,14 @@ export class OrderRepository implements IOrderRepository {
         {
           $match: {
             technicianId: technicianObjectId,
-            status: "completed",
+            status: 'completed',
             createdAt: { $gte: startOfMonth, $lte: endOfMonth },
           },
         },
         {
           $group: {
             _id: null,
-            totalEarnings: { $sum: "$totalAmount" },
+            totalEarnings: { $sum: '$totalAmount' },
           },
         },
       ]),
@@ -294,7 +304,7 @@ export class OrderRepository implements IOrderRepository {
     orderId: string,
     newDate: string,
     newTimeSlot: string,
-    updatedBy: string,
+    updatedBy: string
   ): Promise<IOrder | null> {
     try {
       const order = await Order.findById(orderId);
@@ -311,9 +321,9 @@ export class OrderRepository implements IOrderRepository {
       order.history.push({
         status: order.status,
         description: `Order rescheduled from ${oldScheduledAt.toLocaleDateString()} ${oldTimeSlot} to ${new Date(
-          newDate,
+          newDate
         ).toLocaleDateString()} ${newTimeSlot}`,
-        updatedBy: "user" as "user" | "technician" | "system",
+        updatedBy: 'user' as 'user' | 'technician' | 'system',
         timestamp: new Date(),
       });
 
@@ -331,12 +341,12 @@ export class OrderRepository implements IOrderRepository {
       await this.updateBookingSchedule(
         order.bookingId.toString(),
         newDate,
-        newTimeSlot,
+        newTimeSlot
       );
 
       return savedOrder;
     } catch (error) {
-      console.error("Error rescheduling order:", error);
+      console.error('Error rescheduling order:', error);
       return null;
     }
   }
@@ -344,7 +354,7 @@ export class OrderRepository implements IOrderRepository {
   private async updateBookingSchedule(
     bookingId: string,
     newDate: string,
-    newTimeSlot: string,
+    newTimeSlot: string
   ): Promise<void> {
     try {
       await Booking.findByIdAndUpdate(bookingId, {
@@ -353,7 +363,7 @@ export class OrderRepository implements IOrderRepository {
         updatedAt: new Date(),
       });
     } catch (error) {
-      console.error("Error updating booking schedule:", error);
+      console.error('Error updating booking schedule:', error);
       // Don't throw error as order reschedule should still succeed
     }
   }
@@ -362,7 +372,7 @@ export class OrderRepository implements IOrderRepository {
     technicianId: string,
     date: string,
     timeSlot: string,
-    excludeOrderId?: string,
+    excludeOrderId?: string
   ): Promise<IOrder[]> {
     try {
       const scheduledAt = new Date(date);
@@ -375,7 +385,7 @@ export class OrderRepository implements IOrderRepository {
           $lt: new Date(scheduledAt.setHours(23, 59, 59, 999)),
         },
         timeSlot: timeSlot,
-        status: { $in: ["pending", "confirmed", "accepted", "in_progress"] },
+        status: { $in: ['pending', 'confirmed', 'accepted', 'in_progress'] },
       };
 
       // Exclude current order if provided
@@ -385,7 +395,7 @@ export class OrderRepository implements IOrderRepository {
 
       return await Order.find(query).exec();
     } catch (error) {
-      console.error("Error finding conflicting orders:", error);
+      console.error('Error finding conflicting orders:', error);
       return [];
     }
   }
@@ -394,13 +404,13 @@ export class OrderRepository implements IOrderRepository {
       bookingId: new Types.ObjectId(bookingId),
     })
       .populate<{ technicianId: ITechnician }>(
-        "technicianId",
-        "displayName profilePictureUrl averageRating ratingCount services skills phone",
+        'technicianId',
+        'displayName profilePictureUrl averageRating ratingCount services skills phone'
       )
-      .populate<{ userId: IUser }>("userId", "fullName email phone")
+      .populate<{ userId: IUser }>('userId', 'fullName email phone')
       .populate<{ bookingId: { _id: Types.ObjectId; bookingCode: string } }>(
-        "bookingId",
-        "bookingCode",
+        'bookingId',
+        'bookingCode'
       )
       .exec();
 
@@ -409,32 +419,32 @@ export class OrderRepository implements IOrderRepository {
   async updatePaymentDetails(
     orderId: string,
     paymentData: {
-      method: "online" | "cod";
+      method: 'online' | 'cod';
       amount: number;
-      status: "pending" | "paid" | "failed";
+      status: 'pending' | 'paid' | 'failed';
       transactionId?: string;
       paidAt?: Date;
-    },
+    }
   ): Promise<IOrder | null> {
     try {
       const updateData: any = {
-        "payment.method": paymentData.method,
-        "payment.amount": paymentData.amount,
-        "payment.status": paymentData.status,
-        "payment.paidAt": paymentData.paidAt || new Date(),
+        'payment.method': paymentData.method,
+        'payment.amount': paymentData.amount,
+        'payment.status': paymentData.status,
+        'payment.paidAt': paymentData.paidAt || new Date(),
         totalAmount: paymentData.amount,
         updatedAt: new Date(),
       };
 
       if (paymentData.transactionId) {
-        updateData["payment.transactionId"] = paymentData.transactionId;
+        updateData['payment.transactionId'] = paymentData.transactionId;
       }
 
-      let orderStatus = "pending";
-      if (paymentData.status === "paid") {
-        orderStatus = "confirmed";
-      } else if (paymentData.status === "failed") {
-        orderStatus = "cancelled";
+      let orderStatus = 'pending';
+      if (paymentData.status === 'paid') {
+        orderStatus = 'confirmed';
+      } else if (paymentData.status === 'failed') {
+        orderStatus = 'cancelled';
       }
 
       updateData.status = orderStatus;
@@ -443,7 +453,7 @@ export class OrderRepository implements IOrderRepository {
       const historyEntry = {
         status: orderStatus,
         description: `Payment ${paymentData.status} via ${paymentData.method}`,
-        updatedBy: "system",
+        updatedBy: 'system',
         timestamp: new Date(),
       };
 
@@ -453,21 +463,21 @@ export class OrderRepository implements IOrderRepository {
           $set: updateData,
           $push: { history: historyEntry },
         },
-        { new: true },
+        { new: true }
       )
-        .populate("userId", "fullName email phone")
-        .populate("technicianId", "displayName profilePictureUrl services")
+        .populate('userId', 'fullName email phone')
+        .populate('technicianId', 'displayName profilePictureUrl services')
         .exec();
 
       return updatedOrder;
     } catch (error) {
-      console.error("Error updating payment details:", error);
+      console.error('Error updating payment details:', error);
       return null;
     }
   }
   async getOrdersByTechnicianAndDate(
     technicianId: string,
-    date: Date,
+    date: Date
   ): Promise<IOrder[]> {
     try {
       const startOfDay = new Date(date);
@@ -482,15 +492,15 @@ export class OrderRepository implements IOrderRepository {
           $gte: startOfDay,
           $lte: endOfDay,
         },
-        status: { $in: ["confirmed", "accepted", "scheduled"] },
+        status: { $in: ['confirmed', 'accepted', 'scheduled'] },
       })
-        .populate("userId", "fullName email phone")
-        .populate("technicianId", "displayName profilePictureUrl services")
+        .populate('userId', 'fullName email phone')
+        .populate('technicianId', 'displayName profilePictureUrl services')
         .exec();
 
       return orders;
     } catch (error) {
-      console.error("Error fetching orders by technician and date:", error);
+      console.error('Error fetching orders by technician and date:', error);
       return [];
     }
   }

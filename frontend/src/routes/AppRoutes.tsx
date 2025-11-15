@@ -107,6 +107,9 @@ const ApprovedTechnicianDashboard = lazy(
 const TechnicianProfileEdit = lazy(
   () => import("../features/serviceProvider/pages/TechnicianProfileEditPage")
 );
+const OrderDetails = lazy(
+  () => import("../features/serviceProvider/pages/OrderDetailsPage")
+);
 
 // AdminRoutes imports
 const AdminLoginPage = lazy(
@@ -246,6 +249,10 @@ const AppRoutes = () => {
             <Route
               path="/technician/profile"
               element={<TechnicianProfileEdit />}
+            />
+            <Route
+              path="/technician/order/:orderId"
+              element={<OrderDetails />}
             />
 
             {/* admin routes */}

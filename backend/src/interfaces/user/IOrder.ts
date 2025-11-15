@@ -1,6 +1,6 @@
-import { Types } from "mongoose";
-import { ITechnician } from "../technician/ITechnician";
-import { IUser } from "./IUser";
+import { Types } from 'mongoose';
+import { ITechnician } from '../technician/ITechnician';
+import { IUser } from './IUser';
 
 export interface IOrderItem {
   _id: Types.ObjectId;
@@ -11,7 +11,7 @@ export interface IOrderItem {
   quantity: number;
   totalPrice: number;
   addedBy: Types.ObjectId;
-  status: "requested" | "accepted" | "approved" | "rejected" | "purchased";
+  status: 'requested' | 'accepted' | 'approved' | 'rejected' | 'purchased';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,6 +22,7 @@ export interface IOrder extends Document {
   userId: Types.ObjectId;
   technicianId: Types.ObjectId;
   orderCode: string;
+  serviceId?: Types.ObjectId;
   serviceName: string;
   problemDescription?: string;
   scheduledAt: Date;
@@ -35,18 +36,18 @@ export interface IOrder extends Document {
     landmark?: string;
   };
   status:
-    | "pending"
-    | "accepted"
-    | "confirmed"
-    | "in_progress"
-    | "on_the_way"
-    | "completed"
-    | "cancelled"
-    | "refunded";
+    | 'pending'
+    | 'accepted'
+    | 'confirmed'
+    | 'in_progress'
+    | 'on_the_way'
+    | 'completed'
+    | 'cancelled'
+    | 'refunded';
   payment: {
-    method: "online" | "cod";
+    method: 'online' | 'cod';
     amount: number;
-    status: "pending" | "paid" | "failed" | "refunded";
+    status: 'pending' | 'paid' | 'failed' | 'refunded';
     transactionId?: string;
     paidAt?: Date;
   };
@@ -56,7 +57,7 @@ export interface IOrder extends Document {
   userReview?: string;
   cancellation?: {
     reason: string;
-    cancelledBy: "user" | "technician" | "admin";
+    cancelledBy: 'user' | 'technician' | 'admin';
     cancelledAt: Date;
     refundAmount?: number;
   };
@@ -71,7 +72,7 @@ export interface IOrder extends Document {
   history: Array<{
     status: string;
     description: string;
-    updatedBy: "user" | "technician" | "system";
+    updatedBy: 'user' | 'technician' | 'system';
     timestamp: Date;
   }>;
   createdAt: Date;
@@ -99,15 +100,15 @@ export interface IOrderPopulated {
     pincode: string;
     landmark?: string;
   };
-  status: IOrder["status"];
-  payment: IOrder["payment"];
-  orderItems: IOrder["orderItems"];
+  status: IOrder['status'];
+  payment: IOrder['payment'];
+  orderItems: IOrder['orderItems'];
   totalAmount: number;
   technicianRating?: number;
   userReview?: string;
-  cancellation?: IOrder["cancellation"];
-  rescheduleInfo?: IOrder["rescheduleInfo"];
-  history: IOrder["history"];
+  cancellation?: IOrder['cancellation'];
+  rescheduleInfo?: IOrder['rescheduleInfo'];
+  history: IOrder['history'];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -130,6 +131,7 @@ export interface OrderResponseDto {
     ratingCount: number;
     skills: string[];
   };
+  serviceId?: Types.ObjectId;
   serviceName: string;
   problemDescription?: string;
   scheduledAt: string;

@@ -1,15 +1,15 @@
-import { IOrderRepository } from "../interfaces/repository/user/IOrderRepository";
-import { ResponseHelper, ApiResponse } from "../utils/responseHelper";
+import { IOrderRepository } from '../interfaces/repository/user/IOrderRepository';
+import { ResponseHelper, ApiResponse } from '../utils/responseHelper';
 import {
   IOrder,
   OrderListResponseDto,
   OrderResponseDto,
-} from "@/interfaces/user/IOrder";
-import { IOrderService } from "@/interfaces/services/user/IOrderService";
-import { ITechnicianRepository } from "@/interfaces/repository/technician/ITechnicianRepository";
-import { INotificationService } from "@/interfaces/services/INotificationService";
-import { ILogger } from "@/interfaces/utils/ILogger";
-import { SocketService } from "./SocketService";
+} from '@/interfaces/user/IOrder';
+import { IOrderService } from '@/interfaces/services/user/IOrderService';
+import { ITechnicianRepository } from '@/interfaces/repository/technician/ITechnicianRepository';
+import { INotificationService } from '@/interfaces/services/INotificationService';
+import { ILogger } from '@/interfaces/utils/ILogger';
+import { SocketService } from './SocketService';
 
 export class OrderService implements IOrderService {
   private _logger: ILogger;
@@ -21,7 +21,7 @@ export class OrderService implements IOrderService {
     orderRepository: IOrderRepository,
     technicianRepository: ITechnicianRepository,
     socketService: SocketService,
-    logger: ILogger,
+    logger: ILogger
   ) {
     this._logger = logger;
     this._orderRepository = orderRepository;
@@ -32,23 +32,23 @@ export class OrderService implements IOrderService {
   async getUserOrders(
     userId: string,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 10
   ): Promise<ApiResponse<OrderListResponseDto>> {
     const context = {
-      operation: "getUserOrders",
+      operation: 'getUserOrders',
       data: { userId, page, limit },
     };
 
     try {
-      this._logger.info("Fetching user orders", context);
+      this._logger.info('Fetching user orders', context);
 
       const result = await this._orderRepository.findByUserId(
         userId,
         page,
-        limit,
+        limit
       );
 
-      this._logger.info("User orders retrieved successfully", {
+      this._logger.info('User orders retrieved successfully', {
         ...context,
         orderCount: result.orders.length,
         total: result.total,
@@ -56,7 +56,7 @@ export class OrderService implements IOrderService {
 
       const orderDtos = result.orders.map((order: any) => this.mapToDto(order));
 
-      return ResponseHelper.success("Orders retrieved successfully", {
+      return ResponseHelper.success('Orders retrieved successfully', {
         orders: orderDtos,
         pagination: {
           page,
@@ -67,36 +67,36 @@ export class OrderService implements IOrderService {
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error fetching user orders", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error fetching user orders', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to fetch orders");
+      return ResponseHelper.error('Failed to fetch orders');
     }
   }
 
   async getOrderById(
     userId: string,
-    orderId: string,
+    orderId: string
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
-      operation: "getOrderById",
+      operation: 'getOrderById',
       data: { userId, orderId },
     };
 
     try {
-      this._logger.info("Fetching order by ID", context);
+      this._logger.info('Fetching order by ID', context);
 
       const order = await this._orderRepository.findById(orderId);
 
       if (!order) {
-        this._logger.warn("Order not found", context);
-        return ResponseHelper.notFound("Order not found");
+        this._logger.warn('Order not found', context);
+        return ResponseHelper.notFound('Order not found');
       }
 
-      this._logger.debug("Order user ID vs requesting user ID", {
+      this._logger.debug('Order user ID vs requesting user ID', {
         orderUserId: order.userId.toString(),
         requestingUserId: userId,
         match: order.userId.toString() === userId,
@@ -107,27 +107,27 @@ export class OrderService implements IOrderService {
 
       // Check if user has access to this order
       if (realOrderId !== userId) {
-        this._logger.warn("User not authorized to access this order", {
+        this._logger.warn('User not authorized to access this order', {
           ...context,
           orderUserId: order.userId.toString(),
           requestingUserId: userId,
         });
-        return ResponseHelper.forbidden("Not authorized to access this order");
+        return ResponseHelper.forbidden('Not authorized to access this order');
       }
 
-      this._logger.info("Order retrieved successfully", context);
+      this._logger.info('Order retrieved successfully', context);
 
       const orderDto = this.mapToDto(order);
-      return ResponseHelper.success("Order retrieved successfully", orderDto);
+      return ResponseHelper.success('Order retrieved successfully', orderDto);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error fetching order", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error fetching order', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to fetch order");
+      return ResponseHelper.error('Failed to fetch order');
     }
   }
 
@@ -135,20 +135,20 @@ export class OrderService implements IOrderService {
   async createOrderFromBooking(
     bookingId: string,
     paymentData: {
-      method: "online" | "cod";
+      method: 'online' | 'cod';
       amount: number;
-      status: "pending" | "paid" | "failed";
+      status: 'pending' | 'paid' | 'failed';
       transactionId?: string;
       paidAt?: Date;
-    },
+    }
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
-      operation: "createOrderFromBooking",
+      operation: 'createOrderFromBooking',
       data: { bookingId, ...paymentData },
     };
 
     try {
-      this._logger.info("Creating/updating order from booking", context);
+      this._logger.info('Creating/updating order from booking', context);
 
       const existingOrder =
         await this._orderRepository.findByBookingId(bookingId);
@@ -156,7 +156,7 @@ export class OrderService implements IOrderService {
       let order;
 
       if (existingOrder) {
-        this._logger.info("Updating existing order for payment retry", {
+        this._logger.info('Updating existing order for payment retry', {
           ...context,
           existingOrderId: existingOrder._id.toString(),
         });
@@ -164,34 +164,34 @@ export class OrderService implements IOrderService {
         // Update payment details and status - allow status updates for failed payments
         order = await this._orderRepository.updatePaymentDetails(
           existingOrder._id.toString(),
-          paymentData,
+          paymentData
         );
 
         if (!order) {
-          this._logger.error("Failed to update existing order", context);
+          this._logger.error('Failed to update existing order', context);
           return ResponseHelper.error(
-            "Failed to update order for payment retry",
+            'Failed to update order for payment retry'
           );
         }
 
-        this._logger.info("Existing order updated successfully", {
+        this._logger.info('Existing order updated successfully', {
           ...context,
           orderId: order._id.toString(),
         });
       } else {
         // CREATE new order - even for failed payments
-        this._logger.info("Creating new order from booking", context);
+        this._logger.info('Creating new order from booking', context);
         order = await this._orderRepository.createFromBooking(
           bookingId,
-          paymentData,
+          paymentData
         );
 
         if (!order) {
-          this._logger.error("Failed to create order from booking", context);
-          return ResponseHelper.error("Failed to create order");
+          this._logger.error('Failed to create order from booking', context);
+          return ResponseHelper.error('Failed to create order');
         }
 
-        this._logger.info("New order created successfully", {
+        this._logger.info('New order created successfully', {
           ...context,
           orderId: order._id.toString(),
           orderCode: order.orderCode,
@@ -199,52 +199,52 @@ export class OrderService implements IOrderService {
         });
 
         // Only send notifications for successful payments
-        if (paymentData.status === "paid") {
-          await this.notifyUserAboutOrderStatusChange(order, "confirmed");
+        if (paymentData.status === 'paid') {
+          await this.notifyUserAboutOrderStatusChange(order, 'confirmed');
           await this.notifyTechnicianAboutNewOrder(order);
-        } else if (paymentData.status === "failed") {
+        } else if (paymentData.status === 'failed') {
           // Send failure notification
-          await this.notifyUserAboutPayment(order, "failed");
+          await this.notifyUserAboutPayment(order, 'failed');
         }
       }
 
       const orderDto = this.mapToDto(order);
       return ResponseHelper.created(
         existingOrder
-          ? "Order updated successfully"
-          : "Order created successfully",
-        orderDto,
+          ? 'Order updated successfully'
+          : 'Order created successfully',
+        orderDto
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error creating/updating order from booking", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error creating/updating order from booking', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to process order");
+      return ResponseHelper.error('Failed to process order');
     }
   }
 
   async cancelOrder(
     userId: string,
     orderId: string,
-    reason: string,
+    reason: string
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
-      operation: "cancelOrder",
+      operation: 'cancelOrder',
       data: { userId, orderId, reason },
     };
 
     try {
-      this._logger.info("Cancelling order", context);
+      this._logger.info('Cancelling order', context);
 
       const order = await this._orderRepository.findById(orderId);
 
       if (!order) {
-        this._logger.warn("Order not found for cancellation", context);
-        return ResponseHelper.notFound("Order not found");
+        this._logger.warn('Order not found for cancellation', context);
+        return ResponseHelper.notFound('Order not found');
       }
 
       const realOrderId =
@@ -252,66 +252,66 @@ export class OrderService implements IOrderService {
 
       // Check if user owns the order
       if (realOrderId !== userId) {
-        this._logger.warn("User not authorized to cancel this order", context);
-        return ResponseHelper.forbidden("Not authorized to cancel this order");
+        this._logger.warn('User not authorized to cancel this order', context);
+        return ResponseHelper.forbidden('Not authorized to cancel this order');
       }
 
       // Check if order can be cancelled
-      if (["cancelled", "completed", "refunded"].includes(order.status)) {
-        this._logger.warn("Order cannot be cancelled in current status", {
+      if (['cancelled', 'completed', 'refunded'].includes(order.status)) {
+        this._logger.warn('Order cannot be cancelled in current status', {
           ...context,
           currentStatus: order.status,
         });
         return ResponseHelper.badRequest(
-          `Order cannot be cancelled in ${order.status} status`,
+          `Order cannot be cancelled in ${order.status} status`
         );
       }
 
       const updatedOrder = await this._orderRepository.updateStatus(
         orderId,
-        "cancelled",
-        "user",
-        reason,
+        'cancelled',
+        'user',
+        reason
       );
 
       if (!updatedOrder) {
-        this._logger.error("Failed to cancel order", context);
-        return ResponseHelper.error("Failed to cancel order");
+        this._logger.error('Failed to cancel order', context);
+        return ResponseHelper.error('Failed to cancel order');
       }
 
-      this._logger.info("Order cancelled successfully", context);
+      this._logger.info('Order cancelled successfully', context);
 
       const orderDto = this.mapToDto(updatedOrder);
-      return ResponseHelper.success("Order cancelled successfully", orderDto);
+      return ResponseHelper.success('Order cancelled successfully', orderDto);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error cancelling order", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error cancelling order', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to cancel order");
+      return ResponseHelper.error('Failed to cancel order');
     }
   }
 
   private mapToDto(order: any): OrderResponseDto {
     let userInfo: any = {};
 
-    if (order.userId && typeof order.userId === "object") {
+    if (order.userId && typeof order.userId === 'object') {
       // If userId is a populated object
       userInfo = {
         _id: order.userId._id?.toString() || order.userId.toString(),
-        fullName: order.userId.fullName || order.userId.name || "Customer",
-        email: order.userId.email || "",
-        phone: order.userId.phone || "",
+        fullName: order.userId.fullName || order.userId.name || 'Customer',
+        email: order.userId.email || '',
+        phone: order.userId.phone || '',
       };
     } else {
       userInfo = {
-        _id: order.userId?.toString() || "",
-        fullName: "Customer",
-        email: "",
-        phone: "",
+        _id: order.userId?.toString() || '',
+        fullName: 'Customer',
+        email: '',
+        phone: '',
       };
     }
 
@@ -329,6 +329,7 @@ export class OrderService implements IOrderService {
         ratingCount: order.technicianId.ratingCount,
         skills: order.technicianId.skills || order.technicianId.services || [],
       },
+      serviceId: order.serviceId?.toString(),
       serviceName: order.serviceName,
       problemDescription: order.problemDescription,
       scheduledAt: order.scheduledAt.toISOString(),
@@ -367,23 +368,23 @@ export class OrderService implements IOrderService {
   async getTechnicianOrders(
     userId: string,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 10
   ): Promise<ApiResponse<OrderListResponseDto>> {
     const context = {
-      operation: "getTechnicianOrders",
+      operation: 'getTechnicianOrders',
       data: { userId, page, limit },
     };
 
     try {
-      this._logger.info("Fetching technician orders for user", context);
+      this._logger.info('Fetching technician orders for user', context);
 
       // Get the actual technician ID from user ID
       const technicianId = await this.getTechnicianIdByUserId(userId);
 
       if (!technicianId) {
-        this._logger.warn("No technician profile found for user", { userId });
+        this._logger.warn('No technician profile found for user', { userId });
         // Return empty orders instead of error if no technician profile exists
-        return ResponseHelper.success("No orders found", {
+        return ResponseHelper.success('No orders found', {
           orders: [],
           pagination: {
             page,
@@ -394,7 +395,7 @@ export class OrderService implements IOrderService {
         });
       }
 
-      this._logger.debug("Resolved technician ID", {
+      this._logger.debug('Resolved technician ID', {
         userId,
         technicianId,
       });
@@ -402,10 +403,10 @@ export class OrderService implements IOrderService {
       const result = await this._orderRepository.findByTechnicianId(
         technicianId,
         page,
-        limit,
+        limit
       );
 
-      this._logger.info("Technician orders retrieved successfully", {
+      this._logger.info('Technician orders retrieved successfully', {
         ...context,
         technicianId,
         orderCount: result.orders.length,
@@ -414,7 +415,7 @@ export class OrderService implements IOrderService {
 
       const orderDtos = result.orders.map((order: any) => this.mapToDto(order));
 
-      return ResponseHelper.success("Orders retrieved successfully", {
+      return ResponseHelper.success('Orders retrieved successfully', {
         orders: orderDtos,
         pagination: {
           page,
@@ -425,33 +426,33 @@ export class OrderService implements IOrderService {
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error fetching technician orders", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error fetching technician orders', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to fetch orders");
+      return ResponseHelper.error('Failed to fetch orders');
     }
   }
 
   async getTechnicianOrderById(
     technicianId: string,
-    orderId: string,
+    orderId: string
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
-      operation: "getTechnicianOrderById",
+      operation: 'getTechnicianOrderById',
       data: { technicianId, orderId },
     };
 
     try {
-      this._logger.info("Fetching technician order by ID", context);
+      this._logger.info('Fetching technician order by ID', context);
 
       const order = await this._orderRepository.findById(orderId);
 
       if (!order) {
-        this._logger.warn("Order not found", context);
-        return ResponseHelper.notFound("Order not found");
+        this._logger.warn('Order not found', context);
+        return ResponseHelper.notFound('Order not found');
       }
 
       // Check if technician has access to this order
@@ -459,27 +460,27 @@ export class OrderService implements IOrderService {
         order.technicianId?._id?.toString() || order.technicianId?.toString();
 
       if (orderTechnicianId !== technicianId) {
-        this._logger.warn("Technician not authorized to access this order", {
+        this._logger.warn('Technician not authorized to access this order', {
           ...context,
           orderTechnicianId,
           requestingTechnicianId: technicianId,
         });
-        return ResponseHelper.forbidden("Not authorized to access this order");
+        return ResponseHelper.forbidden('Not authorized to access this order');
       }
 
-      this._logger.info("Technician order retrieved successfully", context);
+      this._logger.info('Technician order retrieved successfully', context);
 
       const orderDto = this.mapToDto(order);
-      return ResponseHelper.success("Order retrieved successfully", orderDto);
+      return ResponseHelper.success('Order retrieved successfully', orderDto);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error fetching technician order", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error fetching technician order', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to fetch order");
+      return ResponseHelper.error('Failed to fetch order');
     }
   }
 
@@ -487,59 +488,59 @@ export class OrderService implements IOrderService {
     orderId: string,
     status: string,
     updatedBy: string,
-    reason?: string,
+    reason?: string
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
-      operation: "updateOrderStatus",
+      operation: 'updateOrderStatus',
       data: { orderId, status, updatedBy, reason },
     };
 
     try {
-      this._logger.info("=== UPDATE ORDER STATUS START ===", context);
+      this._logger.info('=== UPDATE ORDER STATUS START ===', context);
 
       const updatedOrder = await this._orderRepository.updateStatus(
         orderId,
         status,
         updatedBy,
-        reason,
+        reason
       );
 
       if (!updatedOrder) {
-        this._logger.warn("Order not found for status update", context);
-        return ResponseHelper.notFound("Order not found");
+        this._logger.warn('Order not found for status update', context);
+        return ResponseHelper.notFound('Order not found');
       }
 
       this._logger.info(
-        "Order updated successfully, now triggering notifications",
+        'Order updated successfully, now triggering notifications'
       );
 
       await this.notifyUserAboutOrderStatusChange(updatedOrder, status);
 
-      if (updatedBy === "technician") {
+      if (updatedBy === 'technician') {
         await this.notifyTechnicianAboutOrderStatusChange(updatedOrder, status);
       }
 
-      this._logger.info("=== UPDATE ORDER STATUS COMPLETE ===", {
+      this._logger.info('=== UPDATE ORDER STATUS COMPLETE ===', {
         orderId,
         status,
         userNotified: true,
-        technicianNotified: updatedBy === "technician",
+        technicianNotified: updatedBy === 'technician',
       });
 
       const orderDto = this.mapToDto(updatedOrder);
       return ResponseHelper.success(
-        "Order status updated successfully",
-        orderDto,
+        'Order status updated successfully',
+        orderDto
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error updating order status", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error updating order status', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to update order status");
+      return ResponseHelper.error('Failed to update order status');
     }
   }
 
@@ -553,41 +554,41 @@ export class OrderService implements IOrderService {
     }>
   > {
     const context = {
-      operation: "getTechnicianOrderStats",
+      operation: 'getTechnicianOrderStats',
       data: { technicianId },
     };
 
     try {
-      this._logger.info("Fetching technician order stats", context);
+      this._logger.info('Fetching technician order stats', context);
 
       const stats =
         await this._orderRepository.getTechnicianStats(technicianId);
 
       this._logger.info(
-        "Technician order stats retrieved successfully",
-        context,
+        'Technician order stats retrieved successfully',
+        context
       );
 
       return ResponseHelper.success(
-        "Order stats retrieved successfully",
-        stats,
+        'Order stats retrieved successfully',
+        stats
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error fetching technician order stats", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error fetching technician order stats', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to fetch order stats");
+      return ResponseHelper.error('Failed to fetch order stats');
     }
   }
   private async checkTechnicianAvailability(
     technicianId: string,
     date: string,
     timeSlot: string,
-    excludeOrderId?: string,
+    excludeOrderId?: string
   ): Promise<boolean> {
     try {
       const conflictingOrders =
@@ -595,16 +596,16 @@ export class OrderService implements IOrderService {
           technicianId,
           date,
           timeSlot,
-          excludeOrderId,
+          excludeOrderId
         );
 
       return conflictingOrders.length === 0;
     } catch (error) {
-      this._logger.error("Error checking technician availability", {
+      this._logger.error('Error checking technician availability', {
         technicianId,
         date,
         timeSlot,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return false;
     }
@@ -614,21 +615,21 @@ export class OrderService implements IOrderService {
     userId: string,
     orderId: string,
     newDate: string,
-    newTimeSlot: string,
+    newTimeSlot: string
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
-      operation: "rescheduleOrder",
+      operation: 'rescheduleOrder',
       data: { userId, orderId, newDate, newTimeSlot },
     };
 
     try {
-      this._logger.info("Rescheduling order", context);
+      this._logger.info('Rescheduling order', context);
 
       const order = await this._orderRepository.findById(orderId);
 
       if (!order) {
-        this._logger.warn("Order not found for rescheduling", context);
-        return ResponseHelper.notFound("Order not found");
+        this._logger.warn('Order not found for rescheduling', context);
+        return ResponseHelper.notFound('Order not found');
       }
 
       const realOrderId =
@@ -637,22 +638,22 @@ export class OrderService implements IOrderService {
       // Check if user owns the order
       if (realOrderId !== userId) {
         this._logger.warn(
-          "User not authorized to reschedule this order",
-          context,
+          'User not authorized to reschedule this order',
+          context
         );
         return ResponseHelper.forbidden(
-          "Not authorized to reschedule this order",
+          'Not authorized to reschedule this order'
         );
       }
 
       // Check if order can be rescheduled
       if (!this.canOrderBeRescheduled(order.status)) {
-        this._logger.warn("Order cannot be rescheduled in current status", {
+        this._logger.warn('Order cannot be rescheduled in current status', {
           ...context,
           currentStatus: order.status,
         });
         return ResponseHelper.badRequest(
-          `Order cannot be rescheduled in ${order.status} status`,
+          `Order cannot be rescheduled in ${order.status} status`
         );
       }
 
@@ -663,15 +664,15 @@ export class OrderService implements IOrderService {
 
       if (scheduledAt < fourHoursFromNow) {
         this._logger.warn(
-          "Reschedule date must be at least 4 hours in advance",
+          'Reschedule date must be at least 4 hours in advance',
           {
             ...context,
             scheduledAt,
             fourHoursFromNow,
-          },
+          }
         );
         return ResponseHelper.badRequest(
-          "New date must be at least 4 hours from now",
+          'New date must be at least 4 hours from now'
         );
       }
 
@@ -680,16 +681,16 @@ export class OrderService implements IOrderService {
         order.technicianId.toString(),
         newDate,
         newTimeSlot,
-        orderId,
+        orderId
       );
 
       if (!isAvailable) {
         this._logger.warn(
-          "Technician not available for the selected slot",
-          context,
+          'Technician not available for the selected slot',
+          context
         );
         return ResponseHelper.badRequest(
-          "Technician is not available for the selected date and time",
+          'Technician is not available for the selected date and time'
         );
       }
 
@@ -697,83 +698,83 @@ export class OrderService implements IOrderService {
         orderId,
         newDate,
         newTimeSlot,
-        "user",
+        'user'
       );
 
       if (!updatedOrder) {
-        this._logger.error("Failed to reschedule order in repository", context);
-        return ResponseHelper.error("Failed to reschedule order");
+        this._logger.error('Failed to reschedule order in repository', context);
+        return ResponseHelper.error('Failed to reschedule order');
       }
 
-      this._logger.info("Order rescheduled successfully", {
+      this._logger.info('Order rescheduled successfully', {
         ...context,
         oldDate: order.scheduledAt,
         oldTimeSlot: order.timeSlot,
       });
 
       const orderDto = this.mapToDto(updatedOrder);
-      return ResponseHelper.success("Order rescheduled successfully", orderDto);
+      return ResponseHelper.success('Order rescheduled successfully', orderDto);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error rescheduling order", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error rescheduling order', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to reschedule order");
+      return ResponseHelper.error('Failed to reschedule order');
     }
   }
 
   private canOrderBeRescheduled(status: string): boolean {
-    const reschedulableStatuses = ["pending", "confirmed", "accepted"];
+    const reschedulableStatuses = ['pending', 'confirmed', 'accepted'];
     return reschedulableStatuses.includes(status);
   }
 
   private async getTechnicianIdByUserId(
-    userId: string,
+    userId: string
   ): Promise<string | null> {
     try {
-      this._logger.debug("Looking up technician ID for user", { userId });
+      this._logger.debug('Looking up technician ID for user', { userId });
 
       const technician = await this._technicianRepository.findByUserId(userId);
 
       if (!technician) {
-        this._logger.warn("No technician found for user", { userId });
+        this._logger.warn('No technician found for user', { userId });
         return null;
       }
 
-      this._logger.debug("Found technician profile", {
+      this._logger.debug('Found technician profile', {
         userId,
         technicianId: technician._id.toString(),
       });
 
       return technician._id.toString();
     } catch (error) {
-      this._logger.error("Error finding technician by user ID", {
+      this._logger.error('Error finding technician by user ID', {
         userId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return null;
     }
   }
   async getOrderByBookingId(
     userId: string,
-    bookingId: string,
+    bookingId: string
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
-      operation: "getOrderByBookingId",
+      operation: 'getOrderByBookingId',
       data: { userId, bookingId },
     };
 
     try {
-      this._logger.info("Fetching order by booking ID", context);
+      this._logger.info('Fetching order by booking ID', context);
 
       const order = await this._orderRepository.findByBookingId(bookingId);
 
       if (!order) {
-        this._logger.warn("Order not found for booking", context);
-        return ResponseHelper.notFound("Order not found for this booking");
+        this._logger.warn('Order not found for booking', context);
+        return ResponseHelper.notFound('Order not found for this booking');
       }
 
       const realOrderId =
@@ -781,168 +782,168 @@ export class OrderService implements IOrderService {
 
       // Check if user has access to this order
       if (realOrderId !== userId) {
-        this._logger.warn("User not authorized to access this order", {
+        this._logger.warn('User not authorized to access this order', {
           ...context,
           orderUserId: order.userId.toString(),
           requestingUserId: userId,
         });
-        return ResponseHelper.forbidden("Not authorized to access this order");
+        return ResponseHelper.forbidden('Not authorized to access this order');
       }
 
-      this._logger.info("Order retrieved successfully by booking ID", context);
+      this._logger.info('Order retrieved successfully by booking ID', context);
 
       const orderDto = this.mapToDto(order);
-      return ResponseHelper.success("Order retrieved successfully", orderDto);
+      return ResponseHelper.success('Order retrieved successfully', orderDto);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error fetching order by booking ID", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error fetching order by booking ID', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to fetch order");
+      return ResponseHelper.error('Failed to fetch order');
     }
   }
   async updateOrderPayment(
     orderId: string,
     paymentData: {
-      method: "online" | "cod";
+      method: 'online' | 'cod';
       amount: number;
-      status: "pending" | "paid" | "failed";
+      status: 'pending' | 'paid' | 'failed';
       transactionId?: string;
       paidAt?: Date;
-    },
+    }
   ): Promise<ApiResponse<OrderResponseDto>> {
     const context = {
-      operation: "updateOrderPayment",
+      operation: 'updateOrderPayment',
       data: { orderId, ...paymentData },
     };
 
     try {
-      this._logger.info("Updating order payment", context);
+      this._logger.info('Updating order payment', context);
 
       const updatedOrder = await this._orderRepository.updatePaymentDetails(
         orderId,
-        paymentData,
+        paymentData
       );
 
       if (!updatedOrder) {
-        this._logger.error("Failed to update order payment", context);
-        return ResponseHelper.error("Failed to update order payment");
+        this._logger.error('Failed to update order payment', context);
+        return ResponseHelper.error('Failed to update order payment');
       }
       await this.notifyUserAboutPayment(updatedOrder, paymentData.status);
 
-      this._logger.info("Order payment updated successfully", context);
+      this._logger.info('Order payment updated successfully', context);
 
       const orderDto = this.mapToDto(updatedOrder);
       return ResponseHelper.success(
-        "Order payment updated successfully",
-        orderDto,
+        'Order payment updated successfully',
+        orderDto
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error updating order payment", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error updating order payment', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to update order payment");
+      return ResponseHelper.error('Failed to update order payment');
     }
   }
 
   private async notifyTechnicianAboutNewOrder(order: any): Promise<void> {
     try {
       const context = {
-        operation: "notifyTechnicianAboutNewOrder",
+        operation: 'notifyTechnicianAboutNewOrder',
         orderId: order._id.toString(),
         technicianId: order.technicianId.toString(),
       };
 
       this._logger.info(
-        "Sending new order notification to technician",
-        context,
+        'Sending new order notification to technician',
+        context
       );
 
       // Get technician details for personalized notification
       const technician = await this._technicianRepository.findById(
-        order.technicianId.toString(),
+        order.technicianId.toString()
       );
 
       if (!technician) {
-        this._logger.warn("Technician not found for notification", context);
+        this._logger.warn('Technician not found for notification', context);
         return;
       }
       await this._socketService.notifyNewBookingToTechnician(
         order.technicianId.toString(),
         order._id.toString(),
-        order.serviceName,
+        order.serviceName
       );
 
-      this._logger.info("New order notification sent successfully", {
+      this._logger.info('New order notification sent successfully', {
         ...context,
         technicianName: technician.displayName,
         serviceType: order.serviceName,
       });
     } catch (error) {
       // Don't fail the order creation if notification fails
-      this._logger.error("Failed to send notification to technician", {
+      this._logger.error('Failed to send notification to technician', {
         orderId: order._id.toString(),
         technicianId: order.technicianId.toString(),
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
 
   private async notifyTechnicianAboutOrderStatusChange(
     order: any,
-    newStatus: string,
+    newStatus: string
   ): Promise<void> {
     try {
       const context = {
-        operation: "notifyTechnicianAboutOrderStatusChange",
+        operation: 'notifyTechnicianAboutOrderStatusChange',
         orderId: order._id.toString(),
         technicianId: order.technicianId.toString(),
         newStatus,
       };
 
       this._logger.info(
-        "Sending order status change notification to technician",
-        context,
+        'Sending order status change notification to technician',
+        context
       );
 
       // Get technician details
       const technician = await this._technicianRepository.findById(
-        order.technicianId.toString(),
+        order.technicianId.toString()
       );
 
       if (!technician) {
         this._logger.warn(
-          "Technician not found for status change notification",
-          context,
+          'Technician not found for status change notification',
+          context
         );
         return;
       }
 
-      let notificationTitle = "";
-      let notificationMessage = "";
+      let notificationTitle = '';
+      let notificationMessage = '';
 
       switch (newStatus) {
-        case "accepted":
-          notificationTitle = "Order Accepted";
+        case 'accepted':
+          notificationTitle = 'Order Accepted';
           notificationMessage = `You have accepted the ${order.serviceName} order.`;
           break;
-        case "in_progress":
-          notificationTitle = "Order In Progress";
+        case 'in_progress':
+          notificationTitle = 'Order In Progress';
           notificationMessage = `You have started working on the ${order.serviceName} order.`;
           break;
-        case "completed":
-          notificationTitle = "Order Completed";
+        case 'completed':
+          notificationTitle = 'Order Completed';
           notificationMessage = `You have completed the ${order.serviceName} order. Payment will be processed shortly.`;
           break;
-        case "cancelled":
-          notificationTitle = "Order Cancelled";
+        case 'cancelled':
+          notificationTitle = 'Order Cancelled';
           notificationMessage = `The ${order.serviceName} order has been cancelled.`;
           break;
         default:
@@ -952,94 +953,94 @@ export class OrderService implements IOrderService {
         technician._id.toString(),
         {
           userId: technician._id.toString(),
-          userType: "technician",
-          type: "order_update",
+          userType: 'technician',
+          type: 'order_update',
           title: notificationTitle,
           message: notificationMessage,
-          priority: "medium",
+          priority: 'medium',
           data: {
             orderId: order._id.toString(),
             serviceType: order.serviceName,
             newStatus,
           },
-        },
+        }
       );
 
       this._logger.info(
-        "Order status change notification sent successfully",
-        context,
+        'Order status change notification sent successfully',
+        context
       );
     } catch (error) {
       // Don't fail the order update if notification fails
       this._logger.error(
-        "Failed to send status change notification to technician",
+        'Failed to send status change notification to technician',
         {
           orderId: order._id.toString(),
           technicianId: order.technicianId.toString(),
-          error: error instanceof Error ? error.message : "Unknown error",
-        },
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
       );
     }
   }
   private async notifyUserAboutOrderStatusChange(
     order: any,
-    newStatus: string,
+    newStatus: string
   ): Promise<void> {
     try {
       const context = {
-        operation: "notifyUserAboutOrderStatusChange",
+        operation: 'notifyUserAboutOrderStatusChange',
         orderId: order._id.toString(),
         userId: order.userId.toString(),
         newStatus,
       };
 
-      this._logger.info("=== NOTIFY USER START ===", context);
+      this._logger.info('=== NOTIFY USER START ===', context);
 
-      let notificationTitle = "";
-      let notificationMessage = "";
-      let notificationType = "";
-      let actionUrl = "";
-      let priority: "low" | "medium" | "high" = "medium";
+      let notificationTitle = '';
+      let notificationMessage = '';
+      let notificationType = '';
+      let actionUrl = '';
+      let priority: 'low' | 'medium' | 'high' = 'medium';
 
       switch (newStatus) {
-        case "confirmed":
-          notificationTitle = "Booking Confirmed!";
+        case 'confirmed':
+          notificationTitle = 'Booking Confirmed!';
           notificationMessage = `Your ${order.serviceName} booking has been confirmed.`;
-          notificationType = "booking_confirmed";
+          notificationType = 'booking_confirmed';
           break;
-        case "accepted":
-          notificationTitle = "Technician Assigned";
+        case 'accepted':
+          notificationTitle = 'Technician Assigned';
           notificationMessage = `A technician has been assigned to your ${order.serviceName} service.`;
-          notificationType = "technician_assigned";
+          notificationType = 'technician_assigned';
           break;
-        case "on_the_way":
-          notificationTitle = "Technician is on the way!";
+        case 'on_the_way':
+          notificationTitle = 'Technician is on the way!';
           notificationMessage = `Your technician is coming to your location.`;
-          notificationType = "on_the_way";
+          notificationType = 'on_the_way';
           actionUrl = `/tracking/${order.orderId}`;
-          priority = "high";
+          priority = 'high';
           break;
-        case "in_progress":
-          notificationTitle = "Service In Progress";
+        case 'in_progress':
+          notificationTitle = 'Service In Progress';
           notificationMessage = `Your ${order.serviceName} service has started.`;
-          notificationType = "service_in_progress";
+          notificationType = 'service_in_progress';
           break;
-        case "completed":
-          notificationTitle = "Service Completed";
+        case 'completed':
+          notificationTitle = 'Service Completed';
           notificationMessage = `Your ${order.serviceName} service has been completed successfully.`;
-          notificationType = "service_completed";
+          notificationType = 'service_completed';
           break;
-        case "cancelled":
-          notificationTitle = "Booking Cancelled";
+        case 'cancelled':
+          notificationTitle = 'Booking Cancelled';
           notificationMessage = `Your ${order.serviceName} booking has been cancelled.`;
-          notificationType = "booking_cancelled";
+          notificationType = 'booking_cancelled';
           break;
         default:
-          this._logger.info("No notification for status:", newStatus);
+          this._logger.info('No notification for status:', newStatus);
           return;
       }
 
-      this._logger.info("Creating user notification:", {
+      this._logger.info('Creating user notification:', {
         title: notificationTitle,
         message: notificationMessage,
         type: notificationType,
@@ -1050,17 +1051,17 @@ export class OrderService implements IOrderService {
         order.userId.toString(),
         order._id.toString(),
         newStatus,
-        order.serviceName,
+        order.serviceName
       );
 
-      this._logger.info("=== NOTIFICATION CREATED SUCCESSFULLY ===", {
+      this._logger.info('=== NOTIFICATION CREATED SUCCESSFULLY ===', {
         userId: order.userId.toString(),
       });
     } catch (error) {
-      this._logger.error("=== NOTIFICATION CREATION FAILED ===", {
+      this._logger.error('=== NOTIFICATION CREATION FAILED ===', {
         orderId: order._id.toString(),
         userId: order.userId.toString(),
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -1068,72 +1069,72 @@ export class OrderService implements IOrderService {
   // Remove the sendPushNotification method entirely
   private async notifyUserAboutPayment(
     order: any,
-    paymentStatus: string,
+    paymentStatus: string
   ): Promise<void> {
     try {
       const context = {
-        operation: "notifyUserAboutPayment",
+        operation: 'notifyUserAboutPayment',
         orderId: order._id.toString(),
         userId: order.userId.toString(),
         paymentStatus,
       };
 
-      this._logger.info("=== PAYMENT NOTIFICATION START ===", context);
+      this._logger.info('=== PAYMENT NOTIFICATION START ===', context);
 
-      let notificationTitle = "";
-      let notificationMessage = "";
+      let notificationTitle = '';
+      let notificationMessage = '';
 
-      if (paymentStatus === "paid") {
-        notificationTitle = "Payment Successful!";
+      if (paymentStatus === 'paid') {
+        notificationTitle = 'Payment Successful!';
         notificationMessage = `Your payment of ₹${order.payment.amount} for ${order.serviceName} has been processed successfully.`;
-      } else if (paymentStatus === "failed") {
-        notificationTitle = "Payment Failed";
+      } else if (paymentStatus === 'failed') {
+        notificationTitle = 'Payment Failed';
         notificationMessage = `Your payment for ${order.serviceName} failed. Please try again.`;
       } else {
-        this._logger.info("No payment notification for status:", paymentStatus);
+        this._logger.info('No payment notification for status:', paymentStatus);
         return;
       }
 
-      this._logger.info("Creating payment notification:", {
+      this._logger.info('Creating payment notification:', {
         title: notificationTitle,
         message: notificationMessage,
       });
 
-      if (paymentStatus === "paid") {
+      if (paymentStatus === 'paid') {
         await this._socketService.notifyPaymentSuccess(
           order.userId.toString(),
           order.payment.amount,
-          order.serviceName,
+          order.serviceName
         );
       }
 
-      this._logger.info("=== PAYMENT NOTIFICATION CREATED SUCCESSFULLY ===");
+      this._logger.info('=== PAYMENT NOTIFICATION CREATED SUCCESSFULLY ===');
     } catch (error) {
-      this._logger.error("=== PAYMENT NOTIFICATION FAILED ===", {
+      this._logger.error('=== PAYMENT NOTIFICATION FAILED ===', {
         orderId: order._id.toString(),
         userId: order.userId.toString(),
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
   async getOrdersByTechnicianAndDate(
     technicianId: string,
-    date: Date,
+    date: Date
   ): Promise<IOrder[]> {
     const context = {
-      operation: "getOrdersByTechnicianAndDate",
+      operation: 'getOrdersByTechnicianAndDate',
       data: { technicianId, date },
     };
 
     try {
-      this._logger.info("Fetching orders by technician and date", context);
+      this._logger.info('Fetching orders by technician and date', context);
 
       const orders = await this._orderRepository.getOrdersByTechnicianAndDate(
         technicianId,
-        date,
+        date
       );
 
-      this._logger.info("Orders retrieved successfully", {
+      this._logger.info('Orders retrieved successfully', {
         ...context,
         orderCount: orders.length,
       });
@@ -1141,8 +1142,8 @@ export class OrderService implements IOrderService {
       return orders;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error fetching orders by technician and date", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error fetching orders by technician and date', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

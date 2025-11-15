@@ -14,6 +14,7 @@ export interface BookingResponseDto {
   bookingCode: string;
   userId: string;
   technicianId: string;
+  serviceId?: string;
   serviceName: string;
   brand: string;
   addressId: string;
@@ -71,13 +72,13 @@ export interface TrackingDetailsDto {
     landmark?: string;
   };
   status:
-    | "pending"
-    | "accepted"
-    | "assigned"
-    | "on_the_way"
-    | "in_progress"
-    | "completed"
-    | "cancelled";
+    | 'pending'
+    | 'accepted'
+    | 'assigned'
+    | 'on_the_way'
+    | 'in_progress'
+    | 'completed'
+    | 'cancelled';
   amount: number;
   estimatedDuration: string;
   statusHistory: StatusHistoryDto[];
@@ -94,7 +95,7 @@ export interface StatusHistoryDto {
   status: string;
   timestamp: string;
   description: string;
-  updatedBy: "user" | "technician" | "system";
+  updatedBy: 'user' | 'technician' | 'system';
 }
 
 export interface TechnicianLocationDto {

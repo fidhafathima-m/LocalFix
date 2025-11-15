@@ -15,7 +15,7 @@ import { useSocket } from "../../../../../../context/SocketContext";
 import { useAppSelector } from "../../../../../../hooks/redux";
 import { selectTechnicianProfile } from "../../../../../../store/slices/technicianSlice";
 import { selectUser } from "../../../../../../store/slices/authSlice";
-import type { TechnicianOrder } from "../../../../../../interface/technician/IOrderService";
+import { useNavigate } from "react-router-dom";
 
 const OrdersTab: React.FC<TabProps> = ({
   orders,
@@ -27,6 +27,7 @@ const OrdersTab: React.FC<TabProps> = ({
   const [isSharingLocation, setIsSharingLocation] = useState<{
     [key: string]: boolean;
   }>({});
+  const navigate = useNavigate();
 
   const technicianProfile = useAppSelector(selectTechnicianProfile);
   const authUser = useAppSelector(selectUser);
@@ -855,6 +856,12 @@ const OrdersTab: React.FC<TabProps> = ({
                       </button>
                     )}
                 </div>
+                <button
+                  onClick={() => navigate(`/technician/order/${order._id}`)}
+                  className="bg-blue-700 text-white py-2 px-7 rounded"
+                >
+                  View Details
+                </button>
               </div>
 
               {/* Status History */}
