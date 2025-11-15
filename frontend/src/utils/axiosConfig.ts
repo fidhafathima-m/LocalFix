@@ -37,43 +37,40 @@ const getTokens = (): {
     return { accessToken: null, refreshToken: null };
   } catch (error) {
     console.error("Error reading tokens from storage:", error);
+    // Clear corrupted data
+    localStorage.removeItem("auth");
     return { accessToken: null, refreshToken: null };
   }
 };
+
 const setTokens = (accessToken: string, refreshToken: string): void => {
   try {
     const currentAuth = localStorage.getItem("auth");
+    let authData: any = {};
+
     if (currentAuth) {
-      const authData = JSON.parse(currentAuth);
-      localStorage.setItem(
-        "auth",
-        JSON.stringify({
-          ...authData,
-          accessToken,
-          refreshToken,
-        })
-      );
-    } else {
-      // Create new auth structure if it doesn't exist
-      localStorage.setItem(
-        "auth",
-        JSON.stringify({
-          accessToken,
-          refreshToken,
-          user: null,
-        })
-      );
+      authData = JSON.parse(currentAuth);
     }
+
+    // Update tokens
+    authData.accessToken = accessToken;
+    authData.refreshToken = refreshToken;
+
+    localStorage.setItem("auth", JSON.stringify(authData));
+    console.log("Tokens updated in storage");
   } catch (error) {
     console.error("Error setting tokens:", error);
   }
 };
 
 const clearTokens = (): void => {
+  console.log("Clearing all authentication tokens");
   localStorage.removeItem("auth");
+  // Clear any legacy tokens
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
+  localStorage.removeItem("token");
 };
 
 // Request interceptor
@@ -104,15 +101,13 @@ api.interceptors.response.use(
     // Handle token expiration (401 errors)
     if (error.response?.status === 401 && !originalRequest?._retry) {
       const errorData = error.response?.data;
-      const isTokenExpired = 
-        errorData?.code === 'TOKEN_EXPIRED' ||
-        errorData?.message?.includes('expired') ||
-        errorData?.message?.includes('Token expired') ||
-        error?.message?.includes('expired');
-      
-      
+      const isTokenExpired =
+        errorData?.code === "TOKEN_EXPIRED" ||
+        errorData?.message?.includes("expired") ||
+        errorData?.message?.includes("Token expired") ||
+        error?.message?.includes("expired");
+
       if (isTokenExpired) {
-        
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
@@ -132,8 +127,8 @@ api.interceptors.response.use(
         const { refreshToken } = getTokens();
 
         if (!refreshToken) {
+          console.warn("No refresh token available");
           clearTokens();
-          // Use replace instead of href to avoid beforeunload
           window.location.replace("/login");
           return Promise.reject(error);
         }
@@ -141,27 +136,34 @@ api.interceptors.response.use(
         try {
           const refreshResponse = await authAPI.refreshToken(refreshToken);
 
-          const newAccessToken = refreshResponse.accessToken || refreshResponse.data?.accessToken;
-          const newRefreshToken = refreshResponse.refreshToken || refreshResponse.data?.refreshToken;
+          // FIXED: Properly extract tokens from response
+          const responseData = refreshResponse.data || refreshResponse;
+          const newAccessToken =
+            responseData.data?.accessToken || responseData.accessToken;
+          const newRefreshToken =
+            responseData.data?.refreshToken || responseData.refreshToken;
 
-          if (refreshResponse.success && refreshResponse.data?.accessToken && newAccessToken && newRefreshToken) {
-            
+          if (newAccessToken && newRefreshToken) {
+            console.log("Tokens refreshed successfully");
             setTokens(newAccessToken, newRefreshToken);
 
             // Update the Authorization header
-            api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+            api.defaults.headers.common[
+              "Authorization"
+            ] = `Bearer ${newAccessToken}`;
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
             processQueue(null, newAccessToken);
-            
+
             return api(originalRequest);
           } else {
-            throw new Error("Token refresh failed");
+            console.error("Invalid token response:", refreshResponse);
+            throw new Error("Token refresh failed - invalid response");
           }
         } catch (refreshError) {
+          console.error("Token refresh error:", refreshError);
           processQueue(refreshError, null);
           clearTokens();
-          // Use replace instead of href to avoid beforeunload
           window.location.replace("/login?message=session_expired");
           return Promise.reject(refreshError);
         } finally {
@@ -172,12 +174,12 @@ api.interceptors.response.use(
 
     // Handle other 401 errors (invalid token, etc.)
     if (error.response?.status === 401) {
+      console.warn("Unauthorized access, clearing tokens");
       clearTokens();
+      window.location.replace("/login");
       return Promise.reject(error);
     }
 
-    // Handle other error cases
-    console.error("Axios Interceptor - Response error:", error.response?.data);
     return Promise.reject(error);
   }
 );

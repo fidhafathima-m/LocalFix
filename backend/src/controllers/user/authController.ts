@@ -1,8 +1,8 @@
-import { Request, Response } from "express";
-import { IAuthService } from "../../interfaces/services/user/IAuthService";
-import { ResponseHelper } from "../../utils/responseHelper";
-import { GENERAL_MESSAGES } from "../../constants";
-import { AuthRequest } from "@/middleware/authMiddleware";
+import { Request, Response } from 'express';
+import { IAuthService } from '../../interfaces/services/user/IAuthService';
+import { ResponseHelper } from '../../utils/responseHelper';
+import { GENERAL_MESSAGES } from '../../constants';
+import { AuthRequest } from '@/middleware/authMiddleware';
 
 // Import DTOs
 import {
@@ -18,38 +18,37 @@ import {
   RefreshTokenRequestDto,
   LogoutRequestDto,
   AuthResponseDto,
-} from "../../interfaces/dtos/authDtos";
-import { ILogger } from "@/interfaces/utils/ILogger";
+} from '../../interfaces/dtos/authDtos';
+import { ILogger } from '@/interfaces/utils/ILogger';
 
 export class AuthController {
-  private _addressService: IAuthService;
+  private _authService: IAuthService;
   private _logger: ILogger;
 
   constructor(authService: IAuthService, logger: ILogger) {
-    this._addressService = authService;
+    this._authService = authService;
     this._logger = logger;
   }
 
   signup = async (req: Request, res: Response): Promise<void> => {
     const signupData: SignupRequestDto = req.body;
     const context = {
-      operation: "signup",
+      operation: 'signup',
       userType: signupData.userType,
       email: signupData.email,
       phone: signupData.phone,
       ip: req.ip,
-      userAgent: req.get("User-Agent"),
+      userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Signup request received", context);
+      this._logger.info('Signup request received', context);
 
-      const result: AuthResponseDto = await this._addressService.signup(
-        signupData
-      );
+      const result: AuthResponseDto =
+        await this._authService.signup(signupData);
 
-      this._logger.info("Signup completed successfully", {
+      this._logger.info('Signup completed successfully', {
         ...context,
         userId: result.data?.user?._id,
         success: result.success,
@@ -57,7 +56,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Signup controller error", {
+      this._logger.error('Signup controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -71,20 +70,19 @@ export class AuthController {
   verifyOtp = async (req: Request, res: Response): Promise<void> => {
     const otpData: VerifyOtpRequestDto = req.body;
     const context = {
-      operation: "verifyOtp",
+      operation: 'verifyOtp',
       email: otpData.email,
       phone: otpData.phone,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("OTP verification request received", context);
+      this._logger.info('OTP verification request received', context);
 
-      const result: AuthResponseDto = await this._addressService.verifyOtp(
-        otpData
-      );
+      const result: AuthResponseDto =
+        await this._authService.verifyOtp(otpData);
 
-      this._logger.info("OTP verification completed", {
+      this._logger.info('OTP verification completed', {
         ...context,
         success: result.success,
         verified: result.data?.verified,
@@ -92,7 +90,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Verify OTP controller error", {
+      this._logger.error('Verify OTP controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -106,20 +104,19 @@ export class AuthController {
   verifyResetOtp = async (req: Request, res: Response): Promise<void> => {
     const otpData: VerifyResetOtpRequestDto = req.body;
     const context = {
-      operation: "verifyResetOtp",
+      operation: 'verifyResetOtp',
       email: otpData.email,
       phone: otpData.phone,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Reset OTP verification request received", context);
+      this._logger.info('Reset OTP verification request received', context);
 
-      const result: AuthResponseDto = await this._addressService.verifyResetOtp(
-        otpData
-      );
+      const result: AuthResponseDto =
+        await this._authService.verifyResetOtp(otpData);
 
-      this._logger.info("Reset OTP verification completed", {
+      this._logger.info('Reset OTP verification completed', {
         ...context,
         success: result.success,
         verified: result.data?.verified,
@@ -127,7 +124,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Verify reset OTP controller error", {
+      this._logger.error('Verify reset OTP controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -141,22 +138,21 @@ export class AuthController {
   login = async (req: Request, res: Response): Promise<void> => {
     const credentials: LoginRequestDto = req.body;
     const context = {
-      operation: "login",
+      operation: 'login',
       emailPhone: credentials?.identifier,
       userType: credentials?.role,
       ip: req.ip,
-      userAgent: req.get("User-Agent"),
+      userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Login request received", context);
+      this._logger.info('Login request received', context);
 
-      const result: AuthResponseDto = await this._addressService.login(
-        credentials
-      );
+      const result: AuthResponseDto =
+        await this._authService.login(credentials);
 
-      this._logger.info("Login completed", {
+      this._logger.info('Login completed', {
         ...context,
         success: result.success,
         userId: result.data?.user?._id,
@@ -164,7 +160,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Login controller error", {
+      this._logger.error('Login controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -178,7 +174,7 @@ export class AuthController {
   forgotPassword = async (req: Request, res: Response): Promise<void> => {
     const { phone, email, userType }: ForgotPasswordRequestDto = req.body;
     const context = {
-      operation: "forgotPassword",
+      operation: 'forgotPassword',
       email,
       phone,
       userType,
@@ -187,15 +183,15 @@ export class AuthController {
     };
 
     try {
-      this._logger.info("Forgot password request received", context);
+      this._logger.info('Forgot password request received', context);
 
-      const result: AuthResponseDto = await this._addressService.forgotPassword(
+      const result: AuthResponseDto = await this._authService.forgotPassword(
         phone,
         email,
         userType
       );
 
-      this._logger.info("Forgot password request processed", {
+      this._logger.info('Forgot password request processed', {
         ...context,
         success: result.success,
         otpSent: result.data?.otpSent,
@@ -203,7 +199,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Forgot password controller error", {
+      this._logger.error('Forgot password controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -217,27 +213,26 @@ export class AuthController {
   resetPassword = async (req: Request, res: Response): Promise<void> => {
     const resetData: ResetPasswordRequestDto = req.body;
     const context = {
-      operation: "resetPassword",
+      operation: 'resetPassword',
       email: resetData.email,
       phone: resetData.phone,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Reset password request received", context);
+      this._logger.info('Reset password request received', context);
 
-      const result: AuthResponseDto = await this._addressService.resetPassword(
-        resetData
-      );
+      const result: AuthResponseDto =
+        await this._authService.resetPassword(resetData);
 
-      this._logger.info("Password reset completed", {
+      this._logger.info('Password reset completed', {
         ...context,
         success: result.success,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Reset password controller error", {
+      this._logger.error('Reset password controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -251,7 +246,7 @@ export class AuthController {
   resendOTP = async (req: Request, res: Response): Promise<void> => {
     const { phone, email, purpose, userType }: ResendOtpRequestDto = req.body;
     const context = {
-      operation: "resendOTP",
+      operation: 'resendOTP',
       email,
       phone,
       purpose,
@@ -260,16 +255,16 @@ export class AuthController {
     };
 
     try {
-      this._logger.info("Resend OTP request received", context);
+      this._logger.info('Resend OTP request received', context);
 
-      const result: AuthResponseDto = await this._addressService.resendOTP(
+      const result: AuthResponseDto = await this._authService.resendOTP(
         phone,
         email,
         purpose,
         userType
       );
 
-      this._logger.info("OTP resent successfully", {
+      this._logger.info('OTP resent successfully', {
         ...context,
         success: result.success,
         otpSent: result.data?.otpSent,
@@ -277,7 +272,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Resend OTP controller error", {
+      this._logger.error('Resend OTP controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -291,20 +286,19 @@ export class AuthController {
   googleAuth = async (req: Request, res: Response): Promise<void> => {
     const googleData: GoogleAuthRequestDto = req.body;
     const context = {
-      operation: "googleAuth",
+      operation: 'googleAuth',
       ip: req.ip,
-      userAgent: req.get("User-Agent"),
+      userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Google authentication request received", context);
+      this._logger.info('Google authentication request received', context);
 
-      const result: AuthResponseDto = await this._addressService.googleAuth(
-        googleData
-      );
+      const result: AuthResponseDto =
+        await this._authService.googleAuth(googleData);
 
-      this._logger.info("Google authentication completed", {
+      this._logger.info('Google authentication completed', {
         ...context,
         success: result.success,
         userId: result.data?.user?._id,
@@ -312,7 +306,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Google auth controller error", {
+      this._logger.error('Google auth controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -326,22 +320,22 @@ export class AuthController {
   facebookLogin = async (req: Request, res: Response): Promise<void> => {
     const { accessToken, userID }: FacebookLoginRequestDto = req.body;
     const context = {
-      operation: "facebookLogin",
+      operation: 'facebookLogin',
       facebookUserId: userID,
       ip: req.ip,
-      userAgent: req.get("User-Agent"),
+      userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Facebook login request received", context);
+      this._logger.info('Facebook login request received', context);
 
-      const result: AuthResponseDto = await this._addressService.facebookLogin(
+      const result: AuthResponseDto = await this._authService.facebookLogin(
         accessToken,
         userID
       );
 
-      this._logger.info("Facebook login completed", {
+      this._logger.info('Facebook login completed', {
         ...context,
         success: result.success,
         userId: result.data?.user?._id,
@@ -349,7 +343,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Facebook login controller error", {
+      this._logger.error('Facebook login controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -360,23 +354,22 @@ export class AuthController {
     }
   };
 
-  async refreshToken(req: Request, res: Response): Promise<void> {
+  refreshToken = async (req: Request, res: Response): Promise<void> => {
     const { refreshToken }: RefreshTokenRequestDto = req.body;
     const context = {
-      operation: "refreshToken",
+      operation: 'refreshToken',
       ip: req.ip,
-      userAgent: req.get("User-Agent"),
+      userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Refresh token request received", context);
+      this._logger.info('Refresh token request received', context);
 
-      const result: AuthResponseDto = await this._addressService.refreshToken(
-        refreshToken
-      );
+      const result: AuthResponseDto =
+        await this._authService.refreshToken(refreshToken);
 
-      this._logger.info("Token refresh completed", {
+      this._logger.info('Token refresh completed', {
         ...context,
         success: result.success,
         tokensRefreshed: !!result.data?.tokens,
@@ -384,7 +377,7 @@ export class AuthController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Refresh token controller error", {
+      this._logger.error('Refresh token controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -393,42 +386,42 @@ export class AuthController {
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
-  }
+  };
 
-  async logout(req: AuthRequest, res: Response): Promise<void> {
+  logout = async (req: AuthRequest, res: Response): Promise<void> => {
     const { refreshToken }: LogoutRequestDto = req.body;
     const userId = req.user?.id;
 
     const context = {
-      operation: "logout",
+      operation: 'logout',
       userId,
       ip: req.ip,
-      userAgent: req.get("User-Agent"),
+      userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Logout request received", context);
+      this._logger.info('Logout request received', context);
 
       if (!userId) {
-        this._logger.warn("Logout failed - authentication required", context);
+        this._logger.warn('Logout failed - authentication required', context);
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      const result: AuthResponseDto = await this._addressService.logout(
+      const result: AuthResponseDto = await this._authService.logout(
         userId,
         refreshToken
       );
 
-      this._logger.info("Logout completed successfully", context);
+      this._logger.info('Logout completed successfully', context);
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Logout controller error", {
+      this._logger.error('Logout controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -437,5 +430,5 @@ export class AuthController {
       const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
-  }
+  };
 }

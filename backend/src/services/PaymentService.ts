@@ -1,42 +1,42 @@
-import { IPayment } from "../models/PaymentSchema";
-import { IPaymentRepository } from "../interfaces/repository/user/IPaymentRepository";
+import { IPayment } from '../models/PaymentSchema';
+import { IPaymentRepository } from '../interfaces/repository/user/IPaymentRepository';
 import {
   razorpay,
   RazorpayOrderResponse,
   RazorpayPaymentResponse,
-} from "../config/razorpay";
-import { ResponseHelper, ApiResponse } from "../utils/responseHelper";
-import { Types } from "mongoose";
+} from '../config/razorpay';
+import { ResponseHelper, ApiResponse } from '../utils/responseHelper';
+import { Types } from 'mongoose';
 import {
   CreatePaymentRequest,
   PaymentResponseDto,
-} from "@/interfaces/user/IPayment";
-import { ILogger } from "@/interfaces/utils/ILogger";
+} from '@/interfaces/user/IPayment';
+import { ILogger } from '@/interfaces/utils/ILogger';
 
 export class PaymentService {
   private _logger: ILogger;
-  private _paymentRepository: IPaymentRepository
+  private _paymentRepository: IPaymentRepository;
 
   constructor(paymentRepository: IPaymentRepository, logger: ILogger) {
     this._logger = logger;
-    this._paymentRepository = paymentRepository
+    this._paymentRepository = paymentRepository;
   }
 
   async createPaymentOrder(
     paymentData: CreatePaymentRequest
   ): Promise<ApiResponse<PaymentResponseDto>> {
     const context = {
-      operation: "createPaymentOrder",
+      operation: 'createPaymentOrder',
       data: paymentData,
     };
 
     try {
-      this._logger.info("Creating payment order", context);
+      this._logger.info('Creating payment order', context);
 
       // Create Razorpay order
       const razorpayOrder = await razorpay.orders.create({
         amount: paymentData.amount * 100, // Convert to paise
-        currency: paymentData.currency || "INR",
+        currency: paymentData.currency || 'INR',
         receipt: `booking_${paymentData.bookingId}`,
         notes: {
           bookingId: paymentData.bookingId,
@@ -45,7 +45,7 @@ export class PaymentService {
         },
       });
 
-      this._logger.debug("Razorpay order created", {
+      this._logger.debug('Razorpay order created', {
         ...context,
         razorpayOrderId: razorpayOrder.id,
       });
@@ -54,44 +54,44 @@ export class PaymentService {
       const paymentModel: Partial<IPayment> = {
         bookingId: new Types.ObjectId(paymentData.bookingId),
         userId: new Types.ObjectId(paymentData.userId),
-        paymentProvider: "razorpay" as const,
+        paymentProvider: 'razorpay' as const,
         providerOrderId: razorpayOrder.id,
         amount: paymentData.amount,
-        currency: paymentData.currency || "INR",
+        currency: paymentData.currency || 'INR',
         type: paymentData.type,
         sparePartId: paymentData.sparePartId
           ? new Types.ObjectId(paymentData.sparePartId)
           : undefined,
-        status: "initiated" as const,
+        status: 'initiated' as const,
         rawResponse: razorpayOrder,
       };
 
       const newPayment = await this._paymentRepository.create(paymentModel);
 
       if (!newPayment) {
-        this._logger.error("Failed to create payment record", context);
-        return ResponseHelper.error("Failed to create payment record");
+        this._logger.error('Failed to create payment record', context);
+        return ResponseHelper.error('Failed to create payment record');
       }
 
-      this._logger.info("Payment order created successfully", {
+      this._logger.info('Payment order created successfully', {
         ...context,
         paymentId: newPayment._id?.toString(),
       });
 
       const paymentDto = this.mapToDto(newPayment, razorpayOrder);
       return ResponseHelper.success(
-        "Payment order created successfully",
+        'Payment order created successfully',
         paymentDto
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error creating payment order", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error creating payment order', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to create payment order");
+      return ResponseHelper.error('Failed to create payment order');
     }
   }
 
@@ -101,33 +101,32 @@ export class PaymentService {
     razorpaySignature: string
   ): Promise<ApiResponse<any>> {
     const context = {
-      operation: "verifyPayment",
+      operation: 'verifyPayment',
       data: { razorpayPaymentId, razorpayOrderId },
     };
 
     try {
-      this._logger.info("Verifying payment", context);
+      this._logger.info('Verifying payment', context);
 
       // Find payment record
-      const payment = await this._paymentRepository.findByOrderId(
-        razorpayOrderId
-      );
+      const payment =
+        await this._paymentRepository.findByOrderId(razorpayOrderId);
 
       if (!payment) {
-        this._logger.warn("Payment record not found", context);
-        return ResponseHelper.notFound("Payment record not found");
+        this._logger.warn('Payment record not found', context);
+        return ResponseHelper.notFound('Payment record not found');
       }
 
       // Verify signature
-      const crypto = require("crypto");
+      const crypto = require('crypto');
       const expectedSignature = crypto
-        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
-        .update(razorpayOrderId + "|" + razorpayPaymentId)
-        .digest("hex");
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+        .update(razorpayOrderId + '|' + razorpayPaymentId)
+        .digest('hex');
 
       if (expectedSignature !== razorpaySignature) {
-        this._logger.warn("Invalid payment signature", context);
-        return ResponseHelper.badRequest("Invalid payment signature");
+        this._logger.warn('Invalid payment signature', context);
+        return ResponseHelper.badRequest('Invalid payment signature');
       }
 
       // Fetch payment details from Razorpay
@@ -138,35 +137,35 @@ export class PaymentService {
         payment.id.toString(),
         {
           providerPaymentId: razorpayPaymentId,
-          status: razorpayPayment.status === "captured" ? "success" : "failed",
+          status: razorpayPayment.status === 'captured' ? 'success' : 'failed',
           confirmedAt: new Date(),
           rawResponse: razorpayPayment,
         }
       );
 
       if (!updatedPayment) {
-        this._logger.error("Failed to update payment record", context);
-        return ResponseHelper.error("Failed to update payment record");
+        this._logger.error('Failed to update payment record', context);
+        return ResponseHelper.error('Failed to update payment record');
       }
 
-      this._logger.info("Payment verified successfully", {
+      this._logger.info('Payment verified successfully', {
         ...context,
         status: updatedPayment.status,
       });
 
-      return ResponseHelper.success("Payment verified successfully", {
+      return ResponseHelper.success('Payment verified successfully', {
         payment: this.mapToDto(updatedPayment),
         bookingId: payment.bookingId,
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Error verifying payment", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error verifying payment', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to verify payment");
+      return ResponseHelper.error('Failed to verify payment');
     }
   }
 

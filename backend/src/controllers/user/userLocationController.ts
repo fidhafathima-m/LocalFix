@@ -1,6 +1,6 @@
-import { Request, Response } from "express";
-import { IUserLocationService } from "@/interfaces/services/user/IUserLocationService";
-import { ILogger } from "@/interfaces/utils/ILogger";
+import { Request, Response } from 'express';
+import { IUserLocationService } from '@/interfaces/services/user/IUserLocationService';
+import { ILogger } from '@/interfaces/utils/ILogger';
 
 interface AuthRequest extends Request {
   user?: {
@@ -19,12 +19,15 @@ export class UserLocationController {
   }
 
   // Update user location
-  async updateUserLocation(req: AuthRequest, res: Response): Promise<void> {
+  updateUserLocation = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const userId = req.user?.id;
     const { coordinates, address } = req.body;
 
     const context = {
-      operation: "updateUserLocation",
+      operation: 'updateUserLocation',
       userId,
       coordinates,
       hasAddress: !!address,
@@ -32,16 +35,16 @@ export class UserLocationController {
     };
 
     try {
-      this._logger.info("Updating user location", context);
+      this._logger.info('Updating user location', context);
 
       if (!userId) {
         this._logger.warn(
-          "Update location failed - user not authenticated",
+          'Update location failed - user not authenticated',
           context
         );
         res.status(401).json({
           success: false,
-          message: "User not authenticated",
+          message: 'User not authenticated',
         });
         return;
       }
@@ -51,18 +54,18 @@ export class UserLocationController {
         !Array.isArray(coordinates) ||
         coordinates.length !== 2
       ) {
-        this._logger.warn("Update location failed - invalid coordinates", {
+        this._logger.warn('Update location failed - invalid coordinates', {
           ...context,
           coordinatesProvided: coordinates,
         });
         res.status(400).json({
           success: false,
-          message: "Valid coordinates are required [longitude, latitude]",
+          message: 'Valid coordinates are required [longitude, latitude]',
         });
         return;
       }
 
-      this._logger.debug("Calling service to update user location", {
+      this._logger.debug('Calling service to update user location', {
         ...context,
         longitude: coordinates[0],
         latitude: coordinates[1],
@@ -77,7 +80,7 @@ export class UserLocationController {
       );
 
       if (!result.success) {
-        this._logger.warn("Update location service returned failure", {
+        this._logger.warn('Update location service returned failure', {
           ...context,
           error: result.message,
         });
@@ -85,18 +88,18 @@ export class UserLocationController {
         return;
       }
 
-      this._logger.info("User location updated successfully", {
+      this._logger.info('User location updated successfully', {
         ...context,
         locationId: result.data?._id,
       });
 
       res.status(200).json({
         success: true,
-        message: "Location updated successfully",
+        message: 'Location updated successfully',
         data: result.data,
       });
     } catch (error: unknown) {
-      this._logger.error("Update location error", {
+      this._logger.error('Update location error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -104,22 +107,22 @@ export class UserLocationController {
 
       res.status(500).json({
         success: false,
-        message: "Internal server error",
+        message: 'Internal server error',
       });
     }
-  }
+  };
 
   // Get user location
-  async getUserLocation(req: AuthRequest, res: Response): Promise<void> {
+  getUserLocation = async (req: AuthRequest, res: Response): Promise<void> => {
     const userId = req.user?.id;
     const context = {
-      operation: "getUserLocation",
+      operation: 'getUserLocation',
       userId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching user location - START", {
+      this._logger.info('Fetching user location - START', {
         ...context,
         headers: req.headers,
         method: req.method,
@@ -127,18 +130,18 @@ export class UserLocationController {
       });
 
       if (!userId) {
-        this._logger.warn("Get location failed - user not authenticated", {
+        this._logger.warn('Get location failed - user not authenticated', {
           ...context,
           user: req.user,
         });
         res.status(401).json({
           success: false,
-          message: "User not authenticated",
+          message: 'User not authenticated',
         });
         return;
       }
 
-      this._logger.info("Calling service to get user location", {
+      this._logger.info('Calling service to get user location', {
         ...context,
         userId,
       });
@@ -146,7 +149,7 @@ export class UserLocationController {
       const result = await this._userLocationService.getUserLocation(userId);
 
       if (!result.success) {
-        this._logger.warn("Get location service returned failure", {
+        this._logger.warn('Get location service returned failure', {
           ...context,
           error: result.message,
           serviceResult: result,
@@ -154,13 +157,13 @@ export class UserLocationController {
 
         res.status(200).json({
           success: false,
-          message: result.message || "Location not found",
+          message: result.message || 'Location not found',
           data: null,
         });
         return;
       }
 
-      this._logger.info("User location retrieved successfully", {
+      this._logger.info('User location retrieved successfully', {
         ...context,
         hasLocation: !!result.data,
         locationData: result.data,
@@ -171,7 +174,7 @@ export class UserLocationController {
         data: result.data,
       });
     } catch (error: unknown) {
-      this._logger.error("Get location error", {
+      this._logger.error('Get location error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -179,31 +182,34 @@ export class UserLocationController {
 
       res.status(500).json({
         success: false,
-        message: "Internal server error",
+        message: 'Internal server error',
       });
     }
-  }
+  };
 
   // Delete user location
-  async deleteUserLocation(req: AuthRequest, res: Response): Promise<void> {
+  deleteUserLocation = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const userId = req.user?.id;
     const context = {
-      operation: "deleteUserLocation",
+      operation: 'deleteUserLocation',
       userId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Deleting user location", context);
+      this._logger.info('Deleting user location', context);
 
       if (!userId) {
         this._logger.warn(
-          "Delete location failed - user not authenticated",
+          'Delete location failed - user not authenticated',
           context
         );
         res.status(401).json({
           success: false,
-          message: "User not authenticated",
+          message: 'User not authenticated',
         });
         return;
       }
@@ -211,7 +217,7 @@ export class UserLocationController {
       const result = await this._userLocationService.deleteUserLocation(userId);
 
       if (!result.success) {
-        this._logger.warn("Delete location service returned failure", {
+        this._logger.warn('Delete location service returned failure', {
           ...context,
           error: result.message,
         });
@@ -219,14 +225,14 @@ export class UserLocationController {
         return;
       }
 
-      this._logger.info("User location deleted successfully", context);
+      this._logger.info('User location deleted successfully', context);
 
       res.status(200).json({
         success: true,
-        message: "Location deleted successfully",
+        message: 'Location deleted successfully',
       });
     } catch (error: unknown) {
-      this._logger.error("Delete location error", {
+      this._logger.error('Delete location error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -234,17 +240,17 @@ export class UserLocationController {
 
       res.status(500).json({
         success: false,
-        message: "Internal server error",
+        message: 'Internal server error',
       });
     }
-  }
+  };
 
   // Find nearby technicians
-  async getNearbyTechnicians(req: Request, res: Response): Promise<void> {
-    const { lat, lng, radius = "10", serviceName } = req.query;
+  getNearbyTechnicians = async (req: Request, res: Response): Promise<void> => {
+    const { lat, lng, radius = '10', serviceName } = req.query;
 
     const context = {
-      operation: "getNearbyTechnicians",
+      operation: 'getNearbyTechnicians',
       latitude: lat,
       longitude: lng,
       radius,
@@ -253,16 +259,16 @@ export class UserLocationController {
     };
 
     try {
-      this._logger.info("Finding nearby technicians", context);
+      this._logger.info('Finding nearby technicians', context);
 
       if (!lat || !lng) {
         this._logger.warn(
-          "Nearby technicians failed - missing coordinates",
+          'Nearby technicians failed - missing coordinates',
           context
         );
         res.status(400).json({
           success: false,
-          message: "Latitude and longitude are required",
+          message: 'Latitude and longitude are required',
         });
         return;
       }
@@ -273,7 +279,7 @@ export class UserLocationController {
       ];
       const radiusKm = parseInt(radius as string);
 
-      this._logger.debug("Searching for technicians with parameters", {
+      this._logger.debug('Searching for technicians with parameters', {
         ...context,
         parsedCoordinates: userCoordinates,
         parsedRadius: radiusKm,
@@ -286,7 +292,7 @@ export class UserLocationController {
       );
 
       if (!result.success) {
-        this._logger.warn("Nearby technicians service returned failure", {
+        this._logger.warn('Nearby technicians service returned failure', {
           ...context,
           error: result.message,
         });
@@ -294,7 +300,7 @@ export class UserLocationController {
         return;
       }
 
-      this._logger.info("Nearby technicians found successfully", {
+      this._logger.info('Nearby technicians found successfully', {
         ...context,
         technicianCount: result.count,
       });
@@ -305,7 +311,7 @@ export class UserLocationController {
         count: result.count,
       });
     } catch (error: unknown) {
-      this._logger.error("Nearby technicians error", {
+      this._logger.error('Nearby technicians error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -313,8 +319,8 @@ export class UserLocationController {
 
       res.status(500).json({
         success: false,
-        message: "Internal server error",
+        message: 'Internal server error',
       });
     }
-  }
+  };
 }
