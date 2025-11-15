@@ -75,7 +75,7 @@ export interface OrderListResponse {
 export interface CreateOrderRequest {
   bookingId: string;
   paymentData: {
-    method: "online" | "cod";
+    method: "online" | "cod" | "wallet";
     amount: number;
     status: "pending" | "paid" | "failed";
     transactionId?: string;

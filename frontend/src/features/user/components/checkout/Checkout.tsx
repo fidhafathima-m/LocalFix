@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import { bookingService } from "../../../../services/user/bookingService";
 import { orderService } from "../../../../services/user/orderService";
 import { paymentService } from "../../../../services/user/paymentService";
+import { walletService } from "../../../../services/user/walletService";
 
 // Declare Razorpay types
 declare global {
@@ -63,6 +64,8 @@ interface ServicePricing {
 
 const Checkout: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState("card");
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [checkingWallet, setCheckingWallet] = useState(false);
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
   const [pricing, setPricing] = useState<ServicePricing>({
     subtotal: 0,
@@ -108,6 +111,114 @@ const Checkout: React.FC = () => {
     };
   }, [navigate, location.state]);
 
+  useEffect(() => {
+    if (user?._id) {
+      checkWalletBalance();
+    }
+  }, [user?._id]);
+
+  useEffect(() => {
+    if (selectedPayment === "wallet") {
+      checkWalletBalance();
+    }
+  }, [selectedPayment]);
+
+  const checkWalletBalance = async () => {
+    try {
+      setCheckingWallet(true);
+      const response = await walletService.getWalletBalance();
+      if (response.success && response.data) {
+        setWalletBalance(response.data.balance);
+      } else {
+        toast.error(response.message || "Failed to check wallet balance");
+      }
+    } catch (error) {
+      console.error("Error checking wallet balance:", error);
+      toast.error("Failed to check wallet balance");
+    } finally {
+      setCheckingWallet(false);
+    }
+  };
+
+  const handleWalletPayment = async () => {
+    const bookingId = await createBookingRecord();
+    try {
+      setProcessingPayment(true);
+
+      // First create booking record
+
+      // Process wallet payment
+      const paymentResponse = await paymentService.processWalletPayment({
+        bookingId,
+        amount: pricing.total,
+      });
+
+      if (paymentResponse.success && paymentResponse.data) {
+        // Create order from booking
+        const orderResponse = await orderService.createOrderFromBooking({
+          bookingId,
+          paymentData: {
+            method: "wallet",
+            amount: pricing.total,
+            status: "paid",
+            transactionId: `wallet_${Date.now()}`,
+            paidAt: new Date(),
+          },
+        });
+
+        if (orderResponse.success) {
+          // Update booking status to 'accepted'
+          await bookingService.updateBookingStatus(
+            bookingId,
+            "accepted",
+            "user",
+            "Wallet payment completed successfully"
+          );
+
+          toast.success("Payment successful! Booking confirmed.");
+          navigate("/payment-success", {
+            replace: true,
+            state: {
+              bookingId,
+              technician: bookingData!.technician,
+              service: bookingData!.service,
+              date: bookingData!.date,
+              time: bookingData!.time,
+              amount: pricing.total,
+              paymentMethod: "wallet",
+              newBalance: paymentResponse.data.newBalance,
+            },
+          });
+        } else {
+          // If order creation fails, refund the wallet payment
+          await paymentService.refundToWallet(
+            bookingId,
+            pricing.total,
+            "Order creation failed"
+          );
+          throw new Error("Failed to create order");
+        }
+      } else {
+        throw new Error(paymentResponse.message || "Wallet payment failed");
+      }
+    } catch (error: any) {
+      console.error("Wallet payment error:", error);
+
+      // Update booking status to cancelled
+      if (bookingId) {
+        await bookingService.updateBookingStatus(
+          bookingId,
+          "cancelled",
+          "system",
+          `Wallet payment failed: ${error.message}`
+        );
+      }
+
+      toast.error(error.message || "Wallet payment failed");
+      setProcessingPayment(false);
+    }
+  };
+
   // Load Razorpay script
   useEffect(() => {
     const loadRazorpayScript = () => {
@@ -149,7 +260,7 @@ const Checkout: React.FC = () => {
     };
 
     const subtotal = basePrices[serviceType] || basePrices["Default"];
-    const serviceTax = Math.round(subtotal * 0.1); 
+    const serviceTax = Math.round(subtotal * 0.1);
     const total = subtotal + serviceTax;
 
     setPricing({ subtotal, serviceTax, total });
@@ -475,17 +586,19 @@ const Checkout: React.FC = () => {
       return;
     }
 
-    if (selectedPayment === "cod") {
-      await handleCashOnDelivery();
-      return;
+    switch (selectedPayment) {
+      case "card":
+        await handleRazorpayPayment();
+        break;
+      case "wallet":
+        await handleWalletPayment();
+        break;
+      case "cod":
+        await handleCashOnDelivery();
+        break;
+      default:
+        toast.error("Selected payment method is not available");
     }
-
-    if (selectedPayment === "card") {
-      await handleRazorpayPayment();
-      return;
-    }
-
-    toast.error("Selected payment method is not available yet");
   };
 
   // Format date for display
@@ -508,6 +621,8 @@ const Checkout: React.FC = () => {
       })
       .join(" - ");
   };
+
+  const hasSufficientBalance = walletBalance >= pricing.total;
 
   if (!bookingData) {
     return (
@@ -720,18 +835,36 @@ const Checkout: React.FC = () => {
             </button>
             <button
               onClick={() => setSelectedPayment("wallet")}
+              disabled={checkingWallet}
               className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-colors ${
                 selectedPayment === "wallet"
                   ? "border-blue-600 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
+                  : hasSufficientBalance
+                  ? "border-gray-200 hover:border-gray-300"
+                  : "border-gray-200 opacity-50 cursor-not-allowed"
+              } ${checkingWallet ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex items-center gap-3">
                 <AccountBalanceWalletOutlined className="w-5 h-5 text-gray-700" />
                 <div className="text-left">
-                  <div className="font-medium">Wallet</div>
-                  <div className="text-sm text-gray-600">
-                    Pay using your wallet balance
+                  <div className="font-medium flex items-center gap-2">
+                    Wallet
+                    {checkingWallet && (
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                    )}
+                  </div>
+                  <div className="text-sm">
+                    {checkingWallet ? (
+                      "Checking balance..."
+                    ) : hasSufficientBalance ? (
+                      <span className="text-gray-600">
+                        Balance: ₹{walletBalance} • Pay using wallet
+                      </span>
+                    ) : (
+                      <span className="text-red-600">
+                        Insufficient balance (₹{walletBalance})
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -765,6 +898,17 @@ const Checkout: React.FC = () => {
               )}
             </button>
           </div>
+          {selectedPayment === "wallet" &&
+            !hasSufficientBalance &&
+            !checkingWallet && (
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-700 text-sm">
+                  Your wallet balance (₹{walletBalance}) is insufficient for
+                  this payment (₹{pricing.total}). Please add money to your
+                  wallet or choose another payment method.
+                </p>
+              </div>
+            )}
         </div>
 
         {/* Payment Summary */}
@@ -788,13 +932,19 @@ const Checkout: React.FC = () => {
 
         <button
           onClick={handlePayment}
-          disabled={processingPayment}
+          disabled={
+            processingPayment ||
+            (selectedPayment === "wallet" && !hasSufficientBalance) ||
+            checkingWallet
+          }
           className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
         >
           {processingPayment
             ? "Processing..."
             : selectedPayment === "cod"
             ? `Confirm Booking`
+            : selectedPayment === "wallet"
+            ? `Pay ₹${pricing.total} from Wallet`
             : `Pay ₹${pricing.total}`}
         </button>
         <p className="text-center text-sm text-gray-600 mt-4">

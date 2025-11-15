@@ -1,8 +1,8 @@
 import {
   CreatePaymentRequest,
   PaymentResponseDto,
-} from "@/interfaces/user/IPayment";
-import { ApiResponse } from "@/utils/responseHelper";
+} from '@/interfaces/user/IPayment';
+import { ApiResponse } from '@/utils/responseHelper';
 
 export interface IPaymentService {
   createPaymentOrder(
@@ -12,5 +12,16 @@ export interface IPaymentService {
     razorpayPaymentId: string,
     razorpayOrderId: string,
     razorpaySignature: string
+  ): Promise<ApiResponse<any>>;
+  processWalletPayment(
+    userId: string,
+    bookingId: string,
+    amount: number
+  ): Promise<ApiResponse<any>>;
+  refundToWallet(
+    userId: string,
+    bookingId: string,
+    amount: number,
+    reason: string
   ): Promise<ApiResponse<any>>;
 }

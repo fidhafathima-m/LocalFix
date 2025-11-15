@@ -12,14 +12,25 @@ import {
   PaymentResponseDto,
 } from '@/interfaces/user/IPayment';
 import { ILogger } from '@/interfaces/utils/ILogger';
+import { IWalletRepository } from '../interfaces/repository/user/IWalletRepository';
+import { IBookingRepository } from '../interfaces/repository/user/IBookingRepository';
 
 export class PaymentService {
   private _logger: ILogger;
   private _paymentRepository: IPaymentRepository;
+  private _walletRepository: IWalletRepository;
+  private _bookingRepository: IBookingRepository;
 
-  constructor(paymentRepository: IPaymentRepository, logger: ILogger) {
+  constructor(
+    paymentRepository: IPaymentRepository,
+    logger: ILogger,
+    walletRepository: IWalletRepository,
+    bookingRepository: IBookingRepository
+  ) {
     this._logger = logger;
     this._paymentRepository = paymentRepository;
+    this._walletRepository = walletRepository;
+    this._bookingRepository = bookingRepository;
   }
 
   async createPaymentOrder(
@@ -189,5 +200,141 @@ export class PaymentService {
           }
         : undefined!,
     };
+  }
+
+  async processWalletPayment(
+    userId: string,
+    bookingId: string,
+    amount: number
+  ) {
+    const context = {
+      operation: 'processWalletPayment',
+      userId,
+      bookingId,
+      amount,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info('Processing wallet payment', context);
+
+      // Get booking details to access bookingCode
+      const booking = await this._bookingRepository.findById(bookingId);
+
+      if (!booking) {
+        return ResponseHelper.notFound('Booking not found');
+      }
+
+      // Get user's wallet balance
+      const walletBalance =
+        await this._walletRepository.getWalletBalance(userId);
+
+      if (walletBalance < amount) {
+        return ResponseHelper.badRequest('Insufficient wallet balance');
+      }
+
+      // Deduct amount from wallet
+      const newBalance = walletBalance - amount;
+      await this._walletRepository.updateWalletBalance(userId, newBalance);
+
+      // Add wallet transaction with bookingCode in description
+      await this._walletRepository.addWalletTransaction(userId, {
+        txId: `wallet_pay_${Date.now()}`,
+        type: 'debit',
+        amount: amount,
+        balanceAfter: newBalance,
+        description: `Payment for booking ${booking.bookingCode} - ${booking.serviceName}`,
+        status: 'completed',
+        metadata: {
+          bookingId: bookingId,
+          bookingCode: booking.bookingCode,
+          serviceName: booking.serviceName,
+          paymentType: 'service_booking',
+        },
+      });
+
+      this._logger.info('Wallet payment processed successfully', {
+        ...context,
+        bookingCode: booking.bookingCode,
+        newBalance,
+      });
+
+      return ResponseHelper.success('Wallet payment processed successfully', {
+        amount,
+        newBalance,
+        bookingId,
+        bookingCode: booking.bookingCode,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to process wallet payment', {
+        ...context,
+        error: errorMessage,
+      });
+      return ResponseHelper.error('Failed to process wallet payment');
+    }
+  }
+
+  async refundToWallet(
+    userId: string,
+    bookingId: string,
+    amount: number,
+    reason: string
+  ) {
+    const context = {
+      operation: 'refundToWallet',
+      userId,
+      bookingId,
+      amount,
+      reason,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info('Processing wallet refund', context);
+
+      // Get current balance
+      const currentBalance =
+        await this._walletRepository.getWalletBalance(userId);
+      const newBalance = currentBalance + amount;
+
+      // Update wallet balance
+      await this._walletRepository.updateWalletBalance(userId, newBalance);
+
+      // Add refund transaction
+      await this._walletRepository.addWalletTransaction(userId, {
+        txId: `refund_${Date.now()}`,
+        type: 'credit',
+        amount: amount,
+        balanceAfter: newBalance,
+        description: `Refund for booking ${bookingId} - ${reason}`,
+        status: 'completed',
+        metadata: {
+          bookingId: bookingId,
+          refundReason: reason,
+          type: 'refund',
+        },
+      });
+
+      this._logger.info('Wallet refund processed successfully', {
+        ...context,
+        newBalance,
+      });
+
+      return ResponseHelper.success('Refund processed successfully', {
+        amount,
+        newBalance,
+        bookingId,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to process wallet refund', {
+        ...context,
+        error: errorMessage,
+      });
+      return ResponseHelper.error('Failed to process wallet refund');
+    }
   }
 }

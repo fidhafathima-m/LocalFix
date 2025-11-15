@@ -45,6 +45,7 @@ const PaymentSuccess: React.FC = () => {
   const state = location.state as PaymentSuccessState;
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const currentUser = useAppSelector(selectUser);
+  const { paymentMethod, newBalance } = location.state || {};
 
   useEffect(() => {
     // Replace the current entry in history stack
@@ -238,6 +239,14 @@ const PaymentSuccess: React.FC = () => {
                 <span className="font-bold text-lg">₹{state.amount}</span>
               </div>
             </div>
+            {paymentMethod === "wallet" && newBalance && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                <p className="text-blue-700 text-sm">
+                  ₹{location.state.amount} was deducted from your wallet. New
+                  balance: <strong>₹{newBalance}</strong>
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="mt-6 space-y-3">

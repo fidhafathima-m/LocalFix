@@ -1,16 +1,16 @@
-import { IOrder, IOrderItem } from "@/interfaces/user/IOrder";
-import mongoose, { Schema, Document, Types } from "mongoose";
+import { IOrder, IOrderItem } from '@/interfaces/user/IOrder';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 const orderItemSchema = new Schema<IOrderItem>(
   {
     bookingId: {
       type: Schema.Types.ObjectId,
-      ref: "Booking",
+      ref: 'Booking',
       required: true,
     },
     serviceItemId: {
       type: Schema.Types.ObjectId,
-      ref: "ServiceItem",
+      ref: 'ServiceItem',
     },
     customName: {
       type: String,
@@ -33,13 +33,13 @@ const orderItemSchema = new Schema<IOrderItem>(
     },
     addedBy: {
       type: Schema.Types.ObjectId,
-      ref: "Technician",
+      ref: 'Technician',
       required: true,
     },
     status: {
       type: String,
-      enum: ["requested", "accepted", "approved", "rejected", "purchased"],
-      default: "requested",
+      enum: ['requested', 'accepted', 'approved', 'rejected', 'purchased'],
+      default: 'requested',
     },
   },
   {
@@ -51,18 +51,18 @@ const orderSchema = new Schema<IOrder>(
   {
     bookingId: {
       type: Schema.Types.ObjectId,
-      ref: "Booking",
+      ref: 'Booking',
       required: true,
       unique: true,
     },
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     technicianId: {
       type: Schema.Types.ObjectId,
-      ref: "Technician",
+      ref: 'Technician',
       required: true,
     },
     orderCode: {
@@ -113,21 +113,21 @@ const orderSchema = new Schema<IOrder>(
     status: {
       type: String,
       enum: [
-        "pending",
-        "accepted",
-        "confirmed",
-        "on_the_way",
-        "in_progress",
-        "completed",
-        "cancelled",
-        "refunded",
+        'pending',
+        'accepted',
+        'confirmed',
+        'on_the_way',
+        'in_progress',
+        'completed',
+        'cancelled',
+        'refunded',
       ],
-      default: "pending",
+      default: 'pending',
     },
     payment: {
       method: {
         type: String,
-        enum: ["online", "cod"],
+        enum: ['online', 'cod', 'wallet'],
         required: true,
       },
       amount: {
@@ -137,7 +137,7 @@ const orderSchema = new Schema<IOrder>(
       },
       status: {
         type: String,
-        enum: ["pending", "paid", "failed", "refunded"],
+        enum: ['pending', 'paid', 'failed', 'refunded'],
         required: true,
       },
       transactionId: {
@@ -165,7 +165,7 @@ const orderSchema = new Schema<IOrder>(
       reason: String,
       cancelledBy: {
         type: String,
-        enum: ["user", "technician", "admin"],
+        enum: ['user', 'technician', 'admin'],
       },
       cancelledAt: Date,
       refundAmount: Number,
@@ -190,7 +190,7 @@ const orderSchema = new Schema<IOrder>(
         },
         updatedBy: {
           type: String,
-          enum: ["user", "technician", "system"],
+          enum: ['user', 'technician', 'system'],
           required: true,
         },
         timestamp: {
@@ -206,19 +206,19 @@ const orderSchema = new Schema<IOrder>(
 );
 
 // Generate order code
-orderSchema.pre("save", async function (next) {
+orderSchema.pre('save', async function (next) {
   if (this.isNew && !this.orderCode) {
     try {
-      const OrderModel = mongoose.model<IOrder>("Order");
+      const OrderModel = mongoose.model<IOrder>('Order');
       const count = await OrderModel.countDocuments();
-      this.orderCode = `ORD${String(count + 1).padStart(6, "0")}`;
+      this.orderCode = `ORD${String(count + 1).padStart(6, '0')}`;
 
       // Add initial history
       if (this.history.length === 0) {
         this.history.push({
-          status: "pending",
-          description: "Order created successfully",
-          updatedBy: "system",
+          status: 'pending',
+          description: 'Order created successfully',
+          updatedBy: 'system',
           timestamp: new Date(),
         });
       }
@@ -229,4 +229,4 @@ orderSchema.pre("save", async function (next) {
   next();
 });
 
-export default mongoose.model<IOrder>("Order", orderSchema);
+export default mongoose.model<IOrder>('Order', orderSchema);

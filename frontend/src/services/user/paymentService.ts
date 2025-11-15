@@ -6,7 +6,7 @@ export interface CreatePaymentRequest {
   userId: string;
   amount: number;
   currency?: string;
-  type: 'service' | 'subscription' | 'spare_part';
+  type: "service" | "subscription" | "spare_part";
   sparePartId?: string;
 }
 
@@ -28,6 +28,21 @@ export interface PaymentResponse {
   };
 }
 
+export interface WalletPaymentRequest {
+  bookingId: string;
+  amount: number;
+}
+
+export interface WalletPaymentResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    amount: number;
+    newBalance: number;
+    bookingId: string;
+  };
+}
+
 interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -37,8 +52,13 @@ interface ApiResponse<T> {
 }
 
 export const paymentService = {
-  async createPaymentOrder(data: CreatePaymentRequest): Promise<ApiResponse<PaymentResponse>> {
-    const response = await api.post<ApiResponse<PaymentResponse>>("/payments/create-order", data);
+  async createPaymentOrder(
+    data: CreatePaymentRequest
+  ): Promise<ApiResponse<PaymentResponse>> {
+    const response = await api.post<ApiResponse<PaymentResponse>>(
+      "/payments/create-order",
+      data
+    );
     return response.data;
   },
 
@@ -53,5 +73,41 @@ export const paymentService = {
       razorpay_signature: razorpaySignature,
     });
     return response.data;
+  },
+
+  async processWalletPayment(
+    paymentData: WalletPaymentRequest
+  ): Promise<WalletPaymentResponse> {
+    try {
+      const response = await api.post("/payments/wallet/pay", paymentData);
+      return response.data;
+    } catch (error: any) {
+      console.error("Wallet payment error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Wallet payment failed",
+      };
+    }
+  },
+
+  async refundToWallet(
+    bookingId: string,
+    amount: number,
+    reason: string
+  ): Promise<WalletPaymentResponse> {
+    try {
+      const response = await api.post("/payments/wallet/refund", {
+        bookingId,
+        amount,
+        reason,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error("Wallet refund error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Wallet refund failed",
+      };
+    }
   },
 };
