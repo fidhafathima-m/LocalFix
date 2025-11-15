@@ -1,12 +1,17 @@
-import { paymentManagementController } from "../../config/container";
-import { Router } from "express";
+import { Router } from 'express';
 
-const router = Router();
+export const createPaymentManagementRoutes = (
+  paymentManagementController: any
+) => {
+  const router = Router();
 
-router.get("/", paymentManagementController.getPayments);
-router.get("/stats", paymentManagementController.getPaymentStats);
-router.get("/export", paymentManagementController.exportPayments);
-router.get("/:id", paymentManagementController.getPaymentById);
-router.post("/:id/refund", paymentManagementController.processRefund);
+  router.get('/', paymentManagementController.getPayments);
+  router.get('/stats', paymentManagementController.getPaymentStats);
+  router.get('/export', paymentManagementController.exportPayments);
+  router.get('/:id', paymentManagementController.getPaymentById);
+  router.post('/:paymentId/refund', paymentManagementController.processRefund);
 
-export default router;
+  return router;
+};
+
+export default createPaymentManagementRoutes;

@@ -19,6 +19,7 @@ import type {
 import { PaymentManagementService } from "../../../../services/admin/PaymentManagementService";
 import { ViewPaymentModal } from "./ViewPaymentModal";
 import { useDebounce } from "../../../../hooks/useDebounce";
+import Swal from "sweetalert2";
 
 const PaymentManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -88,6 +89,7 @@ const PaymentManagement: React.FC = () => {
   const loadStats = async () => {
     try {
       const statsData = await PaymentManagementService.getPaymentStats();
+      console.log("📊 Stats data from backend:", statsData);
       setStats(statsData);
     } catch (error: any) {
       console.error("Error loading payment stats:", error);
@@ -106,23 +108,61 @@ const PaymentManagement: React.FC = () => {
 
   const handleRefund = async (paymentId: string) => {
     try {
-      if (
-        !window.confirm(
-          "Are you sure you want to process a refund for this payment?"
-        )
-      ) {
-        return;
-      }
+      // Show confirmation dialog with refund reason input
+      const { value: reason } = await Swal.fire({
+        title: "Process Refund",
+        html: `
+        <div class="text-left">
+          <p class="mb-3 text-gray-600">This action will refund the payment amount to the user's wallet.</p>
+          <label for="refund-reason" class="block text-sm font-medium text-gray-700 mb-2">Refund Reason</label>
+          <textarea 
+            id="refund-reason" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+            rows="3" 
+            placeholder="Enter refund reason (optional)"
+          >Admin initiated refund</textarea>
+        </div>
+      `,
+        showCancelButton: true,
+        confirmButtonColor: "#dc2626",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: "Process Refund",
+        cancelButtonText: "Cancel",
+        focusConfirm: false,
+        preConfirm: () => {
+          const reason = (
+            document.getElementById("refund-reason") as HTMLTextAreaElement
+          ).value;
+          return reason || "Admin initiated refund";
+        },
+        customClass: {
+          popup: "rounded-lg",
+          confirmButton: "px-4 py-2 text-sm font-medium",
+          cancelButton: "px-4 py-2 text-sm font-medium",
+        },
+      });
 
-      await PaymentManagementService.processRefund(
-        paymentId,
-        "Admin initiated refund"
-      );
-      toast.success("Refund processed successfully");
-      await loadPayments(currentPage, debouncedSearchQuery);
-      await loadStats();
+      if (reason) {
+        const result = await PaymentManagementService.processRefund(
+          paymentId,
+          reason
+        );
+
+        if (result.success) {
+          toast.success(
+            "Payment has been refunded and amount credited to user's wallet"
+          );
+
+          // Refresh data
+          await loadPayments(currentPage, debouncedSearchQuery);
+          await loadStats();
+        } else {
+          throw new Error(result.message);
+        }
+      }
     } catch (error: any) {
       console.error("Error processing refund:", error);
+
       toast.error(error.message || "Failed to process refund");
     }
   };

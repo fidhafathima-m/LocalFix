@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { 
-  IPayment, 
-  PaymentStats, 
-  PaymentsResponse 
+import type {
+  IPayment,
+  PaymentStats,
+  PaymentsResponse,
 } from "../../interface/admin/IPayment";
 import { adminAPI } from "../common/adminApi";
 
@@ -44,12 +44,12 @@ export class PaymentManagementService {
   static async getPaymentStats(): Promise<PaymentStats> {
     try {
       const response = await adminAPI.getPaymentStats();
-      console.log('Payment stats API response:', response);
-      
+      console.log("Payment stats API response:", response);
+
       // Extract stats from the nested response structure
       const result = this.handleResponse(response);
-      console.log('Processed payment stats:', result);
-      
+      console.log("Processed payment stats:", result);
+
       // The stats should be directly in the result, not nested under stats
       return result.stats || result;
     } catch (error: any) {
@@ -58,7 +58,10 @@ export class PaymentManagementService {
     }
   }
 
-  static async processRefund(paymentId: string, reason?: string): Promise<void> {
+  static async processRefund(
+    paymentId: string,
+    reason?: string
+  ): Promise<{ success: boolean; message?: string }> {
     try {
       const response = await adminAPI.processRefund(paymentId, reason);
       return this.handleResponse(response);
@@ -69,7 +72,7 @@ export class PaymentManagementService {
   }
 
   static async exportPayments(
-    format: 'csv' | 'excel' = 'csv',
+    format: "csv" | "excel" = "csv",
     filters?: any
   ): Promise<Blob> {
     try {
@@ -82,25 +85,25 @@ export class PaymentManagementService {
   }
 
   private static handleResponse(response: any) {
-    console.log('Raw API response:', response); // Debug log
-    
+    console.log("Raw API response:", response); // Debug log
+
     if (response.success === false) {
       throw new Error(response.message || "Operation failed");
     }
 
     // Handle nested data structure: response.data.data
     if (response.data && response.data.data) {
-      console.log('Extracting from response.data.data:', response.data.data); // Debug log
+      console.log("Extracting from response.data.data:", response.data.data); // Debug log
       return response.data.data;
     }
 
     // Handle direct data structure: response.data
     if (response.data) {
-      console.log('Extracting from response.data:', response.data); // Debug log
+      console.log("Extracting from response.data:", response.data); // Debug log
       return response.data;
     }
 
-    console.log('Returning raw response:', response); // Debug log
+    console.log("Returning raw response:", response); // Debug log
     return response;
   }
 

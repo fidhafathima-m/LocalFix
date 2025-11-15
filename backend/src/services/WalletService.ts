@@ -4,16 +4,18 @@ import {
   AddMoneyRequest,
   WithdrawMoneyRequest,
   BankAccountData,
-} from "../interfaces/services/user/IWalletService";
-import { IWalletRepository } from "../interfaces/repository/user/IWalletRepository";
-import { ILogger } from "../interfaces/utils/ILogger";
-import { ResponseHelper } from "../utils/responseHelper";
+} from '../interfaces/services/user/IWalletService';
+import { IWalletRepository } from '../interfaces/repository/user/IWalletRepository';
+import { ILogger } from '../interfaces/utils/ILogger';
+import { ResponseHelper } from '../utils/responseHelper';
 import {
   toWalletTransactionDtoList,
   toBankAccountDtoList,
-} from "../mappers/walletMapper";
-import crypto from "crypto";
-import Razorpay from "razorpay";
+} from '../mappers/walletMapper';
+import crypto from 'crypto';
+import Razorpay from 'razorpay';
+import BookingSchema from '../models/BookingSchema';
+import { Types } from 'mongoose';
 
 export class WalletService implements IWalletService {
   private _logger: ILogger;
@@ -33,58 +35,58 @@ export class WalletService implements IWalletService {
 
   async getWalletBalance(userId: string) {
     const context = {
-      operation: "getWalletBalance",
+      operation: 'getWalletBalance',
       userId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching wallet balance", context);
+      this._logger.info('Fetching wallet balance', context);
 
       const balance = await this._walletRepository.getWalletBalance(userId);
 
-      this._logger.info("Wallet balance retrieved successfully", {
+      this._logger.info('Wallet balance retrieved successfully', {
         ...context,
         balance,
       });
 
-      return ResponseHelper.success("Wallet balance retrieved successfully", {
+      return ResponseHelper.success('Wallet balance retrieved successfully', {
         balance,
-        currency: "INR",
+        currency: 'INR',
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch wallet balance", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch wallet balance', {
         ...context,
         error: errorMessage,
       });
-      return ResponseHelper.error("Failed to fetch wallet balance");
+      return ResponseHelper.error('Failed to fetch wallet balance');
     }
   }
 
   async createAddMoneyOrder(userId: string, amountData: AddMoneyRequest) {
     const context = {
-      operation: "createAddMoneyOrder",
+      operation: 'createAddMoneyOrder',
       userId,
       amount: amountData.amount,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Creating add money order", context);
+      this._logger.info('Creating add money order', context);
 
       // Convert to paise (Razorpay works in paise)
       const amountInPaise = Math.round(amountData.amount * 100);
 
       if (amountInPaise < 100) {
         // Minimum ₹1 (100 paise)
-        return ResponseHelper.badRequest("Minimum amount is ₹1");
+        return ResponseHelper.badRequest('Minimum amount is ₹1');
       }
 
       if (amountInPaise > 10000000) {
         // Maximum ₹100,000 (10,000,000 paise)
-        return ResponseHelper.badRequest("Maximum amount is ₹100,000");
+        return ResponseHelper.badRequest('Maximum amount is ₹100,000');
       }
 
       // Generate a shorter receipt that fits within 40 characters
@@ -98,12 +100,12 @@ export class WalletService implements IWalletService {
       // Create Razorpay order
       const orderOptions = {
         amount: amountInPaise,
-        currency: amountData.currency || "INR",
+        currency: amountData.currency || 'INR',
         receipt: receipt, // Use the shorter receipt
         notes: {
           userId: userId, // Full user ID can go in notes
-          type: "wallet_topup",
-          description: "Wallet top-up",
+          type: 'wallet_topup',
+          description: 'Wallet top-up',
         },
         payment_capture: 1, // Auto capture payment
       };
@@ -117,38 +119,38 @@ export class WalletService implements IWalletService {
         key: process.env.RAZORPAY_KEY_ID!,
       };
 
-      this._logger.info("Add money order created successfully", {
+      this._logger.info('Add money order created successfully', {
         ...context,
         orderId: razorpayOrder.id,
         amount: razorpayOrder.amount,
         receipt: receipt, // Log the receipt used
       });
 
-      return ResponseHelper.success("Order created successfully", orderData);
+      return ResponseHelper.success('Order created successfully', orderData);
     } catch (error: any) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to create add money order", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to create add money order', {
         ...context,
         error: errorMessage,
         razorpayError: error.error?.description,
       });
 
       // Handle specific Razorpay errors
-      if (error.error?.code === "BAD_REQUEST_ERROR") {
+      if (error.error?.code === 'BAD_REQUEST_ERROR') {
         return ResponseHelper.badRequest(
-          error.error.description || "Invalid amount or currency",
+          error.error.description || 'Invalid amount or currency'
         );
       }
 
-      return ResponseHelper.error("Failed to create order");
+      return ResponseHelper.error('Failed to create order');
     }
   }
 
   // In verifyAddMoneyPayment method
   async verifyAddMoneyPayment(userId: string, paymentData: any) {
     const context = {
-      operation: "verifyAddMoneyPayment",
+      operation: 'verifyAddMoneyPayment',
       userId,
       orderId: paymentData.razorpay_order_id,
       paymentId: paymentData.razorpay_payment_id,
@@ -156,24 +158,24 @@ export class WalletService implements IWalletService {
     };
 
     try {
-      this._logger.info("Verifying add money payment", context);
+      this._logger.info('Verifying add money payment', context);
 
       // Verify Razorpay signature
       const generatedSignature = crypto
-        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
         .update(
-          paymentData.razorpay_order_id + "|" + paymentData.razorpay_payment_id,
+          paymentData.razorpay_order_id + '|' + paymentData.razorpay_payment_id
         )
-        .digest("hex");
+        .digest('hex');
 
       if (generatedSignature !== paymentData.razorpay_signature) {
-        this._logger.warn("Payment signature verification failed", {
+        this._logger.warn('Payment signature verification failed', {
           ...context,
           expectedSignature: generatedSignature,
           receivedSignature: paymentData.razorpay_signature,
         });
         return ResponseHelper.error(
-          "Payment verification failed - invalid signature",
+          'Payment verification failed - invalid signature'
         );
       }
 
@@ -181,33 +183,33 @@ export class WalletService implements IWalletService {
       let razorpayPayment;
       try {
         razorpayPayment = await this.razorpay.payments.fetch(
-          paymentData.razorpay_payment_id,
+          paymentData.razorpay_payment_id
         );
       } catch (error) {
-        this._logger.error("Failed to fetch payment details from Razorpay", {
+        this._logger.error('Failed to fetch payment details from Razorpay', {
           ...context,
-          error: error instanceof Error ? error.message : "Unknown error",
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
-        return ResponseHelper.error("Failed to verify payment status");
+        return ResponseHelper.error('Failed to verify payment status');
       }
 
       // Check if payment was successful
-      if (razorpayPayment.status !== "captured") {
-        this._logger.warn("Payment not captured", {
+      if (razorpayPayment.status !== 'captured') {
+        this._logger.warn('Payment not captured', {
           ...context,
           paymentStatus: razorpayPayment.status,
         });
-        return ResponseHelper.error("Payment not completed");
+        return ResponseHelper.error('Payment not completed');
       }
 
       // Get the actual amount from Razorpay order
       const order = await this.razorpay.orders.fetch(
-        paymentData.razorpay_order_id,
+        paymentData.razorpay_order_id
       );
 
       // Handle both string and number types for amount
       const amountInPaise =
-        typeof order.amount === "string"
+        typeof order.amount === 'string'
           ? parseInt(order.amount, 10)
           : order.amount;
 
@@ -223,11 +225,11 @@ export class WalletService implements IWalletService {
       // Add transaction record
       await this._walletRepository.addWalletTransaction(userId, {
         txId: paymentData.razorpay_payment_id,
-        type: "credit",
+        type: 'credit',
         amount: amountInRupees,
         balanceAfter: newBalance,
-        description: "Wallet top-up via Razorpay",
-        status: "completed",
+        description: 'Wallet top-up via Razorpay',
+        status: 'completed',
         metadata: {
           razorpayOrderId: paymentData.razorpay_order_id,
           razorpayPaymentId: paymentData.razorpay_payment_id,
@@ -239,14 +241,14 @@ export class WalletService implements IWalletService {
         },
       });
 
-      this._logger.info("Add money payment verified successfully", {
+      this._logger.info('Add money payment verified successfully', {
         ...context,
         amount: amountInRupees,
         newBalance,
         paymentMethod: razorpayPayment.method,
       });
 
-      return ResponseHelper.success("Payment verified successfully", {
+      return ResponseHelper.success('Payment verified successfully', {
         amount: amountInRupees,
         newBalance,
         paymentMethod: razorpayPayment.method,
@@ -254,35 +256,35 @@ export class WalletService implements IWalletService {
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to verify add money payment", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to verify add money payment', {
         ...context,
         error: errorMessage,
       });
-      return ResponseHelper.error("Failed to verify payment");
+      return ResponseHelper.error('Failed to verify payment');
     }
   }
 
   async withdrawMoney(userId: string, withdrawData: WithdrawMoneyRequest) {
     const context = {
-      operation: "withdrawMoney",
+      operation: 'withdrawMoney',
       userId,
       amount: withdrawData.amount,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Processing withdrawal request", context);
+      this._logger.info('Processing withdrawal request', context);
 
       const currentBalance =
         await this._walletRepository.getWalletBalance(userId);
 
       if (withdrawData.amount < 100) {
-        return ResponseHelper.badRequest("Minimum withdrawal amount is ₹100");
+        return ResponseHelper.badRequest('Minimum withdrawal amount is ₹100');
       }
 
       if (withdrawData.amount > currentBalance) {
-        return ResponseHelper.badRequest("Insufficient wallet balance");
+        return ResponseHelper.badRequest('Insufficient wallet balance');
       }
 
       // Simply reduce the wallet balance
@@ -294,44 +296,44 @@ export class WalletService implements IWalletService {
       // Add withdrawal transaction
       await this._walletRepository.addWalletTransaction(userId, {
         txId: `withdraw_${Date.now()}`,
-        type: "debit",
+        type: 'debit',
         amount: withdrawData.amount,
         balanceAfter: newBalance,
-        description: "Money withdrawn from wallet",
-        status: "completed",
+        description: 'Money withdrawn from wallet',
+        status: 'completed',
         metadata: {
-          withdrawalType: "wallet_withdrawal",
+          withdrawalType: 'wallet_withdrawal',
           timestamp: new Date().toISOString(),
         },
       });
 
-      this._logger.info("Withdrawal processed successfully", {
+      this._logger.info('Withdrawal processed successfully', {
         ...context,
         newBalance,
       });
 
-      return ResponseHelper.success("Withdrawal processed successfully", {
+      return ResponseHelper.success('Withdrawal processed successfully', {
         amount: withdrawData.amount,
         newBalance,
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to process withdrawal", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to process withdrawal', {
         ...context,
         error: errorMessage,
       });
-      return ResponseHelper.error("Failed to process withdrawal");
+      return ResponseHelper.error('Failed to process withdrawal');
     }
   }
 
   async getWalletTransactions(
     userId: string,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 10
   ) {
     const context = {
-      operation: "getWalletTransactions",
+      operation: 'getWalletTransactions',
       userId,
       page,
       limit,
@@ -339,7 +341,7 @@ export class WalletService implements IWalletService {
     };
 
     try {
-      this._logger.info("Fetching wallet transactions", context);
+      this._logger.info('Fetching wallet transactions', context);
 
       const { transactions, total } =
         await this._walletRepository.getWalletTransactions(userId, page, limit);
@@ -347,14 +349,14 @@ export class WalletService implements IWalletService {
 
       const balance = await this._walletRepository.getWalletBalance(userId);
 
-      this._logger.info("Wallet transactions retrieved successfully", {
+      this._logger.info('Wallet transactions retrieved successfully', {
         ...context,
         transactionCount: transactions.length,
         totalTransactions: total,
       });
 
       return ResponseHelper.success(
-        "Wallet transactions retrieved successfully",
+        'Wallet transactions retrieved successfully',
         {
           transactions: transactionDtos,
           balance,
@@ -364,66 +366,66 @@ export class WalletService implements IWalletService {
             total,
             pages: Math.ceil(total / limit),
           },
-        },
+        }
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch wallet transactions", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch wallet transactions', {
         ...context,
         error: errorMessage,
       });
-      return ResponseHelper.error("Failed to fetch wallet transactions");
+      return ResponseHelper.error('Failed to fetch wallet transactions');
     }
   }
 
   async getBankAccounts(userId: string) {
     const context = {
-      operation: "getBankAccounts",
+      operation: 'getBankAccounts',
       userId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching bank accounts", context);
+      this._logger.info('Fetching bank accounts', context);
 
       const accounts = await this._walletRepository.getBankAccounts(userId);
       const accountDtos = toBankAccountDtoList(accounts);
 
-      this._logger.info("Bank accounts retrieved successfully", {
+      this._logger.info('Bank accounts retrieved successfully', {
         ...context,
         accountCount: accounts.length,
       });
 
-      return ResponseHelper.success("Bank accounts retrieved successfully", {
+      return ResponseHelper.success('Bank accounts retrieved successfully', {
         accounts: accountDtos,
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch bank accounts", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch bank accounts', {
         ...context,
         error: errorMessage,
       });
-      return ResponseHelper.error("Failed to fetch bank accounts");
+      return ResponseHelper.error('Failed to fetch bank accounts');
     }
   }
 
   async addBankAccount(userId: string, accountData: BankAccountData) {
     const context = {
-      operation: "addBankAccount",
+      operation: 'addBankAccount',
       userId,
       bankName: accountData.bankName,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Adding bank account", context);
+      this._logger.info('Adding bank account', context);
 
       // Validate IFSC code format (basic validation)
       const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
       if (!ifscRegex.test(accountData.ifscCode)) {
-        return ResponseHelper.badRequest("Invalid IFSC code format");
+        return ResponseHelper.badRequest('Invalid IFSC code format');
       }
 
       // Validate account number (basic validation)
@@ -431,7 +433,7 @@ export class WalletService implements IWalletService {
         accountData.accountNumber.length < 9 ||
         accountData.accountNumber.length > 18
       ) {
-        return ResponseHelper.badRequest("Invalid account number");
+        return ResponseHelper.badRequest('Invalid account number');
       }
 
       const newAccount = await this._walletRepository.addBankAccount(userId, {
@@ -443,91 +445,219 @@ export class WalletService implements IWalletService {
       if (accountData.isDefault) {
         await this._walletRepository.setDefaultBankAccount(
           userId,
-          newAccount._id.toString(),
+          newAccount._id.toString()
         );
       }
 
       const accountDto = toBankAccountDtoList([newAccount])[0];
 
-      this._logger.info("Bank account added successfully", {
+      this._logger.info('Bank account added successfully', {
         ...context,
         accountId: newAccount._id.toString(),
       });
 
-      return ResponseHelper.success("Bank account added successfully", {
+      return ResponseHelper.success('Bank account added successfully', {
         account: accountDto,
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to add bank account", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to add bank account', {
         ...context,
         error: errorMessage,
       });
-      return ResponseHelper.error("Failed to add bank account");
+      return ResponseHelper.error('Failed to add bank account');
     }
   }
 
   async setDefaultBankAccount(userId: string, accountId: string) {
     const context = {
-      operation: "setDefaultBankAccount",
+      operation: 'setDefaultBankAccount',
       userId,
       accountId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Setting default bank account", context);
+      this._logger.info('Setting default bank account', context);
 
       await this._walletRepository.setDefaultBankAccount(userId, accountId);
 
-      this._logger.info("Default bank account set successfully", context);
+      this._logger.info('Default bank account set successfully', context);
 
       return ResponseHelper.success(
-        "Default bank account updated successfully",
+        'Default bank account updated successfully'
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to set default bank account", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to set default bank account', {
         ...context,
         error: errorMessage,
       });
-      return ResponseHelper.error("Failed to set default bank account");
+      return ResponseHelper.error('Failed to set default bank account');
     }
   }
 
   async deleteBankAccount(userId: string, accountId: string) {
     const context = {
-      operation: "deleteBankAccount",
+      operation: 'deleteBankAccount',
       userId,
       accountId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Deleting bank account", context);
+      this._logger.info('Deleting bank account', context);
 
       const deleted = await this._walletRepository.deleteBankAccount(
         userId,
-        accountId,
+        accountId
       );
 
       if (!deleted) {
-        return ResponseHelper.notFound("Bank account not found");
+        return ResponseHelper.notFound('Bank account not found');
       }
 
-      this._logger.info("Bank account deleted successfully", context);
+      this._logger.info('Bank account deleted successfully', context);
 
-      return ResponseHelper.success("Bank account deleted successfully");
+      return ResponseHelper.success('Bank account deleted successfully');
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to delete bank account", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to delete bank account', {
         ...context,
         error: errorMessage,
       });
-      return ResponseHelper.error("Failed to delete bank account");
+      return ResponseHelper.error('Failed to delete bank account');
+    }
+  }
+
+  async refundToWallet(
+    userId: string,
+    bookingId: string,
+    amount: number,
+    reason: string
+  ): Promise<{
+    success: boolean;
+    data?: { newBalance: number; transactionId: string };
+    message?: string;
+  }> {
+    const context = {
+      operation: 'refundToWallet',
+      userId,
+      bookingId,
+      amount,
+      reason,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info('Processing wallet refund', context);
+
+      // Get booking details for description - handle both ObjectId strings and actual IDs
+      let bookingCode = 'Unknown';
+      let serviceName = 'Service';
+
+      try {
+        // Check if bookingId is a valid ObjectId
+        if (Types.ObjectId.isValid(bookingId)) {
+          const booking = await BookingSchema.findById(bookingId).select(
+            'bookingCode serviceName'
+          );
+          if (booking) {
+            bookingCode = booking.bookingCode;
+            serviceName = booking.serviceName;
+          } else {
+            this._logger.warn('Booking not found with ID', {
+              ...context,
+              bookingId,
+            });
+            bookingCode = `ID: ${bookingId}`;
+          }
+        } else {
+          // If bookingId is not a valid ObjectId, use it as the code
+          bookingCode = bookingId;
+          this._logger.info('Using provided booking ID as code', {
+            ...context,
+            bookingCode,
+          });
+        }
+      } catch (error) {
+        this._logger.warn('Could not fetch booking details for refund', {
+          ...context,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        // Use fallback values
+        bookingCode = `ID: ${bookingId}`;
+      }
+
+      // Validate user ID
+      if (!Types.ObjectId.isValid(userId)) {
+        this._logger.error('Invalid user ID for wallet refund', {
+          ...context,
+          userId,
+        });
+        return {
+          success: false,
+          message: 'Invalid user ID',
+        };
+      }
+
+      // Get current balance
+      const currentBalance =
+        await this._walletRepository.getWalletBalance(userId);
+      const newBalance = currentBalance + amount;
+
+      // Update wallet balance
+      await this._walletRepository.updateWalletBalance(userId, newBalance);
+
+      // Generate transaction ID
+      const transactionId = `refund_${Date.now()}`;
+
+      // Add refund transaction
+      await this._walletRepository.addWalletTransaction(userId, {
+        txId: transactionId,
+        type: 'credit',
+        amount: amount,
+        balanceAfter: newBalance,
+        description: `Refund for booking ${bookingCode} - ${reason}`,
+        status: 'completed',
+        metadata: {
+          bookingId: bookingId,
+          bookingCode: bookingCode,
+          serviceName: serviceName,
+          refundReason: reason,
+          type: 'refund',
+          source: 'admin_refund',
+        },
+      });
+
+      this._logger.info('Wallet refund processed successfully', {
+        ...context,
+        bookingCode,
+        newBalance,
+        transactionId,
+      });
+
+      return {
+        success: true,
+        data: {
+          newBalance,
+          transactionId,
+        },
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to process wallet refund', {
+        ...context,
+        error: errorMessage,
+      });
+      return {
+        success: false,
+        message: 'Failed to process wallet refund',
+      };
     }
   }
 }

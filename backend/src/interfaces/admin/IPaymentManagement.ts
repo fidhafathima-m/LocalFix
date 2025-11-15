@@ -21,6 +21,14 @@ export interface IPayment extends Document {
   userName?: string;
   userEmail?: string;
   serviceName?: string;
+  refundReason: string;
+  refundAmount: number;
+  metadata?: {
+    walletRefund?: boolean;
+    walletTransactionId?: string;
+    newBalance?: number;
+    [key: string]: any;
+  };
 }
 
 export interface IPaymentCreate {
@@ -46,6 +54,13 @@ export interface IPaymentUpdate {
   confirmedAt?: Date;
   refundedAt?: Date;
   rawResponse?: any;
+  refundReason?: string;
+  refundAmount?: number;
+  metadata?: {
+    walletRefund: boolean;
+    walletTransactionId: string | undefined;
+    newBalance: number | undefined;
+  };
 }
 
 export interface AddressData {

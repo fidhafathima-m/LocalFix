@@ -1,17 +1,14 @@
-import { Request, Response } from "express";
-import { ResponseHelper } from "../../utils/responseHelper";
-import { PAYMENT_MESSAGES } from "../../constants";
-import { IPaymentService } from "@/interfaces/services/admin/IPaymentManagementService";
-import { ILogger } from "@/interfaces/utils/ILogger";
+import { Request, Response } from 'express';
+import { ResponseHelper } from '../../utils/responseHelper';
+import { PAYMENT_MESSAGES } from '../../constants';
+import { IPaymentService } from '@/interfaces/services/admin/IPaymentManagementService';
+import { ILogger } from '@/interfaces/utils/ILogger';
 
 export class PaymentManagementController {
   private _paymentService: IPaymentService;
   private _logger: ILogger;
 
-  constructor(
-    paymentService: IPaymentService,
-    logger: ILogger
-  ) {
+  constructor(paymentService: IPaymentService, logger: ILogger) {
     this._paymentService = paymentService;
     this._logger = logger;
   }
@@ -25,7 +22,7 @@ export class PaymentManagementController {
     const endDate = req.query.endDate as string;
 
     const context = {
-      operation: "getPayments",
+      operation: 'getPayments',
       page,
       limit,
       search,
@@ -36,7 +33,7 @@ export class PaymentManagementController {
     };
 
     try {
-      this._logger.info("Fetching payments", context);
+      this._logger.info('Fetching payments', context);
 
       const result = await this._paymentService.getPayments(
         page,
@@ -47,7 +44,7 @@ export class PaymentManagementController {
         endDate
       );
 
-      this._logger.info("Payments retrieved successfully", {
+      this._logger.info('Payments retrieved successfully', {
         ...context,
         totalPayments: result.total,
       });
@@ -58,11 +55,14 @@ export class PaymentManagementController {
       );
       res.status(response.statusCode).json(response);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.FAILED_FETCH_PAYMENTS;
-      this._logger.error("Get payments controller error", {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : PAYMENT_MESSAGES.FAILED_FETCH_PAYMENTS;
+      this._logger.error('Get payments controller error', {
         ...context,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -73,37 +73,45 @@ export class PaymentManagementController {
   getPaymentById = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const context = {
-      operation: "getPaymentById",
+      operation: 'getPaymentById',
       paymentId: id,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching payment by ID", context);
+      this._logger.info('Fetching payment by ID', context);
 
       if (!id) {
-        const response = ResponseHelper.badRequest(PAYMENT_MESSAGES.PAYMENT_ID_REQUIRED);
+        const response = ResponseHelper.badRequest(
+          PAYMENT_MESSAGES.PAYMENT_ID_REQUIRED
+        );
         res.status(response.statusCode).json(response);
         return;
       }
 
       const payment = await this._paymentService.getPaymentById(id);
 
-      this._logger.info("Payment retrieved successfully", {
+      this._logger.info('Payment retrieved successfully', {
         ...context,
         paymentId: payment.id,
       });
 
-      const response = ResponseHelper.success(PAYMENT_MESSAGES.PAYMENT_RETRIEVED, {
-        payment,
-      });
+      const response = ResponseHelper.success(
+        PAYMENT_MESSAGES.PAYMENT_RETRIEVED,
+        {
+          payment,
+        }
+      );
       res.status(response.statusCode).json(response);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.PAYMENT_NOT_FOUND;
-      this._logger.error("Get payment by ID controller error", {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : PAYMENT_MESSAGES.PAYMENT_NOT_FOUND;
+      this._logger.error('Get payment by ID controller error', {
         ...context,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -113,16 +121,16 @@ export class PaymentManagementController {
 
   getPaymentStats = async (req: Request, res: Response): Promise<void> => {
     const context = {
-      operation: "getPaymentStats",
+      operation: 'getPaymentStats',
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching payment statistics", context);
+      this._logger.info('Fetching payment statistics', context);
 
       const stats = await this._paymentService.getPaymentStats();
 
-      this._logger.info("Payment stats retrieved successfully", {
+      this._logger.info('Payment stats retrieved successfully', {
         ...context,
         stats,
       });
@@ -133,11 +141,14 @@ export class PaymentManagementController {
       );
       res.status(response.statusCode).json(response);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.FAILED_FETCH_STATS;
-      this._logger.error("Get payment stats controller error", {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : PAYMENT_MESSAGES.FAILED_FETCH_STATS;
+      this._logger.error('Get payment stats controller error', {
         ...context,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);
@@ -145,42 +156,31 @@ export class PaymentManagementController {
     }
   };
 
-  processRefund = async (req: Request, res: Response): Promise<void> => {
-    const { id } = req.params;
-    const { reason } = req.body;
-
-    const context = {
-      operation: "processRefund",
-      paymentId: id,
-      reason,
-      timestamp: new Date().toISOString(),
-    };
-
+  processRefund = async (req: Request, res: Response) => {
     try {
-      this._logger.info("Processing refund", context);
+      const { paymentId } = req.params;
+      const { reason } = req.body;
 
-      if (!id) {
-        const response = ResponseHelper.badRequest(PAYMENT_MESSAGES.PAYMENT_ID_REQUIRED);
-        res.status(response.statusCode).json(response);
-        return;
+      if (!paymentId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment ID is required',
+        });
       }
 
-      await this._paymentService.processRefund(id, { reason });
+      await this._paymentService.processRefund(paymentId, { reason });
 
-      this._logger.info("Refund processed successfully", context);
-
-      const response = ResponseHelper.success(PAYMENT_MESSAGES.REFUND_PROCESSED);
-      res.status(response.statusCode).json(response);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.FAILED_PROCESS_REFUND;
-      this._logger.error("Process refund controller error", {
-        ...context,
-        error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+      return res.status(200).json({
+        success: true,
+        message:
+          "Refund processed successfully and amount credited to user's wallet",
       });
-
-      const response = ResponseHelper.error(errorMessage);
-      res.status(response.statusCode).json(response);
+    } catch (error: any) {
+      console.error('Process refund error:', error);
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Failed to process refund',
+      });
     }
   };
 
@@ -189,27 +189,41 @@ export class PaymentManagementController {
     const filters = req.query;
 
     const context = {
-      operation: "exportPayments",
+      operation: 'exportPayments',
       format,
       filters,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Exporting payments", context);
+      this._logger.info('Exporting payments', context);
 
-      const { data, filename } = await this._paymentService.exportPayments(format, filters);
+      const { data, filename } = await this._paymentService.exportPayments(
+        format,
+        filters
+      );
 
-      res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader(
+        'Content-Type',
+        format === 'csv'
+          ? 'text/csv'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${filename}"`
+      );
 
       res.send(data);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : PAYMENT_MESSAGES.FAILED_EXPORT_PAYMENTS;
-      this._logger.error("Export payments controller error", {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : PAYMENT_MESSAGES.FAILED_EXPORT_PAYMENTS;
+      this._logger.error('Export payments controller error', {
         ...context,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       const response = ResponseHelper.error(errorMessage);

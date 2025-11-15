@@ -1,61 +1,61 @@
-import { AddressData, IPayment } from "../interfaces/admin/IPaymentManagement";
+import { AddressData, IPayment } from '../interfaces/admin/IPaymentManagement';
 import {
   PaymentResponseDto,
   PaymentListResponseDto,
   PaymentStatsDto,
-} from "../interfaces/dtos/paymentDtos";
-import { Types } from "mongoose";
+} from '../interfaces/dtos/paymentDtos';
+import { Types } from 'mongoose';
 
 export const toPaymentResponseDto = (payment: IPayment): PaymentResponseDto => {
   // Handle populated user data
-  let userName = "Unknown User";
-  let userEmail = "Unknown Email";
+  let userName = 'Unknown User';
+  let userEmail = 'Unknown Email';
 
   if (
     payment.userId &&
-    typeof payment.userId === "object" &&
+    typeof payment.userId === 'object' &&
     !(payment.userId instanceof Types.ObjectId)
   ) {
     const user = payment.userId as any;
-    userName = user.fullName || user.name || "Unknown User";
-    userEmail = user.email || "Unknown Email";
+    userName = user.fullName || user.name || 'Unknown User';
+    userEmail = user.email || 'Unknown Email';
   } else if (payment.userId) {
     const userId =
       payment.userId instanceof Types.ObjectId
         ? payment.userId.toString()
         : String(payment.userId);
     userName = `User ID: ${userId}`;
-    userEmail = "Email not available";
+    userEmail = 'Email not available';
   }
 
   // Handle populated booking data
-  let serviceName = "Unknown Service";
-  let bookingCode = "Unknown Booking";
+  let serviceName = 'Unknown Service';
+  let bookingCode = 'Unknown Booking';
   let addressData: AddressData | null = null;
 
   if (
     payment.bookingId &&
-    typeof payment.bookingId === "object" &&
+    typeof payment.bookingId === 'object' &&
     !(payment.bookingId instanceof Types.ObjectId)
   ) {
     const booking = payment.bookingId as any;
-    serviceName = booking.serviceName || booking.service || "Unknown Service";
-    bookingCode = booking.bookingCode || "Unknown Booking";
+    serviceName = booking.serviceName || booking.service || 'Unknown Service';
+    bookingCode = booking.bookingCode || 'Unknown Booking';
 
     // Extract address data if populated
     if (
       booking.addressId &&
-      typeof booking.addressId === "object" &&
+      typeof booking.addressId === 'object' &&
       !(booking.addressId instanceof Types.ObjectId)
     ) {
       const address = booking.addressId as any;
       addressData = {
-        label: address.label || "Home",
-        street: address.street || "",
-        city: address.city || "",
-        state: address.state || "",
-        pincode: address.pincode || "",
-        landmark: address.landmark || "",
+        label: address.label || 'Home',
+        street: address.street || '',
+        city: address.city || '',
+        state: address.state || '',
+        pincode: address.pincode || '',
+        landmark: address.landmark || '',
       };
     }
   } else if (payment.bookingId) {
@@ -64,23 +64,23 @@ export const toPaymentResponseDto = (payment: IPayment): PaymentResponseDto => {
         ? payment.bookingId.toString()
         : String(payment.bookingId);
     bookingCode = `Booking ID: ${bookingId}`;
-    serviceName = "Service not available";
+    serviceName = 'Service not available';
   }
 
-  const orderId = payment.orderCode || "Order not found";
+  const orderId = payment.orderCode || 'Order not found';
 
   const result = {
-    id: payment._id ? payment._id.toString() : "unknown-id",
+    id: payment._id ? payment._id.toString() : 'unknown-id',
     bookingId: payment.bookingId
       ? payment.bookingId instanceof Types.ObjectId
         ? payment.bookingId.toString()
         : String(payment.bookingId)
-      : "unknown-booking",
+      : 'unknown-booking',
     userId: payment.userId
       ? payment.userId instanceof Types.ObjectId
         ? payment.userId.toString()
         : String(payment.userId)
-      : "unknown-user",
+      : 'unknown-user',
     userName,
     userEmail,
     paymentProvider: payment.paymentProvider,
@@ -104,6 +104,9 @@ export const toPaymentResponseDto = (payment: IPayment): PaymentResponseDto => {
     updatedAt: payment.updatedAt
       ? payment.updatedAt.toISOString()
       : new Date().toISOString(),
+    refundReason: payment.refundReason || '',
+    refundAmount: payment.refundAmount || 0,
+    metadata: payment.metadata || {},
   };
 
   if (addressData) {
@@ -120,22 +123,22 @@ export const toPaymentResponseDtoFromAggregation = (
   payment: any
 ): PaymentResponseDto => {
   return {
-    id: payment._id ? payment._id.toString() : payment.id || "unknown-id",
+    id: payment._id ? payment._id.toString() : payment.id || 'unknown-id',
     bookingId: payment.bookingId
       ? payment.bookingId.toString()
-      : "unknown-booking",
-    userId: payment.userId ? payment.userId.toString() : "unknown-user",
-    userName: payment.userName || "Unknown User",
-    userEmail: payment.userEmail || "Unknown Email",
+      : 'unknown-booking',
+    userId: payment.userId ? payment.userId.toString() : 'unknown-user',
+    userName: payment.userName || 'Unknown User',
+    userEmail: payment.userEmail || 'Unknown Email',
     paymentProvider: payment.paymentProvider,
     providerOrderId: payment.providerOrderId,
     providerPaymentId: payment.providerPaymentId,
     amount: payment.amount,
     currency: payment.currency,
     type: payment.type,
-    serviceName: payment.serviceName || "Unknown Service",
-    orderId: payment.orderId || "Order not found",
-    bookingCode: payment.bookingCode || "Unknown Booking",
+    serviceName: payment.serviceName || 'Unknown Service',
+    orderId: payment.orderId || 'Order not found',
+    bookingCode: payment.bookingCode || 'Unknown Booking',
     status: payment.status,
     initiatedAt: payment.initiatedAt
       ? new Date(payment.initiatedAt).toISOString()
@@ -153,13 +156,16 @@ export const toPaymentResponseDtoFromAggregation = (
       ? new Date(payment.updatedAt).toISOString()
       : new Date().toISOString(),
     address: payment.address || {
-      label: "",
-      street: "",
-      city: "",
-      state: "",
-      pincode: "",
-      landmark: "",
+      label: '',
+      street: '',
+      city: '',
+      state: '',
+      pincode: '',
+      landmark: '',
     },
+    refundReason: payment.refundReason || '',
+    refundAmount: payment.refundAmount || 0,
+    metadata: payment.metadata || {},
   };
 };
 
@@ -170,7 +176,7 @@ export const toPaymentListResponseDto = (
   limit: number
 ): PaymentListResponseDto => {
   return {
-    payments: payments.map((payment) => {
+    payments: payments.map(payment => {
       if (payment.userName || payment.userEmail || payment.serviceName) {
         return toPaymentResponseDtoFromAggregation(payment);
       } else {

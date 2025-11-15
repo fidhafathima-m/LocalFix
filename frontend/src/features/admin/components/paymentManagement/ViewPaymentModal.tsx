@@ -199,6 +199,35 @@ export const ViewPaymentModal: React.FC<ViewPaymentModalProps> = ({
                   </span>
                 </div>
               )}
+              {payment.status === "refunded" && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                  <div className="flex items-center">
+                    <ReplayOutlined className="h-5 w-5 text-yellow-600 mr-2" />
+                    <h4 className="text-sm font-medium text-yellow-800">
+                      Refund Information
+                    </h4>
+                  </div>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <p>
+                      <strong>Refunded At:</strong>{" "}
+                      {payment.refundedAt
+                        ? new Date(payment.refundedAt).toLocaleString()
+                        : "N/A"}
+                    </p>
+                    <p>
+                      <strong>Refund Reason:</strong>{" "}
+                      {payment.refundReason || "Not specified"}
+                    </p>
+                    <p>
+                      <strong>Refund Amount:</strong> ₹
+                      {payment.refundAmount || payment.amount}
+                    </p>
+                    <p className="mt-1 text-xs">
+                      <i>Amount has been credited to user's wallet</i>
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between py-2">
                 <span className="text-gray-600">Payment Method</span>
                 <span className="font-medium text-gray-900 capitalize">

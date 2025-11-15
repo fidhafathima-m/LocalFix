@@ -20,20 +20,30 @@ export interface IWalletService {
   getWalletBalance(userId: string): Promise<any>;
   createAddMoneyOrder(
     userId: string,
-    amountData: AddMoneyRequest,
+    amountData: AddMoneyRequest
   ): Promise<any>;
   verifyAddMoneyPayment(userId: string, paymentData: any): Promise<any>;
   withdrawMoney(
     userId: string,
-    withdrawData: WithdrawMoneyRequest,
+    withdrawData: WithdrawMoneyRequest
   ): Promise<any>;
   getWalletTransactions(
     userId: string,
     page: number,
-    limit: number,
+    limit: number
   ): Promise<any>;
   getBankAccounts(userId: string): Promise<any>;
   addBankAccount(userId: string, accountData: BankAccountData): Promise<any>;
   setDefaultBankAccount(userId: string, accountId: string): Promise<any>;
   deleteBankAccount(userId: string, accountId: string): Promise<any>;
+  refundToWallet(
+    userId: string,
+    bookingId: string,
+    amount: number,
+    reason: string
+  ): Promise<{
+    success: boolean;
+    data?: { newBalance: number; transactionId: string };
+    message?: string;
+  }>;
 }

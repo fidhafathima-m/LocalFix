@@ -13,22 +13,24 @@ export interface IPayment {
   userId: string;
   userName: string;
   userEmail: string;
-  paymentProvider: 'razorpay' | 'stripe' | 'paypal';
+  paymentProvider: "razorpay" | "stripe" | "paypal";
   providerOrderId: string;
   providerPaymentId?: string;
   amount: number;
   currency: string;
-  type: 'service' | 'subscription' | 'spare_part';
+  type: "service" | "subscription" | "spare_part";
   serviceName?: string;
   orderId: string;
-  status: 'initiated' | 'pending' | 'success' | 'failed' | 'refunded';
+  status: "initiated" | "pending" | "success" | "failed" | "refunded";
   initiatedAt: string;
   confirmedAt?: string;
   refundedAt?: string;
   createdAt: string;
   updatedAt: string;
   address: AddressData;
-  bookingCode: string
+  bookingCode: string;
+  refundReason: string;
+  refundAmount: number;
 }
 
 export interface PaymentStats {

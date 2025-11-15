@@ -1,12 +1,12 @@
-import { FilterQuery, Types } from "mongoose";
+import { FilterQuery, Types } from 'mongoose';
 import {
   IPayment,
   IPaymentCreate,
   IPaymentUpdate,
-} from "../../interfaces/admin/IPaymentManagement";
-import { IPaymentRepository } from "../../interfaces/repository/admin/IPaymentRepository";
-import PaymentSchema from "../../models/PaymentSchema";
-import OrderSchema from "../../models/OrderSchema";
+} from '../../interfaces/admin/IPaymentManagement';
+import { IPaymentRepository } from '../../interfaces/repository/admin/IPaymentRepository';
+import PaymentSchema from '../../models/PaymentSchema';
+import OrderSchema from '../../models/OrderSchema';
 
 export class PaymentManagementRepository implements IPaymentRepository {
   async create(paymentData: IPaymentCreate): Promise<IPayment> {
@@ -16,14 +16,14 @@ export class PaymentManagementRepository implements IPaymentRepository {
 
   async findById(paymentId: string | Types.ObjectId): Promise<IPayment | null> {
     return await PaymentSchema.findById(paymentId)
-      .populate("userId", "fullName email phone")
+      .populate('userId', 'fullName email phone')
       .populate({
-        path: "bookingId",
-        select: "bookingCode serviceName addressId",
+        path: 'bookingId',
+        select: 'bookingCode serviceName addressId',
         populate: {
-          path: "addressId",
-          model: "UserAddress",
-          select: "label street city state pincode landmark",
+          path: 'addressId',
+          model: 'UserAddress',
+          select: 'label street city state pincode landmark',
         },
       })
       .exec();
@@ -35,14 +35,14 @@ export class PaymentManagementRepository implements IPaymentRepository {
     limit: number = 10
   ): Promise<IPayment[]> {
     const payments = await PaymentSchema.find(filter)
-      .populate("userId", "fullName email phone")
+      .populate('userId', 'fullName email phone')
       .populate({
-        path: "bookingId",
-        select: "bookingCode serviceName addressId",
+        path: 'bookingId',
+        select: 'bookingCode serviceName addressId',
         populate: {
-          path: "addressId",
-          model: "UserAddress",
-          select: "label street city state pincode landmark",
+          path: 'addressId',
+          model: 'UserAddress',
+          select: 'label street city state pincode landmark',
         },
       })
       .sort({ createdAt: -1 })
@@ -52,7 +52,7 @@ export class PaymentManagementRepository implements IPaymentRepository {
 
     // For each payment, find the corresponding order to get orderCode
     const paymentsWithOrderData = await Promise.all(
-      payments.map(async (payment) => {
+      payments.map(async payment => {
         // Find order by bookingId to get orderCode
         const order = await OrderSchema.findOne(
           { bookingId: payment.bookingId },
@@ -63,7 +63,7 @@ export class PaymentManagementRepository implements IPaymentRepository {
         if (order) {
           paymentWithOrder.orderCode = order.orderCode;
         } else {
-          paymentWithOrder.orderCode = "Booked";
+          paymentWithOrder.orderCode = 'Booked';
         }
 
         return paymentWithOrder;
@@ -77,14 +77,14 @@ export class PaymentManagementRepository implements IPaymentRepository {
     providerOrderId: string
   ): Promise<IPayment | null> {
     const payment = await PaymentSchema.findOne({ providerOrderId })
-      .populate("userId", "fullName email phone")
+      .populate('userId', 'fullName email phone')
       .populate({
-        path: "bookingId",
-        select: "bookingCode serviceName addressId",
+        path: 'bookingId',
+        select: 'bookingCode serviceName addressId',
         populate: {
-          path: "addressId",
-          model: "UserAddress",
-          select: "label street city state pincode landmark",
+          path: 'addressId',
+          model: 'UserAddress',
+          select: 'label street city state pincode landmark',
         },
       })
       .exec();
@@ -96,7 +96,7 @@ export class PaymentManagementRepository implements IPaymentRepository {
       ).exec();
 
       const paymentWithOrder = payment.toObject();
-      paymentWithOrder.orderCode = order?.orderCode || "Booked";
+      paymentWithOrder.orderCode = order?.orderCode || 'Booked';
       return paymentWithOrder as IPayment;
     }
 
@@ -105,28 +105,28 @@ export class PaymentManagementRepository implements IPaymentRepository {
 
   async findByUserId(userId: string | Types.ObjectId): Promise<IPayment[]> {
     const payments = await PaymentSchema.find({ userId })
-      .populate("userId", "fullName email phone")
+      .populate('userId', 'fullName email phone')
       .populate({
-        path: "bookingId",
-        select: "bookingCode serviceName addressId",
+        path: 'bookingId',
+        select: 'bookingCode serviceName addressId',
         populate: {
-          path: "addressId",
-          model: "UserAddress",
-          select: "label street city state pincode landmark",
+          path: 'addressId',
+          model: 'UserAddress',
+          select: 'label street city state pincode landmark',
         },
       })
       .sort({ createdAt: -1 })
       .exec();
 
     const paymentsWithOrderData = await Promise.all(
-      payments.map(async (payment) => {
+      payments.map(async payment => {
         const order = await OrderSchema.findOne(
           { bookingId: payment.bookingId },
           { orderCode: 1 }
         ).exec();
 
         const paymentWithOrder = payment.toObject();
-        paymentWithOrder.orderCode = order?.orderCode || "Booked";
+        paymentWithOrder.orderCode = order?.orderCode || 'Booked';
         return paymentWithOrder;
       })
     );
@@ -138,14 +138,14 @@ export class PaymentManagementRepository implements IPaymentRepository {
     bookingId: string | Types.ObjectId
   ): Promise<IPayment | null> {
     const payment = await PaymentSchema.findOne({ bookingId })
-      .populate("userId", "fullName email phone")
+      .populate('userId', 'fullName email phone')
       .populate({
-        path: "bookingId",
-        select: "bookingCode serviceName addressId",
+        path: 'bookingId',
+        select: 'bookingCode serviceName addressId',
         populate: {
-          path: "addressId",
-          model: "UserAddress",
-          select: "label street city state pincode landmark",
+          path: 'addressId',
+          model: 'UserAddress',
+          select: 'label street city state pincode landmark',
         },
       })
       .exec();
@@ -157,7 +157,7 @@ export class PaymentManagementRepository implements IPaymentRepository {
       ).exec();
 
       const paymentWithOrder = payment.toObject();
-      paymentWithOrder.orderCode = order?.orderCode || "Booked";
+      paymentWithOrder.orderCode = order?.orderCode || 'Booked';
       return paymentWithOrder as IPayment;
     }
 
@@ -173,14 +173,14 @@ export class PaymentManagementRepository implements IPaymentRepository {
       { $set: updateData },
       { new: true, runValidators: true }
     )
-      .populate("userId", "fullName email phone")
+      .populate('userId', 'fullName email phone')
       .populate({
-        path: "bookingId",
-        select: "bookingCode serviceName addressId",
+        path: 'bookingId',
+        select: 'bookingCode serviceName addressId',
         populate: {
-          path: "addressId",
-          model: "UserAddress",
-          select: "label street city state pincode landmark",
+          path: 'addressId',
+          model: 'UserAddress',
+          select: 'label street city state pincode landmark',
         },
       })
       .exec();
@@ -200,18 +200,18 @@ export class PaymentManagementRepository implements IPaymentRepository {
     limit: number = 10,
     filters?: any
   ): Promise<IPayment[]> {
-    const searchRegex = new RegExp(query, "i");
+    const searchRegex = new RegExp(query, 'i');
 
     // Build match stage with search and additional filters
     const matchStage: any = {
       $or: [
         { providerOrderId: searchRegex },
         { providerPaymentId: searchRegex },
-        { "user.fullName": searchRegex },
-        { "user.email": searchRegex },
-        { "booking.bookingCode": searchRegex },
-        { "booking.serviceName": searchRegex },
-        { "order.orderCode": searchRegex },
+        { 'user.fullName': searchRegex },
+        { 'user.email': searchRegex },
+        { 'booking.bookingCode': searchRegex },
+        { 'booking.serviceName': searchRegex },
+        { 'order.orderCode': searchRegex },
       ],
     };
 
@@ -228,34 +228,34 @@ export class PaymentManagementRepository implements IPaymentRepository {
     const payments = await PaymentSchema.aggregate([
       {
         $lookup: {
-          from: "users",
-          localField: "userId",
-          foreignField: "_id",
-          as: "user",
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
         },
       },
       {
         $lookup: {
-          from: "bookings",
-          localField: "bookingId",
-          foreignField: "_id",
-          as: "booking",
+          from: 'bookings',
+          localField: 'bookingId',
+          foreignField: '_id',
+          as: 'booking',
         },
       },
       {
         $lookup: {
-          from: "useraddresses",
-          localField: "booking.addressId",
-          foreignField: "_id",
-          as: "address",
+          from: 'useraddresses',
+          localField: 'booking.addressId',
+          foreignField: '_id',
+          as: 'address',
         },
       },
       {
         $lookup: {
-          from: "orders",
-          localField: "bookingId",
-          foreignField: "bookingId",
-          as: "order",
+          from: 'orders',
+          localField: 'bookingId',
+          foreignField: 'bookingId',
+          as: 'order',
         },
       },
       {
@@ -280,32 +280,32 @@ export class PaymentManagementRepository implements IPaymentRepository {
           createdAt: 1,
           updatedAt: 1,
           // extract user data from the array
-          userName: { $arrayElemAt: ["$user.fullName", 0] },
-          userEmail: { $arrayElemAt: ["$user.email", 0] },
-          userPhone: { $arrayElemAt: ["$user.phone", 0] },
+          userName: { $arrayElemAt: ['$user.fullName', 0] },
+          userEmail: { $arrayElemAt: ['$user.email', 0] },
+          userPhone: { $arrayElemAt: ['$user.phone', 0] },
           // extract booking data from the array
-          bookingCode: { $arrayElemAt: ["$booking.bookingCode", 0] },
-          serviceName: { $arrayElemAt: ["$booking.serviceName", 0] },
+          bookingCode: { $arrayElemAt: ['$booking.bookingCode', 0] },
+          serviceName: { $arrayElemAt: ['$booking.serviceName', 0] },
           // Extract order data
           orderId: {
             $cond: {
-              if: { $gt: [{ $size: "$order" }, 0] },
-              then: { $arrayElemAt: ["$order.orderCode", 0] },
-              else: "Booked",
+              if: { $gt: [{ $size: '$order' }, 0] },
+              then: { $arrayElemAt: ['$order.orderCode', 0] },
+              else: 'Booked',
             },
           },
           // Extract address data
           address: {
             $cond: {
-              if: { $gt: [{ $size: "$address" }, 0] },
-              then: { $arrayElemAt: ["$address", 0] },
+              if: { $gt: [{ $size: '$address' }, 0] },
+              then: { $arrayElemAt: ['$address', 0] },
               else: {
-                label: "",
-                street: "",
-                city: "",
-                state: "",
-                pincode: "",
-                landmark: "",
+                label: '',
+                street: '',
+                city: '',
+                state: '',
+                pincode: '',
+                landmark: '',
               },
             },
           },
@@ -315,7 +315,7 @@ export class PaymentManagementRepository implements IPaymentRepository {
       { $sort: { createdAt: -1 } },
     ]);
 
-    const transformedPayments = payments.map((payment) => ({
+    const transformedPayments = payments.map(payment => ({
       ...payment,
       id: payment._id.toString(),
     }));
@@ -337,22 +337,32 @@ export class PaymentManagementRepository implements IPaymentRepository {
       totalPaymentsCount,
     ] = await Promise.all([
       PaymentSchema.aggregate([
-        { $match: { status: "success" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
+        { $match: { status: 'success' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
-      PaymentSchema.countDocuments({ status: "pending" }),
-      PaymentSchema.countDocuments({ status: "failed" }),
+      PaymentSchema.countDocuments({ status: 'pending' }),
+      PaymentSchema.countDocuments({ status: { $in: ['failed', 'refunded'] } }), // Include refunded in failed count
       PaymentSchema.countDocuments(),
     ]);
 
+    // ✅ FIX: Access the total correctly from aggregation result
     const totalRevenue = totalRevenueResult[0]?.total || 0;
-    const serviceTaxCollected = totalRevenue[0]?.total
-      ? totalRevenue[0].total * 0.1
-      : 0;
+
+    // ✅ FIX: Calculate service tax correctly (10% of total revenue)
+    const platformCommission = Math.round(totalRevenue * 0.1);
+
+    console.log('🔍 Payment Stats Calculation:', {
+      totalRevenue,
+      platformCommission,
+      calculation: `${totalRevenue} * 0.1 = ${platformCommission}`,
+      pendingPayments: pendingPaymentsCount,
+      failedPayments: failedPaymentsCount,
+      totalPayments: totalPaymentsCount,
+    });
 
     return {
       totalRevenue,
-      platformCommission: serviceTaxCollected,
+      platformCommission, // This should now be 10% of totalRevenue
       pendingPayments: pendingPaymentsCount,
       failedPayments: failedPaymentsCount,
       totalPayments: totalPaymentsCount,

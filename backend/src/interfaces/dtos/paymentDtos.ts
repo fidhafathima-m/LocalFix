@@ -1,4 +1,4 @@
-import { AddressData } from "../admin/IPaymentManagement";
+import { AddressData } from '../admin/IPaymentManagement';
 
 export interface PaymentResponseDto {
   id: string;
@@ -13,8 +13,8 @@ export interface PaymentResponseDto {
   currency: string;
   type: 'service' | 'subscription' | 'spare_part';
   serviceName?: string;
-  orderId: string;        
-  bookingCode?: string;  
+  orderId: string;
+  bookingCode?: string;
   status: 'initiated' | 'pending' | 'success' | 'failed' | 'refunded';
   initiatedAt: string;
   confirmedAt?: string;
@@ -22,6 +22,14 @@ export interface PaymentResponseDto {
   createdAt: string;
   updatedAt: string;
   address?: AddressData;
+  refundReason: string;
+  refundAmount: number;
+  metadata?: {
+    walletRefund?: boolean;
+    walletTransactionId?: string;
+    newBalance?: number;
+    [key: string]: any;
+  };
 }
 
 export interface PaymentListResponseDto {

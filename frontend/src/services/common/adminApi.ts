@@ -371,9 +371,12 @@ export const adminAPI = {
     api.get<ApiResponse<PaymentStatsResponse>>(ADMIN_ROUTES.PAYMENT_STATS),
 
   processRefund: (paymentId: string, reason?: string) =>
-    api.post<ApiResponse<void>>(ADMIN_ROUTES.PAYMENT_REFUND(paymentId), {
-      reason,
-    }),
+    api.post<ApiResponse<Promise<{ success: boolean; message?: string }>>>(
+      ADMIN_ROUTES.PAYMENT_REFUND(paymentId),
+      {
+        reason,
+      }
+    ),
 
   exportPayments: (format: "csv" | "excel" = "csv", filters?: any) =>
     api.get<Blob>(ADMIN_ROUTES.PAYMENT_EXPORT, {

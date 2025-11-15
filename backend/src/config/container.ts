@@ -238,17 +238,6 @@ const reviewManagementController = new ReviewManagementController(
   loggerService
 );
 
-// Payment dependencies
-const paymentManagementRepository = new PaymentManagementRepository();
-const paymentManagementService = new PaymentManagementService(
-  paymentManagementRepository,
-  loggerService
-);
-const paymentManagementController = new PaymentManagementController(
-  paymentManagementService,
-  loggerService
-);
-
 export const createSocketDependentServices = (server: any) => {
   const socketService = new SocketService(server, notificationService);
 
@@ -263,6 +252,18 @@ export const createSocketDependentServices = (server: any) => {
     loggerService
   );
 
+  // Payment dependencies
+  const paymentManagementRepository = new PaymentManagementRepository();
+  const paymentManagementService = new PaymentManagementService(
+    paymentManagementRepository,
+    loggerService,
+    walletService,
+    socketService
+  );
+  const paymentManagementController = new PaymentManagementController(
+    paymentManagementService,
+    loggerService
+  );
   const orderRepository = new OrderRepository();
   const orderService = new OrderService(
     orderRepository,
@@ -330,6 +331,9 @@ export const createSocketDependentServices = (server: any) => {
     technicianProfileController,
     bookingService,
     bookingController,
+    paymentManagementRepository,
+    paymentManagementService,
+    paymentManagementController,
   };
 };
 
@@ -372,9 +376,6 @@ export {
   reviewManagementRepository,
   reviewMangementService,
   reviewManagementController,
-  paymentManagementRepository,
-  paymentManagementService,
-  paymentManagementController,
   notificationRepository,
   notificationService,
   notificationController,
