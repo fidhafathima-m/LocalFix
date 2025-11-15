@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
@@ -11,7 +10,6 @@ import {
   SearchOutlined,
   StarBorderOutlined,
   ExpandMoreOutlined,
-  ChevronLeftOutlined,
 } from "@mui/icons-material";
 import type { Review } from "../../../../interface/admin/IReview";
 import { adminAPI } from "../../../../services/common/adminApi";
@@ -27,7 +25,6 @@ interface ReviewStats {
 }
 
 const ReviewManagement: React.FC = () => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [ratingFilter, setRatingFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -206,13 +203,6 @@ const ReviewManagement: React.FC = () => {
           <div className="p-6">
             {/* Header */}
             <div className="mb-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
-              >
-                <ChevronLeftOutlined className="w-5 h-5" />
-                Back to Dashboard
-              </button>
               <h1 className="text-2xl font-bold mb-1">Review Management</h1>
               <p className="text-gray-600">
                 Manage customer reviews and ratings for technicians and

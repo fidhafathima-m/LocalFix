@@ -383,4 +383,40 @@ export const adminAPI = {
       params: { format, ...filters },
       responseType: "blob",
     }),
+
+  // reports
+  getDashboardOverview: () => api.get(ADMIN_ROUTES.OVERVIEW),
+
+  getRevenueTrend: (period?: string) =>
+    api.get(ADMIN_ROUTES.REVENUE_TREND, {
+      params: { period },
+    }),
+
+  getTopTechnicians: (limit?: number) =>
+    api.get(ADMIN_ROUTES.TOP_TECHNICIANS, {
+      params: { limit },
+    }),
+
+  getCustomerSatisfaction: () => api.get(ADMIN_ROUTES.CUSTOMER_SATISFACTION),
+
+  getPaymentMethods: () => api.get(ADMIN_ROUTES.PAYMENT_METHODS),
+
+  getGrowthMetrics: () => api.get(ADMIN_ROUTES.GROWTH_METRICS),
+
+  getCompleteDashboard: () => api.get(ADMIN_ROUTES.COMPLETE),
+
+  generateReport: (request: any) =>
+    api.post(ADMIN_ROUTES.GENERATE_REPORT, request),
+
+  generateFinancialReport: (startDate: Date, endDate: Date) =>
+    api.post(ADMIN_ROUTES.FINANCIAL_REPORT, { startDate, endDate }),
+
+  generateCustomerReport: (startDate: Date, endDate: Date) =>
+    api.post(ADMIN_ROUTES.CUSTOMER_REPORT, { startDate, endDate }),
+
+  generateTechnicianReport: (startDate: Date, endDate: Date) =>
+    api.post(ADMIN_ROUTES.TECHNICIAN_REPORT, { startDate, endDate }),
+
+  exportReport: (data: any, format: string) =>
+    api.post(ADMIN_ROUTES.EXPORT_REPORT, { data, format }),
 };

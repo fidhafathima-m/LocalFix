@@ -71,6 +71,12 @@ import { BookingController } from '../controllers/user/bookingController';
 import { WalletRepository } from '../repositories/user/WalletRepository';
 import { WalletService } from '../services/WalletService';
 import { WalletController } from '../controllers/user/walletController';
+import { DashboardRepository } from '../repositories/admin/DashboardRepository';
+import { DashboardService } from '../services/DashboardService';
+import { DashboardController } from '../controllers/admin/DashboardController';
+import { ReportRepository } from '../repositories/admin/ReportRepository';
+import { ReportService } from '../services/ReportService';
+import { ReportController } from '../controllers/admin/reportManagementController';
 
 const loggerService = new LoggerService();
 
@@ -238,6 +244,22 @@ const reviewManagementController = new ReviewManagementController(
   loggerService
 );
 
+// Admin dashboard dependencies
+const dashboardRepository = new DashboardRepository();
+const dashboardService = new DashboardService(
+  dashboardRepository,
+  loggerService
+);
+const dashboardController = new DashboardController(
+  dashboardService,
+  loggerService
+);
+
+// Admin report dependencies
+const reportRepository = new ReportRepository();
+const reportService = new ReportService(reportRepository, loggerService);
+const reportController = new ReportController(reportService, loggerService);
+
 export const createSocketDependentServices = (server: any) => {
   const socketService = new SocketService(server, notificationService);
 
@@ -382,4 +404,10 @@ export {
   walletRepository,
   walletService,
   walletController,
+  dashboardRepository,
+  dashboardService,
+  dashboardController,
+  reportRepository,
+  reportService,
+  reportController,
 };

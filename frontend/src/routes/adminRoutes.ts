@@ -6,9 +6,8 @@ export const ADMIN_ROUTES = {
 
   PUBLIC_USER_PROFILE: "/public/user/profile",
   PUBLIC_USER_BY_ID: (userId: string) => `/public/user/${userId}`,
-  PUBLIC_AVAILABILITY: (
-    technicianId: string,
-  ) => `/admin/technicians/public/${technicianId}/availability`,
+  PUBLIC_AVAILABILITY: (technicianId: string) =>
+    `/admin/technicians/public/${technicianId}/availability`,
 
   // Technician routes
   TECHNICIANS: "/admin/technicians",
@@ -91,4 +90,19 @@ export const ADMIN_ROUTES = {
   PAYMENT_STATS: "/admin/payments/stats",
   PAYMENT_REFUND: (paymentId: string) => `/admin/payments/${paymentId}/refund`,
   PAYMENT_EXPORT: "/admin/payments/export",
+
+  // dashboard
+  OVERVIEW: "/admin/reports/overview",
+  REVENUE_TREND: "/admin/reports/revenue-trend",
+  TOP_TECHNICIANS: "/admin/reports/top-technicians",
+  CUSTOMER_SATISFACTION: "/admin/reports/customer-satisfaction",
+  PAYMENT_METHODS: "/admin/reports/payment-methods",
+  GROWTH_METRICS: "/admin/reports/growth-metrics",
+  COMPLETE: "/admin/reports/complete",
+
+  GENERATE_REPORT: "/admin/reports/generate",
+  FINANCIAL_REPORT: "/admin/reports/financial",
+  CUSTOMER_REPORT: "/admin/reports/customer",
+  TECHNICIAN_REPORT: "/admin/reports/technician",
+  EXPORT_REPORT: "/admin/reports/export",
 } as const;

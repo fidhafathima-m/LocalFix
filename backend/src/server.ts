@@ -21,6 +21,7 @@ import serviceMangementRoutes from './routes/admin/serviceManagementRoutes';
 import itemManagementRoutes from './routes/admin/itemManagementRoutes';
 import orderManagementRoutes from './routes/admin/orderManagementRoutes';
 import reviewManagementRoutes from './routes/admin/reviewManagemnetRoutes';
+import dashboardRoutes from './routes/admin/dashboardRoutes';
 import pubicUserRoutes from './routes/publicUserRoutes';
 import createUserProfileRoutes from './routes/user/userProfileRoutes';
 import createBookingRoutes from './routes/user/bookingRoutes';
@@ -33,20 +34,9 @@ import notificationRoutes from './routes/notificationRoutes';
 // Import container functions
 import {
   createSocketDependentServices,
-  userManagementController,
-  authController,
-  categoryManagementController,
-  serviceManagementController,
-  itemManagementController,
-  orderManagementController,
-  reviewManagementController,
-  technicianApplicationController,
-  technicianDashboardController,
   userProfileController,
   addressController,
   userLocationController,
-  paymentController,
-  notificationController,
 } from './config/container';
 
 connectDB();
@@ -111,6 +101,7 @@ app.use('/api/admin/items', itemManagementRoutes);
 app.use('/api/admin/orders', orderManagementRoutes);
 app.use('/api/admin/reviews', reviewManagementRoutes);
 app.use('/api/admin/payments', paymentManagementRoutes);
+app.use('/api/admin/reports', dashboardRoutes);
 app.use('/api/technician-application', technicianRoutes);
 app.use('/api/technician/profile', technicianProfileRoutes);
 app.use('/api/technician/orders', technicianOrderRoutes);

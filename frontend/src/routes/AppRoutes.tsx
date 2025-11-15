@@ -29,24 +29,18 @@ const UserResetPasswordPage = lazy(
 const ForgertPasswordOTPPage = lazy(
   () => import("../features/user/pages/ForgertPasswordOTPPage")
 );
-const Services = lazy(
-  () => import("../features/user/pages/ServicesPage")
-);
+const Services = lazy(() => import("../features/user/pages/ServicesPage"));
 const ServiceDetails = lazy(
   () => import("../features/user/pages/ServiceDetailsPage")
 );
 const UserTechnicianProfile = lazy(
   () => import("../features/user/pages/TechnicianProfilePage")
 );
-const BookingPage = lazy(
-  () => import("../features/user/pages/BookingPage")
-);
+const BookingPage = lazy(() => import("../features/user/pages/BookingPage"));
 const UserProfile = lazy(
   () => import("../features/user/pages/UserProfilePage")
 );
-const Checkout = lazy(
-  () => import("../features/user/pages/CheckoutPage")
-);
+const Checkout = lazy(() => import("../features/user/pages/CheckoutPage"));
 const PaymentSuccess = lazy(
   () => import("../features/user/pages/PaymentSuccessPage")
 );
@@ -59,9 +53,7 @@ const PaymentRetry = lazy(
 const ServiceTracking = lazy(
   () => import("../features/user/pages/ServiceTrackingPage")
 );
-const MyOrders = lazy(
-  () => import("../features/user/pages/OrdersPage")
-);
+const MyOrders = lazy(() => import("../features/user/pages/OrdersPage"));
 const CancelBooking = lazy(
   () => import("../features/user/pages/CancelBookingPage")
 );
@@ -166,6 +158,9 @@ const ReviewManagement = lazy(
 const PaymentsManagement = lazy(
   () => import("../features/admin/pages/PaymentManagementPage")
 );
+const ReportManagement = lazy(
+  () => import("../features/admin/pages/ReportManagementPage")
+);
 
 const AppRoutes = () => {
   return (
@@ -186,7 +181,10 @@ const AppRoutes = () => {
             <Route path="/reset-password" element={<UserResetPasswordPage />} />
             <Route path="/services" element={<Services />} />
             <Route path="/service/:slug" element={<ServiceDetails />} />
-            <Route path="/technicians/:id" element={<UserTechnicianProfile />} />
+            <Route
+              path="/technicians/:id"
+              element={<UserTechnicianProfile />}
+            />
             <Route path="/booking" element={<BookingPage />} />
             <Route path="/my-profile" element={<UserProfile />} />
             <Route path="/checkout" element={<Checkout />} />
@@ -196,7 +194,10 @@ const AppRoutes = () => {
             <Route path="/bookings/:bookingId" element={<ServiceTracking />} />
             <Route path="/orders" element={<MyOrders />} />
             <Route path="/cancel-order/:orderId" element={<CancelBooking />} />
-            <Route path="/cancel-booking-success" element={<CancelBookingSuccess />} />
+            <Route
+              path="/cancel-booking-success"
+              element={<CancelBookingSuccess />}
+            />
             <Route path="/reschedule-service" element={<RescheduleService />} />
             <Route path="/reschedule-success" element={<RescheduleSuccess />} />
             <Route path="/leave-a-review/:orderId" element={<LeaveReview />} />
@@ -359,6 +360,14 @@ const AppRoutes = () => {
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <PaymentsManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/reports-management"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <ReportManagement />
                 </ProtectedRoute>
               }
             />
