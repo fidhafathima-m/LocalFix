@@ -2,12 +2,12 @@ import {
   IReviewRepository,
   ReportReviewData,
   ReviewWithUserReport,
-} from "../../interfaces/repository/user/IReviewRepository";
-import Review, { IReview } from "../../models/ReviewSchema";
-import { Types } from "mongoose";
-import Order from "../../models/OrderSchema";
+} from '../../interfaces/repository/user/IReviewRepository';
+import Review, { IReview } from '../../models/ReviewSchema';
+import { Types } from 'mongoose';
+import Order from '../../models/OrderSchema';
 
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IReviewReport extends Document {
   _id: Types.ObjectId;
@@ -15,7 +15,7 @@ export interface IReviewReport extends Document {
   reason: string;
   reportedBy: Types.ObjectId;
   additionalInfo?: string;
-  status: "pending" | "reviewed" | "resolved";
+  status: 'pending' | 'reviewed' | 'resolved';
   adminNotes?: string;
   resolvedAt?: Date;
   resolvedBy?: Types.ObjectId;
@@ -27,7 +27,7 @@ const ReviewReportSchema = new Schema<IReviewReport>(
   {
     reviewId: {
       type: Schema.Types.ObjectId,
-      ref: "Review",
+      ref: 'Review',
       required: true,
     },
     reason: {
@@ -37,7 +37,7 @@ const ReviewReportSchema = new Schema<IReviewReport>(
     },
     reportedBy: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     additionalInfo: {
@@ -46,8 +46,8 @@ const ReviewReportSchema = new Schema<IReviewReport>(
     },
     status: {
       type: String,
-      enum: ["pending", "reviewed", "resolved"],
-      default: "pending",
+      enum: ['pending', 'reviewed', 'resolved'],
+      default: 'pending',
     },
     adminNotes: {
       type: String,
@@ -58,7 +58,7 @@ const ReviewReportSchema = new Schema<IReviewReport>(
     },
     resolvedBy: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
     },
   },
   {
@@ -72,7 +72,7 @@ ReviewReportSchema.index({ status: 1 });
 ReviewReportSchema.index({ createdAt: -1 });
 
 const ReviewReport = mongoose.model<IReviewReport>(
-  "ReviewReport",
+  'ReviewReport',
   ReviewReportSchema
 );
 
@@ -102,19 +102,43 @@ export class ReviewRepository implements IReviewRepository {
 
   async findById(reviewId: string): Promise<IReview | null> {
     return await Review.findById(new Types.ObjectId(reviewId))
-      .populate("userId", "fullName email")
+      .populate('userId', 'fullName email')
+      .populate({
+        path: 'orderId',
+        select: 'serviceName',
+      })
+      .populate({
+        path: 'technicianId',
+        select: 'displayName profilePictureUrl',
+      })
       .exec();
   }
 
   async findByOrderId(orderId: string): Promise<IReview | null> {
     return await Review.findOne({ orderId: new Types.ObjectId(orderId) })
-      .populate("userId", "fullName email")
+      .populate('userId', 'fullName email')
+      .populate({
+        path: 'orderId',
+        select: 'serviceName',
+      })
+      .populate({
+        path: 'technicianId',
+        select: 'displayName profilePictureUrl',
+      })
       .exec();
   }
 
   async findByUserId(userId: string): Promise<IReview[]> {
     return await Review.find({ userId: new Types.ObjectId(userId) })
-      .populate("userId", "fullName email")
+      .populate('userId', 'fullName email')
+      .populate({
+        path: 'orderId',
+        select: 'serviceName',
+      })
+      .populate({
+        path: 'technicianId',
+        select: 'displayName profilePictureUrl',
+      })
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -129,7 +153,15 @@ export class ReviewRepository implements IReviewRepository {
 
     const [reviews, totalCount] = await Promise.all([
       Review.find({ technicianId: new Types.ObjectId(technicianId) })
-        .populate("userId", "fullName email")
+        .populate('userId', 'fullName email')
+        .populate({
+          path: 'orderId',
+          select: 'serviceName',
+        })
+        .populate({
+          path: 'technicianId',
+          select: 'displayName profilePictureUrl',
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -141,15 +173,15 @@ export class ReviewRepository implements IReviewRepository {
     if (currentUserId) {
       const userReports = await ReviewReport.find({
         reportedBy: new Types.ObjectId(currentUserId),
-        reviewId: { $in: reviews.map((r) => r._id) },
-      }).select("reviewId");
+        reviewId: { $in: reviews.map(r => r._id) },
+      }).select('reviewId');
 
-      userReportedReviews = userReports.map((report) =>
+      userReportedReviews = userReports.map(report =>
         report.reviewId.toString()
       );
     }
 
-    const reviewsWithReportStatus = reviews.map((review) => ({
+    const reviewsWithReportStatus = reviews.map(review => ({
       ...review.toObject(),
       userReported: userReportedReviews.includes(review._id.toString()),
     }));
@@ -173,10 +205,10 @@ export class ReviewRepository implements IReviewRepository {
       {
         $group: {
           _id: null,
-          averageRating: { $avg: "$rating" },
+          averageRating: { $avg: '$rating' },
           totalReviews: { $sum: 1 },
           ratingDistribution: {
-            $push: "$rating",
+            $push: '$rating',
           },
         },
       },
@@ -226,7 +258,7 @@ export class ReviewRepository implements IReviewRepository {
     const order = await Order.findOne({
       _id: new Types.ObjectId(orderId),
       userId: new Types.ObjectId(userId),
-      status: "completed",
+      status: 'completed',
     });
 
     if (!order) {
@@ -249,7 +281,7 @@ export class ReviewRepository implements IReviewRepository {
     });
 
     if (existingReport) {
-      throw new Error("You have already reported this review");
+      throw new Error('You have already reported this review');
     }
 
     // Create new report
@@ -258,7 +290,7 @@ export class ReviewRepository implements IReviewRepository {
       reason: reportData.reason,
       reportedBy: new Types.ObjectId(reportData.reportedBy),
       additionalInfo: reportData.additionalInfo,
-      status: "pending",
+      status: 'pending',
     });
 
     const savedReport = await report.save();

@@ -9,6 +9,7 @@ export interface UpdateReviewRequestDto {
   comment?: string;
 }
 
+// In your dtos/reviewDtos.ts file
 export interface ReviewResponseDto {
   id: string;
   orderId: string;
@@ -16,13 +17,20 @@ export interface ReviewResponseDto {
   technicianId: string;
   rating: number;
   comment: string;
-  status: "published" | "flagged" | "pending";
+  status: string;
   createdAt: string;
   updatedAt: string;
-  userReported?: boolean; // Add this
-  user?: { // Add user info for populated data
+  userReported: boolean;
+  user: {
     fullName: string;
-    email?: string;
+    email: string;
+  };
+  service?: {
+    name: string;
+  };
+  technician?: {
+    displayName: string;
+    profilePictureUrl?: string;
   };
 }
 export interface ReviewListResponseDto {

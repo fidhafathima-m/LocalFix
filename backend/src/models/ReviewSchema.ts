@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Types } from "mongoose";
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IReview extends Document {
   _id: Types.ObjectId;
@@ -7,7 +7,7 @@ export interface IReview extends Document {
   technicianId: Types.ObjectId;
   rating: number;
   comment: string;
-  status: "published" | "flagged" | "pending";
+  status: 'published' | 'flagged' | 'pending';
   flagReason?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -17,18 +17,18 @@ const ReviewSchema: Schema = new Schema(
   {
     orderId: {
       type: Schema.Types.ObjectId,
-      ref: "Order",
+      ref: 'Order',
       required: true,
       unique: true,
     },
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     technicianId: {
       type: Schema.Types.ObjectId,
-      ref: "Technician",
+      ref: 'Technician',
       required: true,
     },
     rating: {
@@ -45,8 +45,8 @@ const ReviewSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ["published", "flagged", "pending"],
-      default: "pending",
+      enum: ['published', 'flagged', 'pending'],
+      default: 'pending',
     },
     flagReason: {
       type: String,
@@ -64,4 +64,4 @@ ReviewSchema.index({ userId: 1, orderId: 1 });
 ReviewSchema.index({ orderId: 1 }, { unique: true });
 ReviewSchema.index({ status: 1 });
 
-export default mongoose.model<IReview>("Review", ReviewSchema);
+export default mongoose.model<IReview>('Review', ReviewSchema);

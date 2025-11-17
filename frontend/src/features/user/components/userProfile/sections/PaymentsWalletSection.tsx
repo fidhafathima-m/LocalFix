@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import {
@@ -28,8 +29,15 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [displayedTransactions, setDisplayedTransactions] = useState<any[]>([]);
   const [showAllTransactions, setShowAllTransactions] = useState(false);
-  const [walletTransactions, setWalletTransactions] = useState<any[]>([]);
+  const [allWalletTransactions, setAllWalletTransactions] = useState<any[]>([]);
+  const [displayedWalletTransactions, setDisplayedWalletTransactions] =
+    useState<any[]>([]);
+  const [showAllWalletTransactions, setShowAllWalletTransactions] =
+    useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Number of transactions to show initially
+  const INITIAL_TRANSACTIONS_COUNT = 5;
 
   useEffect(() => {
     if (activeTab === "history") {
@@ -70,7 +78,9 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
       if (response.success && response.data) {
         const transactions = response.data.transactions;
         setAllTransactions(transactions);
-        setDisplayedTransactions(transactions.slice(0, 5));
+        setDisplayedTransactions(
+          transactions.slice(0, INITIAL_TRANSACTIONS_COUNT)
+        );
       }
     } catch (error) {
       console.error("Error fetching transactions:", error);
@@ -85,7 +95,11 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
       setTransactionsLoading(true);
       const response = await transactionService.getWalletTransactions();
       if (response.success && response.data) {
-        setWalletTransactions(response.data.transactions);
+        const walletTransactions = response.data.transactions;
+        setAllWalletTransactions(walletTransactions);
+        setDisplayedWalletTransactions(
+          walletTransactions.slice(0, INITIAL_TRANSACTIONS_COUNT)
+        );
       }
     } catch (error) {
       console.error("Error fetching wallet transactions:", error);
@@ -101,11 +115,24 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
   };
 
   const handleShowLessTransactions = () => {
-    setDisplayedTransactions(allTransactions.slice(0, 5));
+    setDisplayedTransactions(
+      allTransactions.slice(0, INITIAL_TRANSACTIONS_COUNT)
+    );
     setShowAllTransactions(false);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleShowMoreWalletTransactions = () => {
+    setDisplayedWalletTransactions(allWalletTransactions);
+    setShowAllWalletTransactions(true);
+  };
+
+  const handleShowLessWalletTransactions = () => {
+    setDisplayedWalletTransactions(
+      allWalletTransactions.slice(0, INITIAL_TRANSACTIONS_COUNT)
+    );
+    setShowAllWalletTransactions(false);
+  };
+
   const getTransactionStatus = (status: string, type: string) => {
     const statusMap: any = {
       success: { text: "Paid", class: "bg-green-100 text-green-700" },
@@ -143,6 +170,44 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
       </span>
     </button>
   );
+
+  // Helper function to render show more/less button
+  const renderShowMoreButton = (
+    showAll: boolean,
+    onShowMore: () => void,
+    onShowLess: () => void,
+    totalCount: number,
+    displayedCount: number
+  ) => {
+    if (totalCount <= INITIAL_TRANSACTIONS_COUNT) return null;
+
+    return (
+      <div className="flex justify-center pt-4">
+        {!showAll ? (
+          <button
+            onClick={onShowMore}
+            className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1 cursor-pointer"
+          >
+            Show All {totalCount} Transactions
+            <ExpandMoreOutlined className="w-4 h-4" />
+          </button>
+        ) : (
+          <button
+            onClick={onShowLess}
+            className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1 cursor-pointer"
+          >
+            Show Less
+            <ExpandMoreOutlined className="w-4 h-4 rotate-180" />
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const hasMorePaymentHistory =
+    allTransactions.length > INITIAL_TRANSACTIONS_COUNT;
+  const hasMoreWalletTransactions =
+    allWalletTransactions.length > INITIAL_TRANSACTIONS_COUNT;
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -259,26 +324,13 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
                   </div>
                 );
               })}
-              {allTransactions.length > 5 && (
-                <div className="flex justify-center pt-4">
-                  {!showAllTransactions ? (
-                    <button
-                      onClick={handleShowMoreTransactions}
-                      className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1 cursor-pointer"
-                    >
-                      Show All {allTransactions.length} Transactions
-                      <ExpandMoreOutlined className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleShowLessTransactions}
-                      className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1 cursor-pointer"
-                    >
-                      Show Less
-                      <ExpandMoreOutlined className="w-4 h-4 rotate-180" />
-                    </button>
-                  )}
-                </div>
+
+              {renderShowMoreButton(
+                showAllTransactions,
+                handleShowMoreTransactions,
+                handleShowLessTransactions,
+                allTransactions.length,
+                displayedTransactions.length
               )}
             </div>
           ) : (
@@ -290,9 +342,9 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
               </p>
             </div>
           )
-        ) : walletTransactions.length > 0 ? (
+        ) : displayedWalletTransactions.length > 0 ? (
           <div className="space-y-3">
-            {walletTransactions.map((transaction, index) => (
+            {displayedWalletTransactions.map((transaction, index) => (
               <div
                 key={transaction._id || index}
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -336,6 +388,14 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
                 </div>
               </div>
             ))}
+
+            {renderShowMoreButton(
+              showAllWalletTransactions,
+              handleShowMoreWalletTransactions,
+              handleShowLessWalletTransactions,
+              allWalletTransactions.length,
+              displayedWalletTransactions.length
+            )}
           </div>
         ) : (
           <div className="text-center py-8">
