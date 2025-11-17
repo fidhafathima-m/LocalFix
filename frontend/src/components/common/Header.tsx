@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { NotificationsNoneOutlined } from "@mui/icons-material";
 import { useNotification } from "../../context/notificationContext/NotificationContext";
 import { useSocket } from "../../context/SocketContext";
+import { NotificationDropdown } from "./NotificationDropdown";
 
 interface HeaderProps {
   isApproved?: boolean;
@@ -23,6 +24,8 @@ const Header: React.FC<HeaderProps> = ({
   const [isClient, setIsClient] = useState(false);
 
   const { notificationCount } = useNotification();
+  const [showNotificationDropdown, setShowNotificationDropdown] =
+    useState(false);
   const { isConnected } = useSocket();
 
   useEffect(() => {
@@ -64,6 +67,7 @@ const Header: React.FC<HeaderProps> = ({
       closeMobileMenu();
     }
   };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleNotificationClick = () => {
     if (userType === "serviceProvider") {
       navigate("/technician/dashboard?tab=notifications");
@@ -205,7 +209,9 @@ const Header: React.FC<HeaderProps> = ({
             </a>,
             <button
               key="notifications"
-              onClick={handleNotificationClick}
+              onClick={() =>
+                setShowNotificationDropdown(!showNotificationDropdown)
+              }
               className="relative px-3 hover:text-blue-600 transition-colors cursor-pointer flex items-center"
               title="Notifications"
             >
@@ -510,6 +516,16 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+      {isLoggedIn && user && (
+        <div className="relative">
+          <NotificationDropdown
+            userId={user._id}
+            userType={userType}
+            isOpen={showNotificationDropdown}
+            onClose={() => setShowNotificationDropdown(false)}
+          />
+        </div>
+      )}
     </header>
   );
 };
