@@ -17,5 +17,10 @@ router.post(
   protect,
   paymentController.refundToWallet.bind(paymentController)
 );
+router.post(
+  '/spare-parts/wallet',
+  protect,
+  paymentController.processSparePartsWalletPayment.bind(paymentController)
+);
 
 export default router;

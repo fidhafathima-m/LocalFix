@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// OrderDetails.tsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Footer from "../../../../../components/common/Footer";
@@ -12,16 +11,37 @@ import ServiceInformation from "./sections/ServiceInformation";
 import ServiceProgress from "./sections/ServiceProcess";
 import { technicianOrderService } from "../../../../../services/technician/technicianOrderService";
 import type { TechnicianOrder } from "../../../../../interface/technician/IOrderService";
-import { useAppSelector } from "../../../../../hooks/redux";
+import { useAppSelector, useAppDispatch } from "../../../../../hooks/redux";
 import { selectTechnicianProfile } from "../../../../../store/slices/technicianSlice";
+import { selectUser } from "../../../../../store/slices/authSlice";
+import { fetchTechnicianProfile } from "../../../../../store/thunks/technicianThunks";
 
 const OrderDetails: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
   const [order, setOrder] = useState<TechnicianOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const technicianProfile = useAppSelector(selectTechnicianProfile);
+  const user = useAppSelector(selectUser);
+
+  useEffect(() => {
+    const loadTechnicianProfile = async () => {
+      if (!technicianProfile && user) {
+        try {
+          console.log("Fetching technician profile...");
+          await dispatch(fetchTechnicianProfile()).unwrap();
+        } catch (error) {
+          console.error("Failed to fetch technician profile:", error);
+        }
+      }
+    };
+
+    loadTechnicianProfile();
+  }, [dispatch, technicianProfile, user]);
 
   useEffect(() => {
     const loadOrderDetails = async () => {
@@ -39,7 +59,7 @@ const OrderDetails: React.FC = () => {
         const response = await technicianOrderService.getTechnicianOrders(
           1,
           100
-        ); // Get more orders to find the specific one
+        );
 
         if (response.success && response.data.orders) {
           const foundOrder = response.data.orders.find(
@@ -65,6 +85,13 @@ const OrderDetails: React.FC = () => {
     loadOrderDetails();
   }, [orderId]);
 
+  // Debug logs
+  useEffect(() => {
+    console.log("Technician Profile:", technicianProfile);
+    console.log("Technician ID:", technicianProfile?._id);
+    console.log("User:", user);
+  }, [technicianProfile, user]);
+
   const handleUpdateOrderStatus = async (
     newStatus: string,
     reason?: string
@@ -77,11 +104,8 @@ const OrderDetails: React.FC = () => {
         newStatus,
         reason
       );
-
-      // Update local state
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setOrder((prev) => (prev ? { ...prev, status: newStatus as any } : null));
-
-      // You can add toast notification here if needed
     } catch (error) {
       console.error("Failed to update order status:", error);
       throw error;
@@ -123,7 +147,7 @@ const OrderDetails: React.FC = () => {
     );
   }
 
-  // Helper function to get customer info (similar to your utils/helpers)
+  // Helper function to get customer info
   const getCustomerInfo = (order: TechnicianOrder) => {
     if (typeof order.userId === "object" && order.userId !== null) {
       return {
@@ -137,25 +161,6 @@ const OrderDetails: React.FC = () => {
       email: "No email",
       phone: "No phone",
     };
-  };
-
-  // Helper function to format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-    }).format(amount);
-  };
-
-  // Helper function to format date
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const customerInfo = getCustomerInfo(order);
@@ -181,7 +186,7 @@ const OrderDetails: React.FC = () => {
         <ActionButtons
           order={order}
           onUpdateOrderStatus={handleUpdateOrderStatus}
-          technicianId={technicianProfile?._id}
+          technicianId={technicianProfile?._id || user?._id}
         />
       </main>
       <Footer />

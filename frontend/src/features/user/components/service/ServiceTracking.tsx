@@ -24,6 +24,9 @@ import { useTechnicianLocation } from "../../../../hooks/useTechnicianLocation";
 import LiveMap from "../../../../components/common/LiveMap";
 import { useGeocodedAddress } from "../../../../hooks/useGeocodedAddress";
 import { useSocket } from "../../../../context/SocketContext";
+import type { SparePartsRequest } from "../../../../interface/user/ISpareParts";
+import { UserSparePartsService } from "../../../../services/user/sparePartsService";
+import SparePartsSection from "./SparePartsSection";
 
 const ServiceTrackingComponent: React.FC = () => {
   const navigate = useNavigate();
@@ -36,12 +39,37 @@ const ServiceTrackingComponent: React.FC = () => {
   const { socket } = useSocket();
   const [orderId, setOrderId] = useState<string | undefined>();
 
+  const [spareParts, setSpareParts] = useState<SparePartsRequest[]>([]);
+  const [sparePartsLoading, setSparePartsLoading] = useState(false);
+
   useEffect(() => {
     if (trackingData?._id) {
       setOrderId(trackingData._id);
       console.log("🔑 Using orderId for tracking:", trackingData._id);
     }
   }, [trackingData]);
+
+  useEffect(() => {
+    if (trackingData?._id) {
+      fetchSparePartsData();
+    }
+  }, [trackingData]);
+
+  const fetchSparePartsData = async () => {
+    if (!trackingData?._id) return;
+
+    try {
+      setSparePartsLoading(true);
+      const sparePartsData = await UserSparePartsService.getSparePartsByOrder(
+        trackingData._id
+      );
+      setSpareParts(sparePartsData);
+    } catch (error) {
+      console.error("Error fetching spare parts:", error);
+    } finally {
+      setSparePartsLoading(false);
+    }
+  };
 
   const {
     technicianLocation,
@@ -105,6 +133,7 @@ const ServiceTrackingComponent: React.FC = () => {
           setOrderId(response.data._id);
           console.log("🎯 OrderId set from tracking data:", response.data._id);
         }
+        await fetchSparePartsData();
       } else {
         toast.error("Failed to fetch tracking details");
         navigate("/orders");
@@ -337,6 +366,35 @@ const ServiceTrackingComponent: React.FC = () => {
                 </div>
               </div>
             </div>
+            {/* Show loading state for spare parts */}
+            {sparePartsLoading && (
+              <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-3 text-gray-600">
+                    Loading spare parts information...
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Show empty state if no spare parts but not loading */}
+            {!sparePartsLoading &&
+              spareParts.length === 0 &&
+              trackingData?.status === "completed" && (
+                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                  <div className="text-center py-8">
+                    <BuildOutlined className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                      No Additional Parts
+                    </h3>
+                    <p className="text-gray-500">
+                      No spare parts were used for this service.
+                    </p>
+                  </div>
+                </div>
+              )}
+
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-semibold mb-3">Technician</h3>
               <div className="flex items-center gap-3 mb-4">
@@ -383,6 +441,11 @@ const ServiceTrackingComponent: React.FC = () => {
               </div>
             </div>
           </div>
+          <SparePartsSection
+            spareParts={spareParts}
+            loading={sparePartsLoading}
+            orderStatus={trackingData.status}
+          />
         </div>
         {/* Service Status Timeline */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

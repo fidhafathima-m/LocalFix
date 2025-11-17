@@ -37,15 +37,21 @@ export const TECHNICIAN_ROUTES = {
   ORDER: {
     GET_TECHNICIAN_ORDERS: (page: number, limit: number) =>
       `/technician/orders?page=${page}&limit=${limit}`,
-    GET_ORDER_BY_ID: (orderId: string) =>
-      `/technician/orders/${orderId}`,
+    GET_ORDER_BY_ID: (orderId: string) => `/technician/orders/${orderId}`,
     UPDATE_ORDER_STATUS: (orderId: string) =>
       `/technician/orders/${orderId}/status`,
-    GET_TECHNICIAN_STATS: () =>
-      `/technician/orders/stats`,
+    GET_TECHNICIAN_STATS: () => `/technician/orders/stats`,
     GET_ORDER_BY_STATUS: (status: string, page: number, limit: number) =>
       `/technician/orders?status=${status}&page=${page}&limit=${limit}`,
     GET_UPCOMING_ORDERS: () =>
       `/technician/orders?status=pending,confirmed,in_progress&limit=10`,
+  },
+
+  SPARE_PARTS: {
+    REQUESTS: "/technician/spare-parts/requests", // POST
+    REQUESTS_BY_ORDER: (orderId: string) =>
+      `/technician/spare-parts/orders/${orderId}/requests`, // GET
+    UPDATE_STATUS: (requestId: string) =>
+      `/technician/spare-parts/requests/${requestId}/status`, // PUT
   },
 } as const;

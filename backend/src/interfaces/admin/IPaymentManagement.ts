@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 export interface IPayment extends Document {
   bookingId: Types.ObjectId;
   userId: Types.ObjectId;
-  paymentProvider: 'razorpay' | 'stripe' | 'paypal';
+  paymentProvider: 'razorpay' | 'stripe' | 'paypal' | 'wallet';
   providerOrderId: string;
   providerPaymentId?: string;
   amount: number;
@@ -34,7 +34,7 @@ export interface IPayment extends Document {
 export interface IPaymentCreate {
   bookingId: Types.ObjectId;
   userId: Types.ObjectId;
-  paymentProvider: 'razorpay' | 'stripe' | 'paypal';
+  paymentProvider: 'razorpay' | 'stripe' | 'paypal' | 'wallet';
   providerOrderId: string;
   providerPaymentId?: string;
   amount: number;

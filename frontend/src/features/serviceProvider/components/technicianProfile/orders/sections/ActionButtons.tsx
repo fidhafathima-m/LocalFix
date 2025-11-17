@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+// ActionButtons.tsx
+import React, { useState, useEffect } from "react";
 import type { TechnicianOrder } from "../../../../../../interface/technician/IOrderService";
 import { SparePartsModal } from "./SparePartsModal";
 import toast from "react-hot-toast";
+import { SparePartsService } from "../../../../../../services/technician/sparePartsService";
 
 interface SparePart {
   id: string;
@@ -23,13 +25,73 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   technicianId,
 }) => {
   const [showSparePartsModal, setShowSparePartsModal] = useState(false);
+  const [hasExistingRequest, setHasExistingRequest] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  console.log("ServiceId: ", order.serviceId);
+  // Check if spare parts request already exists
+  useEffect(() => {
+    const checkExistingRequest = async () => {
+      if (!order._id) return;
 
-  React.useEffect(() => {
-    console.log("Full order object:", order);
-    console.log("Available keys:", Object.keys(order));
-  }, [order]);
+      try {
+        setLoading(true);
+        const request = await SparePartsService.getSparePartsRequestByOrder(
+          order._id
+        );
+        // If any request exists (regardless of status), set hasExistingRequest to true
+        setHasExistingRequest(!!request);
+      } catch (error) {
+        console.error("Error checking spare parts request:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Only check when order is in statuses where spare parts can be requested
+    if (order.status === "in_progress" || order.status === "on_the_way") {
+      checkExistingRequest();
+    }
+  }, [order._id, order.status]);
+
+  // Enhanced function to get technician ID
+  const getTechnicianId = () => {
+    console.log("Technician ID from props:", technicianId);
+
+    // Try from props first
+    if (technicianId) {
+      return technicianId;
+    }
+
+    // Try from localStorage (fallback)
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        const id = user.id || user._id || user.userId;
+        if (id) {
+          console.log("Found technician ID from localStorage:", id);
+          return id;
+        }
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+
+    // Try other storage locations
+    const techId =
+      localStorage.getItem("technicianId") ||
+      sessionStorage.getItem("technicianId") ||
+      localStorage.getItem("userId") ||
+      sessionStorage.getItem("userId");
+
+    if (techId) {
+      console.log("Found technician ID from storage:", techId);
+      return techId;
+    }
+
+    console.error("No technician ID found in any storage");
+    return null;
+  };
 
   const handleStatusUpdate = async (newStatus: string) => {
     try {
@@ -54,31 +116,70 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     try {
       console.log("Selected spare parts:", parts);
       console.log("Order ID:", order._id);
-      console.log("Technician ID:", technicianId);
 
-      // Here you would typically send the spare parts request to your backend
-      // You might need to create a new endpoint like:
-      // await technicianOrderService.requestSpareParts(order._id, parts, technicianId);
+      const currentTechnicianId = getTechnicianId();
+      console.log("Final Technician ID:", currentTechnicianId);
 
-      // For now, we'll just log and show success
-      const totalAmount = parts.reduce(
-        (sum, part) => sum + part.price * part.quantity,
-        0
+      if (!currentTechnicianId) {
+        toast.error("Technician ID not found. Please log in again.");
+        return;
+      }
+
+      // Transform parts to match backend DTO
+      const requestItems = parts.map((part) => ({
+        itemId: part.id,
+        name: part.name,
+        price: part.price,
+        quantity: part.quantity,
+      }));
+
+      const createDto = {
+        orderId: order._id,
+        technicianId: currentTechnicianId,
+        items: requestItems,
+        technicianNotes: `Spare parts requested for ${order.serviceName}`,
+      };
+
+      console.log("Final DTO to send:", createDto);
+
+      // Call the service
+      const response = await SparePartsService.createSparePartsRequest(
+        createDto
       );
 
-      alert(
-        `Spare parts request submitted successfully!\nTotal Amount: ₹${totalAmount}\nItems: ${parts.length}`
-      );
-
-      // Close the modal
+      toast.success("Spare parts request submitted successfully!");
       setShowSparePartsModal(false);
-    } catch (error) {
+      setHasExistingRequest(true); // Hide the button after successful submission
+
+      console.log("Spare parts request created:", response);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error("Failed to submit spare parts request:", error);
-      alert("Failed to submit spare parts request. Please try again.");
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to submit spare parts request";
+      toast.error(errorMessage);
     }
   };
 
-  // Show different buttons based on current status
+  // Simple function to render spare parts button only if no existing request
+  const renderSparePartsButton = () => {
+    // Don't show button if loading or if request already exists
+    if (loading || hasExistingRequest) {
+      return null;
+    }
+
+    return (
+      <button
+        onClick={() => setShowSparePartsModal(true)}
+        className="w-full bg-pink-600 text-white py-3 rounded-lg font-medium hover:bg-pink-700 transition-colors flex items-center justify-center gap-2"
+      >
+        Request Spare Parts
+      </button>
+    );
+  };
+
   const renderButtons = () => {
     switch (order.status) {
       case "pending":
@@ -150,12 +251,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             >
               Mark as "Reached Location"
             </button>
-            <button
-              onClick={() => setShowSparePartsModal(true)}
-              className="w-full bg-pink-600 text-white py-3 rounded-lg font-medium hover:bg-pink-700"
-            >
-              Request spare parts
-            </button>
+            {renderSparePartsButton()}
             <button
               onClick={handleCancelJob}
               className="w-full text-red-600 py-3 rounded-lg font-medium hover:bg-red-50"
@@ -174,12 +270,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             >
               Mark as Completed
             </button>
-            <button
-              onClick={() => setShowSparePartsModal(true)}
-              className="w-full bg-pink-600 text-white py-3 rounded-lg font-medium hover:bg-pink-700"
-            >
-              Request spare parts
-            </button>
+            {renderSparePartsButton()}
             <button
               onClick={handleCancelJob}
               className="w-full text-red-600 py-3 rounded-lg font-medium hover:bg-red-50"
@@ -193,6 +284,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         return (
           <div className="text-center py-4">
             <p className="text-green-600 font-medium">Order Completed</p>
+            {hasExistingRequest && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  Spare parts were requested for this service
+                </p>
+              </div>
+            )}
           </div>
         );
 
@@ -219,6 +317,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     <>
       <div className="mt-6 space-y-3">{renderButtons()}</div>
 
+      {/* Spare Parts Modal */}
       <SparePartsModal
         isOpen={showSparePartsModal}
         onClose={() => setShowSparePartsModal(false)}

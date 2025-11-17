@@ -14,23 +14,31 @@ import {
 import { ILogger } from '@/interfaces/utils/ILogger';
 import { IWalletRepository } from '../interfaces/repository/user/IWalletRepository';
 import { IBookingRepository } from '../interfaces/repository/user/IBookingRepository';
+import { ISparePartsRequestRepository } from '../interfaces/repository/technician/ISparePartsRequestRepository';
+import { IOrderRepository } from '../interfaces/repository/user/IOrderRepository';
 
 export class PaymentService {
   private _logger: ILogger;
   private _paymentRepository: IPaymentRepository;
   private _walletRepository: IWalletRepository;
   private _bookingRepository: IBookingRepository;
+  private _sparePartsRequestRepository: ISparePartsRequestRepository;
+  private _orderRepository: IOrderRepository;
 
   constructor(
     paymentRepository: IPaymentRepository,
     logger: ILogger,
     walletRepository: IWalletRepository,
-    bookingRepository: IBookingRepository
+    bookingRepository: IBookingRepository,
+    sparePartRequestRepository: ISparePartsRequestRepository,
+    orderRepository: IOrderRepository
   ) {
     this._logger = logger;
     this._paymentRepository = paymentRepository;
     this._walletRepository = walletRepository;
     this._bookingRepository = bookingRepository;
+    this._sparePartsRequestRepository = sparePartRequestRepository;
+    this._orderRepository = orderRepository;
   }
 
   async createPaymentOrder(
@@ -335,6 +343,244 @@ export class PaymentService {
         error: errorMessage,
       });
       return ResponseHelper.error('Failed to process wallet refund');
+    }
+  }
+
+  async processSparePartsWalletPayment(
+    userId: string,
+    orderId: string,
+    requestId: string,
+    amount: number
+  ): Promise<ApiResponse<any>> {
+    const context = {
+      operation: 'processSparePartsWalletPayment',
+      userId,
+      orderId,
+      requestId,
+      amount,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info('Processing spare parts wallet payment', context);
+
+      // Validate spare parts request exists and belongs to user
+      const sparePartsRequest =
+        await this._sparePartsRequestRepository.findById(requestId);
+
+      if (!sparePartsRequest) {
+        this._logger.warn('Spare parts request not found', context);
+        return ResponseHelper.notFound('Spare parts request not found');
+      }
+
+      // Debug: Check what sparePartsRequest.orderId contains
+      this._logger.info('Spare parts request orderId structure:', {
+        requestOrderId: sparePartsRequest.orderId,
+        requestOrderIdType: typeof sparePartsRequest.orderId,
+        isObject: typeof sparePartsRequest.orderId === 'object',
+        isString: typeof sparePartsRequest.orderId === 'string',
+      });
+
+      // Safe order ID extraction from spare parts request
+      let requestOrderId: string;
+
+      if (
+        sparePartsRequest.orderId &&
+        typeof sparePartsRequest.orderId === 'object'
+      ) {
+        // If orderId is a populated object, get the _id from it
+        const orderObj = sparePartsRequest.orderId as Record<string, any>;
+        requestOrderId = orderObj._id?.toString() || orderObj.id?.toString();
+      } else if (sparePartsRequest.orderId) {
+        // If orderId is already a string, ObjectId, or other primitive
+        requestOrderId = String(sparePartsRequest.orderId);
+      } else {
+        this._logger.warn('No orderId found in spare parts request', context);
+        return ResponseHelper.badRequest(
+          'Invalid order data in spare parts request'
+        );
+      }
+
+      // Verify the order belongs to the user
+      const order = await this._orderRepository.findById(orderId);
+      if (!order) {
+        this._logger.warn('Order not found', context);
+        return ResponseHelper.notFound('Order not found');
+      }
+
+      // Safe user ID extraction from order
+      let orderUserId: string;
+
+      if (order.userId && typeof order.userId === 'object') {
+        // If userId is a populated object, get the _id from it
+        const userObj = order.userId as Record<string, any>;
+        orderUserId = userObj._id?.toString() || userObj.id?.toString();
+      } else if (order.userId) {
+        // If userId is already a string, ObjectId, or other primitive
+        orderUserId = String(order.userId);
+      } else {
+        this._logger.warn('No userId found in order', context);
+        return ResponseHelper.badRequest('Invalid order user data');
+      }
+
+      // Validate we got valid IDs
+      if (!orderUserId) {
+        this._logger.warn('Could not extract valid user ID from order', {
+          ...context,
+          extractedUserId: orderUserId,
+        });
+        return ResponseHelper.badRequest('Invalid user data in order');
+      }
+
+      if (!requestOrderId) {
+        this._logger.warn(
+          'Could not extract valid order ID from spare parts request',
+          {
+            ...context,
+            extractedOrderId: requestOrderId,
+          }
+        );
+        return ResponseHelper.badRequest(
+          'Invalid order data in spare parts request'
+        );
+      }
+
+      // Check if order belongs to the user
+      if (orderUserId !== userId) {
+        this._logger.warn('User not authorized for this order', {
+          ...context,
+          orderUserId,
+          currentUserId: userId,
+        });
+        return ResponseHelper.unauthorized('Not authorized for this order');
+      }
+
+      // Check if spare parts request belongs to the order
+      if (requestOrderId !== orderId) {
+        this._logger.warn('Spare parts request does not belong to order', {
+          ...context,
+          requestOrderId,
+          expectedOrderId: orderId,
+        });
+        return ResponseHelper.badRequest(
+          'Invalid spare parts request for this order'
+        );
+      }
+
+      // Check if request is still pending
+      if (sparePartsRequest.status !== 'pending') {
+        this._logger.warn('Spare parts request already processed', {
+          ...context,
+          currentStatus: sparePartsRequest.status,
+        });
+        return ResponseHelper.badRequest(
+          'Spare parts request already processed'
+        );
+      }
+
+      // Verify amount matches
+      if (sparePartsRequest.totalAmount !== amount) {
+        this._logger.warn('Amount mismatch', {
+          ...context,
+          expectedAmount: sparePartsRequest.totalAmount,
+          providedAmount: amount,
+        });
+        return ResponseHelper.badRequest(
+          'Amount does not match spare parts request'
+        );
+      }
+
+      // Get user's wallet balance
+      const walletBalance =
+        await this._walletRepository.getWalletBalance(userId);
+
+      if (walletBalance < amount) {
+        this._logger.warn('Insufficient wallet balance', {
+          ...context,
+          walletBalance,
+          requiredAmount: amount,
+        });
+        return ResponseHelper.badRequest('Insufficient wallet balance');
+      }
+
+      // Deduct amount from wallet
+      const newBalance = walletBalance - amount;
+      await this._walletRepository.updateWalletBalance(userId, newBalance);
+
+      // Add wallet transaction for spare parts payment
+      await this._walletRepository.addWalletTransaction(userId, {
+        txId: `spare_parts_${Date.now()}`,
+        type: 'debit',
+        amount: amount,
+        balanceAfter: newBalance,
+        description: `Payment for spare parts - Order ${order.orderCode}`,
+        status: 'completed',
+        metadata: {
+          orderId: orderId,
+          requestId: requestId,
+          orderCode: order.orderCode,
+          serviceName: order.serviceName,
+          paymentType: 'spare_parts',
+          itemsCount: sparePartsRequest.items.length,
+          totalAmount: amount,
+        },
+      });
+
+      // Create payment record for spare parts
+      const paymentModel: Partial<IPayment> = {
+        orderId: new Types.ObjectId(orderId),
+        userId: new Types.ObjectId(userId),
+        paymentProvider: 'wallet' as const,
+        providerOrderId: `spare_parts_${requestId}_${Date.now()}`,
+        amount: amount,
+        currency: 'INR',
+        type: 'spare_part' as const,
+        sparePartId: new Types.ObjectId(requestId),
+        status: 'success' as const,
+        confirmedAt: new Date(),
+        rawResponse: {
+          paymentType: 'wallet',
+          sparePartsRequestId: requestId,
+          items: sparePartsRequest.items,
+        },
+      };
+
+      await this._paymentRepository.create(paymentModel);
+
+      // Update spare parts request status to approved
+      await this._sparePartsRequestRepository.updateStatus(
+        requestId,
+        'approved',
+        'Wallet payment completed successfully'
+      );
+
+      this._logger.info('Spare parts wallet payment processed successfully', {
+        ...context,
+        newBalance,
+        itemsCount: sparePartsRequest.items.length,
+      });
+
+      return ResponseHelper.success(
+        'Spare parts payment processed successfully',
+        {
+          amount,
+          newBalance,
+          orderId,
+          requestId,
+          orderCode: order.orderCode,
+          itemsCount: sparePartsRequest.items.length,
+        }
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to process spare parts wallet payment', {
+        ...context,
+        error: errorMessage,
+      });
+      return ResponseHelper.error(
+        'Failed to process spare parts wallet payment'
+      );
     }
   }
 }

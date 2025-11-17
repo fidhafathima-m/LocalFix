@@ -145,8 +145,6 @@ const Checkout: React.FC = () => {
     try {
       setProcessingPayment(true);
 
-      // First create booking record
-
       // Process wallet payment
       const paymentResponse = await paymentService.processWalletPayment({
         bookingId,
@@ -154,7 +152,7 @@ const Checkout: React.FC = () => {
       });
 
       if (paymentResponse.success && paymentResponse.data) {
-        // Create order from booking
+        // Create order from booking - status should be 'pending' initially
         const orderResponse = await orderService.createOrderFromBooking({
           bookingId,
           paymentData: {
@@ -167,15 +165,17 @@ const Checkout: React.FC = () => {
         });
 
         if (orderResponse.success) {
-          // Update booking status to 'accepted'
+          // Update booking status to 'pending' (not 'accepted')
           await bookingService.updateBookingStatus(
             bookingId,
-            "accepted",
-            "user",
-            "Wallet payment completed successfully"
+            "pending", // CHANGED: from 'accepted' to 'pending'
+            "system",
+            "Payment completed successfully, waiting for technician acceptance"
           );
 
-          toast.success("Payment successful! Booking confirmed.");
+          toast.success(
+            "Payment successful! Technician will confirm your booking soon."
+          );
           navigate("/payment-success", {
             replace: true,
             state: {
@@ -187,6 +187,7 @@ const Checkout: React.FC = () => {
               amount: pricing.total,
               paymentMethod: "wallet",
               newBalance: paymentResponse.data.newBalance,
+              status: "pending", // Let user know it's pending technician acceptance
             },
           });
         } else {
@@ -203,7 +204,6 @@ const Checkout: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Wallet payment error:", error);
-
       // Update booking status to cancelled
       if (bookingId) {
         await bookingService.updateBookingStatus(
@@ -213,7 +213,6 @@ const Checkout: React.FC = () => {
           `Wallet payment failed: ${error.message}`
         );
       }
-
       toast.error(error.message || "Wallet payment failed");
       setProcessingPayment(false);
     }
@@ -389,12 +388,14 @@ const Checkout: React.FC = () => {
                 // Update booking status to 'accepted'
                 await bookingService.updateBookingStatus(
                   bookingId,
-                  "accepted",
+                  "pending",
                   "user",
                   "Payment completed successfully"
                 );
 
-                toast.success("Payment successful! Booking confirmed.");
+                toast.success(
+                  "Payment successful! Technician will confirm your booking soon."
+                );
                 navigate("/payment-success", {
                   replace: true,
                   state: {
@@ -409,6 +410,7 @@ const Checkout: React.FC = () => {
                     paymentMethod: "online",
                     problemDescription: bookingData!.problemDescription,
                     address: bookingData!.address,
+                    status: "pending",
                   },
                 });
               } else {
@@ -570,6 +572,7 @@ const Checkout: React.FC = () => {
           time: bookingData!.time,
           amount: pricing.total,
           paymentMethod: "cod",
+          status: "pending",
         },
       });
     } catch (error: any) {

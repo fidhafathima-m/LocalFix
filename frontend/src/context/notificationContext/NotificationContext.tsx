@@ -128,6 +128,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       "new-notification",
       (data: { notification: any; unreadCount: number }) => {
         console.log("📢 Received new live notification:", data);
+        console.log("Notification data:", data.notification.data);
 
         // Update notification count in real-time
         setNotificationCount(data.unreadCount);
@@ -137,11 +138,21 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
         // Show browser notification
         if (Notification.permission === "granted" && data.notification) {
-          new Notification(data.notification.title, {
-            body: data.notification.message,
-            icon: "/logo.png",
-            tag: "localfix-notification",
-          });
+          const browserNotification = new Notification(
+            data.notification.title,
+            {
+              body: data.notification.message,
+              icon: "/logo.png",
+              tag: "localfix-notification",
+              data: data.notification.data,
+            }
+          );
+          browserNotification.onclick = () => {
+            window.focus();
+            if (data.notification.data?.actionUrl) {
+              window.location.href = data.notification.data.actionUrl;
+            }
+          };
         }
       }
     );

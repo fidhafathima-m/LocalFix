@@ -38,6 +38,7 @@ import {
   addressController,
   userLocationController,
 } from './config/container';
+import createSparePartsRequestRoutes from './routes/technician/sparePartsRoutes';
 
 connectDB();
 
@@ -53,6 +54,7 @@ const {
   bookingController,
   technicianProfileController,
   paymentManagementController,
+  sparePartsRequestController,
 } = createSocketDependentServices(server);
 
 const adminTechnicianRoutes = createTechnicianRoutes(
@@ -74,6 +76,9 @@ const userProfileRoutes = createUserProfileRoutes(
   userProfileController,
   addressController,
   reviewController
+);
+const sparePartsRequestRoutes = createSparePartsRequestRoutes(
+  sparePartsRequestController
 );
 
 app.use(morgan('combined', { stream }));
@@ -105,6 +110,7 @@ app.use('/api/admin/reports', dashboardRoutes);
 app.use('/api/technician-application', technicianRoutes);
 app.use('/api/technician/profile', technicianProfileRoutes);
 app.use('/api/technician/orders', technicianOrderRoutes);
+app.use('/api/technician/spare-parts', sparePartsRequestRoutes);
 app.use('/api/technician', technicianDashboardRoutes);
 app.use('/api/public/user', pubicUserRoutes);
 app.use('/api/user', userProfileRoutes);

@@ -1,9 +1,10 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IPayment extends Document {
+  orderId: Types.ObjectId;
   bookingId: Types.ObjectId;
   userId: Types.ObjectId;
-  paymentProvider: 'razorpay' | 'stripe' | 'paypal';
+  paymentProvider: 'razorpay' | 'stripe' | 'paypal' | 'wallet';
   providerOrderId: string;
   providerPaymentId?: string;
   amount: number;
@@ -30,10 +31,14 @@ export interface IPayment extends Document {
 
 const PaymentSchema = new Schema<IPayment>(
   {
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Order',
+    },
     bookingId: {
       type: Schema.Types.ObjectId,
       ref: 'Booking',
-      required: true,
+      required: false,
     },
     userId: {
       type: Schema.Types.ObjectId,
@@ -42,7 +47,7 @@ const PaymentSchema = new Schema<IPayment>(
     },
     paymentProvider: {
       type: String,
-      enum: ['razorpay', 'stripe', 'paypal'],
+      enum: ['razorpay', 'stripe', 'paypal', 'wallet'],
       default: 'razorpay',
     },
     providerOrderId: {

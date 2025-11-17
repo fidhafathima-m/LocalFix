@@ -1,4 +1,4 @@
-import { IOrder, IOrderPopulated } from "@/interfaces/user/IOrder";
+import { IOrder, IOrderPopulated } from '@/interfaces/user/IOrder';
 
 export interface IOrderRepository {
   createFromBooking(
@@ -18,10 +18,6 @@ export interface IOrderRepository {
     reason?: string
   ): Promise<IOrder | null>;
   addOrderItem(orderId: string, itemData: any): Promise<IOrder | null>;
-  createFromBooking(
-    bookingId: string,
-    paymentData: any
-  ): Promise<IOrder | null>;
   findByTechnicianId(
     technicianId: string,
     page: number,
@@ -50,9 +46,9 @@ export interface IOrderRepository {
   updatePaymentDetails(
     orderId: string,
     paymentData: {
-      method: "online" | "cod";
+      method: 'online' | 'cod';
       amount: number;
-      status: "pending" | "paid" | "failed";
+      status: 'pending' | 'paid' | 'failed';
       transactionId?: string;
       paidAt?: Date;
     }

@@ -6,7 +6,9 @@ import {
   CloseOutlined,
   EditOutlined,
   FmdGoodOutlined,
+  ArrowForwardOutlined,
 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import type { UserData } from "./types";
 import { useNotification } from "../../../../../context/notificationContext/NotificationContext";
@@ -20,6 +22,7 @@ interface NotificationsSectionProps {
 export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
   userData,
 }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -77,6 +80,42 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
     }
   };
 
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read first
+    if (!notification.isRead) {
+      await markNotificationAsRead(notification._id);
+    }
+
+    // Handle navigation based on notification type and data
+    if (notification.data?.actionUrl) {
+      // Navigate to the specific action URL
+      navigate(notification.data.actionUrl);
+    } else {
+      // Fallback navigation based on notification type
+      switch (notification.type) {
+        case "spare_parts_request":
+          if (notification.data?.orderId && notification.data?.requestId) {
+            navigate(
+              `/orders/${notification.data.orderId}/spare-parts/${notification.data.requestId}/approval`
+            );
+          }
+          break;
+        case "booking_confirmed":
+        case "order_status_update":
+          if (notification.data?.orderId) {
+            navigate(`/orders/${notification.data.orderId}`);
+          }
+          break;
+        case "payment_success":
+          navigate("/payments");
+          break;
+        default:
+          // Default to orders page
+          navigate("/orders");
+      }
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "payment_success":
@@ -99,6 +138,8 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
         return (
           <NotificationsNoneOutlined className="w-5 h-5 text-yellow-500" />
         );
+      case "spare_parts_request":
+        return <EditOutlined className="w-5 h-5 text-pink-600" />;
       default:
         return <NotificationsNoneOutlined className="w-5 h-5 text-gray-600" />;
     }
@@ -120,8 +161,26 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
         return "bg-green-100";
       case "reminder":
         return "bg-yellow-100";
+      case "spare_parts_request":
+        return "bg-pink-100";
       default:
         return "bg-gray-100";
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getActionButtonText = (type: string, data: any) => {
+    switch (type) {
+      case "spare_parts_request":
+        return "Review & Approve";
+      case "booking_confirmed":
+        return "View Booking";
+      case "payment_success":
+        return "View Payment";
+      case "order_status_update":
+        return "View Order";
+      default:
+        return "View Details";
     }
   };
 
@@ -195,11 +254,7 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
                   notification.isRead
                     ? "bg-white border-gray-100"
                     : "bg-blue-50 border-blue-200"
-                } relative cursor-pointer hover:shadow-sm transition-all duration-200`}
-                onClick={() =>
-                  !notification.isRead &&
-                  markNotificationAsRead(notification._id)
-                }
+                } relative hover:shadow-sm transition-all duration-200 group`}
               >
                 <div
                   className={`p-2 rounded-full ${getNotificationBgColor(
@@ -208,7 +263,7 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
                 >
                   {getNotificationIcon(notification.type)}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p
                     className={`font-medium ${
                       notification.isRead ? "text-gray-800" : "text-gray-900"
@@ -219,6 +274,16 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
                   <p className="text-gray-600 text-sm mt-1">
                     {notification.message}
                   </p>
+
+                  {/* Action Button */}
+                  <button
+                    onClick={() => handleNotificationClick(notification)}
+                    className="mt-2 flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
+                  >
+                    {getActionButtonText(notification.type, notification.data)}
+                    <ArrowForwardOutlined className="w-4 h-4" />
+                  </button>
+
                   <p className="text-gray-400 text-xs mt-2">
                     {formatNotificationDate(notification.createdAt)}
                   </p>

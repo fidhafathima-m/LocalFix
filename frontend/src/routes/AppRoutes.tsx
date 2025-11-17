@@ -110,6 +110,12 @@ const TechnicianProfileEdit = lazy(
 const OrderDetails = lazy(
   () => import("../features/serviceProvider/pages/OrderDetailsPage")
 );
+const SparePartsApproval = lazy(
+  () => import("../features/user/components/spareParts/QuoteApproval")
+);
+const SparePartsPayment = lazy(
+  () => import("../features/user/components/spareParts/PartsPayment")
+);
 
 // AdminRoutes imports
 const AdminLoginPage = lazy(
@@ -205,6 +211,14 @@ const AppRoutes = () => {
             <Route path="/reschedule-success" element={<RescheduleSuccess />} />
             <Route path="/leave-a-review/:orderId" element={<LeaveReview />} />
             <Route path="/review-success" element={<ReviewSuccess />} />
+            <Route
+              path="/orders/:orderId/spare-parts/:requestId/approval"
+              element={<SparePartsApproval />}
+            />
+            <Route
+              path="/orders/:orderId/spare-parts/:requestId/payment"
+              element={<SparePartsPayment />}
+            />
 
             {/* technicians routes */}
             <Route path="/technicians" element={<TechHome />} />

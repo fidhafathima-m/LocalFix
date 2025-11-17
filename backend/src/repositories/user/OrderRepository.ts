@@ -55,7 +55,7 @@ export class OrderRepository implements IOrderRepository {
 
       let orderStatus = 'pending';
       if (paymentData.status === 'paid') {
-        orderStatus = 'confirmed';
+        orderStatus = 'pending';
       } else if (paymentData.status === 'failed') {
         orderStatus = 'cancelled';
       }

@@ -404,6 +404,36 @@ export class SocketService {
     });
   }
 
+  // In your SocketService, update the notifySparePartsRequest method
+  public async notifySparePartsRequest(
+    customerId: string,
+    technicianName: string,
+    serviceType: string,
+    orderId: string,
+    totalAmount: number,
+    itemsCount: number,
+    requestId: string // Add requestId for the approval link
+  ) {
+    return this.sendLiveNotification(customerId, {
+      userId: customerId,
+      userType: 'customer',
+      type: 'spare_parts_request',
+      title: 'Spare Parts Request 🔧',
+      message: `${technicianName} has requested ${itemsCount} spare parts for your ${serviceType} service. Total: ₹${totalAmount}`,
+      priority: 'high',
+      data: {
+        orderId,
+        requestId, // Add this for the approval page
+        serviceType,
+        technicianName,
+        totalAmount,
+        itemsCount,
+        actionUrl: `/orders/${orderId}/spare-parts/${requestId}/approval`, // Updated URL
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+
   private async getUserUnreadCount(userId: string): Promise<number> {
     const result = await this._notificationService.getUnreadCount(userId);
     return result.count;

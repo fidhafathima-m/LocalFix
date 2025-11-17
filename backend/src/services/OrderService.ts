@@ -10,6 +10,7 @@ import { ITechnicianRepository } from '@/interfaces/repository/technician/ITechn
 import { INotificationService } from '@/interfaces/services/INotificationService';
 import { ILogger } from '@/interfaces/utils/ILogger';
 import { SocketService } from './SocketService';
+import { loggers } from 'winston';
 
 export class OrderService implements IOrderService {
   private _logger: ILogger;
@@ -200,7 +201,7 @@ export class OrderService implements IOrderService {
 
         // Only send notifications for successful payments
         if (paymentData.status === 'paid') {
-          await this.notifyUserAboutOrderStatusChange(order, 'confirmed');
+          await this.notifyUserAboutOrderStatusChange(order, 'pending');
           await this.notifyTechnicianAboutNewOrder(order);
         } else if (paymentData.status === 'failed') {
           // Send failure notification
@@ -209,6 +210,7 @@ export class OrderService implements IOrderService {
       }
 
       const orderDto = this.mapToDto(order);
+      this._logger.debug('Order dto: ', orderDto);
       return ResponseHelper.created(
         existingOrder
           ? 'Order updated successfully'

@@ -110,4 +110,16 @@ export const paymentService = {
       };
     }
   },
+  async processSparePartsWalletPayment(data: {
+    orderId: string;
+    requestId: string;
+    amount: number;
+  }): Promise<
+    ApiResponse<{ newBalance: number; orderCode: string; itemsCount: number }>
+  > {
+    const response = await api.post<
+      ApiResponse<{ newBalance: number; orderCode: string; itemsCount: number }>
+    >("/payments/spare-parts/wallet", data);
+    return response.data;
+  },
 };

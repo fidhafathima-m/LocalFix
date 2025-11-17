@@ -36,6 +36,7 @@ const NotificationSchema = new Schema<INotificationDocument>(
         'order_status_update',
         'review_created',
         'payment_refund',
+        'spare_parts_request',
 
         // Technician notifications
         'application_approved',

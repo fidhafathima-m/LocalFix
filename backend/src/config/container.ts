@@ -1,7 +1,6 @@
 import { UserManagementRepository } from '../repositories/admin/UserManagementRepository';
 import { UserManagementService } from '../services/UserManagementService';
 import { UserManagementController } from '../controllers/admin/userManagementController';
-// ... all your other imports
 
 import { LoggerService } from '../services/LoggerService';
 import { SocketService } from '../services/SocketService';
@@ -77,6 +76,9 @@ import { DashboardController } from '../controllers/admin/DashboardController';
 import { ReportRepository } from '../repositories/admin/ReportRepository';
 import { ReportService } from '../services/ReportService';
 import { ReportController } from '../controllers/admin/reportManagementController';
+import { SparePartsRequestRepository } from '../repositories/technician/SparePartsRequestRepository';
+import { SparePartsRequestService } from '../services/SparePartsReuestService';
+import { SparePartsRequestController } from '../controllers/technician/sparePartsRequestController';
 
 const loggerService = new LoggerService();
 
@@ -212,13 +214,17 @@ const userLocationController = new UserLocationController(
 
 const bookingRepository = new BookingRepository();
 
+const sparePartsRequestRepositry = new SparePartsRequestRepository();
+const orderRepository = new OrderRepository();
 // Payment dependencies
 const paymentRepository = new PaymentRepository();
 const paymentService = new PaymentService(
   paymentRepository,
   loggerService,
   walletRepository,
-  bookingRepository
+  bookingRepository,
+  sparePartsRequestRepositry,
+  orderRepository
 );
 const paymentController = new PaymentController(paymentService, loggerService);
 
@@ -286,7 +292,6 @@ export const createSocketDependentServices = (server: any) => {
     paymentManagementService,
     loggerService
   );
-  const orderRepository = new OrderRepository();
   const orderService = new OrderService(
     orderRepository,
     technicianRepository,
@@ -340,6 +345,18 @@ export const createSocketDependentServices = (server: any) => {
     loggerService
   );
 
+  // Spare parts request dependencies
+  const sparePartsRequestService = new SparePartsRequestService(
+    sparePartsRequestRepositry,
+    orderRepository,
+    technicianRepository,
+    socketService,
+    loggerService
+  );
+  const sparePartsRequestController = new SparePartsRequestController(
+    sparePartsRequestService,
+    loggerService
+  );
   return {
     socketService,
     technicianManagementService,
@@ -356,6 +373,9 @@ export const createSocketDependentServices = (server: any) => {
     paymentManagementRepository,
     paymentManagementService,
     paymentManagementController,
+    sparePartsRequestRepositry,
+    sparePartsRequestService,
+    sparePartsRequestController,
   };
 };
 

@@ -6,7 +6,7 @@ export interface PaymentResponseDto {
   userId: string;
   userName: string;
   userEmail: string;
-  paymentProvider: 'razorpay' | 'stripe' | 'paypal';
+  paymentProvider: 'razorpay' | 'stripe' | 'paypal' | 'wallet';
   providerOrderId: string;
   providerPaymentId?: string;
   amount: number;

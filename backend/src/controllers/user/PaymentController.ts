@@ -201,4 +201,64 @@ export class PaymentController {
         .json(ResponseHelper.error('Internal server error'));
     }
   };
+
+  processSparePartsWalletPayment = async (req: AuthRequest, res: Response) => {
+    const context = {
+      operation: 'processSparePartsWalletPayment',
+      userId: req.user?.id,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info('Processing spare parts wallet payment', context);
+
+      const { orderId, requestId, amount } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        this._logger.warn('User authentication required', context);
+        return res
+          .status(401)
+          .json(ResponseHelper.error('User authentication required'));
+      }
+
+      if (!orderId || !requestId || !amount) {
+        this._logger.warn('Missing required fields', {
+          ...context,
+          orderId,
+          requestId,
+          amount,
+        });
+        return res
+          .status(400)
+          .json(
+            ResponseHelper.error(
+              'Order ID, request ID, and amount are required'
+            )
+          );
+      }
+
+      const result = await this._paymentService.processSparePartsWalletPayment(
+        userId,
+        orderId,
+        requestId,
+        amount
+      );
+
+      this._logger.info('Spare parts wallet payment processed', {
+        ...context,
+        success: result.success,
+      });
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      this._logger.error('Spare parts wallet payment error', {
+        ...context,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return res
+        .status(500)
+        .json(ResponseHelper.error('Internal server error'));
+    }
+  };
 }

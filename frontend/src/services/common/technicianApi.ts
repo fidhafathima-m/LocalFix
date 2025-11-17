@@ -9,6 +9,10 @@ import type {
   TechnicianProfile,
 } from "../../store/slices/technicianSlice";
 import api from "../../utils/axiosConfig";
+import type {
+  CreateSparePartsRequestDto,
+  SparePartsRequestResponse,
+} from "../technician/sparePartsService";
 
 const normalizeResponse = (response: any) => {
   const responseData = response.data || response;
@@ -495,47 +499,48 @@ export const technicianAPI = {
   },
 
   updateAvailability: async (data: {
-  availability: {
-    isAvailable: boolean;
-    weeklyPattern: {  // Changed from weeklyAvailability
-      [key: string]: {
-        available: boolean;  // Changed from enabled
-        startTime: string;
-        endTime: string;
+    availability: {
+      isAvailable: boolean;
+      weeklyPattern: {
+        // Changed from weeklyAvailability
+        [key: string]: {
+          available: boolean; // Changed from enabled
+          startTime: string;
+          endTime: string;
+        };
       };
+      availableWeeks?: number[];
     };
-    availableWeeks?: number[];
-  };
-  serviceAreas: string[];
-  workRadius: number;
-}) => {
-  try {
-    const backendData = {
-      availability: data.availability,
-      workAreas: data.serviceAreas,
-      serviceRadiusKm: data.workRadius,
-    };
+    serviceAreas: string[];
+    workRadius: number;
+  }) => {
+    try {
+      const backendData = {
+        availability: data.availability,
+        workAreas: data.serviceAreas,
+        serviceRadiusKm: data.workRadius,
+      };
 
-    const response = await api.put<{
-      success: boolean;
-      message: string;
-      data: { profile: TechnicianProfile };
-      statusCode: number;
-    }>(TECHNICIAN_ROUTES.PROFILE.AVAILABILITY, backendData);
-    return normalizeResponse(response);
-  } catch (error: any) {
-    if (error.response?.data) {
-      return normalizeResponse(error.response.data);
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: { profile: TechnicianProfile };
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.PROFILE.AVAILABILITY, backendData);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update availability",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
     }
-    return {
-      success: false,
-      message: error.message || "Failed to update availability",
-      error: "Network error",
-      data: null,
-      statusCode: 500,
-    };
-  }
-},
+  },
   updateBankPayment: async (data: {
     paymentDetails: {
       bankAccount: {
@@ -590,6 +595,80 @@ export const technicianAPI = {
       return {
         success: false,
         message: error.message || "Failed to update password",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
+    }
+  },
+  requestSpareParts: async (data: CreateSparePartsRequestDto) => {
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        data: SparePartsRequestResponse;
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.SPARE_PARTS.REQUESTS, data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to request spare parts",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
+    }
+  },
+
+  getSparePartsRequests: async (orderId: string) => {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        message: string;
+        data: SparePartsRequestResponse[];
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.SPARE_PARTS.REQUESTS_BY_ORDER(orderId));
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to get spare parts requests",
+        error: "Network error",
+        data: null,
+        statusCode: 500,
+      };
+    }
+  },
+
+  updateSparePartsStatus: async (
+    requestId: string,
+    data: {
+      status: string;
+      customerNotes?: string;
+    }
+  ) => {
+    try {
+      const response = await api.put<{
+        success: boolean;
+        message: string;
+        data: SparePartsRequestResponse;
+        statusCode: number;
+      }>(TECHNICIAN_ROUTES.SPARE_PARTS.UPDATE_STATUS(requestId), data);
+      return normalizeResponse(response);
+    } catch (error: any) {
+      if (error.response?.data) {
+        return normalizeResponse(error.response.data);
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to update spare parts status",
         error: "Network error",
         data: null,
         statusCode: 500,

@@ -6,6 +6,7 @@ import {
   SendOutlined,
 } from "@mui/icons-material";
 import { ItemManagementService } from "../../../../../../services/admin/ItemManagementService";
+import { useSocket } from "../../../../../../context/SocketContext";
 
 export interface SparePart {
   id: string;
@@ -32,6 +33,7 @@ export function SparePartsModal({
   serviceId,
   serviceName,
 }: SparePartsModalProps) {
+  const { socket } = useSocket();
   const [parts, setParts] = useState<SparePart[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export function SparePartsModal({
     .filter((part) => part.selected)
     .reduce((sum, part) => sum + part.price * part.quantity, 0);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const selectedParts = parts.filter((part) => part.selected);
 
     if (selectedParts.length === 0) {
@@ -120,7 +122,23 @@ export function SparePartsModal({
       return;
     }
 
-    onSubmit(selectedParts);
+    try {
+      await onSubmit(selectedParts);
+
+      // Optional: Emit socket event for real-time updates
+      if (socket) {
+        socket.emit("spare-parts-requested", {
+          serviceName,
+          partsCount: selectedParts.length,
+          totalAmount: selectedParts.reduce(
+            (sum, part) => sum + part.price * part.quantity,
+            0
+          ),
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting spare parts:", error);
+    }
   };
 
   if (!isOpen) return null;

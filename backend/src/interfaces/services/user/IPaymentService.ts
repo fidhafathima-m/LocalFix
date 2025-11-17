@@ -24,4 +24,10 @@ export interface IPaymentService {
     amount: number,
     reason: string
   ): Promise<ApiResponse<any>>;
+  processSparePartsWalletPayment(
+    userId: string,
+    orderId: string,
+    requestId: string,
+    amount: number
+  ): Promise<ApiResponse<any>>;
 }
