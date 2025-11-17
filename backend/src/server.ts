@@ -30,6 +30,7 @@ import createPaymentManagementRoutes from './routes/admin/paymentManagementRoute
 import paymentRoutes from './routes/user/paymentRoutes';
 import createOrderRoutes from './routes/user/orderRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import subscriptionRoutes from './routes/admin/subscriptionManagementRoutes';
 
 // Import container functions
 import {
@@ -107,6 +108,7 @@ app.use('/api/admin/orders', orderManagementRoutes);
 app.use('/api/admin/reviews', reviewManagementRoutes);
 app.use('/api/admin/payments', paymentManagementRoutes);
 app.use('/api/admin/reports', dashboardRoutes);
+app.use('/api/admin/subscriptions', subscriptionRoutes);
 app.use('/api/technician-application', technicianRoutes);
 app.use('/api/technician/profile', technicianProfileRoutes);
 app.use('/api/technician/orders', technicianOrderRoutes);

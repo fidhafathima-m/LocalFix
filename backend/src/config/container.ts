@@ -79,6 +79,9 @@ import { ReportController } from '../controllers/admin/reportManagementControlle
 import { SparePartsRequestRepository } from '../repositories/technician/SparePartsRequestRepository';
 import { SparePartsRequestService } from '../services/SparePartsReuestService';
 import { SparePartsRequestController } from '../controllers/technician/sparePartsRequestController';
+import { SubscriptionRepository } from '../repositories/admin/SubscriptionRepository';
+import { SubscriptionService } from '../services/SubscriptionManagementService';
+import { SubscriptionManagementController } from '../controllers/admin/SubscriptionManagementController';
 
 const loggerService = new LoggerService();
 
@@ -266,6 +269,14 @@ const reportRepository = new ReportRepository();
 const reportService = new ReportService(reportRepository, loggerService);
 const reportController = new ReportController(reportService, loggerService);
 
+// subscription dependencies
+const subscriptionRepository = new SubscriptionRepository();
+const subscriptionService = new SubscriptionService(subscriptionRepository);
+const subscriptionManagementController = new SubscriptionManagementController(
+  subscriptionService,
+  loggerService
+);
+
 export const createSocketDependentServices = (server: any) => {
   const socketService = new SocketService(server, notificationService);
 
@@ -430,4 +441,7 @@ export {
   reportRepository,
   reportService,
   reportController,
+  subscriptionRepository,
+  subscriptionService,
+  subscriptionManagementController,
 };

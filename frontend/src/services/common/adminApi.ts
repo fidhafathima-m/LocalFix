@@ -29,6 +29,12 @@ import type {
   PaymentStatsResponse,
 } from "../../interface/admin/IPayment";
 import type { Review, ReviewsResponse } from "../../interface/admin/IReview";
+import type {
+  CreateSubscriptionData,
+  Subscription,
+  SubscriptionsResponse,
+  UpdateSubscriptionData,
+} from "../../interface/admin/ISubscription";
 import { ADMIN_ROUTES } from "../../routes/adminRoutes";
 import type { Technician } from "../../store/slices/adminSlice";
 import api from "../../utils/axiosConfig";
@@ -419,4 +425,46 @@ export const adminAPI = {
 
   exportReport: (data: any, format: string) =>
     api.post(ADMIN_ROUTES.EXPORT_REPORT, { data, format }),
+
+  // Subscriptions
+  getSubscriptions: (page: number = 1, limit: number = 10, search?: string) =>
+    api.get<ApiResponse<SubscriptionsResponse>>(ADMIN_ROUTES.SUBSCRIPTIONS, {
+      params: { page, limit, search },
+    }),
+
+  getSubscriptionById: (subscriptionId: string) =>
+    api.get<ApiResponse<{ subscription: Subscription }>>(
+      ADMIN_ROUTES.SUBSCRIPTION_BY_ID(subscriptionId)
+    ),
+
+  getSubscriptionBySlug: (slug: string) =>
+    api.get<ApiResponse<{ subscription: Subscription }>>(
+      ADMIN_ROUTES.SUBSCRIPTION_BY_SLUG(slug)
+    ),
+
+  createSubscription: (subscriptionData: CreateSubscriptionData) =>
+    api.post<ApiResponse<{ subscription: Subscription }>>(
+      ADMIN_ROUTES.SUBSCRIPTIONS,
+      subscriptionData
+    ),
+
+  updateSubscription: (
+    subscriptionId: string,
+    updateData: UpdateSubscriptionData
+  ) =>
+    api.put<ApiResponse<{ subscription: Subscription }>>(
+      ADMIN_ROUTES.SUBSCRIPTION_BY_ID(subscriptionId),
+      updateData
+    ),
+
+  deleteSubscription: (subscriptionId: string) =>
+    api.delete<ApiResponse<void>>(
+      ADMIN_ROUTES.SUBSCRIPTION_BY_ID(subscriptionId)
+    ),
+
+  searchSubscriptions: (query: string, limit: number = 10) =>
+    api.get<ApiResponse<{ subscriptions: Subscription[] }>>(
+      ADMIN_ROUTES.SUBSCRIPTIONS_SEARCH,
+      { params: { q: query, limit } }
+    ),
 };

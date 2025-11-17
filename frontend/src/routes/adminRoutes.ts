@@ -105,4 +105,10 @@ export const ADMIN_ROUTES = {
   CUSTOMER_REPORT: "/admin/reports/customer",
   TECHNICIAN_REPORT: "/admin/reports/technician",
   EXPORT_REPORT: "/admin/reports/export",
+
+  // Subscription routes
+  SUBSCRIPTIONS: "/admin/subscriptions",
+  SUBSCRIPTION_BY_ID: (id: string) => `/admin/subscriptions/${id}`,
+  SUBSCRIPTION_BY_SLUG: (slug: string) => `/admin/subscriptions/slug/${slug}`,
+  SUBSCRIPTIONS_SEARCH: "/admin/subscriptions/search",
 } as const;

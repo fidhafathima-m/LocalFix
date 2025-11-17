@@ -170,6 +170,9 @@ const PaymentsManagement = lazy(
 const ReportManagement = lazy(
   () => import("../features/admin/pages/ReportManagementPage")
 );
+const SubscriptionManagementPage = lazy(
+  () => import("../features/admin/pages/SubscriptionManagementPage")
+);
 
 const AppRoutes = () => {
   return (
@@ -389,6 +392,14 @@ const AppRoutes = () => {
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <ReportManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/subscription-management"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <SubscriptionManagementPage />
                 </ProtectedRoute>
               }
             />
