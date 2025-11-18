@@ -87,6 +87,7 @@ import { TechnicianSubscriptionRepository } from '../repositories/technician/Tec
 import { TechnicianSubscriptionService } from '../services/TechnicianSubscriptionService';
 import { SubscriptionWalletService } from '../services/SubscriptionWalletService';
 import { SubscriptionPaymentService } from '../services/SubscriptionPaymentService';
+import { UserServiceController } from '../controllers/user/ServiceController';
 
 const loggerService = new LoggerService();
 
@@ -300,6 +301,15 @@ const technicianSubscriptionController = new TechnicianSubscriptionController(
   technicianSubscriptionService
 );
 
+const serviceService = new ServiceService(
+  serviceMangementRepository,
+  loggerService
+);
+const serviceController = new UserServiceController(
+  serviceService,
+  loggerService
+);
+
 export const createSocketDependentServices = (server: any) => {
   const socketService = new SocketService(server, notificationService);
 
@@ -470,4 +480,6 @@ export {
   technicianSubscriptionRepository,
   technicianSubscriptionService,
   technicianSubscriptionController,
+  serviceService,
+  serviceController,
 };

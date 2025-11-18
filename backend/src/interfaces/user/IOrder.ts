@@ -169,6 +169,12 @@ export interface OrderResponseDto {
     updatedBy: string;
     timestamp: string;
   }>;
+  earnings?: {
+    grossAmount: number;
+    commissionRate: number;
+    commissionAmount: number;
+    netEarnings: number;
+  };
   createdAt: string;
   updatedAt: string;
 }

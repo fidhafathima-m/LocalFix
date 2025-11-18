@@ -503,7 +503,11 @@ const ApprovedTechnicianDashboard: React.FC = () => {
       case "earnings":
         return (
           <DisabledOverlay tab="earnings" isSuspended={isSuspended}>
-            <EarningsTab {...tabProps} />
+            <EarningsTab
+              {...tabProps}
+              currentSubscription={dashboardData.subscription}
+              commissionRate={dashboardData.subscription?.commissionRate}
+            />
           </DisabledOverlay>
         );
 
@@ -516,6 +520,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
             <RatingsTab {...tabProps} />
           </DisabledOverlay>
         );
+
       case "notifications":
         return (
           <DisabledOverlay tab="notifications" isSuspended={isSuspended}>

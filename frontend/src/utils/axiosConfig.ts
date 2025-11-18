@@ -8,18 +8,6 @@ const api = axios.create({
 });
 
 let isRefreshing = false;
-let failedQueue: any[] = [];
-
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
 
 const getTokens = (): {
   accessToken: string | null;
@@ -90,6 +78,17 @@ api.interceptors.request.use(
   }
 );
 
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+const subscribeTokenRefresh = (callback: (token: string) => void) => {
+  refreshSubscribers.push(callback);
+};
+
+const onTokenRefreshed = (token: string) => {
+  refreshSubscribers.forEach((callback) => callback(token));
+  refreshSubscribers = [];
+};
+
 // Response interceptor with token refresh
 api.interceptors.response.use(
   (response) => {
@@ -98,27 +97,24 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle token expiration (401 errors)
+    // Handle token expiration
     if (error.response?.status === 401 && !originalRequest?._retry) {
       const errorData = error.response?.data;
       const isTokenExpired =
         errorData?.code === "TOKEN_EXPIRED" ||
         errorData?.message?.includes("expired") ||
-        errorData?.message?.includes("Token expired") ||
-        error?.message?.includes("expired");
+        errorData?.message?.includes("Token expired");
 
       if (isTokenExpired) {
         if (isRefreshing) {
+          // Wait for the current refresh to complete
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then((token) => {
+            subscribeTokenRefresh((token: string) => {
               originalRequest.headers.Authorization = `Bearer ${token}`;
-              return api(originalRequest);
-            })
-            .catch((err) => {
-              return Promise.reject(err);
+              resolve(api(originalRequest));
             });
+          });
         }
 
         originalRequest._retry = true;
@@ -129,14 +125,14 @@ api.interceptors.response.use(
         if (!refreshToken) {
           console.warn("No refresh token available");
           clearTokens();
-          window.location.replace("/login");
+          window.location.href = "/login?message=session_expired";
           return Promise.reject(error);
         }
 
         try {
+          console.log("🔄 Attempting token refresh...");
           const refreshResponse = await authAPI.refreshToken(refreshToken);
 
-          // FIXED: Properly extract tokens from response
           const responseData = refreshResponse.data || refreshResponse;
           const newAccessToken =
             responseData.data?.accessToken || responseData.accessToken;
@@ -144,27 +140,30 @@ api.interceptors.response.use(
             responseData.data?.refreshToken || responseData.refreshToken;
 
           if (newAccessToken && newRefreshToken) {
-            console.log("Tokens refreshed successfully");
+            console.log("✅ Tokens refreshed successfully");
             setTokens(newAccessToken, newRefreshToken);
 
-            // Update the Authorization header
-            api.defaults.headers.common[
-              "Authorization"
-            ] = `Bearer ${newAccessToken}`;
+            // Update default headers
+            api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-            processQueue(null, newAccessToken);
+            // Notify all waiting requests
+            onTokenRefreshed(newAccessToken);
 
+            // Retry the original request
             return api(originalRequest);
           } else {
-            console.error("Invalid token response:", refreshResponse);
-            throw new Error("Token refresh failed - invalid response");
+            throw new Error("Invalid token response format");
           }
         } catch (refreshError) {
-          console.error("Token refresh error:", refreshError);
-          processQueue(refreshError, null);
+          console.error("❌ Token refresh failed:", refreshError);
+
+          // Clear all subscribers
+          refreshSubscribers = [];
+
+          // Clear tokens and redirect
           clearTokens();
-          window.location.replace("/login?message=session_expired");
+          window.location.href = "/login?message=session_expired";
           return Promise.reject(refreshError);
         } finally {
           isRefreshing = false;
@@ -172,11 +171,11 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle other 401 errors (invalid token, etc.)
+    // Handle other 401 errors
     if (error.response?.status === 401) {
       console.warn("Unauthorized access, clearing tokens");
       clearTokens();
-      window.location.replace("/login");
+      window.location.href = "/login";
       return Promise.reject(error);
     }
 

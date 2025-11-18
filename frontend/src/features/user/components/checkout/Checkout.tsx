@@ -19,6 +19,7 @@ import { bookingService } from "../../../../services/user/bookingService";
 import { orderService } from "../../../../services/user/orderService";
 import { paymentService } from "../../../../services/user/paymentService";
 import { walletService } from "../../../../services/user/walletService";
+import { serviceService } from "../../../../services/user/serviceService";
 
 // Declare Razorpay types
 declare global {
@@ -37,6 +38,7 @@ interface BookingData {
     services: string[];
   };
   service: string;
+  serviceId?: string;
   date: string;
   time: string;
   address: {
@@ -67,6 +69,7 @@ const Checkout: React.FC = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [checkingWallet, setCheckingWallet] = useState(false);
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
+  const [loadingService, setLoadingService] = useState(false);
   const [pricing, setPricing] = useState<ServicePricing>({
     subtotal: 0,
     serviceTax: 0,
@@ -235,18 +238,72 @@ const Checkout: React.FC = () => {
 
   // Fetch booking data from location state
   useEffect(() => {
-    if (location.state) {
-      setBookingData(location.state as BookingData);
-      calculatePricing((location.state as BookingData).service);
-    } else {
-      toast.error("Booking data not found");
-      navigate("/booking");
-    }
+    const fetchBookingDataAndService = async () => {
+      if (location.state) {
+        const stateData = location.state as BookingData;
+        setBookingData(stateData);
+
+        // Fetch service details to get real base price
+        await fetchServicePricing(stateData.service);
+      } else {
+        toast.error("Booking data not found");
+        navigate("/booking");
+      }
+    };
+
+    fetchBookingDataAndService();
   }, [location.state, navigate]);
+
+  // Fetch service pricing from database
+  // In your Checkout component
+  const fetchServicePricing = async (serviceName: string) => {
+    try {
+      setLoadingService(true);
+
+      // Search for the service by name
+      const servicesResponse = await serviceService.searchServices(
+        serviceName,
+        5
+      );
+
+      if (servicesResponse.success && servicesResponse.data) {
+        const services =
+          servicesResponse.data.services || servicesResponse.data;
+
+        // Find the exact service match
+        const service = services.find(
+          (s: any) => s.name.toLowerCase() === serviceName.toLowerCase()
+        );
+
+        if (service) {
+          calculatePricing(service.avgBasePrice);
+          console.log("✅ Fetched real service price:", {
+            serviceName,
+            basePrice: service.avgBasePrice,
+            serviceId: service._id,
+          });
+        } else {
+          // Fallback to default pricing if service not found
+          console.warn("Service not found, using default pricing");
+          calculatePricingFromName(serviceName);
+        }
+      } else {
+        // Fallback if API fails
+        calculatePricingFromName(serviceName);
+      }
+    } catch (error) {
+      console.error("Error fetching service pricing:", error);
+      // Fallback to default pricing
+      calculatePricingFromName(serviceName);
+      toast.error("Failed to load service pricing, using default rates");
+    } finally {
+      setLoadingService(false);
+    }
+  };
 
   // Calculate pricing based on service type
   // In Checkout component - update calculatePricing function
-  const calculatePricing = (serviceType: string) => {
+  const calculatePricingFromName = (serviceType: string) => {
     const basePrices: { [key: string]: number } = {
       "AC Repair": 500,
       "AC Service": 600,
@@ -263,6 +320,22 @@ const Checkout: React.FC = () => {
     const total = subtotal + serviceTax;
 
     setPricing({ subtotal, serviceTax, total });
+  };
+
+  // Calculate pricing with real base price
+  const calculatePricing = (basePrice: number) => {
+    const subtotal = basePrice;
+    const serviceTax = Math.round(subtotal * 0.1);
+    const total = subtotal + serviceTax;
+
+    setPricing({ subtotal, serviceTax, total });
+
+    console.log("💰 Pricing calculated:", {
+      basePrice,
+      subtotal,
+      serviceTax,
+      total,
+    });
   };
 
   // Validate booking data before proceeding
@@ -917,20 +990,27 @@ const Checkout: React.FC = () => {
         {/* Payment Summary */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4">Payment Summary</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between text-gray-700">
-              <span>Subtotal</span>
-              <span>₹{pricing.subtotal}</span>
+          {loadingService ? (
+            <div className="flex justify-center items-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600">Loading pricing...</span>
             </div>
-            <div className="flex justify-between text-gray-700">
-              <span>Service Tax (10%)</span>
-              <span>₹{pricing.serviceTax}</span>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex justify-between text-gray-700">
+                <span>Subtotal</span>
+                <span>₹{pricing.subtotal}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Service Tax (10%)</span>
+                <span>₹{pricing.serviceTax}</span>
+              </div>
+              <div className="border-t pt-3 flex justify-between font-semibold text-lg">
+                <span>Total</span>
+                <span>₹{pricing.total}</span>
+              </div>
             </div>
-            <div className="border-t pt-3 flex justify-between font-semibold text-lg">
-              <span>Total</span>
-              <span>₹{pricing.total}</span>
-            </div>
-          </div>
+          )}
         </div>
 
         <button

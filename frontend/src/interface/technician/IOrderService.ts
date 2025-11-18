@@ -73,6 +73,12 @@ export interface TechnicianOrder {
     reason?: string;
   };
   serviceId?: string;
+  earnings?: {
+    grossAmount: number;
+    commissionRate: number;
+    commissionAmount: number;
+    netEarnings: number;
+  };
 }
 
 export interface TechnicianOrderListResponse {
