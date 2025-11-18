@@ -88,6 +88,8 @@ import { TechnicianSubscriptionService } from '../services/TechnicianSubscriptio
 import { SubscriptionWalletService } from '../services/SubscriptionWalletService';
 import { SubscriptionPaymentService } from '../services/SubscriptionPaymentService';
 import { UserServiceController } from '../controllers/user/ServiceController';
+import { ChatService } from '../services/ChatService';
+import { ChatController } from '../controllers/user/chatController';
 
 const loggerService = new LoggerService();
 
@@ -310,6 +312,9 @@ const serviceController = new UserServiceController(
   loggerService
 );
 
+const chatService = new ChatService(loggerService);
+const chatController = new ChatController(chatService, loggerService);
+
 export const createSocketDependentServices = (server: any) => {
   const socketService = new SocketService(server, notificationService);
 
@@ -482,4 +487,6 @@ export {
   technicianSubscriptionController,
   serviceService,
   serviceController,
+  chatService,
+  chatController,
 };

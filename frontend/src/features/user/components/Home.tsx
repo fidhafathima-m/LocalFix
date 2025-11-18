@@ -9,6 +9,7 @@ import speciality from "../data/speciality";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { ChatWidget } from "./chatSupport/ChatWidget";
 
 const Home = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -271,6 +272,7 @@ const Home = () => {
         </div>
       </section>
       <Footer />
+      <ChatWidget />
     </div>
   );
 };

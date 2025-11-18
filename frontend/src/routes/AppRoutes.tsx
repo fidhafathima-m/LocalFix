@@ -72,6 +72,9 @@ const LeaveReview = lazy(
 const ReviewSuccess = lazy(
   () => import("../features/user/pages/ReviewSuccessPage")
 );
+const ChatSupport = lazy(
+  () => import("../features/user/pages/ChatSupportPage")
+);
 
 // Service Provider Routes imports
 const TechHome = lazy(
@@ -234,6 +237,7 @@ const AppRoutes = () => {
               path="/orders/:orderId/spare-parts/:requestId/payment"
               element={<SparePartsPayment />}
             />
+            <Route path="/chatbot" element={<ChatSupport />} />
 
             {/* technicians routes */}
             <Route path="/technicians" element={<TechHome />} />
