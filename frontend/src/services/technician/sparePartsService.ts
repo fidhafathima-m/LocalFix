@@ -55,17 +55,6 @@ export class SparePartsService {
     }
   }
 
-  static async getSparePartsRequestByOrder(orderId: string) {
-    try {
-      const response = await technicianAPI.getSparePartsRequests(orderId);
-      // Return the first request if any exists
-      return response.data?.[0] || null;
-    } catch (error) {
-      console.error("Error fetching spare parts request:", error);
-      return null;
-    }
-  }
-
   static async getSparePartsRequestsByOrder(orderId: string) {
     try {
       const response = await technicianAPI.getSparePartsRequests(orderId);

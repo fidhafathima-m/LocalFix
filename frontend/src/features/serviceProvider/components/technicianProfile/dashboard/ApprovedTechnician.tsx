@@ -18,6 +18,8 @@ import Footer from "../../../../../components/common/Footer";
 import RatingsTab from "./tabs/RatingsTab";
 import NotificationSection from "./tabs/NotificationsTab";
 import { NotificationService } from "../../../../../services/notificationService";
+import SubscriptionBanner from "../../subscription/SubscriptionBanner";
+import { TechnicianSubscriptionService } from "../../../../../services/technician/subscriptionService";
 
 interface DashboardData {
   overview: {
@@ -41,6 +43,13 @@ interface DashboardData {
   profile: TechnicianProfile;
   suspensionReason?: string;
   suspendedAt?: string;
+  subscription?: {
+    isSubscribed: boolean;
+    subscriptionPlan?: string;
+    commissionRate?: number;
+    expiryDate?: string;
+    planId?: string;
+  };
 }
 
 const ApprovedTechnicianDashboard: React.FC = () => {
@@ -63,22 +72,32 @@ const ApprovedTechnicianDashboard: React.FC = () => {
   // Handle URL parameters for tab navigation
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const tabParam = urlParams.get('tab');
-    
-    if (tabParam && ['overview', 'orders', 'earnings', 'profile', 'ratings', 'notifications'].includes(tabParam)) {
+    const tabParam = urlParams.get("tab");
+
+    if (
+      tabParam &&
+      [
+        "overview",
+        "orders",
+        "earnings",
+        "profile",
+        "ratings",
+        "notifications",
+      ].includes(tabParam)
+    ) {
       setActiveTab(tabParam);
     }
   }, []);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
-    
+
     // Update URL without page reload
     const newUrl = `${window.location.pathname}?tab=${tabId}`;
-    window.history.pushState({}, '', newUrl);
+    window.history.pushState({}, "", newUrl);
 
     // If switching to notifications tab and there are unread notifications, mark them as read
-    if (tabId === 'notifications' && unreadNotificationCount > 0) {
+    if (tabId === "notifications" && unreadNotificationCount > 0) {
       markNotificationsAsRead();
     }
   };
@@ -100,16 +119,17 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const response = await TechnicianService.getProfile();
+        // Load profile data first
+        const profileResponse = await TechnicianService.getProfile();
 
-        if (!response.success) {
+        if (!profileResponse.success) {
           throw new Error("Failed to fetch profile: API returned unsuccessful");
         }
 
         const profile =
-          response.data?.data?.profile ||
-          response.data?.profile ||
-          response.data?.data;
+          profileResponse.data?.data?.profile ||
+          profileResponse.data?.profile ||
+          profileResponse.data?.data;
 
         if (!profile) {
           throw new Error("Profile data not found in response");
@@ -125,6 +145,42 @@ const ApprovedTechnicianDashboard: React.FC = () => {
             reason: profile.suspensionReason || "Violation of terms of service",
             suspendedAt: profile.suspendedAt || new Date().toISOString(),
           });
+        }
+
+        // Load subscription data using the technician ID
+        let subscriptionData = {
+          isSubscribed: false,
+          subscriptionPlan: "Free Plan",
+          commissionRate: 10, // Default commission for unsubscribed
+          expiryDate: undefined as string | undefined,
+          planId: undefined,
+        };
+
+        try {
+          const subscriptionResponse =
+            await TechnicianSubscriptionService.getCurrentSubscription();
+          console.log("Subscription API Response:", subscriptionResponse);
+
+          // Check if subscription data exists and is active
+          const currentSubscription = subscriptionResponse.subscription;
+          console.log("Current subscription:", currentSubscription);
+
+          if (currentSubscription && currentSubscription.status === "active") {
+            subscriptionData = {
+              isSubscribed: true,
+              subscriptionPlan: getPlanName(currentSubscription),
+              commissionRate: currentSubscription.commissionRate || 0,
+              expiryDate: currentSubscription.endDate,
+              planId: currentSubscription._id,
+            };
+            console.log(
+              "✅ Subscription data successfully set:",
+              subscriptionData
+            );
+          }
+        } catch (subscriptionError) {
+          console.error("No active subscription found:", subscriptionError);
+          // This is normal - technician might not have a subscription
         }
 
         setDashboardData({
@@ -167,6 +223,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           },
           suspensionReason: profile.suspensionReason,
           suspendedAt: profile.suspendedAt,
+          subscription: subscriptionData,
         });
 
         // Load unread notification count
@@ -188,6 +245,26 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     loadTechnicianData();
   }, []);
 
+  // Helper function to get plan name from subscription data
+  const getPlanName = (subscription: any): string => {
+    if (!subscription) return "Free Plan";
+
+    // If subscriptionPlanId is populated with name
+    if (subscription.subscriptionPlanId?.name) {
+      return subscription.subscriptionPlanId.name;
+    }
+
+    // Determine plan name based on price or duration
+    const price = subscription.amount;
+    const duration = subscription.durationMonths;
+
+    if (price === 499 && duration === 1) return "Basic Plan";
+    if (price === 999 && duration === 3) return "Standard Plan";
+    if (price === 4999 && duration === 12) return "Premium Plan";
+
+    return "Subscription Plan";
+  };
+
   const loadUnreadNotificationCount = async (technicianId: string) => {
     try {
       const count = await NotificationService.getUnreadCount(technicianId);
@@ -205,49 +282,53 @@ const ApprovedTechnicianDashboard: React.FC = () => {
   }, [activeTab, dashboardData?.profile?._id]);
 
   useEffect(() => {
-  const loadOrders = async () => {
-    if (activeTab === "overview" || activeTab === "orders") {
-      try {
-        setOrdersLoading(true);
-        const response = await technicianOrderService.getTechnicianOrders(
-          1,
-          10
-        );
+    const loadOrders = async () => {
+      if (activeTab === "overview" || activeTab === "orders") {
+        try {
+          setOrdersLoading(true);
+          const response = await technicianOrderService.getTechnicianOrders(
+            1,
+            10
+          );
 
-        if (response.success) {
-          const loadedOrders = response.data.orders || [];
-          setOrders(loadedOrders);
+          if (response.success) {
+            const loadedOrders = response.data.orders || [];
+            setOrders(loadedOrders);
 
-          // Calculate stats from loaded orders - use profile from dashboardData
-          if (dashboardData) {
-            const newStats = calculateStats(loadedOrders, dashboardData.profile);
+            // Calculate stats from loaded orders - use profile from dashboardData
+            if (dashboardData) {
+              const newStats = calculateStats(
+                loadedOrders,
+                dashboardData.profile
+              );
 
-            // Update dashboard data with calculated stats
-            setDashboardData((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    overview: {
-                      ...prev.overview,
-                      ...newStats,
-                    },
-                  }
-                : null
-            );
+              // Update dashboard data with calculated stats
+              setDashboardData((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      overview: {
+                        ...prev.overview,
+                        ...newStats,
+                      },
+                    }
+                  : null
+              );
+            }
           }
+        } catch (error) {
+          console.error("Failed to load orders:", error);
+        } finally {
+          setOrdersLoading(false);
         }
-      } catch (error) {
-        console.error("Failed to load orders:", error);
-      } finally {
-        setOrdersLoading(false);
       }
-    }
-  };
+    };
 
-  if (!isSuspended && dashboardData?.profile?._id) { // Only load if we have a profile ID
-    loadOrders();
-  }
-}, [activeTab, isSuspended, dashboardData?.profile?._id]); // Only depend on profile ID, not entire dashboardData
+    if (!isSuspended && dashboardData?.profile?._id) {
+      // Only load if we have a profile ID
+      loadOrders();
+    }
+  }, [activeTab, isSuspended, dashboardData?.profile?._id]); // Only depend on profile ID, not entire dashboardData
 
   const getEmptyDashboardData = (): DashboardData => {
     return {
@@ -299,6 +380,13 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           },
           languages: [],
         },
+      },
+      subscription: {
+        isSubscribed: false,
+        subscriptionPlan: "Free Plan",
+        commissionRate: 10,
+        expiryDate: undefined,
+        planId: undefined,
       },
     };
   };
@@ -517,52 +605,19 @@ const ApprovedTechnicianDashboard: React.FC = () => {
 
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="h-16 w-16 bg-yellow-100 rounded-full flex items-center justify-center mr-4">
-                  {profile.profilePictureUrl ? (
-                    <img
-                      src={profile.profilePictureUrl}
-                      alt={profile.personalInfo?.fullName || "Technician"}
-                      className="h-16 w-16 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-yellow-700 text-xl font-medium">
-                      {(
-                        profile.personalInfo?.fullName?.charAt(0) || "T"
-                      ).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center">
-                    <h1 className="text-xl font-semibold mr-2">
-                      {profile.personalInfo?.fullName || "Technician"}
-                    </h1>
-                    {profile.isVerified && (
-                      <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                        Verified
-                      </span>
-                    )}
-                  </div>
-                  {/* <div className="flex items-center mt-1">
-                    <div className="flex items-center">
-                      <span className="ml-1 text-sm text-gray-600">
-                        {profile.averageRating.toFixed(1)} (
-                        {profile.ratingCount} reviews)
-                      </span>
-                    </div>
-                  </div> */}
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Technician ID</p>
-                <p className="text-sm font-medium">
-                  {profile._id?.slice(-8) || "N/A"}
-                </p>
-              </div>
-            </div>
+          <div>
+            <SubscriptionBanner
+              techId={profile._id}
+              planId={dashboardData.subscription?.planId}
+              techName={profile.personalInfo?.fullName}
+              rating={profile.averageRating || 0} // Use averageRating instead of ratingCount
+              services={profile.services}
+              profilePictureUrl={profile.profilePictureUrl}
+              isSubscribed={dashboardData.subscription?.isSubscribed || false}
+              subscriptionPlan={dashboardData.subscription?.subscriptionPlan}
+              commissionRate={dashboardData.subscription?.commissionRate}
+              expiryDate={dashboardData.subscription?.expiryDate}
+            />
           </div>
         </div>
 
@@ -578,10 +633,13 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                 { id: "ratings", label: "Ratings" },
                 { id: "settings", label: "Settings" },
                 { id: "messages", label: "Messages" },
-                { 
-                  id: "notifications", 
+                {
+                  id: "notifications",
                   label: "Notifications",
-                  badge: unreadNotificationCount > 0 ? unreadNotificationCount : null
+                  badge:
+                    unreadNotificationCount > 0
+                      ? unreadNotificationCount
+                      : null,
                 },
               ].map((tab) => (
                 <button
@@ -602,7 +660,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                     {tab.label}
                     {tab.badge && (
                       <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-                        {tab.badge > 9 ? '9+' : tab.badge}
+                        {tab.badge > 9 ? "9+" : tab.badge}
                       </span>
                     )}
                   </span>

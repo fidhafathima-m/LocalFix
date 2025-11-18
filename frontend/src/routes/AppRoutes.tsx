@@ -116,6 +116,18 @@ const SparePartsApproval = lazy(
 const SparePartsPayment = lazy(
   () => import("../features/user/components/spareParts/PartsPayment")
 );
+const SubscriptionPlans = lazy(
+  () => import("../features/serviceProvider/pages/SubscriptionPlansPage")
+);
+const SubscriptionCheckout = lazy(
+  () => import("../features/serviceProvider/pages/SubscriptionCheckoutPage")
+);
+const SubscriptionCheckoutSuccess = lazy(
+  () => import("../features/serviceProvider/pages/SubscriptionSuccessPage")
+);
+const SubscriptionDetails = lazy(
+  () => import("../features/serviceProvider/pages/SubscriptionDetailsPage")
+);
 
 // AdminRoutes imports
 const AdminLoginPage = lazy(
@@ -270,6 +282,22 @@ const AppRoutes = () => {
             <Route
               path="/technician/order/:orderId"
               element={<OrderDetails />}
+            />
+            <Route
+              path="/technician/subscription-plans"
+              element={<SubscriptionPlans />}
+            />
+            <Route
+              path="/technician/subscription-plan/:planId/checkout"
+              element={<SubscriptionCheckout />}
+            />
+            <Route
+              path="/technician/subscription-plan/payment-success"
+              element={<SubscriptionCheckoutSuccess />}
+            />
+            <Route
+              path="/technician/subscriptions/:planId"
+              element={<SubscriptionDetails />}
             />
 
             {/* admin routes */}

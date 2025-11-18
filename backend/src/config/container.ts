@@ -82,6 +82,11 @@ import { SparePartsRequestController } from '../controllers/technician/sparePart
 import { SubscriptionRepository } from '../repositories/admin/SubscriptionRepository';
 import { SubscriptionService } from '../services/SubscriptionManagementService';
 import { SubscriptionManagementController } from '../controllers/admin/SubscriptionManagementController';
+import { TechnicianSubscriptionController } from '../controllers/technician/technicianSubscriptionController';
+import { TechnicianSubscriptionRepository } from '../repositories/technician/TechnicianSubscriptionRepository';
+import { TechnicianSubscriptionService } from '../services/TechnicianSubscriptionService';
+import { SubscriptionWalletService } from '../services/SubscriptionWalletService';
+import { SubscriptionPaymentService } from '../services/SubscriptionPaymentService';
 
 const loggerService = new LoggerService();
 
@@ -277,6 +282,24 @@ const subscriptionManagementController = new SubscriptionManagementController(
   loggerService
 );
 
+const subscriptionWalletService = new SubscriptionWalletService(loggerService);
+const subscriptionPaymentService = new SubscriptionPaymentService(
+  loggerService
+);
+
+const technicianSubscriptionRepository = new TechnicianSubscriptionRepository();
+const technicianSubscriptionService = new TechnicianSubscriptionService(
+  subscriptionService,
+  technicianSubscriptionRepository,
+  subscriptionWalletService,
+  subscriptionPaymentService,
+  loggerService
+);
+const technicianSubscriptionController = new TechnicianSubscriptionController(
+  subscriptionService,
+  technicianSubscriptionService
+);
+
 export const createSocketDependentServices = (server: any) => {
   const socketService = new SocketService(server, notificationService);
 
@@ -444,4 +467,7 @@ export {
   subscriptionRepository,
   subscriptionService,
   subscriptionManagementController,
+  technicianSubscriptionRepository,
+  technicianSubscriptionService,
+  technicianSubscriptionController,
 };
