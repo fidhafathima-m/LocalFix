@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { IAuthService } from '../../interfaces/services/user/IAuthService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GENERAL_MESSAGES } from '../../constants';
@@ -30,7 +30,7 @@ export class AuthController {
     this._logger = logger;
   }
 
-  signup = async (req: Request, res: Response): Promise<void> => {
+  signup = async (req: AuthRequest, res: Response): Promise<void> => {
     const signupData: SignupRequestDto = req.body;
     const context = {
       operation: 'signup',
@@ -67,7 +67,7 @@ export class AuthController {
     }
   };
 
-  verifyOtp = async (req: Request, res: Response): Promise<void> => {
+  verifyOtp = async (req: AuthRequest, res: Response): Promise<void> => {
     const otpData: VerifyOtpRequestDto = req.body;
     const context = {
       operation: 'verifyOtp',
@@ -101,7 +101,7 @@ export class AuthController {
     }
   };
 
-  verifyResetOtp = async (req: Request, res: Response): Promise<void> => {
+  verifyResetOtp = async (req: AuthRequest, res: Response): Promise<void> => {
     const otpData: VerifyResetOtpRequestDto = req.body;
     const context = {
       operation: 'verifyResetOtp',
@@ -135,7 +135,7 @@ export class AuthController {
     }
   };
 
-  login = async (req: Request, res: Response): Promise<void> => {
+  login = async (req: AuthRequest, res: Response): Promise<void> => {
     const credentials: LoginRequestDto = req.body;
     const context = {
       operation: 'login',
@@ -171,7 +171,7 @@ export class AuthController {
     }
   };
 
-  forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  forgotPassword = async (req: AuthRequest, res: Response): Promise<void> => {
     const { phone, email, userType }: ForgotPasswordRequestDto = req.body;
     const context = {
       operation: 'forgotPassword',
@@ -210,7 +210,7 @@ export class AuthController {
     }
   };
 
-  resetPassword = async (req: Request, res: Response): Promise<void> => {
+  resetPassword = async (req: AuthRequest, res: Response): Promise<void> => {
     const resetData: ResetPasswordRequestDto = req.body;
     const context = {
       operation: 'resetPassword',
@@ -243,7 +243,7 @@ export class AuthController {
     }
   };
 
-  resendOTP = async (req: Request, res: Response): Promise<void> => {
+  resendOTP = async (req: AuthRequest, res: Response): Promise<void> => {
     const { phone, email, purpose, userType }: ResendOtpRequestDto = req.body;
     const context = {
       operation: 'resendOTP',
@@ -283,7 +283,7 @@ export class AuthController {
     }
   };
 
-  googleAuth = async (req: Request, res: Response): Promise<void> => {
+  googleAuth = async (req: AuthRequest, res: Response): Promise<void> => {
     const googleData: GoogleAuthRequestDto = req.body;
     const context = {
       operation: 'googleAuth',
@@ -317,7 +317,7 @@ export class AuthController {
     }
   };
 
-  facebookLogin = async (req: Request, res: Response): Promise<void> => {
+  facebookLogin = async (req: AuthRequest, res: Response): Promise<void> => {
     const { accessToken, userID }: FacebookLoginRequestDto = req.body;
     const context = {
       operation: 'facebookLogin',
@@ -354,7 +354,7 @@ export class AuthController {
     }
   };
 
-  refreshToken = async (req: Request, res: Response): Promise<void> => {
+  refreshToken = async (req: AuthRequest, res: Response): Promise<void> => {
     const { refreshToken }: RefreshTokenRequestDto = req.body;
     const context = {
       operation: 'refreshToken',

@@ -1,4 +1,3 @@
-// interfaces/services/user/IWalletService.ts
 export interface AddMoneyRequest {
   amount: number;
   currency?: string;

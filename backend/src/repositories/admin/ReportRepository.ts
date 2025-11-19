@@ -10,7 +10,6 @@ import { PassThrough } from 'stream';
 
 export class ReportRepository implements IReportRepository {
   async getDashboardReportData(startDate?: Date, endDate?: Date): Promise<any> {
-    // ... (keep the same implementation as before)
     const dateFilter: any = {};
     if (startDate && endDate) {
       dateFilter.createdAt = {
@@ -59,7 +58,6 @@ export class ReportRepository implements IReportRepository {
   }
 
   async getFinancialReportData(startDate: Date, endDate: Date): Promise<any> {
-    // ... (keep the same implementation as before)
     const dateFilter = {
       createdAt: {
         $gte: startDate,
@@ -108,7 +106,6 @@ export class ReportRepository implements IReportRepository {
   }
 
   async getCustomerReportData(startDate: Date, endDate: Date): Promise<any> {
-    // ... (keep the same implementation as before)
     const dateFilter = {
       createdAt: {
         $gte: startDate,
@@ -157,7 +154,6 @@ export class ReportRepository implements IReportRepository {
   }
 
   async getTechnicianReportData(startDate: Date, endDate: Date): Promise<any> {
-    // ... (keep the same implementation as before)
     const dateFilter = {
       createdAt: {
         $gte: startDate,
@@ -612,7 +608,6 @@ export class ReportRepository implements IReportRepository {
     }
   }
 
-  // ... (keep all the helper methods the same as before)
   private async getTotalRevenue(dateFilter: any): Promise<number> {
     const result = await OrderSchema.aggregate([
       {

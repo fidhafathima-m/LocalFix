@@ -69,9 +69,11 @@ export class TechnicianSubscriptionController {
         }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || SUBSCRIPTION_MESSAGES.FAILED_FETCH_SUBSCRIPTIONS;
+        error instanceof Error
+          ? error.message
+          : SUBSCRIPTION_MESSAGES.FAILED_FETCH_SUBSCRIPTIONS;
       this.logger.error('Get active subscriptions controller error', {
         ...context,
         error: errorMessage,
@@ -117,9 +119,11 @@ export class TechnicianSubscriptionController {
         { subscription }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || SUBSCRIPTION_MESSAGES.SUBSCRIPTION_NOT_FOUND;
+        error instanceof Error
+          ? error.message
+          : SUBSCRIPTION_MESSAGES.SUBSCRIPTION_NOT_FOUND;
       this.logger.error('Get subscription by ID controller error', {
         ...context,
         error: errorMessage,
@@ -165,9 +169,11 @@ export class TechnicianSubscriptionController {
         { subscription }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || SUBSCRIPTION_MESSAGES.SUBSCRIPTION_NOT_FOUND;
+        error instanceof Error
+          ? error.message
+          : SUBSCRIPTION_MESSAGES.SUBSCRIPTION_NOT_FOUND;
       this.logger.error('Get subscription by slug controller error', {
         ...context,
         error: errorMessage,
@@ -208,9 +214,11 @@ export class TechnicianSubscriptionController {
         { subscription: currentSubscription }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || 'Failed to get current subscription';
+        error instanceof Error
+          ? error.message
+          : 'Failed to get current subscription';
       this.logger.error('Get current subscription error', {
         ...context,
         error: errorMessage,
@@ -253,9 +261,11 @@ export class TechnicianSubscriptionController {
         }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || 'Failed to get subscription history';
+        error instanceof Error
+          ? error.message
+          : 'Failed to get subscription history';
       this.logger.error('Get subscription history error', {
         ...context,
         error: errorMessage,
@@ -308,9 +318,11 @@ export class TechnicianSubscriptionController {
         { subscription: subscriptionPurchase }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || 'Failed to get subscription purchase details';
+        error instanceof Error
+          ? error.message
+          : 'Failed to get subscription purchase details';
       this.logger.error('Get subscription purchase error', {
         ...context,
         error: errorMessage,
@@ -334,7 +346,7 @@ export class TechnicianSubscriptionController {
       const context = {
         operation: 'createRazorpayOrder',
         subscriptionId: id,
-        userId: userId, // Include userId in the initial object
+        userId: userId,
         timestamp: new Date().toISOString(),
       };
 
@@ -353,8 +365,11 @@ export class TechnicianSubscriptionController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to create Razorpay order';
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to create Razorpay order';
       this.logger.error('Create Razorpay order error', {
         operation: 'createRazorpayOrder',
         subscriptionId: id,
@@ -383,7 +398,6 @@ export class TechnicianSubscriptionController {
     try {
       this.logger.info('Processing wallet payment for subscription', context);
 
-      // Get user ID from auth middleware (consistent approach)
       context.userId = userId;
 
       const result =
@@ -399,8 +413,11 @@ export class TechnicianSubscriptionController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to process wallet payment';
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to process wallet payment';
       this.logger.error('Wallet payment error', {
         ...context,
         error: errorMessage,
@@ -431,7 +448,6 @@ export class TechnicianSubscriptionController {
     try {
       this.logger.info('Verifying Razorpay payment', context);
 
-      // Get user ID from auth middleware (consistent approach)
       context.userId = userId;
 
       const result =
@@ -450,8 +466,9 @@ export class TechnicianSubscriptionController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Payment verification failed';
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Payment verification failed';
       this.logger.error('Payment verification error', {
         ...context,
         error: errorMessage,

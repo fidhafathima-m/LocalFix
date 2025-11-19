@@ -1,4 +1,3 @@
-// models/SparePartsRequestSchema.ts
 import { Schema, model, Types } from 'mongoose';
 import { ISparePartsRequest } from '../interfaces/technician/ISparePartsRequest';
 

@@ -1,4 +1,3 @@
-// interfaces/technician/ISparePartsRequest.ts
 import { Document, Types } from 'mongoose';
 
 export interface ISparePartRequestItem {

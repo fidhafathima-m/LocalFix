@@ -1,11 +1,11 @@
-import { Types, Document } from "mongoose";
+import { Types, Document } from 'mongoose';
 
 export interface IOtpVerification extends Document {
   _id: Types.ObjectId;
   phone?: string;
   email?: string;
   otpHash: string;
-  purpose: "signup" | "login" | "reset" | "application";
+  purpose: 'signup' | 'login' | 'reset' | 'application' | 'verification';
   expiresAt: Date;
   attempts: number;
   createdAt?: Date;
@@ -16,7 +16,7 @@ export interface IOTPCreate {
   phone?: string;
   email?: string;
   otpHash: string;
-  purpose: "signup" | "login" | "reset" | "application";
+  purpose: 'signup' | 'login' | 'reset' | 'application' | 'verification';
   expiresAt: Date;
   attempts: number;
 }

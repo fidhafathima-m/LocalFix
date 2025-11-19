@@ -50,7 +50,6 @@ export class PaymentManagementRepository implements IPaymentRepository {
       .limit(limit)
       .exec();
 
-    // For each payment, find the corresponding order to get orderCode
     const paymentsWithOrderData = await Promise.all(
       payments.map(async payment => {
         // Find order by bookingId to get orderCode
@@ -341,28 +340,17 @@ export class PaymentManagementRepository implements IPaymentRepository {
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       PaymentSchema.countDocuments({ status: 'pending' }),
-      PaymentSchema.countDocuments({ status: { $in: ['failed', 'refunded'] } }), // Include refunded in failed count
+      PaymentSchema.countDocuments({ status: { $in: ['failed', 'refunded'] } }),
       PaymentSchema.countDocuments(),
     ]);
 
-    // ✅ FIX: Access the total correctly from aggregation result
     const totalRevenue = totalRevenueResult[0]?.total || 0;
 
-    // ✅ FIX: Calculate service tax correctly (10% of total revenue)
     const platformCommission = Math.round(totalRevenue * 0.1);
-
-    console.log('🔍 Payment Stats Calculation:', {
-      totalRevenue,
-      platformCommission,
-      calculation: `${totalRevenue} * 0.1 = ${platformCommission}`,
-      pendingPayments: pendingPaymentsCount,
-      failedPayments: failedPaymentsCount,
-      totalPayments: totalPaymentsCount,
-    });
 
     return {
       totalRevenue,
-      platformCommission, // This should now be 10% of totalRevenue
+      platformCommission,
       pendingPayments: pendingPaymentsCount,
       failedPayments: failedPaymentsCount,
       totalPayments: totalPaymentsCount,

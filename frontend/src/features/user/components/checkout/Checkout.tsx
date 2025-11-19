@@ -155,7 +155,7 @@ const Checkout: React.FC = () => {
       });
 
       if (paymentResponse.success && paymentResponse.data) {
-        // Create order from booking - status should be 'pending' initially
+        // Create order from booking
         const orderResponse = await orderService.createOrderFromBooking({
           bookingId,
           paymentData: {
@@ -168,10 +168,9 @@ const Checkout: React.FC = () => {
         });
 
         if (orderResponse.success) {
-          // Update booking status to 'pending' (not 'accepted')
           await bookingService.updateBookingStatus(
             bookingId,
-            "pending", // CHANGED: from 'accepted' to 'pending'
+            "pending",
             "system",
             "Payment completed successfully, waiting for technician acceptance"
           );
@@ -190,7 +189,7 @@ const Checkout: React.FC = () => {
               amount: pricing.total,
               paymentMethod: "wallet",
               newBalance: paymentResponse.data.newBalance,
-              status: "pending", // Let user know it's pending technician acceptance
+              status: "pending",
             },
           });
         } else {
@@ -255,7 +254,6 @@ const Checkout: React.FC = () => {
   }, [location.state, navigate]);
 
   // Fetch service pricing from database
-  // In your Checkout component
   const fetchServicePricing = async (serviceName: string) => {
     try {
       setLoadingService(true);
@@ -277,11 +275,6 @@ const Checkout: React.FC = () => {
 
         if (service) {
           calculatePricing(service.avgBasePrice);
-          console.log("✅ Fetched real service price:", {
-            serviceName,
-            basePrice: service.avgBasePrice,
-            serviceId: service._id,
-          });
         } else {
           // Fallback to default pricing if service not found
           console.warn("Service not found, using default pricing");
@@ -302,7 +295,6 @@ const Checkout: React.FC = () => {
   };
 
   // Calculate pricing based on service type
-  // In Checkout component - update calculatePricing function
   const calculatePricingFromName = (serviceType: string) => {
     const basePrices: { [key: string]: number } = {
       "AC Repair": 500,
@@ -329,13 +321,6 @@ const Checkout: React.FC = () => {
     const total = subtotal + serviceTax;
 
     setPricing({ subtotal, serviceTax, total });
-
-    console.log("💰 Pricing calculated:", {
-      basePrice,
-      subtotal,
-      serviceTax,
-      total,
-    });
   };
 
   // Validate booking data before proceeding
@@ -542,7 +527,6 @@ const Checkout: React.FC = () => {
 
       const razorpayInstance = new window.Razorpay(options);
 
-      // In Checkout component - update the payment failure handler
       razorpayInstance.on("payment.failed", async function (response: any) {
         console.error("Payment failed:", response.error);
 
@@ -579,7 +563,7 @@ const Checkout: React.FC = () => {
               pricing,
               error: errorMessage,
               bookingId,
-              orderId: orderResponse.data?._id, // Include order ID for retry
+              orderId: orderResponse.data?._id,
               razorpayError: response.error,
             },
             replace: true,

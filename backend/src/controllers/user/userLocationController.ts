@@ -1,13 +1,7 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { IUserLocationService } from '@/interfaces/services/user/IUserLocationService';
 import { ILogger } from '@/interfaces/utils/ILogger';
-
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    [key: string]: any;
-  };
-}
+import { AuthRequest } from '../../middleware/authMiddleware';
 
 export class UserLocationController {
   private _userLocationService: IUserLocationService;
@@ -246,7 +240,10 @@ export class UserLocationController {
   };
 
   // Find nearby technicians
-  getNearbyTechnicians = async (req: Request, res: Response): Promise<void> => {
+  getNearbyTechnicians = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { lat, lng, radius = '10', serviceName } = req.query;
 
     const context = {

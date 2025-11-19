@@ -101,7 +101,6 @@ app.use(
 
 app.use('/uploads', express.static('uploads'));
 
-// Use your routes
 app.use('/api/auth', userAuth);
 app.use('/api/admin/users', userRoutes);
 app.use('/api/admin/technicians', adminTechnicianRoutes);
@@ -140,5 +139,4 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Socket.IO server running on port ${PORT}`);
-  console.log('All real-time features are active! 🚀');
 });

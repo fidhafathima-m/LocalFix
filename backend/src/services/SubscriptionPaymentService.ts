@@ -56,8 +56,6 @@ export class SubscriptionPaymentService implements ISubscriptionPaymentService {
       if (!orderData.currency) {
         throw new Error('Currency is required');
       }
-
-      // Generate a shorter receipt ID if not provided or too long
       let receipt = orderData.receipt;
       if (!receipt || receipt.length > 40) {
         const subscriptionId = orderData.notes?.subscriptionId || 'unknown';
@@ -67,15 +65,6 @@ export class SubscriptionPaymentService implements ISubscriptionPaymentService {
           generated: receipt,
         });
       }
-
-      // Log the actual request payload for debugging
-      this._logger.debug('Razorpay API request payload', {
-        amount: orderData.amount,
-        currency: orderData.currency,
-        receipt: receipt,
-        notes: orderData.notes,
-      });
-
       // Make API call to Razorpay
       const response = await fetch('https://api.razorpay.com/v1/orders', {
         method: 'POST',

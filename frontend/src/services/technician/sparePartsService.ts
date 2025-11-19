@@ -1,4 +1,3 @@
-// services/technician/sparePartsService.ts
 import { technicianAPI } from "../common/technicianApi";
 
 export interface SparePartRequestItem {

@@ -1,4 +1,3 @@
-// services/chat/ResponseFormatter.ts
 export class ResponseFormatter {
   static formatAIResponse(text: string): React.ReactNode {
     if (!text) return text;

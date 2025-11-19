@@ -47,10 +47,6 @@ export function SparePartsModal({
         setLoading(true);
         setError(null);
 
-        console.log(
-          `Fetching items for service: ${serviceName} (ID: ${serviceId})`
-        );
-
         // Fetch items specific to the service
         const response = await ItemManagementService.getItemsByService(
           serviceId,
@@ -71,7 +67,6 @@ export function SparePartsModal({
         }));
 
         setParts(items);
-        console.log(`Loaded ${items.length} items for service: ${serviceName}`);
       } catch (err) {
         console.error("Failed to fetch items:", err);
         setError("Failed to load spare parts. Please try again.");
@@ -125,7 +120,7 @@ export function SparePartsModal({
     try {
       await onSubmit(selectedParts);
 
-      // Optional: Emit socket event for real-time updates
+      // Emit socket event for real-time updates
       if (socket) {
         socket.emit("spare-parts-requested", {
           serviceName,

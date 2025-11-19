@@ -1,4 +1,3 @@
-// services/WalletService.ts
 import {
   IWalletService,
   AddMoneyRequest,
@@ -89,21 +88,15 @@ export class WalletService implements IWalletService {
         return ResponseHelper.badRequest('Maximum amount is ₹100,000');
       }
 
-      // Generate a shorter receipt that fits within 40 characters
-      // Using a shorter prefix and timestamp only
-      const receipt = `w_${Date.now()}`; // This will be like "w_1731606682000" (~15 chars)
-
-      // Alternative: If you need user context, use a short user ID segment
-      // const shortUserId = userId.slice(-8); // Last 8 chars of user ID
-      // const receipt = `w_${shortUserId}_${Date.now().toString().slice(-8)}`; // ~20 chars
+      const receipt = `w_${Date.now()}`;
 
       // Create Razorpay order
       const orderOptions = {
         amount: amountInPaise,
         currency: amountData.currency || 'INR',
-        receipt: receipt, // Use the shorter receipt
+        receipt: receipt,
         notes: {
-          userId: userId, // Full user ID can go in notes
+          userId: userId,
           type: 'wallet_topup',
           description: 'Wallet top-up',
         },
@@ -147,7 +140,6 @@ export class WalletService implements IWalletService {
     }
   }
 
-  // In verifyAddMoneyPayment method
   async verifyAddMoneyPayment(userId: string, paymentData: any) {
     const context = {
       operation: 'verifyAddMoneyPayment',

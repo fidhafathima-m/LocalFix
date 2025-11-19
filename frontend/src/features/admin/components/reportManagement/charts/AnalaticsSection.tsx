@@ -28,7 +28,6 @@ const AnalyticsSection = ({
       return;
     }
 
-    // You can add API calls here if needed for dynamic data
     setLoading(false);
   }, [data]);
 

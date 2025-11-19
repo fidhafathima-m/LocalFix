@@ -21,7 +21,6 @@ const GrowthChart = () => {
       try {
         setLoading(true);
         const data = await DashboardService.getGrowthMetrics();
-        console.log("Growth metrics data:", data);
         setGrowthData(data);
       } catch (err) {
         setError(

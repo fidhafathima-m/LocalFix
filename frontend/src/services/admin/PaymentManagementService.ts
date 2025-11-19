@@ -44,11 +44,9 @@ export class PaymentManagementService {
   static async getPaymentStats(): Promise<PaymentStats> {
     try {
       const response = await adminAPI.getPaymentStats();
-      console.log("Payment stats API response:", response);
 
       // Extract stats from the nested response structure
       const result = this.handleResponse(response);
-      console.log("Processed payment stats:", result);
 
       // The stats should be directly in the result, not nested under stats
       return result.stats || result;
@@ -85,25 +83,20 @@ export class PaymentManagementService {
   }
 
   private static handleResponse(response: any) {
-    console.log("Raw API response:", response); // Debug log
-
     if (response.success === false) {
       throw new Error(response.message || "Operation failed");
     }
 
     // Handle nested data structure: response.data.data
     if (response.data && response.data.data) {
-      console.log("Extracting from response.data.data:", response.data.data); // Debug log
       return response.data.data;
     }
 
     // Handle direct data structure: response.data
     if (response.data) {
-      console.log("Extracting from response.data:", response.data); // Debug log
       return response.data;
     }
 
-    console.log("Returning raw response:", response); // Debug log
     return response;
   }
 

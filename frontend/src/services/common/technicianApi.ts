@@ -502,9 +502,8 @@ export const technicianAPI = {
     availability: {
       isAvailable: boolean;
       weeklyPattern: {
-        // Changed from weeklyAvailability
         [key: string]: {
-          available: boolean; // Changed from enabled
+          available: boolean;
           startTime: string;
           endTime: string;
         };

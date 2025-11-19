@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { PAYMENT_MESSAGES } from '../../constants';
 import { IPaymentService } from '@/interfaces/services/admin/IPaymentManagementService';
 import { ILogger } from '@/interfaces/utils/ILogger';
+import { AuthRequest } from '../../middleware/authMiddleware';
 
 export class PaymentManagementController {
   private _paymentService: IPaymentService;
@@ -13,7 +14,7 @@ export class PaymentManagementController {
     this._logger = logger;
   }
 
-  getPayments = async (req: Request, res: Response): Promise<void> => {
+  getPayments = async (req: AuthRequest, res: Response): Promise<void> => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
@@ -70,7 +71,7 @@ export class PaymentManagementController {
     }
   };
 
-  getPaymentById = async (req: Request, res: Response): Promise<void> => {
+  getPaymentById = async (req: AuthRequest, res: Response): Promise<void> => {
     const { id } = req.params;
     const context = {
       operation: 'getPaymentById',
@@ -119,7 +120,7 @@ export class PaymentManagementController {
     }
   };
 
-  getPaymentStats = async (req: Request, res: Response): Promise<void> => {
+  getPaymentStats = async (req: AuthRequest, res: Response): Promise<void> => {
     const context = {
       operation: 'getPaymentStats',
       timestamp: new Date().toISOString(),
@@ -156,7 +157,7 @@ export class PaymentManagementController {
     }
   };
 
-  processRefund = async (req: Request, res: Response) => {
+  processRefund = async (req: AuthRequest, res: Response) => {
     try {
       const { paymentId } = req.params;
       const { reason } = req.body;
@@ -175,16 +176,17 @@ export class PaymentManagementController {
         message:
           "Refund processed successfully and amount credited to user's wallet",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Process refund error:', error);
       return res.status(400).json({
         success: false,
-        message: error.message || 'Failed to process refund',
+        message:
+          error instanceof Error ? error.message : 'Failed to process refund',
       });
     }
   };
 
-  exportPayments = async (req: Request, res: Response): Promise<void> => {
+  exportPayments = async (req: AuthRequest, res: Response): Promise<void> => {
     const format = (req.query.format as 'csv' | 'excel') || 'csv';
     const filters = req.query;
 

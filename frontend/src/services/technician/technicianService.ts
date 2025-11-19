@@ -27,28 +27,28 @@ export class TechnicianService {
       throw this.handleError(error, "Failed to get technician availability");
     }
   }
- static async updateAvailability(data: {
-  availability: {
-    isAvailable: boolean;
-    weeklyPattern: {  // Changed from weeklyAvailability
-      [key: string]: {
-        available: boolean;  // Changed from enabled
-        startTime: string;
-        endTime: string;
+  static async updateAvailability(data: {
+    availability: {
+      isAvailable: boolean;
+      weeklyPattern: {
+        [key: string]: {
+          available: boolean;
+          startTime: string;
+          endTime: string;
+        };
       };
+      availableWeeks?: number[];
     };
-    availableWeeks?: number[];
-  };
-  serviceAreas: string[];
-  workRadius: number;
-}) {
-  try {
-    const response = await technicianAPI.updateAvailability(data);
-    return this.handleResponse(response);
-  } catch (error) {
-    throw this.handleError(error, "Failed to update availability");
+    serviceAreas: string[];
+    workRadius: number;
+  }) {
+    try {
+      const response = await technicianAPI.updateAvailability(data);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to update availability");
+    }
   }
-}
 
   static async updateBankPayment(data: {
     paymentDetails: {

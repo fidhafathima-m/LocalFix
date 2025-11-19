@@ -29,15 +29,6 @@ export class OrderRepository implements IOrderRepository {
         throw new Error('Booking not found');
       }
 
-      console.log('🔍 Booking serviceId:', booking.serviceId);
-      console.log('🔍 Booking serviceName:', booking.serviceName);
-      console.log('🔍 Booking keys:', Object.keys(booking));
-
-      if (!booking.serviceId) {
-        console.log('❌ No serviceId found in booking!');
-        // We need to handle this case
-      }
-
       // Get address details
       const address = booking.addressId;
 

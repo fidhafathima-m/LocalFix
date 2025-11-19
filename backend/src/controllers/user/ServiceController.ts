@@ -1,9 +1,9 @@
-// controllers/user/ServiceController.ts
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { IUserServiceService } from '../../interfaces/services/user/IServiceService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { SERVICE_MESSAGES } from '../../constants';
 import { ILogger } from '@/interfaces/utils/ILogger';
+import { AuthRequest } from '../../middleware/authMiddleware';
 
 export class UserServiceController {
   private _userServiceService: IUserServiceService;
@@ -14,7 +14,7 @@ export class UserServiceController {
     this._logger = logger;
   }
 
-  getServiceById = async (req: Request, res: Response): Promise<void> => {
+  getServiceById = async (req: AuthRequest, res: Response): Promise<void> => {
     const { id } = req.params;
     const context = {
       operation: 'UserServiceController.getServiceById',
@@ -54,7 +54,7 @@ export class UserServiceController {
     }
   };
 
-  getServiceBySlug = async (req: Request, res: Response): Promise<void> => {
+  getServiceBySlug = async (req: AuthRequest, res: Response): Promise<void> => {
     const { slug } = req.params;
     const context = {
       operation: 'UserServiceController.getServiceBySlug',
@@ -95,7 +95,7 @@ export class UserServiceController {
   };
 
   getServicesByCategoryId = async (
-    req: Request,
+    req: AuthRequest,
     res: Response
   ): Promise<void> => {
     const { categoryId } = req.params;
@@ -151,7 +151,7 @@ export class UserServiceController {
     }
   };
 
-  getAllServices = async (req: Request, res: Response): Promise<void> => {
+  getAllServices = async (req: AuthRequest, res: Response): Promise<void> => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
@@ -205,7 +205,7 @@ export class UserServiceController {
     }
   };
 
-  searchServices = async (req: Request, res: Response): Promise<void> => {
+  searchServices = async (req: AuthRequest, res: Response): Promise<void> => {
     const { q } = req.query;
     const limit = parseInt(req.query.limit as string) || 10;
 

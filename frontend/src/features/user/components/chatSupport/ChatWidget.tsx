@@ -1,4 +1,3 @@
-// components/chat/ChatWidget.tsx
 import {
   ChatOutlined,
   CloseOutlined,
@@ -32,7 +31,6 @@ export function ChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Inside your handleSend function, update the AI response handling:
   const handleSend = async () => {
     if (!message.trim() || isLoading) return;
 

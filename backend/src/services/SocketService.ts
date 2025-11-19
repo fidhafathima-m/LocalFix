@@ -27,12 +27,11 @@ export class SocketService {
 
   private setupSocketHandlers(): void {
     this._io.on('connection', socket => {
-      console.log('🔌 New client connected:', socket.id);
+      console.log('New client connected:', socket.id);
 
       // Setup location tracking handlers
       this.setupLocationHandlers(socket);
 
-      // ✅ FIX: Add this line to setup notification handlers
       this.setupNotificationHandlers(socket);
 
       socket.on('disconnect', () => {
@@ -41,12 +40,11 @@ export class SocketService {
         if (technicianId) {
           this._activeConnections.delete(socket.id);
         }
-        console.log('🔌 Client disconnected:', socket.id);
+        console.log('Client disconnected:', socket.id);
       });
     });
   }
 
-  // ✅ Add this method for location handlers
   private setupLocationHandlers(socket: any): void {
     socket.on(
       'technician-location-share',
@@ -90,7 +88,6 @@ export class SocketService {
       }
     );
 
-    // Update ALL other handlers too:
     socket.on(
       'technician-location-update',
       async (data: ITechnicianLocationShare) => {
@@ -163,7 +160,6 @@ export class SocketService {
       const { userId } = data;
       const roomName = `user-${userId}`;
       socket.join(roomName);
-      console.log(`🔔 User ${userId} joined notification room: ${roomName}`);
     });
 
     // Mark notification as read in real-time
@@ -172,7 +168,6 @@ export class SocketService {
       async (data: { notificationId: string }) => {
         try {
           const { notificationId } = data;
-          // Use your existing service
           const updatedNotification =
             await this._notificationService.markAsRead(notificationId);
 
@@ -206,11 +201,9 @@ export class SocketService {
     });
   }
 
-  // In your SocketService, add these comprehensive methods:
-
   public async sendLiveNotification(userId: string, notificationData: any) {
     try {
-      // 1. Create notification in database (your existing service)
+      // 1. Create notification in database
       const notification =
         await this._notificationService.createNotification(notificationData);
 
@@ -222,7 +215,6 @@ export class SocketService {
         unreadCount: await this.getUserUnreadCount(userId),
       });
 
-      console.log(`📢 Live notification sent to user ${userId}`);
       return notification;
     } catch (error) {
       console.error('Error sending live notification:', error);
@@ -373,7 +365,6 @@ export class SocketService {
     }
   }
 
-  // In your SocketService class, add this method:
   public async notifyRefundProcessed(
     userId: string,
     amount: number,
@@ -404,7 +395,6 @@ export class SocketService {
     });
   }
 
-  // In your SocketService, update the notifySparePartsRequest method
   public async notifySparePartsRequest(
     customerId: string,
     technicianName: string,
@@ -412,7 +402,7 @@ export class SocketService {
     orderId: string,
     totalAmount: number,
     itemsCount: number,
-    requestId: string // Add requestId for the approval link
+    requestId: string
   ) {
     return this.sendLiveNotification(customerId, {
       userId: customerId,
@@ -423,12 +413,12 @@ export class SocketService {
       priority: 'high',
       data: {
         orderId,
-        requestId, // Add this for the approval page
+        requestId,
         serviceType,
         technicianName,
         totalAmount,
         itemsCount,
-        actionUrl: `/orders/${orderId}/spare-parts/${requestId}/approval`, // Updated URL
+        actionUrl: `/orders/${orderId}/spare-parts/${requestId}/approval`,
         timestamp: new Date().toISOString(),
       },
     });

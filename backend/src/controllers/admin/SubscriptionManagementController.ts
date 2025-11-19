@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ISubscriptionService } from '../../interfaces/services/admin/ISubscriptionManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import {
@@ -7,6 +7,7 @@ import {
 } from '../../interfaces/dtos/subscriptionDtos';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { SUBSCRIPTION_MESSAGES } from '../../constants';
+import { AuthRequest } from '../../middleware/authMiddleware';
 
 export class SubscriptionManagementController {
   private _subscriptionService: ISubscriptionService;
@@ -17,7 +18,10 @@ export class SubscriptionManagementController {
     this._logger = logger;
   }
 
-  createSubscription = async (req: Request, res: Response): Promise<void> => {
+  createSubscription = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const context = {
       operation: 'createSubscription',
       body: req.body,
@@ -68,9 +72,11 @@ export class SubscriptionManagementController {
         { subscription }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || SUBSCRIPTION_MESSAGES.FAILED_CREATE_SUBSCRIPTION;
+        error instanceof Error
+          ? error.message
+          : SUBSCRIPTION_MESSAGES.FAILED_CREATE_SUBSCRIPTION;
       this._logger.error('Create subscription controller error', {
         ...context,
         error: errorMessage,
@@ -81,7 +87,10 @@ export class SubscriptionManagementController {
     }
   };
 
-  getSubscriptionById = async (req: Request, res: Response): Promise<void> => {
+  getSubscriptionById = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { id } = req.params;
     const context = {
       operation: 'getSubscriptionById',
@@ -100,9 +109,11 @@ export class SubscriptionManagementController {
         { subscription }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || SUBSCRIPTION_MESSAGES.SUBSCRIPTION_NOT_FOUND;
+        error instanceof Error
+          ? error.message
+          : SUBSCRIPTION_MESSAGES.SUBSCRIPTION_NOT_FOUND;
       this._logger.error('Get subscription by ID controller error', {
         ...context,
         error: errorMessage,
@@ -114,7 +125,7 @@ export class SubscriptionManagementController {
   };
 
   getSubscriptionBySlug = async (
-    req: Request,
+    req: AuthRequest,
     res: Response
   ): Promise<void> => {
     const { slug } = req.params;
@@ -135,9 +146,11 @@ export class SubscriptionManagementController {
         { subscription }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || SUBSCRIPTION_MESSAGES.SUBSCRIPTION_NOT_FOUND;
+        error instanceof Error
+          ? error.message
+          : SUBSCRIPTION_MESSAGES.SUBSCRIPTION_NOT_FOUND;
       this._logger.error('Get subscription by slug controller error', {
         ...context,
         error: errorMessage,
@@ -148,7 +161,10 @@ export class SubscriptionManagementController {
     }
   };
 
-  getAllSubscriptions = async (req: Request, res: Response): Promise<void> => {
+  getAllSubscriptions = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
@@ -175,9 +191,11 @@ export class SubscriptionManagementController {
         result
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || SUBSCRIPTION_MESSAGES.FAILED_FETCH_SUBSCRIPTIONS;
+        error instanceof Error
+          ? error.message
+          : SUBSCRIPTION_MESSAGES.FAILED_FETCH_SUBSCRIPTIONS;
       this._logger.error('Get all subscriptions controller error', {
         ...context,
         error: errorMessage,
@@ -188,7 +206,10 @@ export class SubscriptionManagementController {
     }
   };
 
-  updateSubscription = async (req: Request, res: Response): Promise<void> => {
+  updateSubscription = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { id } = req.params;
     const updateDto: UpdateSubscriptionDto = req.body;
 
@@ -212,9 +233,11 @@ export class SubscriptionManagementController {
         { subscription }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || SUBSCRIPTION_MESSAGES.FAILED_UPDATE_SUBSCRIPTION;
+        error instanceof Error
+          ? error.message
+          : SUBSCRIPTION_MESSAGES.FAILED_UPDATE_SUBSCRIPTION;
       this._logger.error('Update subscription controller error', {
         ...context,
         error: errorMessage,
@@ -225,7 +248,10 @@ export class SubscriptionManagementController {
     }
   };
 
-  deleteSubscription = async (req: Request, res: Response): Promise<void> => {
+  deleteSubscription = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { id } = req.params;
     const context = {
       operation: 'deleteSubscription',
@@ -242,9 +268,11 @@ export class SubscriptionManagementController {
         SUBSCRIPTION_MESSAGES.SUBSCRIPTION_DELETED
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.message || SUBSCRIPTION_MESSAGES.FAILED_DELETE_SUBSCRIPTION;
+        error instanceof Error
+          ? error.message
+          : SUBSCRIPTION_MESSAGES.FAILED_DELETE_SUBSCRIPTION;
       this._logger.error('Delete subscription controller error', {
         ...context,
         error: errorMessage,
@@ -255,7 +283,10 @@ export class SubscriptionManagementController {
     }
   };
 
-  searchSubscriptions = async (req: Request, res: Response): Promise<void> => {
+  searchSubscriptions = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { q } = req.query;
     const limit = parseInt(req.query.limit as string) || 10;
 
@@ -287,10 +318,13 @@ export class SubscriptionManagementController {
         }
       );
       res.status(response.statusCode).json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this._logger.error('Search subscriptions controller error', {
         ...context,
-        error: error.message,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Error in searching subscriptions',
       });
 
       const response = ResponseHelper.error('Failed to search subscriptions');

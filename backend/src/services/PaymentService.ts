@@ -373,14 +373,6 @@ export class PaymentService {
         return ResponseHelper.notFound('Spare parts request not found');
       }
 
-      // Debug: Check what sparePartsRequest.orderId contains
-      this._logger.info('Spare parts request orderId structure:', {
-        requestOrderId: sparePartsRequest.orderId,
-        requestOrderIdType: typeof sparePartsRequest.orderId,
-        isObject: typeof sparePartsRequest.orderId === 'object',
-        isString: typeof sparePartsRequest.orderId === 'string',
-      });
-
       // Safe order ID extraction from spare parts request
       let requestOrderId: string;
 

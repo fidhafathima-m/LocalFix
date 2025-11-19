@@ -7,7 +7,7 @@ import React, {
   type ReactNode,
 } from "react";
 import { NotificationService } from "../../services/notificationService";
-import { useSocket } from "../SocketContext"; // Import your socket context
+import { useSocket } from "../SocketContext";
 
 interface NotificationContextType {
   notificationCount: number;
@@ -32,7 +32,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 }) => {
   const [notificationCount, setNotificationCount] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const { socket, isConnected } = useSocket(); // Get socket from context
+  const { socket, isConnected } = useSocket();
 
   const refreshNotificationCount = async () => {
     if (!userId) {
@@ -42,7 +42,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     }
 
     try {
-      console.log("Refreshing notification count for user:", userId);
       const response = await NotificationService.getUnreadCount(userId);
 
       // Handle different response formats
@@ -66,7 +65,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
         }
       }
 
-      console.log("Notification count received:", count);
       setNotificationCount(count);
     } catch (err) {
       console.error("Failed to load notification count:", err);
@@ -81,7 +79,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       await NotificationService.markAllAsRead(userId);
       setNotificationCount(0); // Immediately set to 0
 
-      // Also emit socket event to update server-side
       if (socket) {
         socket.emit("mark-all-read", { userId });
       }
@@ -96,7 +93,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     try {
       await NotificationService.markAsRead(notificationId);
 
-      // Optimistically update count
       setNotificationCount((prev) => Math.max(0, prev - 1));
 
       // Emit socket event
@@ -108,17 +104,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     }
   };
 
-  // 🔔 REAL-TIME SOCKET.IO LISTENERS
   useEffect(() => {
     if (!socket || !userId || !isConnected) {
       console.log("Socket not available for notifications");
       return;
     }
-
-    console.log(
-      "🔔 Setting up real-time notification listeners for user:",
-      userId
-    );
 
     // Join user's personal notification room
     socket.emit("join-notification-room", { userId });
@@ -127,9 +117,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     socket.on(
       "new-notification",
       (data: { notification: any; unreadCount: number }) => {
-        console.log("📢 Received new live notification:", data);
-        console.log("Notification data:", data.notification.data);
-
         // Update notification count in real-time
         setNotificationCount(data.unreadCount);
 
@@ -159,7 +146,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
     // Listen for unread count updates
     socket.on("unread-count-update", (data: { count: number }) => {
-      console.log("🔢 Unread count updated via socket:", data.count);
       setNotificationCount(data.count);
     });
 
@@ -168,7 +154,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
     // Cleanup socket listeners
     return () => {
-      console.log("🧹 Cleaning up notification socket listeners");
       socket.off("new-notification");
       socket.off("unread-count-update");
     };

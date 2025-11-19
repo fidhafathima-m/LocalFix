@@ -181,7 +181,6 @@ export const orderService = {
     return response.data;
   },
 
-  // NEW: Update order payment details
   async updateOrderPayment(
     orderId: string,
     paymentData: {
@@ -199,7 +198,6 @@ export const orderService = {
     return response.data;
   },
 
-  // NEW: Retry payment for existing order
   async retryPaymentForOrder(
     bookingId: string,
     paymentData: {

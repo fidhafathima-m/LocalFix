@@ -65,7 +65,7 @@ export function SubscriptionSuccess() {
         const latestSubscription = history[0];
         setCurrentSubscription(latestSubscription);
         setPaymentData({
-          plan: latestSubscription.subscriptionPlanId, // This might need adjustment based on your data structure
+          plan: latestSubscription.subscriptionPlanId,
           paymentMethod: latestSubscription.paymentMethod,
           amount: latestSubscription.amount,
           transactionId: latestSubscription.transactionId,

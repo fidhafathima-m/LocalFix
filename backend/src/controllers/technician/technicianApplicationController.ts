@@ -1,8 +1,8 @@
-import { Request, Response } from "express";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import { ITechnicianApplicationService } from "../../interfaces/services/technician/ITechnicianApplicationService";
-import { ResponseHelper } from "../../utils/responseHelper";
-import { GENERAL_MESSAGES } from "../../constants";
+import { Response } from 'express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { ITechnicianApplicationService } from '../../interfaces/services/technician/ITechnicianApplicationService';
+import { ResponseHelper } from '../../utils/responseHelper';
+import { GENERAL_MESSAGES } from '../../constants';
 import {
   StartApplicationRequestDto,
   SaveStepRequestDto,
@@ -12,8 +12,10 @@ import {
   ApplicationListResponseDto,
   UploadedFileDto,
   FilesCollectionDto,
-} from "../../interfaces/dtos/technicianApplicationDtos";
-import { ILogger } from "@/interfaces/utils/ILogger";
+  ExpressFile,
+  ExpressFiles,
+} from '../../interfaces/dtos/technicianApplicationDtos';
+import { ILogger } from '@/interfaces/utils/ILogger';
 
 export class TechnicianApplicationController {
   private _applicationService: ITechnicianApplicationService;
@@ -27,30 +29,30 @@ export class TechnicianApplicationController {
     this._logger = logger;
   }
 
-  startApplication = async (req: Request, res: Response): Promise<void> => {
+  startApplication = async (req: AuthRequest, res: Response): Promise<void> => {
     const requestData: StartApplicationRequestDto = req.body;
     const context = {
-      operation: "startApplication",
+      operation: 'startApplication',
       userEmail: requestData.email,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Starting new technician application", context);
+      this._logger.info('Starting new technician application', context);
 
       const result: ApplicationResponseDto =
         await this._applicationService.startApplication(requestData);
 
-      this._logger.info("Application started successfully", {
+      this._logger.info('Application started successfully', {
         ...context,
         applicationId: result.data?.application?._id,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Start application controller error", {
+      this._logger.error('Start application controller error', {
         ...context,
-        error: error instanceof Error ? error.message : undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
 
@@ -62,10 +64,12 @@ export class TechnicianApplicationController {
   saveStep = async (req: AuthRequest, res: Response): Promise<void> => {
     const requestData: SaveStepRequestDto = req.body;
     const userId = req.user?.id;
-    const files: FilesCollectionDto = this.convertExpressFiles(req.files);
+    const files: FilesCollectionDto = this.convertExpressFiles(
+      req.files as ExpressFiles | undefined
+    );
 
     const context = {
-      operation: "saveStep",
+      operation: 'saveStep',
       userId,
       applicationId: requestData.applicationId,
       step: requestData.step,
@@ -74,20 +78,20 @@ export class TechnicianApplicationController {
     };
 
     try {
-      this._logger.info("Saving application step", context);
+      this._logger.info('Saving application step', context);
 
       const result: ApplicationResponseDto =
         await this._applicationService.saveStep(requestData, files);
 
-      this._logger.info("Application step saved successfully", {
+      this._logger.info('Application step saved successfully', {
         ...context,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Save step controller error", {
+      this._logger.error('Save step controller error', {
         ...context,
-        error: error instanceof Error ? error.message : undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
 
@@ -99,34 +103,25 @@ export class TechnicianApplicationController {
   private countFiles(files: FilesCollectionDto): number {
     if (!files) return 0;
 
-    let count = 0;
-    for (const key in files) {
-      if (Array.isArray(files[key])) {
-        count += files[key].length;
-      }
-    }
-    return count;
+    return Object.values(files).reduce((total, fileArray) => {
+      return total + fileArray.length;
+    }, 0);
   }
 
-  private convertExpressFiles(files: any): FilesCollectionDto {
+  private convertExpressFiles(
+    files: ExpressFiles | undefined
+  ): FilesCollectionDto {
     if (!files) return {};
 
     const convertedFiles: FilesCollectionDto = {};
 
-    // If files is an array
-    if (Array.isArray(files)) {
-      convertedFiles.files = files.map((file) => this.convertExpressFile(file));
-      return convertedFiles;
-    }
-
-    // If files is an object with field names as keys
-    for (const [fieldname, fileArray] of Object.entries(files)) {
-      if (Array.isArray(fileArray)) {
-        convertedFiles[fieldname] = fileArray.map((file: any) =>
+    for (const [fieldname, fileOrArray] of Object.entries(files)) {
+      if (Array.isArray(fileOrArray)) {
+        convertedFiles[fieldname] = fileOrArray.map((file: ExpressFile) =>
           this.convertExpressFile(file)
         );
       } else {
-        const file = fileArray as any;
+        const file = fileOrArray as ExpressFile;
         convertedFiles[fieldname] = [this.convertExpressFile(file)];
       }
     }
@@ -134,7 +129,7 @@ export class TechnicianApplicationController {
     return convertedFiles;
   }
 
-  private convertExpressFile(file: any): UploadedFileDto {
+  private convertExpressFile(file: ExpressFile): UploadedFileDto {
     return {
       fieldname: file.fieldname,
       originalname: file.originalname,
@@ -149,30 +144,30 @@ export class TechnicianApplicationController {
     };
   }
 
-  getApplication = async (req: Request, res: Response): Promise<void> => {
+  getApplication = async (req: AuthRequest, res: Response): Promise<void> => {
     const { applicationId } = req.params;
     const context = {
-      operation: "getApplication",
+      operation: 'getApplication',
       applicationId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching application", context);
+      this._logger.info('Fetching application', context);
 
       const result: ApplicationResponseDto =
         await this._applicationService.getApplication(applicationId);
 
-      this._logger.info("Application retrieved successfully", {
+      this._logger.info('Application retrieved successfully', {
         ...context,
         status: result.data?.application?.status,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get application controller error", {
+      this._logger.error('Get application controller error', {
         ...context,
-        error: error instanceof Error ? error.message : undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
 
@@ -189,22 +184,22 @@ export class TechnicianApplicationController {
     const userId = req.user?.id;
 
     const context = {
-      operation: "submitApplication",
+      operation: 'submitApplication',
       userId,
       applicationId: requestData.applicationId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Submitting application", context);
+      this._logger.info('Submitting application', context);
 
       if (!userId) {
         this._logger.warn(
-          "Submit application failed - authentication required",
+          'Submit application failed - authentication required',
           context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -216,16 +211,16 @@ export class TechnicianApplicationController {
           userId
         );
 
-      this._logger.info("Application submitted successfully", {
+      this._logger.info('Application submitted successfully', {
         ...context,
         newStatus: result.data?.application?.status,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Submit application controller error", {
+      this._logger.error('Submit application controller error', {
         ...context,
-        error: error instanceof Error ? error.message : undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
 
@@ -234,30 +229,33 @@ export class TechnicianApplicationController {
     }
   };
 
-  getApplicationStatus = async (req: Request, res: Response): Promise<void> => {
+  getApplicationStatus = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { applicationId } = req.params;
     const context = {
-      operation: "getApplicationStatus",
+      operation: 'getApplicationStatus',
       applicationId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching application status", context);
+      this._logger.info('Fetching application status', context);
 
       const result: ApplicationResponseDto =
         await this._applicationService.getApplicationStatus(applicationId);
 
-      this._logger.info("Application status retrieved successfully", {
+      this._logger.info('Application status retrieved successfully', {
         ...context,
         status: result.data?.application?.status,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get application status controller error", {
+      this._logger.error('Get application status controller error', {
         ...context,
-        error: error instanceof Error ? error.message : undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
 
@@ -272,21 +270,21 @@ export class TechnicianApplicationController {
   ): Promise<void> => {
     const userId = req.user?.id;
     const context = {
-      operation: "getUserApplications",
+      operation: 'getUserApplications',
       userId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching user applications", context);
+      this._logger.info('Fetching user applications', context);
 
       if (!userId) {
         this._logger.warn(
-          "Get user applications failed - authentication required",
+          'Get user applications failed - authentication required',
           context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -295,16 +293,16 @@ export class TechnicianApplicationController {
       const result: ApplicationListResponseDto =
         await this._applicationService.getUserApplications(userId);
 
-      this._logger.info("User applications retrieved successfully", {
+      this._logger.info('User applications retrieved successfully', {
         ...context,
         applicationCount: result.data?.applications?.length,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get user applications controller error", {
+      this._logger.error('Get user applications controller error', {
         ...context,
-        error: error instanceof Error ? error.message : undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
 
@@ -321,22 +319,22 @@ export class TechnicianApplicationController {
     const userId = req.user?.id;
 
     const context = {
-      operation: "resubmitApplication",
+      operation: 'resubmitApplication',
       userId,
       applicationId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Resubmitting application", context);
+      this._logger.info('Resubmitting application', context);
 
       if (!userId) {
         this._logger.warn(
-          "Resubmit application failed - authentication required",
+          'Resubmit application failed - authentication required',
           context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -348,16 +346,16 @@ export class TechnicianApplicationController {
           userId
         );
 
-      this._logger.info("Application resubmitted successfully", {
+      this._logger.info('Application resubmitted successfully', {
         ...context,
         newStatus: result.data?.application?.status,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Resubmit application controller error", {
+      this._logger.error('Resubmit application controller error', {
         ...context,
-        error: error instanceof Error ? error.message : undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
 
@@ -374,22 +372,22 @@ export class TechnicianApplicationController {
     const userId = req.user?.id;
 
     const context = {
-      operation: "startNewAfterRejection",
+      operation: 'startNewAfterRejection',
       userId,
       userEmail: requestData.email,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Starting new application after rejection", context);
+      this._logger.info('Starting new application after rejection', context);
 
       if (!userId || !requestData.email) {
         this._logger.warn(
-          "Start new after rejection failed - missing required fields",
+          'Start new after rejection failed - missing required fields',
           context
         );
         const badRequestResponse = ResponseHelper.badRequest(
-          "User ID and email are required"
+          'User ID and email are required'
         );
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
@@ -402,7 +400,7 @@ export class TechnicianApplicationController {
         );
 
       this._logger.info(
-        "New application started after rejection successfully",
+        'New application started after rejection successfully',
         {
           ...context,
           newApplicationId: result.data?.application?._id,
@@ -411,9 +409,9 @@ export class TechnicianApplicationController {
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Start new after rejection controller error", {
+      this._logger.error('Start new after rejection controller error', {
         ...context,
-        error: error instanceof Error ? error.message : undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
 
@@ -430,22 +428,22 @@ export class TechnicianApplicationController {
     const userId = req.user?.id;
 
     const context = {
-      operation: "getApplicationForEdit",
+      operation: 'getApplicationForEdit',
       userId,
       applicationId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching application for editing", context);
+      this._logger.info('Fetching application for editing', context);
 
       if (!userId) {
         this._logger.warn(
-          "Get application for edit failed - authentication required",
+          'Get application for edit failed - authentication required',
           context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -457,17 +455,17 @@ export class TechnicianApplicationController {
           userId
         );
 
-      this._logger.info("Application for edit retrieved successfully", {
+      this._logger.info('Application for edit retrieved successfully', {
         ...context,
         status: result.data?.application?.status,
-        isEditable: result.data?.application?.status === "draft",
+        isEditable: result.data?.application?.status === 'draft',
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get application for edit controller error", {
+      this._logger.error('Get application for edit controller error', {
         ...context,
-        error: error instanceof Error ? error.message : undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
 

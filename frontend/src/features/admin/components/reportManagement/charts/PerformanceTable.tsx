@@ -15,22 +15,10 @@ const PerformanceTable = () => {
       try {
         setLoading(true);
         const data = await DashboardService.getTopTechnicians(5);
-        console.log("Top technicians data:", data);
 
-        // Enhanced debugging
         if (Array.isArray(data)) {
-          console.log(`Found ${data.length} technicians`);
-          data.forEach((tech, index) => {
-            console.log(`Tech ${index + 1}:`, {
-              name: tech.name,
-              rating: tech.rating,
-              jobs: tech.jobs,
-              revenue: tech.revenue,
-            });
-          });
           setTechnicians(data);
         } else {
-          console.warn("Expected array but got:", data);
           setTechnicians([]);
         }
       } catch (err) {

@@ -1,13 +1,12 @@
-// interfaces/repository/user/IWalletRepository.ts
-import { Types } from "mongoose";
+import { Types } from 'mongoose';
 
 export interface WalletTransaction {
   txId: string;
-  type: "credit" | "debit";
+  type: 'credit' | 'debit';
   amount: number;
   balanceAfter: number;
   description: string;
-  status: "pending" | "completed" | "failed";
+  status: 'pending' | 'completed' | 'failed';
   metadata?: any;
   createdAt: Date;
 }
@@ -30,22 +29,19 @@ export interface IWalletRepository {
   updateWalletBalance(userId: string, newBalance: number): Promise<any>;
   addWalletTransaction(
     userId: string,
-    transaction: Omit<WalletTransaction, "createdAt">,
+    transaction: Omit<WalletTransaction, 'createdAt'>
   ): Promise<any>;
   getWalletTransactions(
     userId: string,
     page: number,
-    limit: number,
+    limit: number
   ): Promise<{ transactions: WalletTransaction[]; total: number }>;
 
   // Bank Account methods
   getBankAccounts(userId: string): Promise<BankAccount[]>;
   addBankAccount(
     userId: string,
-    accountData: Omit<
-      BankAccount,
-      "_id" | "userId" | "createdAt" | "updatedAt"
-    >,
+    accountData: Omit<BankAccount, '_id' | 'userId' | 'createdAt' | 'updatedAt'>
   ): Promise<BankAccount>;
   setDefaultBankAccount(userId: string, accountId: string): Promise<void>;
   deleteBankAccount(userId: string, accountId: string): Promise<boolean>;

@@ -42,8 +42,7 @@ export class DashboardRepository implements IDashboardRepository {
   async getTotalTechnicians(): Promise<number> {
     // Only count approved and active technicians
     return await Technician.countDocuments({
-      status: 'approved', // Only approved technicians
-      // Add any additional active status checks if needed
+      status: 'approved',
     });
   }
 
@@ -324,10 +323,7 @@ export class DashboardRepository implements IDashboardRepository {
       },
     ]);
 
-    console.log('Raw ratings from reviews:', ratings);
-
     const total = ratings.reduce((sum, item) => sum + item.count, 0);
-    console.log('Total reviews:', total);
 
     // Create complete rating distribution for all stars 1-5
     const completeRatings = [5, 4, 3, 2, 1].map(star => {
@@ -335,18 +331,12 @@ export class DashboardRepository implements IDashboardRepository {
       const count = existing?.count || 0;
       const percentage = total > 0 ? (count / total) * 100 : 0;
 
-      console.log(
-        `Star ${star}: count=${count}, percentage=${percentage.toFixed(2)}%`
-      );
-
       return {
         stars: star,
         count: count,
         percentage: percentage,
       };
     });
-
-    console.log('Complete ratings distribution:', completeRatings);
 
     return completeRatings;
   }
@@ -375,8 +365,6 @@ export class DashboardRepository implements IDashboardRepository {
       },
     ]);
 
-    console.log('Raw payment methods data:', paymentMethods);
-
     // Ensure we have all payment methods, even if they have 0 amount
     const allMethods = ['online', 'cod', 'wallet'];
     const completePaymentMethods = allMethods.map(method => {
@@ -387,12 +375,9 @@ export class DashboardRepository implements IDashboardRepository {
       };
     });
 
-    console.log('Complete payment methods:', completePaymentMethods);
-
     return completePaymentMethods;
   }
 
-  // Enhanced payment methods with percentages
   async getPaymentMethodsWithPercentages(): Promise<
     Array<{ method: string; amount: number; percentage: number }>
   > {
@@ -407,11 +392,6 @@ export class DashboardRepository implements IDashboardRepository {
       ...method,
       percentage: totalAmount > 0 ? (method.amount / totalAmount) * 100 : 0,
     }));
-
-    console.log(
-      'Payment methods with percentages:',
-      paymentMethodsWithPercentages
-    );
 
     return paymentMethodsWithPercentages;
   }

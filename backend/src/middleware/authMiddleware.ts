@@ -17,7 +17,6 @@ export interface AuthRequest extends Request {
   };
 }
 
-// authMiddleware.ts - Update the protect middleware
 export const protect = async (
   req: AuthRequest,
   res: Response,

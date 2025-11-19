@@ -20,8 +20,6 @@ export class SubscriptionWalletService implements ISubscriptionWalletService {
     try {
       this._logger.info('Getting wallet balance for subscription', context);
 
-      // Simulate getting balance from database
-      // In real implementation, you would query your wallet collection
       const user = await this._findUserById(userId);
       const balance = user?.wallet?.balance || 0;
 
@@ -100,8 +98,6 @@ export class SubscriptionWalletService implements ISubscriptionWalletService {
 
   // Private helper methods
   private async _findUserById(userId: string): Promise<any> {
-    // This would be your actual database query
-    // For now, returning a mock user
     return {
       _id: userId,
       wallet: {
@@ -122,8 +118,6 @@ export class SubscriptionWalletService implements ISubscriptionWalletService {
       balanceAfter: number;
     }
   ): Promise<void> {
-    // This would be your actual database update
-    // For now, just logging
     this._logger.info('Updating wallet balance', {
       userId,
       newBalance,

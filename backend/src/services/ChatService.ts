@@ -1,4 +1,3 @@
-// services/chat/ChatService.ts - IMPROVED FALLBACK VERSION
 import axios from 'axios';
 import { ILogger } from '../interfaces/utils/ILogger';
 import { ChatResponse } from '../interfaces/services/user/IChatService';
@@ -25,13 +24,12 @@ export class ChatService {
       historyLength: conversationHistory.length,
     });
 
-    // Check if we should use real AI (consider rate limits)
     if (!this.shouldUseRealAI() || this._rateLimitExceeded) {
-      this._logger.warn('🚨 USING FALLBACK - Rate limit or invalid API key');
+      this._logger.warn('USING FALLBACK - Rate limit or invalid API key');
       return this.getEnhancedFallback(userMessage, conversationHistory);
     }
 
-    this._logger.info('🚀 ATTEMPTING REAL AI REQUEST');
+    this._logger.info('ATTEMPTING REAL AI REQUEST');
 
     // Use WORKING free models
     const availableModels = [
@@ -51,7 +49,7 @@ export class ChatService {
     // Try each model with better error handling
     for (const model of availableModels) {
       try {
-        this._logger.info(`🔄 Trying model: ${model}`);
+        this._logger.info(`Trying model: ${model}`);
 
         const requestBody = {
           model: model,
@@ -89,13 +87,13 @@ export class ChatService {
       } catch (error: any) {
         // Check if it's a rate limit error
         if (error.response?.status === 429) {
-          this._logger.warn('⏰ RATE LIMIT HIT - Switching to fallback mode');
+          this._logger.warn('RATE LIMIT HIT - Switching to fallback mode');
           this._rateLimitExceeded = true;
           this._lastRateLimitCheck = Date.now();
           break; // Don't try other models if rate limited
         }
 
-        this._logger.warn(`❌ Model ${model} failed`, {
+        this._logger.warn(`Model ${model} failed`, {
           error: error.message,
           status: error.response?.status,
         });
@@ -104,7 +102,7 @@ export class ChatService {
     }
 
     // All models failed or rate limited
-    this._logger.error('💥 AI REQUEST FAILED - Using enhanced fallback');
+    this._logger.error('AI REQUEST FAILED - Using enhanced fallback');
     return this.getEnhancedFallback(userMessage, conversationHistory);
   }
 
@@ -302,7 +300,7 @@ Your role: Help customers with appliance repairs, pricing, booking, and technica
     };
   }
 
-  // Method to manually reset rate limit (useful for testing)
+  // Method to manually reset rate limit
   resetRateLimit(): void {
     this._rateLimitExceeded = false;
     this._lastRateLimitCheck = 0;

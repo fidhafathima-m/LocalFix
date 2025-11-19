@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  authAPI,
-  type ForgotPasswordData,
-  type LoginCredentials,
-  type OTPData,
-  type ResendOTPData,
-  type ResetPasswordData,
-  type SignupData,
-} from "../common/authApi";
+
+import type {
+  ForgotPasswordData,
+  LoginCredentials,
+  OTPData,
+  ResendOTPData,
+  ResetPasswordData,
+  SignupData,
+} from "../../interface/user/IAuth";
+import { authAPI } from "../common/authApi";
 
 export class TechnicianAuthService {
   static async forgotPassword(data: ForgotPasswordData) {

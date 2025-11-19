@@ -71,7 +71,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Default validation - FIXED: Only validate email, remove phone validation
+  // Default validation
   const defaultValidateForm = (): boolean => {
     const newErrors: SignUpErrors = {};
     let isValid = true;
@@ -82,19 +82,13 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
     }
 
     if (!formData.email.trim()) {
-    newErrors.email = "Email is required";
-    isValid = false;
-  } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-    // Only check email format if email is not empty
-    newErrors.email = "Please enter a valid email";
-    isValid = false;
-  }
-
-    // REMOVED phone validation completely since phone field is hidden
-    // if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
-    //   newErrors.phone = "Please enter a valid 10-digit phone number";
-    //   isValid = false;
-    // }
+      newErrors.email = "Email is required";
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      // Only check email format if email is not empty
+      newErrors.email = "Please enter a valid email";
+      isValid = false;
+    }
 
     if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";

@@ -50,14 +50,6 @@ const ReviewManagement: React.FC = () => {
   const fetchReviews = async (page: number = 1, search?: string) => {
     try {
       setLoading(true);
-      console.log("Search parameters:", {
-        page,
-        limit: reviewsPerPage,
-        search: search || undefined,
-        rating: ratingFilter !== "all" ? ratingFilter : undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        service: serviceFilter !== "all" ? serviceFilter : undefined,
-      });
       const response = await adminAPI.getReviews(
         page,
         reviewsPerPage,
@@ -66,8 +58,6 @@ const ReviewManagement: React.FC = () => {
         statusFilter !== "all" ? statusFilter : undefined,
         serviceFilter !== "all" ? serviceFilter : undefined
       );
-
-      console.log("Raw API response:", response.data);
 
       if (response.data.success && response.data.data) {
         setReviews(response.data.data.reviews);
@@ -161,19 +151,6 @@ const ReviewManagement: React.FC = () => {
       toast.error(error.message || "Failed to delete review");
     }
   };
-
-  // const handleApproveReview = async (reviewId: string) => {
-  //   try {
-  //     await adminAPI.updateReviewStatus(reviewId, "published");
-  //     toast.success("Review approved successfully");
-  //     fetchReviews(currentPage, searchQuery); // Refresh the list
-  //     fetchStats(); // Refresh stats
-  //   } catch (error: any) {
-  //     console.error("Error approving review:", error);
-  //     toast.error(error.message || "Failed to approve review");
-  //   }
-  // };
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
   };
@@ -381,11 +358,6 @@ const ReviewManagement: React.FC = () => {
                         review={review.comment}
                         onFlag={() => handleFlagReview(review.id)}
                         onDelete={() => handleDeleteReview(review.id)}
-                        // onApprove={
-                        //   review.status === "pending"
-                        //     ? () => handleApproveReview(review.id)
-                        //     : undefined
-                        // }
                       />
                     ))}
                   </>

@@ -1,5 +1,4 @@
-// controllers/chat/TechnicianChatController.ts
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { AuthRequest } from '../../middleware/authMiddleware';
@@ -16,7 +15,7 @@ export class TechnicianChatController {
 
   sendMessage = async (req: AuthRequest, res: Response): Promise<void> => {
     const { message, conversationHistory, context } = req.body;
-    const technicianId = req.user?.id; // From technician auth middleware
+    const technicianId = req.user?.id;
 
     const requestContext = {
       operation: 'TechnicianChatController.sendMessage',

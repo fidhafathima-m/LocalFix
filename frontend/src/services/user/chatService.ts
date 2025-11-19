@@ -1,4 +1,3 @@
-// services/chat/chatService.ts
 import api from "../../utils/axiosConfig";
 
 export interface ChatMessage {

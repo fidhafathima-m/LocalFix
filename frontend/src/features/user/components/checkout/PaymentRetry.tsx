@@ -100,9 +100,6 @@ const PaymentRetry: React.FC = () => {
       const state = location.state as PaymentRetryState;
 
       if (state?.bookingData?.technician) {
-        console.log(
-          "Using technician data from location state (failed orders)"
-        );
         const bookingResponse = await bookingService.getBookingById(bookingId);
 
         if (bookingResponse.success && bookingResponse.data) {
@@ -170,8 +167,6 @@ const PaymentRetry: React.FC = () => {
           );
         }
       } else {
-        // Fallback: If no location state data, use the original approach
-        console.log("No location state data, using API-only approach");
         const bookingResponse = await bookingService.getBookingById(bookingId);
 
         if (bookingResponse.success && bookingResponse.data) {

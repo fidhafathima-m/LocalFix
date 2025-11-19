@@ -14,6 +14,15 @@ import { ITechnician } from '@/interfaces/technician/ITechnician';
 import { IBooking } from '@/models/BookingSchema';
 import { ILogger } from '@/interfaces/utils/ILogger';
 import { IOrderPopulated } from '../interfaces/user/IOrder';
+import {
+  BookingModel,
+  BookingHistoryItem,
+  PaginatedBookings,
+  StatusHistoryItem,
+  TechnicianLocationData,
+  isTechnicianPopulated,
+  isBooking,
+} from '../interfaces/user/IBooking';
 
 export class BookingService implements IBookingService {
   private _logger: ILogger;
@@ -30,7 +39,6 @@ export class BookingService implements IBookingService {
     this._orderRepository = orderRepository;
   }
 
-  // In BookingService - update createBooking method
   async createBooking(
     userId: string,
     bookingData: CreateBookingRequestDto
@@ -57,7 +65,6 @@ export class BookingService implements IBookingService {
         );
       }
 
-      // 🔥 ADD THIS: Get serviceId from serviceName
       const Service = mongoose.model('Service');
       const service = await Service.findOne({ name: bookingData.serviceName });
 
@@ -82,12 +89,12 @@ export class BookingService implements IBookingService {
       const itemsAmount = 0;
       const totalAmount = baseAmount + itemsAmount;
 
-      const bookingModel = {
+      const bookingModel: BookingModel = {
         bookingCode: bookingCode,
         userId: new Types.ObjectId(userId),
         technicianId: new Types.ObjectId(bookingData.technicianId),
         serviceName: bookingData.serviceName,
-        serviceId: serviceId, // 🔥 ADD THIS LINE
+        serviceId: serviceId,
         brand: bookingData.brand,
         addressId: new Types.ObjectId(bookingData.addressId),
         scheduledAt: new Date(bookingData.scheduledAt),
@@ -96,7 +103,7 @@ export class BookingService implements IBookingService {
         itemsAmount: itemsAmount,
         totalAmount: totalAmount,
         notes: bookingData.notes || '',
-        status: 'pending' as const,
+        status: 'pending',
         history: [
           {
             status: 'pending',
@@ -109,7 +116,7 @@ export class BookingService implements IBookingService {
       this._logger.debug('Creating booking in repository', {
         ...context,
         bookingModel,
-        serviceId: serviceId.toString(), // Log the serviceId
+        serviceId: serviceId.toString(),
       });
 
       const newBooking = await this._bookingRepository.create(bookingModel);
@@ -128,7 +135,7 @@ export class BookingService implements IBookingService {
 
       const bookingDto = this.mapToDto(newBooking);
       return ResponseHelper.created('Booking created successfully', bookingDto);
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
       this._logger.error('Error creating booking', {
@@ -183,7 +190,7 @@ export class BookingService implements IBookingService {
         'Booking retrieved successfully',
         bookingDto
       );
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
       this._logger.error('Error fetching booking', {
@@ -208,11 +215,8 @@ export class BookingService implements IBookingService {
     try {
       this._logger.info('Fetching user bookings', context);
 
-      const result = await this._bookingRepository.findByUserId(
-        userId,
-        page,
-        limit
-      );
+      const result: PaginatedBookings =
+        await this._bookingRepository.findByUserId(userId, page, limit);
 
       this._logger.info('User bookings retrieved successfully', {
         ...context,
@@ -220,7 +224,7 @@ export class BookingService implements IBookingService {
         total: result.total,
       });
 
-      const bookingDtos = result.bookings.map((booking: any) =>
+      const bookingDtos = result.bookings.map((booking: IBooking) =>
         this.mapToDto(booking)
       );
 
@@ -233,7 +237,7 @@ export class BookingService implements IBookingService {
           pages: Math.ceil(result.total / limit),
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
       this._logger.error('Error fetching user bookings', {
@@ -258,11 +262,12 @@ export class BookingService implements IBookingService {
     try {
       this._logger.info('Fetching technician bookings', context);
 
-      const result = await this._bookingRepository.findByTechnicianId(
-        technicianId,
-        page,
-        limit
-      );
+      const result: PaginatedBookings =
+        await this._bookingRepository.findByTechnicianId(
+          technicianId,
+          page,
+          limit
+        );
 
       this._logger.info('Technician bookings retrieved successfully', {
         ...context,
@@ -270,7 +275,7 @@ export class BookingService implements IBookingService {
         total: result.total,
       });
 
-      const bookingDtos = result.bookings.map((booking: any) =>
+      const bookingDtos = result.bookings.map((booking: IBooking) =>
         this.mapToDto(booking)
       );
 
@@ -283,7 +288,7 @@ export class BookingService implements IBookingService {
           pages: Math.ceil(result.total / limit),
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
       this._logger.error('Error fetching technician bookings', {
@@ -382,7 +387,7 @@ export class BookingService implements IBookingService {
 
       const bookingDto = this.mapToDto(updatedBooking);
       return ResponseHelper.success('Booking updated successfully', bookingDto);
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
       this._logger.error('Error updating booking', {
@@ -427,7 +432,7 @@ export class BookingService implements IBookingService {
         'Booking status updated successfully',
         bookingDto
       );
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
       this._logger.error('Error updating booking status', {
@@ -503,7 +508,7 @@ export class BookingService implements IBookingService {
         'Booking cancelled successfully',
         bookingDto
       );
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
       this._logger.error('Error cancelling booking', {
@@ -515,19 +520,24 @@ export class BookingService implements IBookingService {
     }
   }
 
-  private mapToDto(booking: any): BookingResponseDto {
+  private mapToDto(booking: IBooking): BookingResponseDto {
+    const userId =
+      booking.userId?._id?.toString() || booking.userId?.toString();
+    const technicianId =
+      booking.technicianId?._id?.toString() || booking.technicianId?.toString();
+    const addressId =
+      booking.addressId?._id?.toString() || booking.addressId?.toString();
+    const serviceId = booking.serviceId?.toString();
+
     return {
-      _id: booking._id.toString(),
+      _id: booking.id.toString(),
       bookingCode: booking.bookingCode,
-      userId: booking.userId?._id?.toString() || booking.userId?.toString(),
-      technicianId:
-        booking.technicianId?._id?.toString() ||
-        booking.technicianId?.toString(),
-      serviceId: booking.serviceId?.toString(),
+      userId: userId || '',
+      technicianId: technicianId || '',
+      serviceId: serviceId || '',
       serviceName: booking.serviceName,
       brand: booking.brand,
-      addressId:
-        booking.addressId?._id?.toString() || booking.addressId?.toString(),
+      addressId: addressId || '',
       scheduledAt: booking.scheduledAt.toISOString(),
       timeSlot: booking.timeSlot,
       status: booking.status,
@@ -535,7 +545,7 @@ export class BookingService implements IBookingService {
       itemsAmount: booking.itemsAmount,
       totalAmount: booking.totalAmount,
       notes: booking.notes,
-      history: booking.history.map((h: any) => ({
+      history: booking.history.map((h: BookingHistoryItem) => ({
         status: h.status,
         by: h.by,
         reason: h.reason,
@@ -545,6 +555,7 @@ export class BookingService implements IBookingService {
       updatedAt: booking.updatedAt.toISOString(),
     };
   }
+
   async getTrackingDetails(
     userId: string,
     bookingId: string
@@ -567,16 +578,6 @@ export class BookingService implements IBookingService {
 
       const technician = order.technicianId;
 
-      // Type guard function to check if it's ITechnician
-      const isTechnicianPopulated = (tech: any): tech is ITechnician => {
-        return (
-          tech &&
-          typeof tech === 'object' &&
-          '_id' in tech &&
-          'displayName' in tech
-        );
-      };
-
       if (!technician || !isTechnicianPopulated(technician)) {
         this._logger.warn(
           'Technician data not properly populated in order',
@@ -588,7 +589,7 @@ export class BookingService implements IBookingService {
       const address = order.address;
 
       // Get technician location if available
-      const technicianLocation =
+      const technicianLocation: TechnicianLocationData | null =
         await this._bookingRepository.getTechnicianLocation(
           technician._id.toString()
         );
@@ -631,15 +632,15 @@ export class BookingService implements IBookingService {
           pincode: address.pincode,
           landmark: address.landmark,
         },
-        status: order.status as any,
+        status: order.status,
         amount: order.totalAmount,
         estimatedDuration: '1-2 hours',
-        statusHistory: order.history.map((h: any) => ({
+        statusHistory: order.history.map((h: StatusHistoryItem) => ({
           status: h.status,
           timestamp: h.timestamp.toISOString(),
           description:
             h.description || this.getStatusDescription(h.status, h.reason),
-          updatedBy: h.updatedBy as 'user' | 'technician' | 'system',
+          updatedBy: h.updatedBy,
         })),
         technicianLocation: technicianLocation
           ? {
@@ -658,7 +659,7 @@ export class BookingService implements IBookingService {
         'Tracking details retrieved successfully',
         trackingDetails
       );
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
       this._logger.error('Error fetching tracking details', {
@@ -669,6 +670,7 @@ export class BookingService implements IBookingService {
       return ResponseHelper.error('Failed to fetch tracking details');
     }
   }
+
   private _getBookingCode(order: IOrderPopulated): string {
     if (
       order.bookingId &&
@@ -679,6 +681,7 @@ export class BookingService implements IBookingService {
     }
     return 'N/A'; // Fallback if not populated
   }
+
   async getTechnicianLocation(
     bookingId: string
   ): Promise<ApiResponse<TechnicianLocationDto>> {
@@ -698,7 +701,7 @@ export class BookingService implements IBookingService {
       }
 
       // Get technician location
-      const technicianLocation =
+      const technicianLocation: TechnicianLocationData | null =
         await this._bookingRepository.getTechnicianLocation(
           booking.technicianId.toString()
         );
@@ -736,7 +739,7 @@ export class BookingService implements IBookingService {
         'Technician location retrieved successfully',
         locationData
       );
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
       this._logger.error('Error fetching technician location', {

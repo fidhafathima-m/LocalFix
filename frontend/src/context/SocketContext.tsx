@@ -80,7 +80,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
         // Exponential backoff for reconnection
         const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000);
-        console.log(`Reconnecting in ${delay}ms...`);
 
         setTimeout(() => {
           if (!isConnected) {

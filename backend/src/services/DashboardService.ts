@@ -48,9 +48,6 @@ export class DashboardService implements IDashboardService {
         this._dashboardRepository.getAverageOrderValueGrowth(),
       ]);
 
-      // Log technician count for debugging
-      console.log('Total technicians (approved only):', totalTechnicians);
-
       const overview: DashboardOverviewDto = {
         totalRevenue,
         totalBookings,
@@ -114,9 +111,6 @@ export class DashboardService implements IDashboardService {
       const technicians =
         await this._dashboardRepository.getTopTechnicians(limit);
 
-      // Log the data for debugging
-      console.log('Top technicians raw data:', technicians);
-
       this._logger.info('Top technicians fetched successfully', {
         ...context,
         count: technicians.length,
@@ -157,9 +151,6 @@ export class DashboardService implements IDashboardService {
         satisfactionData =
           await this._dashboardRepository.getCustomerSatisfaction();
       }
-
-      // Log the satisfaction data for debugging
-      console.log('Customer satisfaction data:', satisfactionData);
 
       this._logger.info('Customer satisfaction data fetched successfully', {
         ...context,

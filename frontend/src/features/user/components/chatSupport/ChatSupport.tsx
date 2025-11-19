@@ -1,4 +1,3 @@
-// pages/ChatSupport.tsx - UPDATED
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../../../../components/common/Header";
@@ -12,7 +11,7 @@ import {
   chatService,
   type ChatMessage,
 } from "../../../../services/user/chatService";
-import { ResponseFormatter } from "./helpers/ResponseFormatter"; // Add this import
+import { ResponseFormatter } from "./helpers/ResponseFormatter";
 
 const ChatSupport = () => {
   const navigate = useNavigate();
@@ -35,11 +34,6 @@ const ChatSupport = () => {
       setMessages(location.state.initialMessages);
     }
   }, [location.state]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   const handleSend = async () => {
     if (!message.trim() || isLoading) return;
@@ -72,7 +66,6 @@ const ChatSupport = () => {
         sender: "support",
         text: aiResponse,
         timestamp: new Date(),
-        // Add formatted content here in the full chat
         formattedContent: ResponseFormatter.formatAIResponse(aiResponse),
       };
 
@@ -98,7 +91,6 @@ const ChatSupport = () => {
     }
   };
 
-  // Update the message rendering to use formatted content
   const renderMessageContent = (msg: ChatMessage) => {
     if (msg.sender === "support" && msg.formattedContent) {
       return (

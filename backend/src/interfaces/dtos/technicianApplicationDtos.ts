@@ -42,7 +42,7 @@ export interface IdentityInfoDto {
   address?: any;
   location?: LocationDto;
   verified?: boolean;
-  verificationStatus?: "pending" | "approved" | "rejected";
+  verificationStatus?: 'pending' | 'approved' | 'rejected';
   verifiedAt?: Date;
 
   governmentIdType?: string;
@@ -153,7 +153,23 @@ export interface ApplicationListResponseDto extends BaseResponseDto {
   };
 }
 
-// File DTOs
+export interface ExpressFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  buffer: Buffer;
+  size: number;
+  stream?: NodeJS.ReadableStream;
+  destination?: string;
+  filename?: string;
+  path?: string;
+}
+
+export interface ExpressFiles {
+  [fieldname: string]: ExpressFile | ExpressFile[];
+}
+
 export interface UploadedFileDto {
   fieldname: string;
   originalname: string;
@@ -161,12 +177,12 @@ export interface UploadedFileDto {
   mimetype: string;
   buffer: Buffer;
   size: number;
-  stream?: any;
+  stream?: NodeJS.ReadableStream;
   destination?: string;
   filename?: string;
   path?: string;
 }
 
 export interface FilesCollectionDto {
-  [fieldname: string]: UploadedFileDto | UploadedFileDto[];
+  [fieldname: string]: UploadedFileDto[];
 }

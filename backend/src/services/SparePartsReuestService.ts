@@ -1,4 +1,3 @@
-// services/technician/SparePartsRequestService.ts
 import { Types } from 'mongoose';
 import { SparePartsRequestRepository } from '../repositories/technician/SparePartsRequestRepository';
 import { IOrderRepository } from '../interfaces/repository/user/IOrderRepository';
@@ -152,12 +151,12 @@ export class SparePartsRequestService implements ISparePartRequestService {
       try {
         await this._socketService.notifySparePartsRequest(
           customerId,
-          technician.displayName, // Use technician's display name
-          order.serviceName || 'Service', // Get service name from order
+          technician.displayName,
+          order.serviceName || 'Service',
           createDto.orderId,
           totalAmount,
           items.length,
-          sparePartsRequest.id.toString() // Pass the request ID
+          sparePartsRequest.id.toString()
         );
         this._logger.info('Spare parts notification sent successfully');
       } catch (notificationError) {

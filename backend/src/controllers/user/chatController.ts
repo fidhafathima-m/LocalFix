@@ -1,8 +1,8 @@
-// controllers/chat/ChatController.ts
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { IChatService } from '../../interfaces/services/user/IChatService';
+import { AuthRequest } from '../../middleware/authMiddleware';
 
 export class ChatController {
   private _chatService: IChatService;
@@ -13,10 +13,9 @@ export class ChatController {
     this._logger = logger;
   }
 
-  sendMessage = async (req: Request, res: Response): Promise<void> => {
+  sendMessage = async (req: AuthRequest, res: Response): Promise<void> => {
     const { message, conversationHistory, context } = req.body;
-    const userId = (req as any).user?.id; // From your auth middleware
-
+    const userId = req.user?.id;
     const requestContext = {
       operation: 'ChatController.sendMessage',
       userId: userId || 'anonymous',
@@ -81,13 +80,11 @@ export class ChatController {
     }
   };
 
-  // Optional: Get chat history for a user
-  getChatHistory = async (req: Request, res: Response): Promise<void> => {
-    const userId = (req as any).user?.id;
+  //  Get chat history for a user
+  getChatHistory = async (req: AuthRequest, res: Response): Promise<void> => {
+    const userId = req.user?.id;
 
     try {
-      // In a real implementation, you'd fetch from database
-      // For now, return empty array
       const response = ResponseHelper.success('Chat history retrieved', {
         messages: [],
       });

@@ -78,8 +78,6 @@ export class DashboardService {
   }
 
   private static handleResponse<T>(response: any, endpoint: string): T {
-    console.log(`Dashboard API Response for ${endpoint}:`, response);
-
     // Check if response indicates failure
     if (response?.data?.success === false) {
       throw new Error(response.data.message || "Operation failed");

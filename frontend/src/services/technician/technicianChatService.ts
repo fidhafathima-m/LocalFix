@@ -1,4 +1,3 @@
-// services/technician/technicianChatService.ts
 import api from "../../utils/axiosConfig";
 
 export interface TechnicianChatMessage {
@@ -19,7 +18,7 @@ export const technicianChatService = {
       const response = await api.post("/technician/chat/message", {
         message,
         conversationHistory,
-        context: "technician_support", // Changed from customer_support
+        context: "technician_support",
       });
 
       // Ensure the response has the expected structure

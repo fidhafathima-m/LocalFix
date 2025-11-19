@@ -5,8 +5,8 @@ import { formatCurrency, formatDate, getCustomerInfo } from "../utils/helpers";
 
 interface EarningsTabProps extends TabProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  currentSubscription?: any; // Add subscription prop
-  commissionRate?: number; // Current commission rate
+  currentSubscription?: any;
+  commissionRate?: number;
 }
 
 const EarningsTab: React.FC<EarningsTabProps> = ({
@@ -57,10 +57,9 @@ const EarningsTab: React.FC<EarningsTabProps> = ({
     }, 0);
 
     // Calculate weekly earnings (last 7 days)
-    // Calculate weekly earnings (last 7 days)
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    oneWeekAgo.setHours(0, 0, 0, 0); // Start of the day 7 days ago
+    oneWeekAgo.setHours(0, 0, 0, 0);
 
     const weeklyEarnings = completedOrders.reduce((total, order) => {
       try {
@@ -75,9 +74,6 @@ const EarningsTab: React.FC<EarningsTabProps> = ({
       }
       return total;
     }, 0);
-
-    console.log("Weekly earnings: ", weeklyEarnings);
-    console.log("total earnings: ", totalEarnings);
 
     // Get recent earnings with commission breakdown
     const recentEarnings = completedOrders

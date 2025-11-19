@@ -18,7 +18,6 @@ const ReportCards = () => {
       try {
         setLoading(true);
         const data = await DashboardService.getDashboardOverview();
-        console.log("Overview data:", data);
         setOverview(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch data");

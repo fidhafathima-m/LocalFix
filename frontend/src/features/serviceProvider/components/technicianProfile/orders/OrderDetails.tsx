@@ -1,4 +1,3 @@
-// OrderDetails.tsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Footer from "../../../../../components/common/Footer";
@@ -32,7 +31,6 @@ const OrderDetails: React.FC = () => {
     const loadTechnicianProfile = async () => {
       if (!technicianProfile && user) {
         try {
-          console.log("Fetching technician profile...");
           await dispatch(fetchTechnicianProfile()).unwrap();
         } catch (error) {
           console.error("Failed to fetch technician profile:", error);
@@ -84,13 +82,6 @@ const OrderDetails: React.FC = () => {
 
     loadOrderDetails();
   }, [orderId]);
-
-  // Debug logs
-  useEffect(() => {
-    console.log("Technician Profile:", technicianProfile);
-    console.log("Technician ID:", technicianProfile?._id);
-    console.log("User:", user);
-  }, [technicianProfile, user]);
 
   const handleUpdateOrderStatus = async (
     newStatus: string,

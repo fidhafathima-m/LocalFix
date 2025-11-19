@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { IReportService } from '../../interfaces/services/admin/IReportService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
+import { AuthRequest } from '../../middleware/authMiddleware';
 
 export class ReportController {
   private _reportService: IReportService;
@@ -12,7 +13,7 @@ export class ReportController {
     this._logger = logger;
   }
 
-  generateReport = async (req: Request, res: Response): Promise<void> => {
+  generateReport = async (req: AuthRequest, res: Response): Promise<void> => {
     const context = {
       operation: 'generateReport',
       body: req.body,
@@ -83,7 +84,7 @@ export class ReportController {
   };
 
   generateFinancialReport = async (
-    req: Request,
+    req: AuthRequest,
     res: Response
   ): Promise<void> => {
     const context = {
@@ -150,7 +151,7 @@ export class ReportController {
   };
 
   generateCustomerReport = async (
-    req: Request,
+    req: AuthRequest,
     res: Response
   ): Promise<void> => {
     const context = {
@@ -217,7 +218,7 @@ export class ReportController {
   };
 
   generateTechnicianReport = async (
-    req: Request,
+    req: AuthRequest,
     res: Response
   ): Promise<void> => {
     const context = {
@@ -283,7 +284,7 @@ export class ReportController {
     }
   };
 
-  exportReport = async (req: Request, res: Response): Promise<void> => {
+  exportReport = async (req: AuthRequest, res: Response): Promise<void> => {
     const context = {
       operation: 'exportReport',
       body: req.body,
@@ -305,7 +306,7 @@ export class ReportController {
       const result = await this._reportService.generateReport({
         data,
         format,
-        reportType: 'dashboard', // or determine from request
+        reportType: 'dashboard',
       });
 
       if (!result.success || !result.downloadUrl) {

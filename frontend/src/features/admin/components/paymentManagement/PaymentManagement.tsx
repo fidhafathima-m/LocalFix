@@ -215,15 +215,6 @@ const PaymentManagement: React.FC = () => {
       </span>
     );
   };
-
-  // const formatDate = (dateString: string) => {
-  //   return new Date(dateString).toLocaleDateString('en-IN', {
-  //     day: 'numeric',
-  //     month: 'short',
-  //     year: 'numeric'
-  //   });
-  // };
-
   if (loading && payments.length === 0) {
     return (
       <div className="flex h-screen bg-gray-50">

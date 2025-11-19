@@ -63,7 +63,6 @@ export class ReportService implements IReportService {
           );
           break;
         default:
-          // Dashboard report - use current data with optional date filtering
           reportData = await this._reportRepository.getDashboardReportData(
             request.startDate,
             request.endDate

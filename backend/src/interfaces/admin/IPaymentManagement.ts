@@ -1,5 +1,7 @@
 import { Document, Types } from 'mongoose';
 
+export type RawPaymentResponse = Record<string, unknown>;
+
 export interface IPayment extends Document {
   bookingId: Types.ObjectId;
   userId: Types.ObjectId;
@@ -14,7 +16,7 @@ export interface IPayment extends Document {
   initiatedAt: Date;
   confirmedAt?: Date;
   refundedAt?: Date;
-  rawResponse: any;
+  rawResponse: RawPaymentResponse;
   createdAt: Date;
   updatedAt: Date;
   orderCode?: string;
@@ -27,7 +29,7 @@ export interface IPayment extends Document {
     walletRefund?: boolean;
     walletTransactionId?: string;
     newBalance?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -45,7 +47,7 @@ export interface IPaymentCreate {
   initiatedAt?: Date;
   confirmedAt?: Date;
   refundedAt?: Date;
-  rawResponse?: any;
+  rawResponse?: RawPaymentResponse;
 }
 
 export interface IPaymentUpdate {
@@ -53,7 +55,7 @@ export interface IPaymentUpdate {
   providerPaymentId?: string;
   confirmedAt?: Date;
   refundedAt?: Date;
-  rawResponse?: any;
+  rawResponse?: RawPaymentResponse;
   refundReason?: string;
   refundAmount?: number;
   metadata?: {

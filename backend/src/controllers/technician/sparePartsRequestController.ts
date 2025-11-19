@@ -1,4 +1,3 @@
-// controllers/technician/SparePartsRequestController.ts
 import { Request, Response } from 'express';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { ISparePartRequestService } from '../../interfaces/services/technician/ISparePartsRequestService';

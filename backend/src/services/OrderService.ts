@@ -132,7 +132,6 @@ export class OrderService implements IOrderService {
     }
   }
 
-  // In orderService.ts - update createOrderFromBooking method
   async createOrderFromBooking(
     bookingId: string,
     paymentData: {
@@ -162,7 +161,6 @@ export class OrderService implements IOrderService {
           existingOrderId: existingOrder._id.toString(),
         });
 
-        // Update payment details and status - allow status updates for failed payments
         order = await this._orderRepository.updatePaymentDetails(
           existingOrder._id.toString(),
           paymentData
@@ -1068,7 +1066,6 @@ export class OrderService implements IOrderService {
     }
   }
 
-  // Remove the sendPushNotification method entirely
   private async notifyUserAboutPayment(
     order: any,
     paymentStatus: string

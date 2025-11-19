@@ -22,7 +22,6 @@ const VisualizationChart = () => {
       try {
         setLoading(true);
         const data = await DashboardService.getRevenueTrend();
-        console.log("Revenue trend data:", data);
         setRevenueData(data);
       } catch (err) {
         setError(

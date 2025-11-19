@@ -1,4 +1,3 @@
-// routes/technician/sparePartsRoutes.ts
 import { Router } from 'express';
 import { protect } from '../../middleware/authMiddleware';
 

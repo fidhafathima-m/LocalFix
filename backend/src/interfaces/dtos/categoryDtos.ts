@@ -1,14 +1,15 @@
-import { Types } from "mongoose";
+import { Types } from 'mongoose';
 
 export interface CategoryResponseDto {
   id: string;
   name: string;
   slug: string;
-  description: string;
-  iconUrl: string;
+  description: string | undefined;
+  iconUrl: string | undefined;
   createdAt: string;
   updatedAt: string;
   serviceCount: number;
+  status: 'active' | 'inactive' | undefined;
 }
 
 export interface CreateCategoryDto {

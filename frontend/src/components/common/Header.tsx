@@ -29,13 +29,8 @@ const Header: React.FC<HeaderProps> = ({
   const { isConnected } = useSocket();
 
   useEffect(() => {
-    console.log("🔔 Current notification count:", notificationCount);
-  }, [notificationCount]);
-
-  // Optional: Log socket connection status
-  useEffect(() => {
     console.log(
-      "🔌 Socket connection status:",
+      "Socket connection status:",
       isConnected ? "Connected" : "Disconnected"
     );
   }, [isConnected]);

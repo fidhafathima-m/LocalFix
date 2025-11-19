@@ -1,4 +1,3 @@
-// ActionButtons.tsx
 import React, { useState, useEffect } from "react";
 import type { TechnicianOrder } from "../../../../../../interface/technician/IOrderService";
 import { SparePartsModal } from "./SparePartsModal";
@@ -35,7 +34,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
       try {
         setLoading(true);
-        const request = await SparePartsService.getSparePartsRequestByOrder(
+        const request = await SparePartsService.getSparePartsRequestsByOrder(
           order._id
         );
         // If any request exists (regardless of status), set hasExistingRequest to true
@@ -55,8 +54,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   // Enhanced function to get technician ID
   const getTechnicianId = () => {
-    console.log("Technician ID from props:", technicianId);
-
     // Try from props first
     if (technicianId) {
       return technicianId;
@@ -69,7 +66,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         const user = JSON.parse(userData);
         const id = user.id || user._id || user.userId;
         if (id) {
-          console.log("Found technician ID from localStorage:", id);
           return id;
         }
       } catch (error) {
@@ -85,7 +81,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       sessionStorage.getItem("userId");
 
     if (techId) {
-      console.log("Found technician ID from storage:", techId);
       return techId;
     }
 
@@ -114,11 +109,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   const handleSparePartsSubmit = async (parts: SparePart[]) => {
     try {
-      console.log("Selected spare parts:", parts);
-      console.log("Order ID:", order._id);
-
       const currentTechnicianId = getTechnicianId();
-      console.log("Final Technician ID:", currentTechnicianId);
 
       if (!currentTechnicianId) {
         toast.error("Technician ID not found. Please log in again.");
@@ -139,8 +130,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         items: requestItems,
         technicianNotes: `Spare parts requested for ${order.serviceName}`,
       };
-
-      console.log("Final DTO to send:", createDto);
 
       // Call the service
       const response = await SparePartsService.createSparePartsRequest(

@@ -1,23 +1,19 @@
-// repositories/technician/SparePartsRequestRepository.ts
 import { Types } from 'mongoose';
 import { SparePartsRequest } from '../../models/SparePartsRequestSchema';
 import { ISparePartsRequest } from '../../interfaces/technician/ISparePartsRequest';
 import { ISparePartsRequestRepository } from '../../interfaces/repository/technician/ISparePartsRequestRepository';
 
-// repositories/technician/SparePartsRequestRepository.ts
 export class SparePartsRequestRepository
   implements ISparePartsRequestRepository
 {
   async create(
     requestData: Partial<ISparePartsRequest>
   ): Promise<ISparePartsRequest> {
-    // Mongoose will automatically convert valid string IDs to ObjectId
     const request = new SparePartsRequest(requestData);
     return await request.save();
   }
 
   async findById(requestId: string): Promise<ISparePartsRequest | null> {
-    // No need to convert to ObjectId
     return await SparePartsRequest.findById(requestId)
       .populate('technicianId', 'displayName phone')
       .populate('orderId', 'orderCode serviceName')
@@ -25,7 +21,6 @@ export class SparePartsRequestRepository
   }
 
   async findByOrderId(orderId: string): Promise<ISparePartsRequest[]> {
-    // No need to convert to ObjectId
     return await SparePartsRequest.find({ orderId })
       .populate('technicianId', 'displayName phone')
       .sort({ createdAt: -1 })
@@ -35,7 +30,6 @@ export class SparePartsRequestRepository
   async findByTechnicianId(
     technicianId: string
   ): Promise<ISparePartsRequest[]> {
-    // No need to convert to ObjectId
     return await SparePartsRequest.find({ technicianId })
       .populate('orderId', 'orderCode serviceName')
       .populate('customerId', 'fullName phone')
@@ -67,9 +61,8 @@ export class SparePartsRequestRepository
       updateData.customerNotes = customerNotes;
     }
 
-    // No need to convert to ObjectId
     return await SparePartsRequest.findByIdAndUpdate(
-      requestId, // Use string directly
+      requestId,
       { $set: updateData },
       { new: true }
     )
@@ -86,9 +79,8 @@ export class SparePartsRequestRepository
       notes?: string;
     }
   ): Promise<ISparePartsRequest | null> {
-    // No need to convert to ObjectId
     return await SparePartsRequest.findByIdAndUpdate(
-      requestId, // Use string directly
+      requestId,
       {
         $push: {
           history: {

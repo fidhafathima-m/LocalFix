@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { IDashboardService } from '../../interfaces/services/admin/IDashboardService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '@/interfaces/utils/ILogger';
+import { AuthRequest } from '../../middleware/authMiddleware';
 
 export class DashboardController {
   private _dashboardService: IDashboardService;
@@ -12,7 +13,10 @@ export class DashboardController {
     this._logger = logger;
   }
 
-  getDashboardOverview = async (req: Request, res: Response): Promise<void> => {
+  getDashboardOverview = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const context = {
       operation: 'getDashboardOverview',
       timestamp: new Date().toISOString(),
@@ -49,7 +53,7 @@ export class DashboardController {
     }
   };
 
-  getRevenueTrend = async (req: Request, res: Response): Promise<void> => {
+  getRevenueTrend = async (req: AuthRequest, res: Response): Promise<void> => {
     const { period } = req.query;
     const context = {
       operation: 'getRevenueTrend',
@@ -90,7 +94,10 @@ export class DashboardController {
     }
   };
 
-  getTopTechnicians = async (req: Request, res: Response): Promise<void> => {
+  getTopTechnicians = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const { limit } = req.query;
     const context = {
       operation: 'getTopTechnicians',
@@ -132,7 +139,7 @@ export class DashboardController {
   };
 
   getCustomerSatisfaction = async (
-    req: Request,
+    req: AuthRequest,
     res: Response
   ): Promise<void> => {
     const context = {
@@ -175,7 +182,10 @@ export class DashboardController {
     }
   };
 
-  getPaymentMethods = async (req: Request, res: Response): Promise<void> => {
+  getPaymentMethods = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const context = {
       operation: 'getPaymentMethods',
       timestamp: new Date().toISOString(),
@@ -215,7 +225,7 @@ export class DashboardController {
     }
   };
 
-  getGrowthMetrics = async (req: Request, res: Response): Promise<void> => {
+  getGrowthMetrics = async (req: AuthRequest, res: Response): Promise<void> => {
     const context = {
       operation: 'getGrowthMetrics',
       timestamp: new Date().toISOString(),
@@ -252,7 +262,10 @@ export class DashboardController {
     }
   };
 
-  getCompleteDashboard = async (req: Request, res: Response): Promise<void> => {
+  getCompleteDashboard = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
     const context = {
       operation: 'getCompleteDashboard',
       timestamp: new Date().toISOString(),

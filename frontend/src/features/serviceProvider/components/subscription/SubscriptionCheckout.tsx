@@ -34,8 +34,6 @@ export function SubscriptionCheckout() {
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  console.log("PLanId: ", planId);
-
   useEffect(() => {
     if (planId) {
       fetchPlanDetails();
@@ -134,7 +132,7 @@ export function SubscriptionCheckout() {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
                 subscriptionId: planId,
-                userId: "current-user-id", // You'll need to get this from your auth context
+                userId: "current-user-id",
               });
 
             if (verificationResponse.success) {

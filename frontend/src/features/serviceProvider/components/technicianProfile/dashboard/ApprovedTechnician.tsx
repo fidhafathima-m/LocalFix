@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Import tab components
 import OverviewTab from "./tabs/OverviewTab";
 import OrdersTab from "./tabs/OrdersTab";
 import EarningsTab from "./tabs/EarningsTab";
@@ -159,11 +158,9 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         try {
           const subscriptionResponse =
             await TechnicianSubscriptionService.getCurrentSubscription();
-          console.log("Subscription API Response:", subscriptionResponse);
 
           // Check if subscription data exists and is active
           const currentSubscription = subscriptionResponse.subscription;
-          console.log("Current subscription:", currentSubscription);
 
           if (currentSubscription && currentSubscription.status === "active") {
             subscriptionData = {
@@ -173,10 +170,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
               expiryDate: currentSubscription.endDate,
               planId: currentSubscription._id,
             };
-            console.log(
-              "✅ Subscription data successfully set:",
-              subscriptionData
-            );
           }
         } catch (subscriptionError) {
           console.error("No active subscription found:", subscriptionError);

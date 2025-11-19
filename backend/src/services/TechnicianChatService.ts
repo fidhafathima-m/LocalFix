@@ -1,4 +1,3 @@
-// services/chat/TechnicianChatService.ts
 import axios from 'axios';
 import { ILogger } from '../interfaces/utils/ILogger';
 import {
@@ -32,7 +31,7 @@ export class TechnicianChatService implements ITechnicianChatService {
 
     // Enhanced API key check
     if (!this.shouldUseRealAI()) {
-      this._logger.warn('🚨 USING TECHNICIAN FALLBACK - AI not available');
+      this._logger.warn('USING TECHNICIAN FALLBACK - AI not available');
       return this.getTechnicianFallbackWithUsage(
         userMessage,
         conversationHistory
@@ -432,7 +431,7 @@ What specific technical or job-related assistance do you need today?`,
 
   private shouldUseRealAI(): boolean {
     // Debug logging
-    this._logger.info('🔑 API Key Check:', {
+    this._logger.info('API Key Check:', {
       hasApiKey: !!this._apiKey,
       apiKeyLength: this._apiKey?.length,
       apiKeyStartsWith: this._apiKey?.substring(0, 10),

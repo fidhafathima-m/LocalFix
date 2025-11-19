@@ -1,4 +1,3 @@
-// components/chat/TechnicianChatWidget.tsx
 import { useState, useRef, useEffect } from "react";
 import {
   CloseOutlined,
@@ -28,7 +27,6 @@ export function TechnicianChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // components/chat/TechnicianChatWidget.tsx
   const handleSend = async () => {
     if (!message.trim() || isLoading) return;
 

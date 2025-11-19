@@ -78,7 +78,9 @@ export interface TrackingDetailsDto {
     | 'on_the_way'
     | 'in_progress'
     | 'completed'
-    | 'cancelled';
+    | 'cancelled'
+    | 'confirmed'
+    | 'refunded';
   amount: number;
   estimatedDuration: string;
   statusHistory: StatusHistoryDto[];

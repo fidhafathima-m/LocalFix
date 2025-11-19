@@ -28,11 +28,8 @@ export function SubscriptionDetails() {
       setLoading(true);
       const response =
         await TechnicianSubscriptionService.getCurrentSubscription();
-      console.log("Full subscription response:", response);
 
-      // Extract the subscription from the response structure { subscription: {...} }
       const subscriptionData = response.subscription;
-      console.log("Extracted subscription data:", subscriptionData);
 
       setCurrentSubscription(subscriptionData);
     } catch (error) {

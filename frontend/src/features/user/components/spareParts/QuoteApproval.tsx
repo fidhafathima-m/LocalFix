@@ -1,4 +1,3 @@
-// pages/customer/QuoteApproval.tsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -84,8 +83,8 @@ const QuoteApproval: React.FC = () => {
           const order = orderResponse.data;
           setOrderDetails({
             serviceName: order.serviceName,
-            scheduledDate: order.scheduledAt, // Use scheduledAt from OrderResponse
-            scheduledTime: order.timeSlot, // Use timeSlot from OrderResponse
+            scheduledDate: order.scheduledAt,
+            scheduledTime: order.timeSlot,
           });
         } else {
           toast.error("Failed to load order details");

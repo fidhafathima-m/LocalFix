@@ -1,4 +1,3 @@
-// services/serviceService.ts
 import api from "../../utils/axiosConfig";
 
 export const serviceService = {
@@ -14,7 +13,7 @@ export const serviceService = {
     return response.data;
   },
 
-  // Get all services (if you need to preload)
+  // Get all services
   getAllServices: async (
     page: number = 1,
     limit: number = 50,

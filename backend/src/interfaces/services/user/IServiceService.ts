@@ -1,4 +1,3 @@
-// interfaces/services/user/IServiceService.ts
 import {
   ServiceResponseDto,
   ServiceListResponseDto,

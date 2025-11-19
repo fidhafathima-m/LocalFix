@@ -7,8 +7,8 @@ export const PAGINATION_DEFAULTS = {
     total: 1,
     pages: 1,
   },
-  SORT_BY: "createdAt",
-  SORT_ORDER: "desc" as const,
+  SORT_BY: 'createdAt',
+  SORT_ORDER: 'desc' as const,
 } as const;
 
 export const VALIDATION = {
@@ -26,9 +26,9 @@ export const VALIDATION = {
 } as const;
 
 export const RESPONSE_STATUS = {
-  SUCCESS: "success",
-  ERROR: "error",
-  FAIL: "fail",
+  SUCCESS: 'success',
+  ERROR: 'error',
+  FAIL: 'fail',
 } as const;
 
 export const OTP_CONFIG = {
@@ -38,18 +38,20 @@ export const OTP_CONFIG = {
 } as const;
 
 export const OTP_PURPOSES = {
-  SIGNUP: "signup",
-  RESET: "reset",
-  LOGIN: "login",
-  APPLICATION: "application",
-  VERIFICATION: "verification",
+  SIGNUP: 'signup',
+  RESET: 'reset',
+  LOGIN: 'login',
+  APPLICATION: 'application',
+  VERIFICATION: 'verification',
 } as const;
 
+export type OTPPurpose = keyof typeof OTP_PURPOSES;
+
 export const GENERAL_MESSAGES = {
-  SERVER_ERROR: "Internal server error",
-  UNAUTHORIZED: "Unauthorized access",
-  FORBIDDEN: "Access forbidden",
-  NOT_FOUND: "Resource not found",
-  BAD_REQUEST: "Bad request",
-  CONFLICT: "Resource already exists",
+  SERVER_ERROR: 'Internal server error',
+  UNAUTHORIZED: 'Unauthorized access',
+  FORBIDDEN: 'Access forbidden',
+  NOT_FOUND: 'Resource not found',
+  BAD_REQUEST: 'Bad request',
+  CONFLICT: 'Resource already exists',
 } as const;

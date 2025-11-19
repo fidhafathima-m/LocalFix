@@ -108,12 +108,20 @@ export class PaymentManagementService implements IPaymentService {
       });
 
       return toPaymentListResponseDto(payments, total, page, limit);
-    } catch (error: any) {
-      this._logger.error('Get payments error', {
-        ...context,
-        error: error.message,
-        stack: error.stack,
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this._logger.error('Get payments error', {
+          ...context,
+          error: error.message,
+          stack: error.stack,
+        });
+      } else {
+        this._logger.error('Get payments error', {
+          ...context,
+          error: String(error),
+          stack: undefined,
+        });
+      }
       throw error;
     }
   }
@@ -146,12 +154,20 @@ export class PaymentManagementService implements IPaymentService {
       });
 
       return toPaymentResponseDto(payment);
-    } catch (error: any) {
-      this._logger.error('Get payment by ID error', {
-        ...context,
-        error: error.message,
-        stack: error.stack,
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this._logger.error('Get payment by Id error', {
+          ...context,
+          error: error.message,
+          stack: error.stack,
+        });
+      } else {
+        this._logger.error('Get payment by Id error', {
+          ...context,
+          error: String(error),
+          stack: undefined,
+        });
+      }
       throw error;
     }
   }
@@ -289,7 +305,6 @@ export class PaymentManagementService implements IPaymentService {
         refundedAt: updatedPayment.refundedAt,
       });
 
-      // ✅ NOTIFY USER ABOUT REFUND
       await this.notifyUserAboutRefund(
         userId,
         payment.amount,
@@ -305,17 +320,24 @@ export class PaymentManagementService implements IPaymentService {
         userId: userId,
         newBalance: refundResponse.data?.newBalance,
       });
-    } catch (error: any) {
-      this._logger.error('Process refund error', {
-        ...context,
-        error: error.message,
-        stack: error.stack,
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this._logger.error('Get process refund error', {
+          ...context,
+          error: error.message,
+          stack: error.stack,
+        });
+      } else {
+        this._logger.error('Get process refund error', {
+          ...context,
+          error: String(error),
+          stack: undefined,
+        });
+      }
       throw error;
     }
   }
 
-  // Add this method to handle refund notifications
   private async notifyUserAboutRefund(
     userId: string,
     amount: number,
@@ -369,13 +391,20 @@ export class PaymentManagementService implements IPaymentService {
         ...context,
         notificationSent: true,
       });
-    } catch (error: any) {
-      this._logger.error('Failed to send refund notification', {
-        ...context,
-        error: error.message,
-        stack: error.stack,
-      });
-      // Don't throw error - notification failure shouldn't break refund process
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this._logger.error('Get notify user error', {
+          ...context,
+          error: error.message,
+          stack: error.stack,
+        });
+      } else {
+        this._logger.error('Get notify user error', {
+          ...context,
+          error: String(error),
+          stack: undefined,
+        });
+      }
     }
   }
 
@@ -428,12 +457,20 @@ export class PaymentManagementService implements IPaymentService {
       });
 
       return { data, filename };
-    } catch (error: any) {
-      this._logger.error('Export payments error', {
-        ...context,
-        error: error.message,
-        stack: error.stack,
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this._logger.error('Get export payments error', {
+          ...context,
+          error: error.message,
+          stack: error.stack,
+        });
+      } else {
+        this._logger.error('Get export payments error', {
+          ...context,
+          error: String(error),
+          stack: undefined,
+        });
+      }
       throw error;
     }
   }

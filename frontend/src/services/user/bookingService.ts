@@ -176,7 +176,7 @@ class BookingService {
     }
   }
 
-  // bookingService.ts - Update the updateBooking method
+  // bookingService.ts
   async updateBooking(
     bookingId: string,
     updateData: Partial<Booking>

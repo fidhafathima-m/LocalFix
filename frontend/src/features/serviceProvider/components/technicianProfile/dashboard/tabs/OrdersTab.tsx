@@ -298,11 +298,6 @@ const OrdersTab: React.FC<TabProps> = ({
 
     const correctTechnicianId = getTechnicianId() || technicianId;
 
-    console.log("🔧 Using order ID for location sharing:", {
-      orderId,
-      technicianId: correctTechnicianId,
-    });
-
     if (!correctTechnicianId) {
       toast.error("Unable to identify technician. Please try again.");
       return;
@@ -340,8 +335,6 @@ const OrdersTab: React.FC<TabProps> = ({
               timestamp: new Date(),
             };
 
-            console.log("📍 Location update:", updatedLocation);
-
             // Send update to backend
             socket?.emit("technician-location-update", {
               technicianId: correctTechnicianId,
@@ -350,7 +343,7 @@ const OrdersTab: React.FC<TabProps> = ({
             });
           },
           (error) => {
-            console.error("❌ Location watch error:", {
+            console.error("Location watch error:", {
               code: error.code,
               message: error.message,
               PERMISSION_DENIED: error.PERMISSION_DENIED,
@@ -392,7 +385,7 @@ const OrdersTab: React.FC<TabProps> = ({
         toast.success("Location sharing started! Customer can now track you.");
       },
       (error) => {
-        console.error("❌ Error getting initial location:", {
+        console.error("Error getting initial location:", {
           code: error.code,
           message: error.message,
           PERMISSION_DENIED: error.PERMISSION_DENIED,
@@ -513,14 +506,9 @@ const OrdersTab: React.FC<TabProps> = ({
         bookingId: orderId,
       });
     }
-
-    console.log("🛑 Location sharing stopped");
   };
 
   const testLocationAPI = () => {
-    console.log("🧪 Testing Location API...");
-    console.log("navigator.geolocation available:", !!navigator.geolocation);
-
     if (!navigator.geolocation) {
       toast.error("Geolocation API not available");
       return;
@@ -542,7 +530,7 @@ const OrdersTab: React.FC<TabProps> = ({
         );
       },
       (error) => {
-        console.error("❌ Location test FAILED:", {
+        console.error("Location test FAILED:", {
           code: error.code,
           message: error.message,
         });

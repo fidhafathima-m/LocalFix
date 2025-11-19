@@ -1,12 +1,12 @@
-import { ApiResponse } from "../../utils/responseHelper";
-import { Types } from "mongoose";
+import { ApiResponse } from '../../utils/responseHelper';
+import { Types } from 'mongoose';
 import {
   AvailabilityInfo,
   BankInfo,
   DocumentsInfo,
   IdentityInfo,
   WeeklyPattern,
-} from "../technician/ITechnician";
+} from '../technician/ITechnician';
 
 export interface IAdminTechnician {
   _id: Types.ObjectId;
@@ -18,7 +18,7 @@ export interface IAdminTechnician {
   experienceYears: number;
   workAreas: string[];
   serviceRadiusKm: number;
-  status: "pending" | "approved" | "rejected" | "suspended";
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
   bio: string;
   averageRating: number;
   ratingCount: number;
@@ -53,7 +53,7 @@ export interface IAdminTechnician {
     aadhaarCard?: { url: string; verified: boolean };
     panCard?: { url: string; verified: boolean };
     drivingLicense?: { url: string; verified: boolean };
-    [key: string]: any;
+    [key: string]: unknown;
   };
   availability?: AvailabilityInfo;
   suspensionReason?: string;
@@ -90,18 +90,18 @@ export interface ITechnician {
   workAreas: string[];
   serviceRadiusKm: number;
   currentLocation?: {
-    type: "Point";
+    type: 'Point';
     coordinates: [number, number];
   };
   averageRating: number;
   ratingCount: number;
   status:
-    | "not-applied"
-    | "draft"
-    | "submitted"
-    | "under_review"
-    | "approved"
-    | "rejected";
+    | 'not-applied'
+    | 'draft'
+    | 'submitted'
+    | 'under_review'
+    | 'approved'
+    | 'rejected';
   suspensionReason?: string;
   suspendedAt?: Date;
   rejectionReason?: string;
@@ -125,7 +125,7 @@ export interface ITechnicianApplication {
   _id: Types.ObjectId;
   technicianId?: Types.ObjectId;
   email: string;
-  status: "draft" | "submitted" | "under_review" | "approved" | "rejected";
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
   stepsCompleted: string[];
   personal: {
     fullName?: string;
@@ -214,7 +214,7 @@ export interface ApplicationStatsResponse
   }> {}
 
 export interface UpdateStatusRequest {
-  status: "approved" | "suspended" | "rejected";
+  status: 'approved' | 'suspended' | 'rejected';
   emailNotification?: boolean;
   reason?: string;
 }

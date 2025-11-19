@@ -151,7 +151,7 @@ export interface SocialAuthDataDto {
 // OTP Related DTOs
 export interface OtpCreationDataDto {
   otpHash: string;
-  purpose: "signup" | "reset" | "login" | "application";
+  purpose: 'signup' | 'reset' | 'login' | 'application' | 'verification';
   expiresAt: Date;
   phone?: string;
   email?: string;

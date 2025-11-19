@@ -34,7 +34,6 @@ export function SubscriptionPlans() {
   };
 
   const handleSubscribe = (plan: Subscription) => {
-    // Navigate to checkout with plan ID
     navigate(`/technician/subscription-plan/${plan.id}/checkout`);
   };
 

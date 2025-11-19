@@ -1,8 +1,23 @@
-import { ILocationPoint } from "../interfaces/common/ILocationTracking";
-import { ILocationTrackingRepository } from "../interfaces/repository/ILocationTrackingRepository";
-import { ILocationTrackingService } from "../interfaces/services/ILocationTrackingService";
-import { LocationTrackingRepository } from "../repositories/LocationTrackingRepository";
-import { Types } from "mongoose";
+import { ILocationPoint } from '../interfaces/common/ILocationTracking';
+import { ILocationTrackingRepository } from '../interfaces/repository/ILocationTrackingRepository';
+import { ILocationTrackingService } from '../interfaces/services/ILocationTrackingService';
+import { LocationTrackingRepository } from '../repositories/LocationTrackingRepository';
+import { Types } from 'mongoose';
+
+interface ServiceResponse<T = any> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
+interface LocationUpdate {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+  speed?: number;
+  heading?: number;
+}
 
 export class LocationTrackingService implements ILocationTrackingService {
   private _locationRepository: ILocationTrackingRepository;
@@ -15,7 +30,7 @@ export class LocationTrackingService implements ILocationTrackingService {
     technicianId: string,
     orderId: string,
     location: { lat: number; lng: number; accuracy?: number }
-  ): Promise<any> {
+  ): Promise<ServiceResponse> {
     try {
       const locationPoint: ILocationPoint = {
         coordinates: [location.lng, location.lat],
@@ -32,13 +47,13 @@ export class LocationTrackingService implements ILocationTrackingService {
       return {
         success: true,
         data: tracking,
-        message: "Location sharing started successfully",
+        message: 'Location sharing started successfully',
       };
     } catch (error) {
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+          error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -46,14 +61,8 @@ export class LocationTrackingService implements ILocationTrackingService {
   async updateTechnicianLocation(
     technicianId: string,
     orderId: string,
-    location: {
-      lat: number;
-      lng: number;
-      accuracy?: number;
-      speed?: number;
-      heading?: number;
-    }
-  ): Promise<any> {
+    location: LocationUpdate
+  ): Promise<ServiceResponse> {
     try {
       const locationPoint: ILocationPoint = {
         coordinates: [location.lng, location.lat],
@@ -72,20 +81,20 @@ export class LocationTrackingService implements ILocationTrackingService {
       if (!tracking) {
         return {
           success: false,
-          error: "No active location sharing found",
+          error: 'No active location sharing found',
         };
       }
 
       return {
         success: true,
         data: tracking,
-        message: "Location updated successfully",
+        message: 'Location updated successfully',
       };
     } catch (error) {
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+          error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -93,7 +102,7 @@ export class LocationTrackingService implements ILocationTrackingService {
   async stopLocationSharing(
     technicianId: string,
     orderId: string
-  ): Promise<any> {
+  ): Promise<ServiceResponse> {
     try {
       const tracking = await this._locationRepository.stopLocationSharing(
         new Types.ObjectId(technicianId),
@@ -103,31 +112,29 @@ export class LocationTrackingService implements ILocationTrackingService {
       return {
         success: true,
         data: tracking,
-        message: "Location sharing stopped successfully",
+        message: 'Location sharing stopped successfully',
       };
     } catch (error) {
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+          error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
 
-  async getLiveTrackingData(orderId: string): Promise<any> {
+  async getLiveTrackingData(orderId: string): Promise<ServiceResponse> {
     try {
-      const tracking = await this._locationRepository.getActiveTracking(
-        orderId
-      );
+      const tracking =
+        await this._locationRepository.getActiveTracking(orderId);
 
       if (!tracking) {
         return {
           success: false,
-          error: "No active tracking found for this booking",
+          error: 'No active tracking found for this booking',
         };
       }
 
-      // Get the latest location
       const latestLocation = tracking.locations[tracking.locations.length - 1];
 
       const liveData = {
@@ -151,21 +158,20 @@ export class LocationTrackingService implements ILocationTrackingService {
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+          error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
 
-  async getLocationHistory(orderId: string): Promise<any> {
+  async getLocationHistory(orderId: string): Promise<ServiceResponse> {
     try {
-      const tracking = await this._locationRepository.getLocationHistory(
-        orderId
-      );
+      const tracking =
+        await this._locationRepository.getLocationHistory(orderId);
 
       if (!tracking) {
         return {
           success: false,
-          error: "No location history found for this booking",
+          error: 'No location history found for this booking',
         };
       }
 
@@ -177,7 +183,7 @@ export class LocationTrackingService implements ILocationTrackingService {
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+          error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
