@@ -1,10 +1,10 @@
-export interface ChatMessage {
+export interface TechnicianChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
 }
 
-export interface ChatResponse {
+export interface TechnicianChatResponse {
   message: string;
   usage?: {
     prompt_tokens: number;
@@ -14,10 +14,11 @@ export interface ChatResponse {
   isRealAI?: boolean;
 }
 
-export interface IChatService {
+export interface ITechnicianChatService {
   sendMessage(
     userMessage: string,
-    conversationHistory: ChatMessage[],
-    context?: string
-  ): Promise<ChatResponse>;
+    conversationHistory: any[],
+    context?: string,
+    technicianId?: string
+  ): Promise<TechnicianChatResponse>;
 }

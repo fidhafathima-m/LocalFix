@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useAppSelector } from "../../../../hooks/redux";
+import { TechnicianChatWidget } from "../chatSupport/technicianChatWidget";
 
 interface User {
   _id: string;
@@ -86,8 +87,9 @@ const LoggedInBanner = ({ user }: { user: User | null }) => {
           </div>
         </div>
       </div>
+      <TechnicianChatWidget />
     </section>
   );
 };
 
-export default LoggedInBanner
+export default LoggedInBanner;

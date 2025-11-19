@@ -1,31 +1,32 @@
-// controllers/chat/ChatController.ts
+// controllers/chat/TechnicianChatController.ts
 import { Request, Response } from 'express';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
-import { IChatService } from '../../interfaces/services/user/IChatService';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { ITechnicianChatService } from '../../interfaces/services/technician/ITechnicianChatService';
 
-export class ChatController {
-  private _chatService: IChatService;
+export class TechnicianChatController {
+  private _chatService: ITechnicianChatService;
   private _logger: ILogger;
 
-  constructor(chatService: IChatService, logger: ILogger) {
+  constructor(chatService: ITechnicianChatService, logger: ILogger) {
     this._chatService = chatService;
     this._logger = logger;
   }
 
-  sendMessage = async (req: Request, res: Response): Promise<void> => {
+  sendMessage = async (req: AuthRequest, res: Response): Promise<void> => {
     const { message, conversationHistory, context } = req.body;
-    const userId = (req as any).user?.id; // From your auth middleware
+    const technicianId = req.user?.id; // From technician auth middleware
 
     const requestContext = {
-      operation: 'ChatController.sendMessage',
-      userId: userId || 'anonymous',
+      operation: 'TechnicianChatController.sendMessage',
+      technicianId: technicianId || 'anonymous',
       messageLength: message?.length || 0,
       hasHistory: !!conversationHistory?.length,
     };
 
     try {
-      this._logger.info('Processing chat message', requestContext);
+      this._logger.info('Processing technician chat message', requestContext);
 
       // Validate input
       if (
@@ -47,14 +48,15 @@ export class ChatController {
         return;
       }
 
-      // Process the message
+      // Process the message with technician context
       const chatResponse = await this._chatService.sendMessage(
         message.trim(),
         conversationHistory || [],
-        context
+        context,
+        technicianId
       );
 
-      this._logger.info('Chat message processed successfully', {
+      this._logger.info('Technician chat message processed successfully', {
         ...requestContext,
         responseLength: chatResponse.message.length,
       });
@@ -64,6 +66,7 @@ export class ChatController {
         {
           response: chatResponse.message,
           usage: chatResponse.usage,
+          isRealAI: chatResponse.isRealAI,
         }
       );
 
@@ -71,36 +74,12 @@ export class ChatController {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
-      this._logger.error('Chat message processing failed', {
+      this._logger.error('Technician chat message processing failed', {
         ...requestContext,
         error: errorMessage,
       });
 
       const response = ResponseHelper.error('Failed to process message');
-      res.status(response.statusCode).json(response);
-    }
-  };
-
-  // Optional: Get chat history for a user
-  getChatHistory = async (req: Request, res: Response): Promise<void> => {
-    const userId = (req as any).user?.id;
-
-    try {
-      // In a real implementation, you'd fetch from database
-      // For now, return empty array
-      const response = ResponseHelper.success('Chat history retrieved', {
-        messages: [],
-      });
-      res.status(response.statusCode).json(response);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      this._logger.error('Failed to get chat history', {
-        userId,
-        error: errorMessage,
-      });
-
-      const response = ResponseHelper.error('Failed to retrieve chat history');
       res.status(response.statusCode).json(response);
     }
   };

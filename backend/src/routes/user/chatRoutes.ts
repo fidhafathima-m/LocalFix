@@ -11,6 +11,5 @@ router.get('/history', protect, chatController.getChatHistory);
 
 // Optional: Public endpoint for pre-login queries
 router.post('/public/message', chatController.sendMessage);
-router.get('/models', chatController.getModels);
 
 export default router;

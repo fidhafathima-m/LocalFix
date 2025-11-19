@@ -34,6 +34,7 @@ import subscriptionRoutes from './routes/admin/subscriptionManagementRoutes';
 import technicianSubscriptionRoutes from './routes/technician/subscriptionRoutes';
 import serviceRoutes from './routes/user/serviceRoutes';
 import chatRoutes from './routes/user/chatRoutes';
+import technicianChatRoutes from './routes/technician/technicianChatRoutes';
 
 // Import container functions
 import {
@@ -117,6 +118,7 @@ app.use('/api/technician/profile', technicianProfileRoutes);
 app.use('/api/technician/orders', technicianOrderRoutes);
 app.use('/api/technician/spare-parts', sparePartsRequestRoutes);
 app.use('/api/technician/subscriptions', technicianSubscriptionRoutes);
+app.use('/api/technician/chat', technicianChatRoutes);
 app.use('/api/technician', technicianDashboardRoutes);
 app.use('/api/public/user', pubicUserRoutes);
 app.use('/api/user', userProfileRoutes);
