@@ -9,6 +9,7 @@ export interface TechnicianOrderUser {
   fullName: string;
   email: string;
   phone: string;
+  profilePictureUrl: string;
 }
 
 export interface TechnicianOrderAddress {

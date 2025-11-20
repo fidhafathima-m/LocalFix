@@ -10,12 +10,16 @@ import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChatWidget } from "./chatSupport/ChatWidget";
+import { useAppSelector } from "../../../hooks/redux";
+import { selectIsLoggedIn } from "../../../store/slices/authSlice";
 
 const Home = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const isLoggedIn = useAppSelector(selectIsLoggedIn);
 
   useEffect(() => {
     const loadServices = async () => {
@@ -272,7 +276,7 @@ const Home = () => {
         </div>
       </section>
       <Footer />
-      <ChatWidget />
+      {isLoggedIn && <ChatWidget />}
     </div>
   );
 };

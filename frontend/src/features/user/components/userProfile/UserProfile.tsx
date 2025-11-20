@@ -347,7 +347,7 @@ const UserProfile: React.FC = () => {
             personalInfo={personalInfo}
             onProfilePictureChange={handleProfilePictureChange}
             uploadingPhoto={uploadingPhoto}
-            onNavigateToServices={() => navigate("/services")}
+            onNavigateToMessage={() => navigate("/messages")}
           />
 
           <PersonalInfoSection

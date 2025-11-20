@@ -11,23 +11,27 @@ import { INotificationService } from '@/interfaces/services/INotificationService
 import { ILogger } from '@/interfaces/utils/ILogger';
 import { SocketService } from './SocketService';
 import { loggers } from 'winston';
+import { IMessageService } from '../interfaces/services/user/IMessageService';
 
 export class OrderService implements IOrderService {
   private _logger: ILogger;
   private _orderRepository: IOrderRepository;
   private _technicianRepository: ITechnicianRepository;
   private _socketService: SocketService;
+  private _messageService: IMessageService;
 
   constructor(
     orderRepository: IOrderRepository,
     technicianRepository: ITechnicianRepository,
     socketService: SocketService,
+    messageService: IMessageService,
     logger: ILogger
   ) {
     this._logger = logger;
     this._orderRepository = orderRepository;
     this._technicianRepository = technicianRepository;
     this._socketService = socketService;
+    this._messageService = messageService;
   }
 
   async getUserOrders(
@@ -484,6 +488,7 @@ export class OrderService implements IOrderService {
     }
   }
 
+  // In your backend OrderService.ts - update the updateOrderStatus method
   async updateOrderStatus(
     orderId: string,
     status: string,
@@ -510,10 +515,22 @@ export class OrderService implements IOrderService {
         return ResponseHelper.notFound('Order not found');
       }
 
+      // ✅ CRITICAL: Update the chat room with new order status
+      try {
+        // Import your message service in the OrderService
+        await this._messageService.syncOrderStatusWithRoom(orderId);
+        this._logger.info('Chat room status synced successfully');
+      } catch (syncError) {
+        this._logger.error('Failed to sync chat room status:', syncError);
+        // Don't fail the order update if room sync fails
+      }
+
       this._logger.info(
         'Order updated successfully, now triggering notifications'
       );
 
+      // Notify via socket about order status change
+      await this._socketService.notifyOrderStatusChange(orderId, status);
       await this.notifyUserAboutOrderStatusChange(updatedOrder, status);
 
       if (updatedBy === 'technician') {
@@ -543,7 +560,6 @@ export class OrderService implements IOrderService {
       return ResponseHelper.error('Failed to update order status');
     }
   }
-
   async getTechnicianOrderStats(technicianId: string): Promise<
     ApiResponse<{
       totalOrders: number;

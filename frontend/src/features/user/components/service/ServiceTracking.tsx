@@ -153,6 +153,13 @@ const ServiceTrackingComponent: React.FC = () => {
     setRefreshing(false);
   };
 
+  useEffect(() => {
+    if (trackingData) {
+      // Store tracking data for messages to use
+      localStorage.setItem("trackingData", JSON.stringify(trackingData));
+    }
+  }, [trackingData]);
+
   const handleCallTechnician = () => {
     if (trackingData?.technicianId.phone) {
       window.open(`tel:${trackingData.technicianId.phone}`, "_self");
@@ -161,8 +168,28 @@ const ServiceTrackingComponent: React.FC = () => {
     }
   };
 
-  const handleMessageTechnician = () => {
-    toast.success("Messaging feature coming soon!");
+  const handleMessageTechnician = (technicianId: string) => {
+    if (
+      trackingData?.status === "completed" ||
+      trackingData?.status === "cancelled"
+    ) {
+      toast.error("Chat is no longer available for this completed service");
+      return;
+    }
+
+    if (!trackingData?._id) {
+      toast.error("Unable to start conversation: Order ID not found");
+      return;
+    }
+
+    // Navigate to messages with order context to open/create conversation
+    navigate(
+      `/messages?orderId=${
+        trackingData._id
+      }&technicianId=${technicianId}&serviceName=${encodeURIComponent(
+        trackingData.serviceName
+      )}`
+    );
   };
 
   const handleContactSupport = () => {
@@ -432,7 +459,9 @@ const ServiceTrackingComponent: React.FC = () => {
                   Call Technician
                 </button>
                 <button
-                  onClick={handleMessageTechnician}
+                  onClick={() =>
+                    handleMessageTechnician(trackingData.technicianId._id)
+                  }
                   className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
                 >
                   <ChatBubbleOutlineOutlined className="w-4 h-4" />

@@ -1,8 +1,4 @@
-import {
-  ChatBubbleOutlineOutlined,
-  LocalPhoneOutlined,
-  PinDropOutlined,
-} from "@mui/icons-material";
+import { LocalPhoneOutlined, PinDropOutlined } from "@mui/icons-material";
 
 interface CustomerInformationProps {
   customerInfo: {
@@ -18,15 +14,9 @@ interface CustomerInformationProps {
 const CustomerInformation: React.FC<CustomerInformationProps> = ({
   customerInfo,
   address,
-  orderId,
 }) => {
   const handleCallCustomer = () => {
     window.location.href = `tel:${customerInfo.phone}`;
-  };
-
-  const handleChat = () => {
-    // Implement chat functionality
-    console.log("Start chat with customer for order:", orderId);
   };
 
   const handleViewOnMap = () => {
@@ -67,13 +57,6 @@ const CustomerInformation: React.FC<CustomerInformationProps> = ({
             Call Customer
           </button>
         </div>
-        <button
-          onClick={handleChat}
-          className="text-blue-600 text-sm font-medium hover:text-blue-700 flex items-center"
-        >
-          <ChatBubbleOutlineOutlined className="mr-2" />
-          Chat with Customer
-        </button>
         <div>
           <div className="flex items-start text-gray-700">
             <PinDropOutlined className="mr-2 mt-1 text-gray-500" />

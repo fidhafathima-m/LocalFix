@@ -172,6 +172,11 @@ const MyOrders: React.FC = () => {
         icon: AccessTimeOutlined,
         text: "Pending",
       },
+      accpted: {
+        color: "text-green-400",
+        icon: CheckCircleOutlineOutlined,
+        text: "Accepted",
+      },
       confirmed: {
         color: "text-green-600",
         icon: CheckCircleOutlineOutlined,
@@ -766,6 +771,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
 }) => {
   const statusConfig = getStatusConfig(order.status);
   const StatusIcon = statusConfig.icon;
+  console.log("Order: ", order);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -852,9 +858,13 @@ const OrderCard: React.FC<OrderCardProps> = ({
         {!isHistory ? (
           <>
             {/* Show Track Service for multiple statuses */}
-            {["pending", "confirmed", "in_progress", "on_the_way"].includes(
-              order.status
-            ) &&
+            {[
+              "pending",
+              "confirmed",
+              "accepted",
+              "in_progress",
+              "on_the_way",
+            ].includes(order.status) &&
               onTrack && (
                 <button
                   onClick={onTrack}
@@ -865,7 +875,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
               )}
 
             {/* Show Reschedule and Cancel only for pending and confirmed status */}
-            {["pending", "confirmed"].includes(order.status) && (
+            {["pending", "confirmed", "accepted"].includes(order.status) && (
               <>
                 {onReschedule && (
                   <button

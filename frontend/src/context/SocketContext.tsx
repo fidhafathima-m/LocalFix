@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useState,
   type ReactNode,
+  useRef,
 } from "react";
 import io from "socket.io-client";
 
@@ -37,100 +38,147 @@ export const useSocket = (): SocketContextType => {
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<SocketType | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const connectionAttemptsRef = useRef(0);
+  const isConnectingRef = useRef(false);
 
   const connectSocket = () => {
+    // Prevent multiple connection attempts
+    if (isConnectingRef.current) {
+      console.log("⚠️ Socket connection already in progress...");
+      return null;
+    }
+
     try {
+      isConnectingRef.current = true;
       const socketUrl =
         import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
-      console.log("Connecting to socket server:", socketUrl);
+      console.log("🔌 Connecting to socket server:", socketUrl);
+
+      // Disconnect existing socket first
+      if (socket) {
+        socket.removeAllListeners();
+        socket.disconnect();
+      }
 
       const newSocket = io(socketUrl, {
         transports: ["websocket", "polling"],
-        timeout: 30000,
+        timeout: 10000, // Reduced from 30s to 10s
         autoConnect: true,
-        forceNew: false,
+        forceNew: true, // Changed to true to avoid connection pooling issues
         reconnection: true,
-        reconnectionAttempts: Infinity, // Keep trying to reconnect
+        reconnectionAttempts: 10, // Limited from Infinity to prevent infinite loops
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         randomizationFactor: 0.5,
       });
 
+      // Connection established
       newSocket.on("connect", () => {
-        console.log("Connected to server - Socket ID:", newSocket.id);
+        console.log("✅ Connected to server - Socket ID:", newSocket.id);
         setIsConnected(true);
-        setConnectionAttempts(0);
+        connectionAttemptsRef.current = 0;
+        isConnectingRef.current = false;
       });
 
-      newSocket.on("disconnect", (reason: unknown) => {
-        console.log("Disconnected from server:", reason);
+      // Connection lost
+      newSocket.on("disconnect", (reason: string) => {
+        console.log("❌ Disconnected from server. Reason:", reason);
         setIsConnected(false);
+        isConnectingRef.current = false;
 
         if (reason === "io server disconnect") {
-          // Server forced disconnect, need to manually reconnect
-          newSocket.connect();
+          // Server forced disconnect, wait a bit before reconnecting
+          setTimeout(() => {
+            newSocket.connect();
+          }, 2000);
         }
       });
 
-      newSocket.on("connect_error", (error: unknown) => {
-        console.error("Connection error:", error);
+      // Connection error
+      newSocket.on("connect_error", (error: Error) => {
+        console.error("❌ Connection error:", error.message);
         setIsConnected(false);
-        setConnectionAttempts((prev) => prev + 1);
+        connectionAttemptsRef.current++;
+        isConnectingRef.current = false;
 
-        // Exponential backoff for reconnection
-        const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000);
+        // Exponential backoff with maximum limit
+        const delay = Math.min(
+          1000 * Math.pow(2, connectionAttemptsRef.current),
+          30000
+        );
+        console.log(
+          `⏳ Retrying connection in ${delay}ms (attempt ${connectionAttemptsRef.current})`
+        );
 
         setTimeout(() => {
-          if (!isConnected) {
+          if (connectionAttemptsRef.current <= 10) {
+            // Max 10 attempts
             newSocket.connect();
+          } else {
+            console.error("🚫 Maximum reconnection attempts reached");
           }
         }, delay);
       });
 
+      // Successful reconnection
       newSocket.on("reconnect", (attempt: number) => {
-        console.log(`Reconnected after ${attempt} attempts`);
+        console.log(`🔄 Reconnected after ${attempt} attempts`);
         setIsConnected(true);
+        connectionAttemptsRef.current = 0;
+        isConnectingRef.current = false;
       });
 
+      // Reconnection attempt
       newSocket.on("reconnect_attempt", (attempt: number) => {
-        console.log(`Reconnection attempt ${attempt}`);
+        console.log(`🔄 Reconnection attempt ${attempt}`);
       });
 
-      newSocket.on("reconnect_error", (error: unknown) => {
-        console.error("Reconnection error:", error);
+      // Reconnection error
+      newSocket.on("reconnect_error", (error: Error) => {
+        console.error("❌ Reconnection error:", error.message);
       });
 
+      // Reconnection failed
       newSocket.on("reconnect_failed", () => {
-        console.error("Reconnection failed");
+        console.error("🚫 Reconnection failed - giving up");
+        isConnectingRef.current = false;
+      });
+
+      // Ping/Pong to check connection health
+      newSocket.on("ping", () => {
+        console.log("🏓 Ping received");
+      });
+
+      newSocket.on("pong", (latency: number) => {
+        console.log(`🏓 Pong received - latency: ${latency}ms`);
       });
 
       setSocket(newSocket);
       return newSocket;
     } catch (error) {
-      console.error("Error creating socket:", error);
+      console.error("💥 Error creating socket:", error);
+      isConnectingRef.current = false;
       return null;
     }
   };
+
   useEffect(() => {
     const newSocket = connectSocket();
 
     return () => {
-      console.log("Cleaning up socket");
+      console.log("🧹 Cleaning up socket connection");
       if (newSocket) {
         newSocket.removeAllListeners();
-        newSocket.close();
+        newSocket.disconnect();
       }
+      isConnectingRef.current = false;
     };
-  }, []);
+  }, []); // Empty dependency array - only run once
 
   const reconnect = () => {
-    if (socket) {
-      socket.disconnect();
-      setTimeout(() => {
-        connectSocket();
-      }, 1000);
-    }
+    console.log("🔄 Manual reconnection requested");
+    connectionAttemptsRef.current = 0;
+    connectSocket();
   };
 
   return (

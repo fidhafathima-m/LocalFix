@@ -5,14 +5,20 @@ import { NotificationService } from './NotificationService';
 import { notificationRepository } from '../config/container';
 import { LoggerService } from './LoggerService';
 import { INotificationService } from '../interfaces/services/INotificationService';
+import { IMessageService } from '../interfaces/services/user/IMessageService';
 
 export class SocketService {
   private _io: Server;
   private _locationService: LocationTrackingService;
   private _activeConnections: Map<string, string> = new Map();
   private _notificationService: INotificationService;
+  private _messageService: IMessageService;
 
-  constructor(server: any, notificationService: INotificationService) {
+  constructor(
+    server: any,
+    notificationService: INotificationService,
+    messageService: IMessageService
+  ) {
     this._io = new Server(server, {
       cors: {
         origin: process.env.FRONTEND_URL,
@@ -21,6 +27,7 @@ export class SocketService {
     });
 
     this._notificationService = notificationService;
+    this._messageService = messageService;
     this._locationService = new LocationTrackingService();
     this.setupSocketHandlers();
   }
@@ -33,6 +40,10 @@ export class SocketService {
       this.setupLocationHandlers(socket);
 
       this.setupNotificationHandlers(socket);
+
+      this.setupOrderStatusHandlers(socket);
+
+      this.setupChatHandlers(socket);
 
       socket.on('disconnect', () => {
         // Clean up disconnected technicians
@@ -199,6 +210,86 @@ export class SocketService {
         console.error('Error getting unread count:', error);
       }
     });
+  }
+
+  // In SocketService.ts - update the setupOrderStatusHandlers method
+  private setupOrderStatusHandlers(socket: any): void {
+    // Join order room for status updates
+    socket.on(
+      'join-order-room',
+      async (data: { orderId: string; userId: string; userType: string }) => {
+        const { orderId, userId, userType } = data;
+        const roomName = `order-status-${orderId}`;
+        socket.join(roomName);
+
+        // Sync the room with current order status when joining
+        try {
+          await this._messageService.syncOrderStatusWithRoom(orderId);
+        } catch (error) {
+          console.error('Error syncing order status on room join:', error);
+        }
+
+        console.log(
+          `📊 ${userType} ${userId} joined order status room: ${roomName}`
+        );
+      }
+    );
+
+    // Handle order status updates
+    socket.on(
+      'order-status-changed',
+      async (data: { orderId: string; newStatus: string; userId: string }) => {
+        try {
+          // Update the room with new order status
+          await this._messageService.syncOrderStatusWithRoom(data.orderId);
+
+          // Notify all users in the order status room
+          this._io
+            .to(`order-status-${data.orderId}`)
+            .emit('order-status-updated', {
+              orderId: data.orderId,
+              newStatus: data.newStatus,
+              timestamp: new Date().toISOString(),
+            });
+        } catch (error) {
+          console.error('Error handling order status change:', error);
+        }
+      }
+    );
+  }
+
+  // In SocketService.ts - ADD DEBUG LOGGING to notifyOrderStatusChange method
+  public async notifyOrderStatusChange(
+    orderId: string,
+    newStatus: string
+  ): Promise<void> {
+    try {
+      console.log('🔊 DEBUG: notifyOrderStatusChange called');
+      console.log('🔊 DEBUG: Order ID:', orderId);
+      console.log('🔊 DEBUG: New Status:', newStatus);
+
+      const roomName = `order-status-${orderId}`;
+
+      // Check how many clients are in the room
+      const room = this._io.sockets.adapter.rooms.get(roomName);
+      const clientCount = room ? room.size : 0;
+
+      console.log('🔊 DEBUG: Room:', roomName);
+      console.log('🔊 DEBUG: Clients in room:', clientCount);
+
+      // Emit to all users in the order status room
+      this._io.to(roomName).emit('order-status-updated', {
+        orderId,
+        newStatus,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log('✅ DEBUG: Order status update emitted successfully');
+      console.log('✅ DEBUG: Event: order-status-updated');
+    } catch (error) {
+      console.error('❌ DEBUG: Error sending order status update:', error);
+      throw error;
+    }
   }
 
   public async sendLiveNotification(userId: string, notificationData: any) {
@@ -428,6 +519,131 @@ export class SocketService {
     const result = await this._notificationService.getUnreadCount(userId);
     return result.count;
   }
+
+  private setupChatHandlers(socket: any): void {
+    // Join chat room for an order
+    socket.on(
+      'join-chat-room',
+      async (data: {
+        orderId: string;
+        userId: string;
+        userType: 'user' | 'technician';
+      }) => {
+        try {
+          const { orderId, userId, userType } = data;
+          const roomName = `chat-${orderId}`;
+
+          socket.join(roomName);
+
+          // Mark messages as read when user joins
+          await this._messageService.markConversationAsRead(
+            orderId,
+            userId,
+            userType
+          );
+
+          console.log(`User ${userId} joined chat room: ${roomName}`);
+        } catch (error) {
+          console.error('Error joining chat room:', error);
+          socket.emit('chat-error', { message: 'Failed to join chat room' });
+        }
+      }
+    );
+
+    // Send message
+    // In SocketService.ts - fix the send-message handler
+    socket.on(
+      'send-message',
+      async (data: {
+        orderId: string;
+        senderId: string;
+        senderType: 'user' | 'technician';
+        receiverId: string;
+        receiverType: 'user' | 'technician';
+        message: string;
+        messageType?: 'text' | 'image' | 'file';
+      }) => {
+        try {
+          console.log('💬 Sending message via socket:', {
+            orderId: data.orderId,
+            senderId: data.senderId,
+            receiverId: data.receiverId,
+          });
+
+          // Save message to database
+          const savedMessage = await this._messageService.sendMessage(data);
+
+          const roomName = `chat-${data.orderId}`;
+
+          // FIX: Broadcast message to all EXCEPT the sender
+          socket.to(roomName).emit('new-message', {
+            message: savedMessage,
+            roomName,
+          });
+
+          console.log('✅ Message broadcasted to room (excluding sender)');
+
+          // Send notification to receiver if they're not in the room
+          const receiverRoom = `user-${data.receiverId}`;
+          const room = this._io.sockets.adapter.rooms.get(roomName);
+
+          // Check if receiver is in the chat room
+          const isReceiverInRoom =
+            room &&
+            Array.from(room).some(socketId => {
+              const socket = this._io.sockets.sockets.get(socketId);
+              return socket && socket.data.userId === data.receiverId;
+            });
+
+          if (!isReceiverInRoom) {
+            console.log('📱 Sending push notification to receiver');
+            this._io.to(receiverRoom).emit('new-chat-notification', {
+              orderId: data.orderId,
+              message: data.message,
+              senderId: data.senderId,
+              senderType: data.senderType,
+              timestamp: savedMessage.timestamp,
+            });
+          }
+        } catch (error) {
+          console.error('Error sending message:', error);
+          socket.emit('chat-error', { message: 'Failed to send message' });
+        }
+      }
+    );
+
+    // Leave chat room
+    socket.on('leave-chat-room', (data: { orderId: string }) => {
+      const roomName = `chat-${data.orderId}`;
+      socket.leave(roomName);
+    });
+
+    // Typing indicators
+    socket.on(
+      'typing-start',
+      (data: { orderId: string; userId: string; userType: string }) => {
+        const roomName = `chat-${data.orderId}`;
+        socket.to(roomName).emit('user-typing', {
+          userId: data.userId,
+          userType: data.userType,
+          isTyping: true,
+        });
+      }
+    );
+
+    socket.on(
+      'typing-stop',
+      (data: { orderId: string; userId: string; userType: string }) => {
+        const roomName = `chat-${data.orderId}`;
+        socket.to(roomName).emit('user-typing', {
+          userId: data.userId,
+          userType: data.userType,
+          isTyping: false,
+        });
+      }
+    );
+  }
+
   public getIO(): Server {
     return this._io;
   }

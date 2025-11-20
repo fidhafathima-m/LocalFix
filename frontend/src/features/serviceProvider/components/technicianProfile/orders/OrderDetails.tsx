@@ -14,6 +14,7 @@ import { useAppSelector, useAppDispatch } from "../../../../../hooks/redux";
 import { selectTechnicianProfile } from "../../../../../store/slices/technicianSlice";
 import { selectUser } from "../../../../../store/slices/authSlice";
 import { fetchTechnicianProfile } from "../../../../../store/thunks/technicianThunks";
+import ChatSection from "./sections/MessageSection";
 
 const OrderDetails: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -103,6 +104,26 @@ const OrderDetails: React.FC = () => {
     }
   };
 
+  // Helper function to get customer info
+  const getCustomerInfo = (order: TechnicianOrder) => {
+    if (typeof order.userId === "object" && order.userId !== null) {
+      return {
+        name: order.userId.fullName || "Customer",
+        email: order.userId.email || "No email",
+        phone: order.userId.phone || "No phone",
+        id: order.userId._id || "",
+        profilePhoto: order.userId.profilePictureUrl || "",
+      };
+    }
+    return {
+      name: "Customer",
+      email: "No email",
+      phone: "No phone",
+      id: "",
+      profilePhoto: "",
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -138,23 +159,8 @@ const OrderDetails: React.FC = () => {
     );
   }
 
-  // Helper function to get customer info
-  const getCustomerInfo = (order: TechnicianOrder) => {
-    if (typeof order.userId === "object" && order.userId !== null) {
-      return {
-        name: order.userId.fullName || "Customer",
-        email: order.userId.email || "No email",
-        phone: order.userId.phone || "No phone",
-      };
-    }
-    return {
-      name: "Customer",
-      email: "No email",
-      phone: "No phone",
-    };
-  };
-
   const customerInfo = getCustomerInfo(order);
+  const technicianId = technicianProfile?._id || user?._id || "";
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -165,6 +171,7 @@ const OrderDetails: React.FC = () => {
           onBack={() => navigate("/technician/dashboard?tab=orders")}
         />
         <ServiceProgress status={order.status} />
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <CustomerInformation
             customerInfo={customerInfo}
@@ -173,11 +180,25 @@ const OrderDetails: React.FC = () => {
           />
           <ServiceInformation order={order} />
         </div>
+
+        {/* Add Chat Section */}
+        <div className="mt-6">
+          <ChatSection
+            orderId={order._id}
+            customerId={customerInfo.id}
+            customerName={customerInfo.name}
+            customerProfilePhoto={customerInfo.profilePhoto}
+            serviceName={order.serviceName}
+            technicianId={technicianId}
+            orderStatus={order.status}
+          />
+        </div>
+
         <PricePayment order={order} />
         <ActionButtons
           order={order}
           onUpdateOrderStatus={handleUpdateOrderStatus}
-          technicianId={technicianProfile?._id || user?._id}
+          technicianId={technicianId}
         />
       </main>
       <Footer />

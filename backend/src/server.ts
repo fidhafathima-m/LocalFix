@@ -35,6 +35,7 @@ import technicianSubscriptionRoutes from './routes/technician/subscriptionRoutes
 import serviceRoutes from './routes/user/serviceRoutes';
 import chatRoutes from './routes/user/chatRoutes';
 import technicianChatRoutes from './routes/technician/technicianChatRoutes';
+import messageRoutes from './routes/user/messageRoutes';
 
 // Import container functions
 import {
@@ -127,6 +128,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/messages', messageRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Localfix API running...');

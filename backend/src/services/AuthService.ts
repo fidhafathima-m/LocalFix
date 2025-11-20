@@ -1666,7 +1666,7 @@ export class AuthService implements IAuthService {
       };
 
       return jwt.sign(payload, jwtSecret, {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '5m',
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '15m',
       } as jwt.SignOptions);
     } catch (error) {
       this._logger.error('Failed to generate access token', {

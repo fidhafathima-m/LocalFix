@@ -14,7 +14,7 @@ interface ProfileHeaderProps {
   };
   onProfilePictureChange: (file: File) => Promise<void>;
   uploadingPhoto: boolean;
-  onNavigateToServices: () => void;
+  onNavigateToMessage: () => void;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -22,7 +22,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   personalInfo,
   onProfilePictureChange,
   uploadingPhoto,
-  onNavigateToServices,
+  onNavigateToMessage,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,10 +82,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
         <button
-          onClick={onNavigateToServices}
+          onClick={onNavigateToMessage}
           className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 cursor-pointer"
         >
-          Book a Service
+          Messages
         </button>
       </div>
     </div>
