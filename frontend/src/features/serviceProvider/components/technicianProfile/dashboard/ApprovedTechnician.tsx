@@ -19,6 +19,7 @@ import NotificationSection from "./tabs/NotificationsTab";
 import { NotificationService } from "../../../../../services/notificationService";
 import SubscriptionBanner from "../../subscription/SubscriptionBanner";
 import { TechnicianSubscriptionService } from "../../../../../services/technician/subscriptionService";
+import { MessagesTab } from "./tabs/MessagesTab";
 
 interface DashboardData {
   overview: {
@@ -519,6 +520,16 @@ const ApprovedTechnicianDashboard: React.FC = () => {
           <DisabledOverlay tab="notifications" isSuspended={isSuspended}>
             <NotificationSection
               technicianId={profile._id}
+              isSuspended={isSuspended}
+            />
+          </DisabledOverlay>
+        );
+
+      case "messages":
+        return (
+          <DisabledOverlay tab="messages" isSuspended={isSuspended}>
+            <MessagesTab
+              dashboardData={dashboardData}
               isSuspended={isSuspended}
             />
           </DisabledOverlay>

@@ -48,10 +48,10 @@ const messageRoomSchema = new Schema<IMessageRoomDocument>(
       index: true,
     },
     technicianSnapshot: {
-      displayName: String,
-      profilePictureUrl: String,
-      serviceName: String,
-      orderStatus: String,
+      displayName: { type: String, required: true, default: 'Technician' },
+      profilePictureUrl: { type: String, default: '' },
+      serviceName: { type: String, required: true, default: 'Service' },
+      orderStatus: { type: String },
     },
     isActive: {
       type: Boolean,

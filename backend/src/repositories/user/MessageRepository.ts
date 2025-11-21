@@ -68,19 +68,64 @@ export class MessageRepository implements IMessageRepository {
     });
   }
 
-  // Room Methods
   // In MessageRepository.ts - FIX createRoom method
+  // In MessageRepository.ts - IMPROVE createRoom method
   async createRoom(roomData: IMessageRoomCreate): Promise<IMessageRoom> {
     try {
-      console.log('💾 Creating room with data:', roomData);
+      console.log(
+        '💾 Creating room with data:',
+        JSON.stringify(roomData, null, 2)
+      );
 
-      const room = new MessageRoom(roomData);
+      // Ensure technicianSnapshot has all required fields with proper values
+      const roomDataToSave = {
+        ...roomData,
+        technicianSnapshot: roomData.technicianSnapshot
+          ? {
+              displayName: String(
+                roomData.technicianSnapshot.displayName || 'Technician'
+              ),
+              profilePictureUrl: String(
+                roomData.technicianSnapshot.profilePictureUrl || ''
+              ),
+              serviceName: String(
+                roomData.technicianSnapshot.serviceName || 'Service'
+              ),
+              orderStatus: roomData.technicianSnapshot.orderStatus
+                ? String(roomData.technicianSnapshot.orderStatus)
+                : undefined,
+            }
+          : {
+              displayName: 'Technician',
+              profilePictureUrl: '',
+              serviceName: 'Service',
+              orderStatus: undefined,
+            },
+        unreadCount: roomData.unreadCount || {
+          user: 0,
+          technician: 0,
+        },
+      };
+
+      console.log(
+        '💾 Room data to save:',
+        JSON.stringify(roomDataToSave, null, 2)
+      );
+
+      const room = new MessageRoom(roomDataToSave);
       const savedRoom = await room.save();
 
       console.log('✅ Room saved successfully:', savedRoom._id);
       console.log(
         '🔍 Saved room technicianSnapshot:',
         savedRoom.technicianSnapshot
+      );
+
+      // Verify the saved data
+      const verifiedRoom = await MessageRoom.findById(savedRoom._id);
+      console.log(
+        '🔍 Verified room from DB:',
+        verifiedRoom?.technicianSnapshot
       );
 
       return this.mapRoomToDomain(savedRoom);
@@ -106,7 +151,7 @@ export class MessageRepository implements IMessageRepository {
     }
   }
 
-  // In MessageRepository.ts - fix getRoomsByUser method
+  // In MessageRepository.ts - IMPROVE getRoomsByUser method
   async getRoomsByUser(
     userId: string,
     userType: 'user' | 'technician'
@@ -116,55 +161,122 @@ export class MessageRepository implements IMessageRepository {
         ? { userId, isActive: true }
         : { technicianId: userId, isActive: true };
 
-    // Remove populate to get clean ObjectId strings
-    const rooms = await MessageRoom.find(query).sort({ updatedAt: -1 }).exec();
+    const rooms = await MessageRoom.find(query)
+      .sort({ updatedAt: -1 })
+      .lean() // Use lean for better performance
+      .exec();
+
+    console.log(`🔍 Found ${rooms.length} rooms for ${userType}: ${userId}`);
+
+    rooms.forEach((room, index) => {
+      console.log(
+        `🔍 Room ${index + 1} technicianSnapshot:`,
+        room.technicianSnapshot
+      );
+    });
 
     return rooms.map(this.mapRoomToDomain);
   }
 
+  // In MessageRepository.ts - FIX THE updateRoom method
   async updateRoom(
     orderId: string,
     updateData: IMessageRoomUpdate
   ): Promise<IMessageRoom | null> {
-    // If updating lastMessage, also fetch current order status
-    if (updateData.lastMessage) {
-      try {
-        const currentOrderStatus = await this.getOrderStatus(orderId);
-        if (currentOrderStatus) {
-          updateData.technicianSnapshot = {
-            ...updateData.technicianSnapshot,
-            orderStatus: currentOrderStatus,
-          };
-        }
-      } catch (error) {
-        console.error('Error fetching order status for room update:', error);
+    try {
+      console.log('🔄 Updating room for order:', orderId);
+      console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
+
+      // Build the update object carefully to avoid overwriting
+      const updateObject: any = {};
+
+      // Handle individual fields instead of entire objects
+      if (updateData.lastMessage) {
+        updateObject.lastMessage = updateData.lastMessage;
       }
+
+      if (updateData.unreadCount) {
+        updateObject.unreadCount = updateData.unreadCount;
+      }
+
+      if (updateData.isActive !== undefined) {
+        updateObject.isActive = updateData.isActive;
+      }
+
+      if (updateData.orderStatus) {
+        updateObject.orderStatus = updateData.orderStatus;
+      }
+
+      // ✅ CRITICAL FIX: Handle technicianSnapshot field by field
+      if (updateData.technicianSnapshot) {
+        if (updateData.technicianSnapshot.displayName !== undefined) {
+          updateObject['technicianSnapshot.displayName'] =
+            updateData.technicianSnapshot.displayName;
+        }
+        if (updateData.technicianSnapshot.profilePictureUrl !== undefined) {
+          updateObject['technicianSnapshot.profilePictureUrl'] =
+            updateData.technicianSnapshot.profilePictureUrl;
+        }
+        if (updateData.technicianSnapshot.serviceName !== undefined) {
+          updateObject['technicianSnapshot.serviceName'] =
+            updateData.technicianSnapshot.serviceName;
+        }
+        if (updateData.technicianSnapshot.orderStatus !== undefined) {
+          updateObject['technicianSnapshot.orderStatus'] =
+            updateData.technicianSnapshot.orderStatus;
+        }
+      }
+
+      console.log(
+        '🔄 Final update object:',
+        JSON.stringify(updateObject, null, 2)
+      );
+
+      const room = await MessageRoom.findOneAndUpdate(
+        { orderId },
+        { $set: updateObject },
+        { new: true }
+      ).exec();
+
+      if (room) {
+        console.log('✅ Room updated successfully');
+        console.log('🔍 Updated technicianSnapshot:', room.technicianSnapshot);
+      }
+
+      return room ? this.mapRoomToDomain(room) : null;
+    } catch (error) {
+      console.error('❌ Error updating room:', error);
+      return null;
     }
-
-    const room = await MessageRoom.findOneAndUpdate(
-      { orderId },
-      { $set: updateData },
-      { new: true }
-    ).exec();
-
-    return room ? this.mapRoomToDomain(room) : null;
   }
 
-  // Add a method to sync order status with room
+  // In MessageRepository.ts - FIX syncOrderStatusWithRoom method
   async syncOrderStatusWithRoom(orderId: string): Promise<IMessageRoom | null> {
     try {
       const orderStatus = await this.getOrderStatus(orderId);
       if (orderStatus) {
+        console.log('🔄 Syncing order status for room:', {
+          orderId,
+          orderStatus,
+        });
+
+        // Use field-level update to only update orderStatus
         const room = await MessageRoom.findOneAndUpdate(
           { orderId },
           {
             $set: {
               'technicianSnapshot.orderStatus': orderStatus,
-              orderStatus: orderStatus, // Also store at root level for easy access
+              orderStatus: orderStatus,
             },
           },
           { new: true }
         ).exec();
+
+        if (room) {
+          console.log('✅ Order status synced successfully');
+          console.log('🔍 Room after sync:', room.technicianSnapshot);
+        }
+
         return room ? this.mapRoomToDomain(room) : null;
       }
       return null;
@@ -178,7 +290,6 @@ export class MessageRepository implements IMessageRepository {
     return this.updateRoom(orderId, { isActive: false });
   }
 
-  // In MessageRepository.ts - fix getOrCreateRoom method
   async getOrCreateRoom(
     orderId: string,
     userId: string,
@@ -190,21 +301,73 @@ export class MessageRepository implements IMessageRepository {
 
       if (room) {
         console.log('✅ Found existing room for order:', orderId);
+
+        // If room exists but missing technician details, update it
+        if (!room.technicianSnapshot || !room.technicianSnapshot.displayName) {
+          console.log(
+            '🔄 Room exists but missing technician details, updating...'
+          );
+          const technicianDetails =
+            await this.getTechnicianDetails(technicianId);
+          const orderServiceName = await this.getOrderServiceName(orderId);
+          const orderStatus = await this.getOrderStatus(orderId);
+
+          if (technicianDetails) {
+            const updatedRoom = await this.updateRoom(orderId, {
+              technicianSnapshot: {
+                displayName: technicianDetails.displayName,
+                profilePictureUrl: technicianDetails.profilePictureUrl,
+                serviceName: orderServiceName,
+                orderStatus: orderStatus || undefined,
+              },
+            });
+
+            // Only assign if update was successful and room is not null
+            if (updatedRoom) {
+              room = updatedRoom;
+            }
+          }
+        }
+
         return room;
       }
 
       console.log('🆕 Creating new room for order:', orderId);
 
-      // Create new room
-      room = await this.createRoom({
+      // Get technician details BEFORE creating room
+      const technicianDetails = await this.getTechnicianDetails(technicianId);
+      const orderServiceName = await this.getOrderServiceName(orderId);
+      const orderStatus = await this.getOrderStatus(orderId);
+
+      console.log('🔍 Technician details for new room:', {
+        technicianDetails,
+        orderServiceName,
+        orderStatus,
+      });
+
+      // Create new room with complete technicianSnapshot
+      const newRoom = await this.createRoom({
         orderId,
         userId,
         technicianId,
+        technicianSnapshot: {
+          displayName: technicianDetails?.displayName || 'Technician',
+          profilePictureUrl: technicianDetails?.profilePictureUrl || '',
+          serviceName: orderServiceName,
+          orderStatus: orderStatus || undefined,
+        },
         isActive: true,
+        unreadCount: {
+          user: 0,
+          technician: 0,
+        },
       });
 
-      return room;
+      console.log('✅ New room created with technician snapshot');
+      return newRoom;
     } catch (error: any) {
+      console.error('❌ Error in getOrCreateRoom:', error);
+
       // If it's a duplicate key error, try to fetch the existing room
       if (error.code === 11000 || error.code === 11001) {
         console.log('🔄 Duplicate key detected, fetching existing room');
@@ -319,39 +482,71 @@ export class MessageRepository implements IMessageRepository {
     };
   }
 
-  private mapRoomToDomain(doc: IMessageRoomDocument): IMessageRoom {
-    // Handle technicianSnapshot safely
+  // In MessageRepository.ts - FIX mapRoomToDomain method
+  private mapRoomToDomain(doc: any): IMessageRoom {
+    // Handle both Document and plain objects from lean()
+    const roomDoc = doc.toObject ? doc.toObject() : doc;
+
+    // DEBUG: Log what we're actually getting
+    console.log('🔍 Mapping room to domain:', {
+      id: roomDoc._id,
+      hasTechnicianSnapshot: !!roomDoc.technicianSnapshot,
+      technicianSnapshot: roomDoc.technicianSnapshot,
+    });
+
+    // Ensure technicianSnapshot has proper structure
     let technicianSnapshot = undefined;
-    if (doc.technicianSnapshot) {
+    if (roomDoc.technicianSnapshot) {
       technicianSnapshot = {
-        displayName:
-          doc.technicianSnapshot.displayName?.toString() || 'Technician',
-        profilePictureUrl:
-          doc.technicianSnapshot.profilePictureUrl?.toString() || '',
-        serviceName:
-          doc.technicianSnapshot.serviceName?.toString() || 'Service',
-        orderStatus: doc.technicianSnapshot.orderStatus?.toString(),
+        displayName: String(
+          roomDoc.technicianSnapshot.displayName || 'Technician'
+        ),
+        profilePictureUrl: String(
+          roomDoc.technicianSnapshot.profilePictureUrl || ''
+        ),
+        serviceName: String(
+          roomDoc.technicianSnapshot.serviceName || 'Service'
+        ),
+        orderStatus: roomDoc.technicianSnapshot.orderStatus
+          ? String(roomDoc.technicianSnapshot.orderStatus)
+          : undefined,
       };
+    } else {
+      console.warn('⚠️ No technicianSnapshot found for room:', roomDoc._id);
     }
 
-    return {
-      _id: doc._id?.toString() || '',
-      orderId: doc.orderId?.toString() || '',
-      userId: doc.userId?.toString() || '',
-      technicianId: doc.technicianId?.toString() || '',
+    const result = {
+      _id: roomDoc._id?.toString() || '',
+      orderId: roomDoc.orderId?.toString() || '',
+      userId: roomDoc.userId?.toString() || '',
+      technicianId: roomDoc.technicianId?.toString() || '',
       technicianSnapshot: technicianSnapshot,
-      isActive: doc.isActive,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-      lastMessage: doc.lastMessage
+      isActive: roomDoc.isActive !== false, // Default to true if not set
+      createdAt: roomDoc.createdAt || new Date(),
+      updatedAt: roomDoc.updatedAt || new Date(),
+      lastMessage: roomDoc.lastMessage
         ? {
-            message: doc.lastMessage.message,
-            timestamp: doc.lastMessage.timestamp,
-            senderId: doc.lastMessage.senderId?.toString() || '',
-            senderType: doc.lastMessage.senderType,
+            message: String(roomDoc.lastMessage.message || ''),
+            timestamp: roomDoc.lastMessage.timestamp || new Date(),
+            senderId: roomDoc.lastMessage.senderId?.toString() || '',
+            senderType: roomDoc.lastMessage.senderType as 'user' | 'technician',
           }
         : undefined,
-      unreadCount: doc.unreadCount,
+      unreadCount: {
+        user: Number(roomDoc.unreadCount?.user || 0),
+        technician: Number(roomDoc.unreadCount?.technician || 0),
+      },
+      orderStatus:
+        roomDoc.orderStatus || roomDoc.technicianSnapshot?.orderStatus,
     };
+
+    console.log('✅ Mapped room result:', {
+      id: result._id,
+      technicianName: result.technicianSnapshot?.displayName,
+      serviceName: result.technicianSnapshot?.serviceName,
+      orderStatus: result.technicianSnapshot?.orderStatus,
+    });
+
+    return result;
   }
 }

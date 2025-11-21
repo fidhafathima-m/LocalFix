@@ -52,20 +52,27 @@ export class MessageService implements IMessageService {
     return this._messageRepository.getMessagesByOrder(orderId, limit);
   }
 
-  // In MessageService.ts - add this method
+  // In MessageService.ts - FIX THE syncOrderStatusWithRoom method
   async syncOrderStatusWithRoom(orderId: string): Promise<void> {
     try {
       const orderStatus = await this._messageRepository.getOrderStatus(orderId);
       if (orderStatus) {
-        await this._messageRepository.updateRoom(orderId, {
-          technicianSnapshot: {
+        // Get the current room first to preserve existing technician details
+        const currentRoom =
+          await this._messageRepository.getRoomByOrder(orderId);
+
+        if (currentRoom) {
+          await this._messageRepository.updateRoom(orderId, {
+            technicianSnapshot: {
+              ...currentRoom.technicianSnapshot, // ✅ PRESERVE existing details
+              orderStatus: orderStatus, // ✅ ONLY update orderStatus
+            },
             orderStatus: orderStatus,
-          },
-          orderStatus: orderStatus,
-        });
-        console.log(
-          `✅ Synced order status for room ${orderId}: ${orderStatus}`
-        );
+          });
+          console.log(
+            `✅ Synced order status for room ${orderId}: ${orderStatus}`
+          );
+        }
       }
     } catch (error) {
       console.error('Error syncing order status with room:', error);
@@ -167,7 +174,7 @@ export class MessageService implements IMessageService {
     }
   }
 
-  // In MessageService.ts - DEBUG initializeChatRoom
+  // In MessageService.ts - SIMPLIFY initializeChatRoom
   async initializeChatRoom(
     orderId: string,
     userId: string,
@@ -176,59 +183,19 @@ export class MessageService implements IMessageService {
     try {
       console.log('🔄 Initializing chat room for order:', orderId);
 
-      // First try to find existing room
-      let room = await this._messageRepository.getRoomByOrder(orderId);
-
-      if (room) {
-        console.log('✅ Found existing room for order:', orderId);
-        console.log(
-          '🔍 Existing room technicianSnapshot:',
-          room.technicianSnapshot
-        );
-        return room;
-      }
-
-      console.log('🆕 Creating new room for order:', orderId);
-
-      // DEBUG: Check what getTechnicianSnapshot returns
-      const technicianSnapshot = await this.getTechnicianSnapshot(
-        technicianId,
-        orderId
-      );
-      console.log(
-        '🔍 Technician snapshot before room creation:',
-        technicianSnapshot
-      );
-
-      // Create new room with technician snapshot
-      room = await this._messageRepository.createRoom({
+      // Use getOrCreateRoom which now handles technicianSnapshot properly
+      const room = await this._messageRepository.getOrCreateRoom(
         orderId,
         userId,
-        technicianId,
-        technicianSnapshot, // Make sure this includes all fields
-        isActive: true,
-      });
-
-      console.log('✅ Chat room initialized with ID:', room._id);
-      console.log(
-        '🔍 Room after creation technicianSnapshot:',
-        room.technicianSnapshot
+        technicianId
       );
+
+      console.log('✅ Chat room initialized:', room._id);
+      console.log('🔍 Room technicianSnapshot:', room.technicianSnapshot);
 
       return room;
     } catch (error: any) {
       console.error('❌ Error initializing chat room:', error);
-
-      // If it's a duplicate error, try to get the existing room
-      if (error.code === 11000 || error.code === 11001) {
-        console.log('🔄 Duplicate room detected, fetching existing room');
-        const existingRoom =
-          await this._messageRepository.getRoomByOrder(orderId);
-        if (existingRoom) {
-          return existingRoom;
-        }
-      }
-
       throw new Error(`Failed to initialize chat room: ${error.message}`);
     }
   }

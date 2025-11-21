@@ -550,8 +550,7 @@ export class SocketService {
       }
     );
 
-    // Send message
-    // In SocketService.ts - fix the send-message handler
+    // In SocketService.ts - Update the send-message handler
     socket.on(
       'send-message',
       async (data: {
@@ -562,52 +561,54 @@ export class SocketService {
         receiverType: 'user' | 'technician';
         message: string;
         messageType?: 'text' | 'image' | 'file';
+        tempId?: string; // Add tempId as optional
       }) => {
         try {
           console.log('💬 Sending message via socket:', {
             orderId: data.orderId,
             senderId: data.senderId,
             receiverId: data.receiverId,
+            tempId: data.tempId,
           });
 
-          // Save message to database
-          const savedMessage = await this._messageService.sendMessage(data);
+          // Save message to database (without tempId)
+          const messageToSave = {
+            orderId: data.orderId,
+            senderId: data.senderId,
+            senderType: data.senderType,
+            receiverId: data.receiverId,
+            receiverType: data.receiverType,
+            message: data.message,
+            messageType: data.messageType || 'text',
+          };
+
+          const savedMessage =
+            await this._messageService.sendMessage(messageToSave);
 
           const roomName = `chat-${data.orderId}`;
 
-          // FIX: Broadcast message to all EXCEPT the sender
-          socket.to(roomName).emit('new-message', {
+          // FIX: Use socket.broadcast.to() to exclude sender
+          socket.broadcast.to(roomName).emit('new-message', {
             message: savedMessage,
             roomName,
           });
 
           console.log('✅ Message broadcasted to room (excluding sender)');
 
-          // Send notification to receiver if they're not in the room
-          const receiverRoom = `user-${data.receiverId}`;
-          const room = this._io.sockets.adapter.rooms.get(roomName);
-
-          // Check if receiver is in the chat room
-          const isReceiverInRoom =
-            room &&
-            Array.from(room).some(socketId => {
-              const socket = this._io.sockets.sockets.get(socketId);
-              return socket && socket.data.userId === data.receiverId;
-            });
-
-          if (!isReceiverInRoom) {
-            console.log('📱 Sending push notification to receiver');
-            this._io.to(receiverRoom).emit('new-chat-notification', {
-              orderId: data.orderId,
-              message: data.message,
-              senderId: data.senderId,
-              senderType: data.senderType,
-              timestamp: savedMessage.timestamp,
-            });
-          }
+          // Also emit to sender for confirmation (but with a different event)
+          socket.emit('message-sent', {
+            message: savedMessage,
+            tempId: data.tempId, // Add tempId to handle optimistic updates
+          });
         } catch (error) {
           console.error('Error sending message:', error);
           socket.emit('chat-error', { message: 'Failed to send message' });
+
+          // Notify sender that message failed
+          socket.emit('message-failed', {
+            tempId: data.tempId,
+            error: 'Failed to send message',
+          });
         }
       }
     );

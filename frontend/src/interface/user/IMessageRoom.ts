@@ -1,7 +1,16 @@
 export interface IMessageRoom {
   _id?: string;
   orderId: string;
-  userId: string;
+  userId:
+    | string
+    | {
+        _id: string;
+        fullName: string;
+        email: string;
+        phone?: string;
+        profilePicture?: string;
+        profilePictureUrl?: string;
+      };
   technicianId: string;
   technicianSnapshot?: {
     displayName: string;
@@ -18,7 +27,7 @@ export interface IMessageRoom {
     senderId: string;
     senderType: "user" | "technician";
   };
-  unreadCount: {
+  unreadCount?: {
     user: number;
     technician: number;
   };

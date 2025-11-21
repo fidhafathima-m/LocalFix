@@ -201,6 +201,36 @@ export class OrderService implements IOrderService {
           paymentStatus: paymentData.status,
         });
 
+        try {
+          this._logger.info('🔄 Initializing chat room for new order', {
+            orderId: order._id.toString(),
+            userId: order.userId.toString(),
+            technicianId: order.technicianId.toString(),
+          });
+
+          await this._messageService.initializeChatRoom(
+            order._id.toString(), // Use orderId as the chat room identifier
+            order.userId.toString(),
+            order.technicianId.toString()
+          );
+
+          this._logger.info(
+            '✅ Chat room initialized successfully for new order'
+          );
+        } catch (chatError) {
+          this._logger.error(
+            '❌ Failed to initialize chat room for new order',
+            {
+              error:
+                chatError instanceof Error
+                  ? chatError.message
+                  : 'Unknown error',
+              orderId: order._id.toString(),
+            }
+          );
+          // Don't fail order creation if chat room initialization fails
+        }
+
         // Only send notifications for successful payments
         if (paymentData.status === 'paid') {
           await this.notifyUserAboutOrderStatusChange(order, 'pending');

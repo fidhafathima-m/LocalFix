@@ -161,10 +161,6 @@ export function ChatThread({
     };
   }, [socket, isConnected, orderId, currentUserId, currentUserType]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const loadMessages = async () => {
     try {
       setLoading(true);
@@ -233,7 +229,7 @@ export function ChatThread({
     }
   };
 
-  // In ChatThread.tsx - improve handleSendMessage
+  // In ChatThread.tsx - Update handleSendMessage
   const handleSendMessage = async () => {
     if (!isChatEnabled) {
       toast.error("Chat is no longer available for this order.");
@@ -249,16 +245,6 @@ export function ChatThread({
 
     const receiverType: "user" | "technician" =
       currentUserType === "user" ? "technician" : "user";
-
-    const messageData = {
-      orderId,
-      senderId: currentUserId,
-      senderType: currentUserType,
-      receiverId: cleanRecipientId,
-      receiverType: receiverType,
-      message: newMessage.trim(),
-      messageType: "text" as const,
-    };
 
     const tempId = `temp-${Date.now()}`;
 
@@ -282,26 +268,21 @@ export function ChatThread({
       setMessages((prev) => [...prev, optimisticMsg]);
       setNewMessage("");
 
-      // Save message to database
-      const savedMessage = await messageService.sendMessage(messageData);
-      console.log("✅ Message saved to database:", savedMessage);
-
-      // Replace temporary message with saved message
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === tempId
-            ? {
-                ...msg,
-                id: savedMessage._id || tempId,
-                isRead: savedMessage.isRead,
-              }
-            : msg
-        )
-      );
-
-      // FIX: Don't emit socket event here - the backend should handle this
-      // The MessageService.sendMessage should trigger the socket emission
-      console.log("✅ Message sent successfully");
+      // Emit socket event with tempId
+      if (socket && isConnected) {
+        socket.emit("send-message", {
+          orderId,
+          senderId: currentUserId,
+          senderType: currentUserType,
+          receiverId: cleanRecipientId,
+          receiverType: receiverType,
+          message: newMessage.trim(),
+          messageType: "text" as const,
+          tempId: tempId, // Include tempId in socket emission
+        });
+      } else {
+        throw new Error("Socket not connected");
+      }
 
       // Clear typing indicator
       if (socket && isConnected) {
@@ -353,10 +334,6 @@ export function ChatThread({
       e.preventDefault();
       handleSendMessage();
     }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   // In ChatThread component - update the structure:

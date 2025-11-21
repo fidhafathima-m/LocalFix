@@ -35,6 +35,10 @@ export interface IMessageRoomCreate {
     orderStatus?: string;
   };
   isActive: boolean;
+  unreadCount: {
+    user: number;
+    technician: number;
+  };
 }
 
 export interface IMessageRoomUpdate {
