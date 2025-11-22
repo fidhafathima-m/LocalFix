@@ -46,7 +46,6 @@ export function UserMessages() {
   const technicianId = searchParams.get("technicianId");
   const serviceName = searchParams.get("serviceName");
 
-  // ✅ ADD THIS: Join order rooms when conversations load
   useEffect(() => {
     if (!socket || !isConnected || conversations.length === 0) return;
 
@@ -71,10 +70,8 @@ export function UserMessages() {
     };
   }, [socket, isConnected, conversations, user]);
 
-  // Update the isChatAvailable function to handle undefined orderStatus
   const isChatAvailable = (orderStatus?: string) => {
-    // If orderStatus is undefined, assume chat is available (for backward compatibility)
-    // This handles cases where the order status isn't provided in the chat room data
+    // If orderStatus is undefined, assume chat is available
     if (!orderStatus) return true;
 
     return ["accepted", "confirmed", "on_the_way", "in_progress"].includes(
@@ -82,30 +79,8 @@ export function UserMessages() {
     );
   };
 
-  // In UserMessages.tsx - add debug function
-  const debugConversationData = (conversations: Conversation[]) => {
-    conversations.forEach((conv, index) => {
-      console.log(`🔍 Conversation ${index + 1}:`, {
-        id: conv.id,
-        name: conv.name,
-        service: conv.service,
-        avatar: conv.avatar,
-        recipientId: conv.recipientId,
-        orderStatus: conv.orderStatus,
-      });
-    });
-  };
-
-  // Call it when conversations load
-  useEffect(() => {
-    if (conversations.length > 0 && !loading) {
-      debugConversationData(conversations);
-    }
-  }, [conversations, loading]);
-
-  // Also update the getChatStatusMessage function
   const getChatStatusMessage = (orderStatus?: string) => {
-    if (!orderStatus) return "Chat Available"; // Handle undefined case
+    if (!orderStatus) return "Chat Available";
     if (isChatAvailable(orderStatus)) return "Chat Available";
     if (orderStatus === "pending")
       return "Chat available after order acceptance";
@@ -118,9 +93,8 @@ export function UserMessages() {
     return "Chat not available";
   };
 
-  // Update the getChatStatusColor function
   const getChatStatusColor = (orderStatus?: string) => {
-    if (!orderStatus) return "bg-green-100 text-green-800"; // Handle undefined case
+    if (!orderStatus) return "bg-green-100 text-green-800";
     if (isChatAvailable(orderStatus)) return "bg-green-100 text-green-800";
     return "bg-gray-100 text-gray-600";
   };
@@ -139,7 +113,6 @@ export function UserMessages() {
       !hasHandledInitialConversation &&
       conversations.length >= 0
     ) {
-      console.log("🚀 Handling initial conversation for order:", orderId);
       handleOrderBasedConversation(orderId, technicianId, serviceName);
       setHasHandledInitialConversation(true);
     }
@@ -164,11 +137,9 @@ export function UserMessages() {
       );
 
       if (existingConv) {
-        console.log("📨 Found existing conversation:", existingConv.id);
         setSelectedConversation(existingConv.id);
         clearUrlParameters();
       } else {
-        console.log("🆕 Creating new conversation for order:", orderId);
         await createAndSelectConversation(orderId, technicianId, serviceName);
       }
     } catch (error) {
@@ -199,13 +170,10 @@ export function UserMessages() {
         technicianId
       );
 
-      console.log("✅ Chat room initialized:", newRoom._id);
-
       await loadConversations();
 
       if (newRoom._id) {
         setSelectedConversation(newRoom._id);
-        console.log("🎯 Selected new conversation by room ID:", newRoom._id);
         clearUrlParameters();
 
         if (!newRoom.lastMessage) {
@@ -228,7 +196,6 @@ export function UserMessages() {
     }
   };
 
-  // In UserMessages.tsx - FIX the loadConversations function
   const loadConversations = async () => {
     if (!user) return;
 
@@ -236,31 +203,16 @@ export function UserMessages() {
       setLoading(true);
       const chatRooms = await messageService.getUserConversations();
 
-      console.log("📨 Raw chat rooms from API:", chatRooms);
-
       const formattedConversations: Conversation[] = chatRooms.map((room) => {
-        // DEBUG: Check what we're actually getting
-        console.log("🔍 Processing room:", {
-          roomId: room._id,
-          technicianSnapshot: room.technicianSnapshot,
-          hasDisplayName: !!room.technicianSnapshot?.displayName,
-          displayName: room.technicianSnapshot?.displayName,
-          hasServiceName: !!room.technicianSnapshot?.serviceName,
-          serviceName: room.technicianSnapshot?.serviceName,
-          hasAvatar: !!room.technicianSnapshot?.profilePictureUrl,
-          avatar: room.technicianSnapshot?.profilePictureUrl,
-        });
-
-        // Use the ACTUAL data from the room, don't fallback unnecessarily
         const technician = room.technicianSnapshot;
 
         return {
           id: room._id!,
           orderId: room.orderId,
           recipientId: room.technicianId,
-          name: technician?.displayName || "Technician", // Only fallback if truly missing
+          name: technician?.displayName || "Technician",
           avatar: technician?.profilePictureUrl || "",
-          service: technician?.serviceName || "Service", // Only fallback if truly missing
+          service: technician?.serviceName || "Service",
           lastMessage: room.lastMessage?.message || "No messages yet",
           timestamp: room.lastMessage
             ? new Date(room.lastMessage.timestamp).toLocaleTimeString("en-IN", {
@@ -273,7 +225,6 @@ export function UserMessages() {
         };
       });
 
-      console.log("✅ Formatted conversations:", formattedConversations);
       setConversations(formattedConversations);
     } catch (error) {
       console.error("Error loading conversations:", error);
@@ -282,22 +233,6 @@ export function UserMessages() {
       setLoading(false);
     }
   };
-
-  // Add this debug useEffect to see the actual data structure
-  useEffect(() => {
-    if (conversations.length > 0) {
-      console.log("🔍 Raw conversations data:", conversations);
-      console.log(
-        "📊 Conversations with order statuses:",
-        conversations.map((conv) => ({
-          id: conv.id,
-          orderStatus: conv.orderStatus,
-          isChatAvailable: isChatAvailable(conv.orderStatus),
-          name: conv.name,
-        }))
-      );
-    }
-  }, [conversations]);
 
   useEffect(() => {
     return () => {
@@ -327,7 +262,6 @@ export function UserMessages() {
         messageType: "text",
       });
 
-      console.log("👋 Welcome message sent");
       await loadConversations();
     } catch (error) {
       console.error("Error sending welcome message:", error);
@@ -352,13 +286,10 @@ export function UserMessages() {
     ? isChatAvailable(selectedConv.orderStatus)
     : false;
 
-  // In UserMessages.tsx - update the socket effect
   useEffect(() => {
     if (!socket) return;
 
     const handleOrderStatusUpdate = (data: any) => {
-      console.log("🔄 Real-time order status update:", data);
-
       // Update the conversation with new status
       setConversations((prev) =>
         prev.map((conv) =>
@@ -368,7 +299,6 @@ export function UserMessages() {
         )
       );
 
-      // Also update the selected conversation if it's the same order
       if (selectedConv && selectedConv.orderId === data.orderId) {
         setSelectedConversation((prev) => {
           const updatedConv = conversations.find((c) => c.id === prev);
@@ -390,11 +320,10 @@ export function UserMessages() {
     };
   }, [socket, selectedConv, conversations]);
 
-  // Add a function to refresh conversation status
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const refreshConversationStatus = async (orderId: string) => {
     try {
-      await loadConversations(); // Reload conversations to get latest status
+      await loadConversations();
     } catch (error) {
       console.error("Error refreshing conversation status:", error);
     }
@@ -406,31 +335,6 @@ export function UserMessages() {
       refreshConversationStatus(selectedConv.orderId);
     }
   }, [selectedConversation]);
-
-  // Add this debug log in UserMessages component to see what order statuses are being received
-  useEffect(() => {
-    if (conversations.length > 0) {
-      console.log(
-        "📊 Conversations with order statuses:",
-        conversations.map((conv) => ({
-          id: conv.id,
-          orderStatus: conv.orderStatus,
-          isChatAvailable: isChatAvailable(conv.orderStatus),
-        }))
-      );
-    }
-  }, [conversations]);
-
-  // Also add debug for the selected conversation
-  useEffect(() => {
-    if (selectedConv) {
-      console.log("🎯 Selected conversation:", {
-        id: selectedConv.id,
-        orderStatus: selectedConv.orderStatus,
-        isChatAvailable: isSelectedChatAvailable,
-      });
-    }
-  }, [selectedConv]);
 
   if (!isLoggedIn || !user) {
     return (

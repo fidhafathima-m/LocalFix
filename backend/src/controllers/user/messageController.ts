@@ -127,24 +127,40 @@ export class MessageController {
     req: AuthRequest,
     res: Response
   ): Promise<void> => {
-    const technicianId = req.user?.id;
+    const userId = req.user?.id;
 
     const context = {
       operation: 'getTechnicianConversations',
-      technicianId,
+      userId,
       timestamp: new Date().toISOString(),
     };
 
     try {
       this._logger.info('Fetching technician conversations', context);
 
-      if (!technicianId) {
+      if (!userId) {
         this._logger.warn(
           'Get technician conversations failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
           'Authentication required'
+        );
+        res.status(errorResponse.statusCode).json(errorResponse);
+        return;
+      }
+
+      // Convert user ID to technician ID
+      const technicianId =
+        await this._messageService.getTechnicianIdByUserId(userId);
+
+      if (!technicianId) {
+        this._logger.warn(
+          'Get technician conversations failed - technician not found for user',
+          context
+        );
+        const errorResponse = ResponseHelper.notFound(
+          'Technician profile not found'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -157,6 +173,7 @@ export class MessageController {
 
       this._logger.info('Technician conversations retrieved successfully', {
         ...context,
+        technicianId,
         conversationsCount: conversations.length,
       });
 
@@ -298,6 +315,80 @@ export class MessageController {
       res.status(successResponse.statusCode).json(successResponse);
     } catch (error: unknown) {
       this._logger.error('Get unread count controller error', {
+        ...context,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  };
+
+  // In MessageController.ts - Add this method
+  markAllMessagesAsRead = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
+    const userId = req.user?.id;
+    const userType = req.user?.roles?.includes('serviceProvider')
+      ? 'technician'
+      : 'user';
+
+    const context = {
+      operation: 'markAllMessagesAsRead',
+      userId,
+      userType,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info('Marking all messages as read', context);
+
+      if (!userId) {
+        this._logger.warn(
+          'Mark all messages as read failed - authentication required',
+          context
+        );
+        const errorResponse = ResponseHelper.unauthorized(
+          'Authentication required'
+        );
+        res.status(errorResponse.statusCode).json(errorResponse);
+        return;
+      }
+
+      // For technicians, we need to convert user ID to technician ID
+      let targetUserId = userId;
+      if (userType === 'technician') {
+        const technicianId =
+          await this._messageService.getTechnicianIdByUserId(userId);
+        if (!technicianId) {
+          this._logger.warn(
+            'Mark all messages as read failed - technician not found for user',
+            context
+          );
+          const errorResponse = ResponseHelper.notFound(
+            'Technician profile not found'
+          );
+          res.status(errorResponse.statusCode).json(errorResponse);
+          return;
+        }
+        targetUserId = technicianId;
+      }
+
+      await this._messageService.markAllMessagesAsRead(targetUserId, userType);
+
+      this._logger.info('All messages marked as read successfully', {
+        ...context,
+        targetUserId,
+      });
+
+      const successResponse = ResponseHelper.success(
+        'All messages marked as read successfully'
+      );
+      res.status(successResponse.statusCode).json(successResponse);
+    } catch (error: unknown) {
+      this._logger.error('Mark all messages as read controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,

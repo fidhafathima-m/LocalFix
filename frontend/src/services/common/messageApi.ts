@@ -55,21 +55,28 @@ export const messageAPI = {
     }
   },
 
-  getTechnicianConversations: async (): Promise<{
+  getTechnicianConversations: async (
+    technicianId: string
+  ): Promise<{
     success: boolean;
     data?: IMessageRoom[];
     message?: string;
   }> => {
     try {
       const response = await api.get(
-        MESSAGE_ROUTES.GET_TECHNICIAN_CONVERSATIONS
+        MESSAGE_ROUTES.GET_TECHNICIAN_CONVERSATIONS,
+        {
+          params: { technicianId },
+        }
       );
+
       return {
         success: true,
         data: response.data.data || response.data,
         message: response.data.message,
       };
     } catch (error: any) {
+      console.error("Service: Error fetching technician conversations:", error);
       if (error.response?.data) {
         return error.response.data;
       }
@@ -201,6 +208,26 @@ export const messageAPI = {
       return {
         success: false,
         message: error.message || "Failed to close chat room",
+      };
+    }
+  },
+  markAllMessagesAsRead: async (): Promise<{
+    success: boolean;
+    message?: string;
+  }> => {
+    try {
+      const response = await api.put(MESSAGE_ROUTES.MARK_ALL_READ);
+      return {
+        success: true,
+        message: response.data.message,
+      };
+    } catch (error: any) {
+      if (error.response?.data) {
+        return error.response.data;
+      }
+      return {
+        success: false,
+        message: error.message || "Failed to mark all as read",
       };
     }
   },

@@ -20,6 +20,7 @@ import { NotificationService } from "../../../../../services/notificationService
 import SubscriptionBanner from "../../subscription/SubscriptionBanner";
 import { TechnicianSubscriptionService } from "../../../../../services/technician/subscriptionService";
 import { MessagesTab } from "./tabs/MessagesTab";
+import { useMessage } from "../../../../../context/MessageContext";
 
 interface DashboardData {
   overview: {
@@ -67,6 +68,9 @@ const ApprovedTechnicianDashboard: React.FC = () => {
     suspendedAt?: string;
   }>({});
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
+  const { unreadMessageCount, refreshUnreadCount } = useMessage();
+
   const navigate = useNavigate();
 
   // Handle URL parameters for tab navigation
@@ -83,22 +87,42 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         "profile",
         "ratings",
         "notifications",
+        "messages",
+        "settings",
       ].includes(tabParam)
     ) {
       setActiveTab(tabParam);
+    } else {
+      // Default to overview if no valid tab parameter
+      setActiveTab("overview");
     }
-  }, []);
+  }, [window.location.search]);
+
+  // Refresh unread counts when dashboard data loads
+  useEffect(() => {
+    if (dashboardData?.profile?._id) {
+      refreshUnreadCount();
+      loadUnreadNotificationCount(dashboardData.profile._id);
+    }
+  }, [dashboardData?.profile?._id, refreshUnreadCount]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
 
     // Update URL without page reload
-    const newUrl = `${window.location.pathname}?tab=${tabId}`;
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set("tab", tabId);
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
     window.history.pushState({}, "", newUrl);
 
     // If switching to notifications tab and there are unread notifications, mark them as read
     if (tabId === "notifications" && unreadNotificationCount > 0) {
       markNotificationsAsRead();
+    }
+
+    // If switching to messages tab and there are unread messages, refresh count
+    if (tabId === "messages" && unreadMessageCount > 0) {
+      refreshUnreadCount();
     }
   };
 
@@ -421,7 +445,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         (total, order) => total + (order.totalAmount || 0),
         0
       ),
-      averageRating: profile?.averageRating || 0, // Use profile rating as fallback
+      averageRating: profile?.averageRating || 0,
     };
   };
 
@@ -619,7 +643,7 @@ const ApprovedTechnicianDashboard: React.FC = () => {
               techId={profile._id}
               planId={dashboardData.subscription?.planId}
               techName={profile.personalInfo?.fullName}
-              rating={profile.averageRating || 0} // Use averageRating instead of ratingCount
+              rating={profile.averageRating || 0}
               services={profile.services}
               profilePictureUrl={profile.profilePictureUrl}
               isSubscribed={dashboardData.subscription?.isSubscribed || false}
@@ -641,7 +665,11 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                 { id: "profile", label: "Profile" },
                 { id: "ratings", label: "Ratings" },
                 { id: "settings", label: "Settings" },
-                { id: "messages", label: "Messages" },
+                {
+                  id: "messages",
+                  label: "Messages",
+                  badge: unreadMessageCount > 0 ? unreadMessageCount : null,
+                },
                 {
                   id: "notifications",
                   label: "Notifications",

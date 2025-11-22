@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// components/chat/ChatThread.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { SendOutlined } from "@mui/icons-material";
 import { MessageBubble } from "./MessageBubble";
@@ -42,22 +41,18 @@ export function ChatThread({
   onClose,
   isChatEnabled = true,
 }: ChatThreadProps) {
-  useEffect(() => {
-    console.log("🎯 ChatThread Props Updated:", {
-      recipientName,
-      recipientService,
-      recipientProfilePhoto,
-      orderId,
-    });
-  }, [recipientName, recipientService, recipientProfilePhoto, orderId]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const typingTimeoutRef = useRef<NodeJS.Timeout>(null);
   const { socket, isConnected } = useSocket();
+
+  const listenersAddedRef = useRef(false);
+  const receivedMessageIds = useRef(new Set<string>());
 
   useEffect(() => {
     loadMessages();
@@ -69,121 +64,60 @@ export function ChatThread({
   }, [orderId]);
 
   useEffect(() => {
-    if (!socket) return;
-
-    console.log(
-      "💬 Setting up real-time message listeners for order:",
-      orderId
-    );
+    if (!socket || listenersAddedRef.current) return;
 
     const handleNewMessage = (data: any) => {
-      console.log("💬 New real-time message received:", data);
+      if (!data.message || data.message.orderId !== orderId) return;
 
-      if (data.message && data.message.orderId === orderId) {
-        // FIX: More robust duplicate detection
-        const isSentByMe =
-          data.message.senderId === currentUserId &&
-          data.message.senderType === currentUserType;
+      const msgId = data.message._id;
 
-        const isDuplicate = messages.some(
-          (msg) =>
-            msg.id === data.message._id ||
-            (msg.id.startsWith("temp-") && msg.text === data.message.message)
-        );
+      if (receivedMessageIds.current.has(msgId)) {
+        console.log("prevented duplicate:", msgId);
+        return;
+      }
 
-        if (isSentByMe || isDuplicate) {
-          console.log(
-            "🔄 Ignoring own/duplicate message from socket:",
-            data.message._id
-          );
-          return;
-        }
+      receivedMessageIds.current.add(msgId);
 
-        console.log("🆕 New message from other user:", data.message);
+      const isSentByMe =
+        data.message.senderId === currentUserId &&
+        data.message.senderType === currentUserType;
 
-        const newMessage: Message = {
-          id: data.message._id,
-          text: data.message.message,
-          timestamp: new Date(data.message.timestamp).toLocaleTimeString(
-            "en-IN",
-            {
-              hour: "2-digit",
-              minute: "2-digit",
-            }
-          ),
-          isSent: false, // Always false for socket-received messages
-          isRead: data.message.isRead,
-          senderId: data.message.senderId,
-          senderType: data.message.senderType,
-        };
+      const newMessage: Message = {
+        id: msgId,
+        text: data.message.message,
+        timestamp: new Date(data.message.timestamp).toLocaleTimeString(
+          "en-IN",
+          { hour: "2-digit", minute: "2-digit" }
+        ),
+        isSent: isSentByMe,
+        isRead: data.message.isRead,
+        senderId: data.message.senderId,
+        senderType: data.message.senderType,
+      };
 
-        console.log("💬 Adding received message to state:", newMessage);
-        setMessages((prev) => [...prev, newMessage]);
+      setMessages((prev) => [...prev, newMessage]);
+    };
+
+    const handleUserTyping = (data: any) => {
+      if (data.userId !== currentUserId) {
+        setIsTyping(data.isTyping);
       }
     };
 
-    // Join the chat room when socket connects
-    if (isConnected && socket.connected) {
-      console.log("💬 Joining chat room for order:", orderId);
-      socket.emit("join-chat-room", {
-        orderId,
-        userId: currentUserId,
-        userType: currentUserType,
-      });
-    }
-
-    // Listen for new messages
     socket.on("new-message", handleNewMessage);
     socket.on("user-typing", handleUserTyping);
 
-    // Re-join room on reconnect
-    const handleConnect = () => {
-      console.log("💬 Socket reconnected, rejoining chat room");
-      socket.emit("join-chat-room", {
-        orderId,
-        userId: currentUserId,
-        userType: currentUserType,
-      });
-    };
-
-    socket.on("connect", handleConnect);
-
-    return () => {
-      console.log("💬 Cleaning up chat listeners");
-      socket.off("new-message", handleNewMessage);
-      socket.off("user-typing", handleUserTyping);
-      socket.off("connect", handleConnect);
-
-      // Leave chat room
-      if (socket.connected) {
-        socket.emit("leave-chat-room", { orderId });
-      }
-    };
-  }, [socket, isConnected, orderId, currentUserId, currentUserType]);
+    listenersAddedRef.current = true;
+  }, [socket, orderId, currentUserId, currentUserType]);
 
   const loadMessages = async () => {
     try {
       setLoading(true);
       const chatMessages = await messageService.getOrderMessages(orderId);
 
-      console.log("📨 Loading messages for order:", orderId);
-      console.log("👤 Current user ID:", currentUserId);
-      console.log("👤 Current user type:", currentUserType);
-
       const formattedMessages: Message[] = chatMessages.map((msg) => {
-        // Fix: Properly determine if message was sent by current user
-        // Compare both ID AND type to avoid confusion between user and technician with same ID
         const isSentByMe =
           msg.senderId === currentUserId && msg.senderType === currentUserType;
-
-        console.log(`✉️ Message ${msg._id}:`, {
-          senderId: msg.senderId,
-          senderType: msg.senderType,
-          currentUserId: currentUserId,
-          currentUserType: currentUserType,
-          isSentByMe: isSentByMe,
-          text: msg.message.substring(0, 50) + "...",
-        });
 
         return {
           id: msg._id!,
@@ -199,7 +133,9 @@ export function ChatThread({
         };
       });
 
-      setMessages(formattedMessages);
+      const unique = new Map();
+      formattedMessages.forEach((m) => unique.set(m.id, m));
+      setMessages(Array.from(unique.values()));
     } catch (error) {
       console.error("Error loading messages:", error);
     } finally {
@@ -223,13 +159,6 @@ export function ChatThread({
     }
   };
 
-  const handleUserTyping = (data: any) => {
-    if (data.userId !== currentUserId) {
-      setIsTyping(data.isTyping);
-    }
-  };
-
-  // In ChatThread.tsx - Update handleSendMessage
   const handleSendMessage = async () => {
     if (!isChatEnabled) {
       toast.error("Chat is no longer available for this order.");
@@ -246,57 +175,49 @@ export function ChatThread({
     const receiverType: "user" | "technician" =
       currentUserType === "user" ? "technician" : "user";
 
-    const tempId = `temp-${Date.now()}`;
-
     try {
       setSending(true);
-
-      // Add message optimistically
-      const optimisticMsg: Message = {
-        id: tempId,
-        text: newMessage.trim(),
-        timestamp: new Date().toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        isSent: true,
-        isRead: false,
-        senderId: currentUserId,
-        senderType: currentUserType,
-      };
-
-      setMessages((prev) => [...prev, optimisticMsg]);
+      const messageText = newMessage.trim();
       setNewMessage("");
 
-      // Emit socket event with tempId
+      const savedMessage = await messageService.sendMessage({
+        orderId,
+        senderId: currentUserId,
+        senderType: currentUserType,
+        receiverId: cleanRecipientId,
+        receiverType: receiverType,
+        message: messageText,
+        messageType: "text",
+      });
+
+      const newMessageObj: Message = {
+        id: savedMessage._id!,
+        text: savedMessage.message,
+        timestamp: new Date(savedMessage.timestamp).toLocaleTimeString(
+          "en-IN",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+          }
+        ),
+        isSent: true,
+        isRead: savedMessage.isRead,
+        senderId: savedMessage.senderId,
+        senderType: savedMessage.senderType,
+      };
+
+      setMessages((prev) => [...prev, newMessageObj]);
+
       if (socket && isConnected) {
         socket.emit("send-message", {
+          ...savedMessage,
           orderId,
-          senderId: currentUserId,
-          senderType: currentUserType,
-          receiverId: cleanRecipientId,
-          receiverType: receiverType,
-          message: newMessage.trim(),
-          messageType: "text" as const,
-          tempId: tempId, // Include tempId in socket emission
-        });
-      } else {
-        throw new Error("Socket not connected");
-      }
-
-      // Clear typing indicator
-      if (socket && isConnected) {
-        socket.emit("typing-stop", {
-          orderId,
-          userId: currentUserId,
-          userType: currentUserType,
         });
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      // Remove the optimistic message if there was an error
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-      toast.error("Failed to send message. Please try again.");
+      setNewMessage(newMessage.trim());
+      toast.error("Failed to send message.");
     } finally {
       setSending(false);
     }
@@ -304,21 +225,17 @@ export function ChatThread({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
-
     if (socket && isConnected) {
       // Clear existing timeout
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-
       // Start typing
       socket.emit("typing-start", {
         orderId,
         userId: currentUserId,
         userType: currentUserType,
-      });
-
-      // Stop typing after 1 second of inactivity
+      }); // Stop typing after 1 second of inactivity
       typingTimeoutRef.current = setTimeout(() => {
         socket.emit("typing-stop", {
           orderId,
@@ -336,10 +253,9 @@ export function ChatThread({
     }
   };
 
-  // In ChatThread component - update the structure:
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Header - Fixed */}
+      {/* Header */}
       <div className="border-b border-gray-200 p-4 bg-white flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -383,7 +299,7 @@ export function ChatThread({
         </div>
       </div>
 
-      {/* Messages - Scrollable */}
+      {/* Messages */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="h-full p-4 bg-gray-50">
           {loading ? (
@@ -396,23 +312,24 @@ export function ChatThread({
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((message) => (
+              {messages.map((m) => (
                 <MessageBubble
-                  key={message.id}
-                  text={message.text}
-                  timestamp={message.timestamp}
-                  isSent={message.isSent}
-                  isRead={message.isRead}
-                  senderType={message.senderType}
+                  key={m.id}
+                  text={m.text}
+                  timestamp={m.timestamp}
+                  isSent={m.isSent}
+                  isRead={m.isRead}
+                  senderType={m.senderType}
                 />
               ))}
             </div>
           )}
+
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input - Fixed */}
+      {/* Input */}
       <div className="border-t border-gray-200 p-4 bg-white flex-shrink-0">
         <div className="flex items-center gap-2">
           <input
@@ -425,15 +342,15 @@ export function ChatThread({
                 ? "Type a message..."
                 : "Chat unavailable for completed orders"
             }
-            disabled={sending || !isChatEnabled} // Add !isChatEnabled here
+            disabled={sending || !isChatEnabled}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           />
           <button
             onClick={handleSendMessage}
             disabled={
               !newMessage.trim() || sending || !isConnected || !isChatEnabled
-            } // Add !isChatEnabled here
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            }
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
             <span>Send</span>
             <SendOutlined className="w-4 h-4" />

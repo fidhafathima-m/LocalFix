@@ -25,9 +25,13 @@ export class MessageService {
     }
   }
 
-  static async getTechnicianConversations(): Promise<IMessageRoom[]> {
+  static async getTechnicianConversations(
+    technicianId: string
+  ): Promise<IMessageRoom[]> {
     try {
-      const response = await messageAPI.getTechnicianConversations();
+      const response = await messageAPI.getTechnicianConversations(
+        technicianId
+      );
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to fetch conversations");
@@ -98,6 +102,14 @@ export class MessageService {
       this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to close chat room");
+    }
+  }
+  static async markAllMessagesAsRead(): Promise<void> {
+    try {
+      const response = await messageAPI.markAllMessagesAsRead();
+      this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error, "Failed to mark all messages as read");
     }
   }
 

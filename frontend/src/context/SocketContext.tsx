@@ -44,7 +44,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const connectSocket = () => {
     // Prevent multiple connection attempts
     if (isConnectingRef.current) {
-      console.log("⚠️ Socket connection already in progress...");
+      console.log("Socket connection already in progress...");
       return null;
     }
 
@@ -52,7 +52,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       isConnectingRef.current = true;
       const socketUrl =
         import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
-      console.log("🔌 Connecting to socket server:", socketUrl);
+      console.log("Connecting to socket server:", socketUrl);
 
       // Disconnect existing socket first
       if (socket) {
@@ -62,11 +62,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       const newSocket = io(socketUrl, {
         transports: ["websocket", "polling"],
-        timeout: 10000, // Reduced from 30s to 10s
+        timeout: 10000,
         autoConnect: true,
-        forceNew: true, // Changed to true to avoid connection pooling issues
+        forceNew: false,
         reconnection: true,
-        reconnectionAttempts: 10, // Limited from Infinity to prevent infinite loops
+        reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         randomizationFactor: 0.5,
@@ -74,7 +74,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       // Connection established
       newSocket.on("connect", () => {
-        console.log("✅ Connected to server - Socket ID:", newSocket.id);
+        console.log("Connected to server - Socket ID:", newSocket.id);
         setIsConnected(true);
         connectionAttemptsRef.current = 0;
         isConnectingRef.current = false;
@@ -82,7 +82,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       // Connection lost
       newSocket.on("disconnect", (reason: string) => {
-        console.log("❌ Disconnected from server. Reason:", reason);
+        console.log("Disconnected from server. Reason:", reason);
         setIsConnected(false);
         isConnectingRef.current = false;
 
@@ -96,7 +96,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       // Connection error
       newSocket.on("connect_error", (error: Error) => {
-        console.error("❌ Connection error:", error.message);
+        console.error("Connection error:", error.message);
         setIsConnected(false);
         connectionAttemptsRef.current++;
         isConnectingRef.current = false;
@@ -106,23 +106,20 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           1000 * Math.pow(2, connectionAttemptsRef.current),
           30000
         );
-        console.log(
-          `⏳ Retrying connection in ${delay}ms (attempt ${connectionAttemptsRef.current})`
-        );
 
         setTimeout(() => {
           if (connectionAttemptsRef.current <= 10) {
             // Max 10 attempts
             newSocket.connect();
           } else {
-            console.error("🚫 Maximum reconnection attempts reached");
+            console.error(" Maximum reconnection attempts reached");
           }
         }, delay);
       });
 
       // Successful reconnection
       newSocket.on("reconnect", (attempt: number) => {
-        console.log(`🔄 Reconnected after ${attempt} attempts`);
+        console.log(`Reconnected after ${attempt} attempts`);
         setIsConnected(true);
         connectionAttemptsRef.current = 0;
         isConnectingRef.current = false;
@@ -130,33 +127,33 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       // Reconnection attempt
       newSocket.on("reconnect_attempt", (attempt: number) => {
-        console.log(`🔄 Reconnection attempt ${attempt}`);
+        console.log(`Reconnection attempt ${attempt}`);
       });
 
       // Reconnection error
       newSocket.on("reconnect_error", (error: Error) => {
-        console.error("❌ Reconnection error:", error.message);
+        console.error("Reconnection error:", error.message);
       });
 
       // Reconnection failed
       newSocket.on("reconnect_failed", () => {
-        console.error("🚫 Reconnection failed - giving up");
+        console.error("Reconnection failed - giving up");
         isConnectingRef.current = false;
       });
 
       // Ping/Pong to check connection health
       newSocket.on("ping", () => {
-        console.log("🏓 Ping received");
+        console.log("Ping received");
       });
 
       newSocket.on("pong", (latency: number) => {
-        console.log(`🏓 Pong received - latency: ${latency}ms`);
+        console.log(`Pong received - latency: ${latency}ms`);
       });
 
       setSocket(newSocket);
       return newSocket;
     } catch (error) {
-      console.error("💥 Error creating socket:", error);
+      console.error("Error creating socket:", error);
       isConnectingRef.current = false;
       return null;
     }
@@ -166,17 +163,17 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const newSocket = connectSocket();
 
     return () => {
-      console.log("🧹 Cleaning up socket connection");
+      console.log("Cleaning up socket connection");
       if (newSocket) {
         newSocket.removeAllListeners();
         newSocket.disconnect();
       }
       isConnectingRef.current = false;
     };
-  }, []); // Empty dependency array - only run once
+  }, []);
 
   const reconnect = () => {
-    console.log("🔄 Manual reconnection requested");
+    console.log("Manual reconnection requested");
     connectionAttemptsRef.current = 0;
     connectSocket();
   };

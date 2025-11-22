@@ -23,6 +23,10 @@ export interface IMessageRepository {
     userId: string,
     userType: 'user' | 'technician'
   ): Promise<number>;
+  markAllMessagesAsRead(
+    userId: string,
+    userType: 'user' | 'technician'
+  ): Promise<number>;
 
   // Room methods
   createRoom(roomData: IMessageRoomCreate): Promise<IMessageRoom>;
@@ -53,4 +57,6 @@ export interface IMessageRepository {
   getOrderStatus(orderId: string): Promise<string | null>;
 
   syncOrderStatusWithRoom(orderId: string): Promise<IMessageRoom | null>;
+
+  getTechnicianIdByUserId(userId: string): Promise<string | null>;
 }

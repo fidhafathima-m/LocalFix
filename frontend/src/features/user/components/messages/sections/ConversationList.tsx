@@ -1,4 +1,3 @@
-// components/messages/sections/ConversationList.tsx
 import React from "react";
 import { PersonOutlined } from "@mui/icons-material";
 
@@ -20,7 +19,6 @@ interface ConversationListProps {
   onSelect: (conversationId: string) => void;
 }
 
-// components/messages/sections/ConversationList.tsx
 export const ConversationList: React.FC<ConversationListProps> = ({
   conversations,
   activeId,

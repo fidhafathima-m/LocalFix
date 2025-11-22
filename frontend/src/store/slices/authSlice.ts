@@ -33,6 +33,7 @@ export const getSafeApplicationStatus = (
 export interface User {
   _id: string;
   fullName: string;
+  profilePictureUrl: string;
   phone?: string;
   email?: string;
   roles: string[];

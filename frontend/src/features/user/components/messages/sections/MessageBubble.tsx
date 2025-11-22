@@ -5,7 +5,7 @@ interface MessageBubbleProps {
   timestamp: string;
   isSent: boolean;
   isRead?: boolean;
-  senderType?: "user" | "technician"; // Add sender type for debugging
+  senderType?: "user" | "technician";
 }
 
 export function MessageBubble({

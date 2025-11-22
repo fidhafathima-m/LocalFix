@@ -12,6 +12,7 @@ import {
 import { IMessageDocument, Message } from '../../models/MessageSchema';
 import OrderSchema from '../../models/OrderSchema';
 import { Technician } from '../../models/technician/TechnicianSchema';
+import UserSchema from '../../models/UserSchema';
 
 export class MessageRepository implements IMessageRepository {
   // Message Methods
@@ -56,6 +57,33 @@ export class MessageRepository implements IMessageRepository {
     return result.modifiedCount;
   }
 
+  async markAllMessagesAsRead(
+    userId: string,
+    userType: 'user' | 'technician'
+  ): Promise<number> {
+    try {
+      // Mark all unread messages as read
+      const result = await Message.updateMany(
+        {
+          receiverId: userId,
+          receiverType: userType,
+          isRead: false,
+        },
+        {
+          $set: {
+            isRead: true,
+            readAt: new Date(),
+          },
+        }
+      ).exec();
+
+      return result.modifiedCount;
+    } catch (error) {
+      console.error('Error marking all messages as read:', error);
+      throw error;
+    }
+  }
+
   async getUnreadCount(
     orderId: string,
     userId: string,
@@ -68,18 +96,27 @@ export class MessageRepository implements IMessageRepository {
     });
   }
 
-  // In MessageRepository.ts - FIX createRoom method
-  // In MessageRepository.ts - IMPROVE createRoom method
   async createRoom(roomData: IMessageRoomCreate): Promise<IMessageRoom> {
     try {
-      console.log(
-        '💾 Creating room with data:',
-        JSON.stringify(roomData, null, 2)
-      );
-
-      // Ensure technicianSnapshot has all required fields with proper values
       const roomDataToSave = {
         ...roomData,
+
+        // Handle userSnapshot
+        userSnapshot: roomData.userSnapshot
+          ? {
+              fullName: String(roomData.userSnapshot.fullName || 'Customer'),
+              profilePictureUrl: String(
+                roomData.userSnapshot.profilePictureUrl || ''
+              ),
+              phone: String(roomData.userSnapshot.phone || ''),
+            }
+          : {
+              fullName: 'Customer',
+              profilePictureUrl: '',
+              phone: '',
+            },
+
+        // Handle technicianSnapshot
         technicianSnapshot: roomData.technicianSnapshot
           ? {
               displayName: String(
@@ -101,93 +138,67 @@ export class MessageRepository implements IMessageRepository {
               serviceName: 'Service',
               orderStatus: undefined,
             },
+
         unreadCount: roomData.unreadCount || {
           user: 0,
           technician: 0,
         },
       };
 
-      console.log(
-        '💾 Room data to save:',
-        JSON.stringify(roomDataToSave, null, 2)
-      );
-
       const room = new MessageRoom(roomDataToSave);
       const savedRoom = await room.save();
 
-      console.log('✅ Room saved successfully:', savedRoom._id);
-      console.log(
-        '🔍 Saved room technicianSnapshot:',
-        savedRoom.technicianSnapshot
-      );
-
-      // Verify the saved data
-      const verifiedRoom = await MessageRoom.findById(savedRoom._id);
-      console.log(
-        '🔍 Verified room from DB:',
-        verifiedRoom?.technicianSnapshot
-      );
-
       return this.mapRoomToDomain(savedRoom);
     } catch (error) {
-      console.error('❌ Error creating room:', error);
+      console.error('Error creating room:', error);
       throw error;
     }
   }
 
-  // In MessageRepository.ts - update getRoomByOrder method
   async getRoomByOrder(orderId: string): Promise<IMessageRoom | null> {
     try {
       const room = await MessageRoom.findOne({ orderId }).exec();
       if (room) {
-        console.log('🔍 Found room for order:', orderId);
         return this.mapRoomToDomain(room);
       }
-      console.log('🔍 No room found for order:', orderId);
       return null;
     } catch (error) {
-      console.error('❌ Error finding room by order:', error);
+      console.error('Error finding room by order:', error);
       return null;
     }
   }
 
-  // In MessageRepository.ts - IMPROVE getRoomsByUser method
   async getRoomsByUser(
     userId: string,
     userType: 'user' | 'technician'
   ): Promise<IMessageRoom[]> {
-    const query =
-      userType === 'user'
-        ? { userId, isActive: true }
-        : { technicianId: userId, isActive: true };
+    try {
+      const query =
+        userType === 'user'
+          ? { userId, isActive: true }
+          : { technicianId: userId, isActive: true };
 
-    const rooms = await MessageRoom.find(query)
-      .sort({ updatedAt: -1 })
-      .lean() // Use lean for better performance
-      .exec();
+      const rooms = await MessageRoom.find(query)
+        .populate(
+          'userId',
+          'fullName email phone profilePicture profilePictureUrl'
+        )
+        .sort({ updatedAt: -1 })
+        .lean()
+        .exec();
 
-    console.log(`🔍 Found ${rooms.length} rooms for ${userType}: ${userId}`);
-
-    rooms.forEach((room, index) => {
-      console.log(
-        `🔍 Room ${index + 1} technicianSnapshot:`,
-        room.technicianSnapshot
-      );
-    });
-
-    return rooms.map(this.mapRoomToDomain);
+      return rooms.map(this.mapRoomToDomain);
+    } catch (error) {
+      console.error(`Error fetching rooms for ${userType}:`, error);
+      throw error;
+    }
   }
 
-  // In MessageRepository.ts - FIX THE updateRoom method
   async updateRoom(
     orderId: string,
     updateData: IMessageRoomUpdate
   ): Promise<IMessageRoom | null> {
     try {
-      console.log('🔄 Updating room for order:', orderId);
-      console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
-
-      // Build the update object carefully to avoid overwriting
       const updateObject: any = {};
 
       // Handle individual fields instead of entire objects
@@ -207,7 +218,22 @@ export class MessageRepository implements IMessageRepository {
         updateObject.orderStatus = updateData.orderStatus;
       }
 
-      // ✅ CRITICAL FIX: Handle technicianSnapshot field by field
+      // Handle userSnapshot field by field
+      if (updateData.userSnapshot) {
+        if (updateData.userSnapshot.fullName !== undefined) {
+          updateObject['userSnapshot.fullName'] =
+            updateData.userSnapshot.fullName;
+        }
+        if (updateData.userSnapshot.profilePictureUrl !== undefined) {
+          updateObject['userSnapshot.profilePictureUrl'] =
+            updateData.userSnapshot.profilePictureUrl;
+        }
+        if (updateData.userSnapshot.phone !== undefined) {
+          updateObject['userSnapshot.phone'] = updateData.userSnapshot.phone;
+        }
+      }
+
+      // Handle technicianSnapshot field by field
       if (updateData.technicianSnapshot) {
         if (updateData.technicianSnapshot.displayName !== undefined) {
           updateObject['technicianSnapshot.displayName'] =
@@ -227,40 +253,23 @@ export class MessageRepository implements IMessageRepository {
         }
       }
 
-      console.log(
-        '🔄 Final update object:',
-        JSON.stringify(updateObject, null, 2)
-      );
-
       const room = await MessageRoom.findOneAndUpdate(
         { orderId },
         { $set: updateObject },
         { new: true }
       ).exec();
 
-      if (room) {
-        console.log('✅ Room updated successfully');
-        console.log('🔍 Updated technicianSnapshot:', room.technicianSnapshot);
-      }
-
       return room ? this.mapRoomToDomain(room) : null;
     } catch (error) {
-      console.error('❌ Error updating room:', error);
+      console.error('Error updating room:', error);
       return null;
     }
   }
 
-  // In MessageRepository.ts - FIX syncOrderStatusWithRoom method
   async syncOrderStatusWithRoom(orderId: string): Promise<IMessageRoom | null> {
     try {
       const orderStatus = await this.getOrderStatus(orderId);
       if (orderStatus) {
-        console.log('🔄 Syncing order status for room:', {
-          orderId,
-          orderStatus,
-        });
-
-        // Use field-level update to only update orderStatus
         const room = await MessageRoom.findOneAndUpdate(
           { orderId },
           {
@@ -271,11 +280,6 @@ export class MessageRepository implements IMessageRepository {
           },
           { new: true }
         ).exec();
-
-        if (room) {
-          console.log('✅ Order status synced successfully');
-          console.log('🔍 Room after sync:', room.technicianSnapshot);
-        }
 
         return room ? this.mapRoomToDomain(room) : null;
       }
@@ -300,13 +304,27 @@ export class MessageRepository implements IMessageRepository {
       let room = await this.getRoomByOrder(orderId);
 
       if (room) {
-        console.log('✅ Found existing room for order:', orderId);
+        // If room exists but missing user details, update it
+        if (!room.userSnapshot || !room.userSnapshot.fullName) {
+          const userDetails = await this.getUserDetails(userId);
+
+          if (userDetails) {
+            const updatedRoom = await this.updateRoom(orderId, {
+              userSnapshot: {
+                fullName: userDetails.fullName,
+                profilePictureUrl: userDetails.profilePictureUrl,
+                phone: userDetails.phone,
+              },
+            });
+
+            if (updatedRoom) {
+              room = updatedRoom;
+            }
+          }
+        }
 
         // If room exists but missing technician details, update it
         if (!room.technicianSnapshot || !room.technicianSnapshot.displayName) {
-          console.log(
-            '🔄 Room exists but missing technician details, updating...'
-          );
           const technicianDetails =
             await this.getTechnicianDetails(technicianId);
           const orderServiceName = await this.getOrderServiceName(orderId);
@@ -322,7 +340,6 @@ export class MessageRepository implements IMessageRepository {
               },
             });
 
-            // Only assign if update was successful and room is not null
             if (updatedRoom) {
               room = updatedRoom;
             }
@@ -332,24 +349,25 @@ export class MessageRepository implements IMessageRepository {
         return room;
       }
 
-      console.log('🆕 Creating new room for order:', orderId);
+      // Get both user and technician details BEFORE creating room
+      const [userDetails, technicianDetails] = await Promise.all([
+        this.getUserDetails(userId),
+        this.getTechnicianDetails(technicianId),
+      ]);
 
-      // Get technician details BEFORE creating room
-      const technicianDetails = await this.getTechnicianDetails(technicianId);
       const orderServiceName = await this.getOrderServiceName(orderId);
       const orderStatus = await this.getOrderStatus(orderId);
 
-      console.log('🔍 Technician details for new room:', {
-        technicianDetails,
-        orderServiceName,
-        orderStatus,
-      });
-
-      // Create new room with complete technicianSnapshot
+      // Create new room with complete snapshots
       const newRoom = await this.createRoom({
         orderId,
         userId,
         technicianId,
+        userSnapshot: {
+          fullName: userDetails?.fullName || 'Customer',
+          profilePictureUrl: userDetails?.profilePictureUrl || '',
+          phone: userDetails?.phone || '',
+        },
         technicianSnapshot: {
           displayName: technicianDetails?.displayName || 'Technician',
           profilePictureUrl: technicianDetails?.profilePictureUrl || '',
@@ -363,14 +381,12 @@ export class MessageRepository implements IMessageRepository {
         },
       });
 
-      console.log('✅ New room created with technician snapshot');
       return newRoom;
     } catch (error: any) {
-      console.error('❌ Error in getOrCreateRoom:', error);
+      console.error('Error in getOrCreateRoom:', error);
 
       // If it's a duplicate key error, try to fetch the existing room
       if (error.code === 11000 || error.code === 11001) {
-        console.log('🔄 Duplicate key detected, fetching existing room');
         const existingRoom = await this.getRoomByOrder(orderId);
         if (existingRoom) {
           return existingRoom;
@@ -380,32 +396,22 @@ export class MessageRepository implements IMessageRepository {
     }
   }
 
-  // In MessageRepository.ts - COMPLETELY REWRITE getTechnicianDetails
   async getTechnicianDetails(technicianId: string): Promise<{
     displayName: string;
     profilePictureUrl: string;
     serviceName?: string;
   } | null> {
     try {
-      console.log(`🔍 Fetching technician details for ID: ${technicianId}`);
-
-      // Use lean() for better performance and to get plain JavaScript objects
       const technician = await Technician.findById(technicianId)
         .select('displayName profilePictureUrl services specialization')
         .lean()
         .exec();
 
       if (!technician) {
-        console.warn(`❌ Technician not found with ID: ${technicianId}`);
+        console.warn(`Technician not found with ID: ${technicianId}`);
         return null;
       }
 
-      console.log(
-        `✅ Raw technician data:`,
-        JSON.stringify(technician, null, 2)
-      );
-
-      // Extract service name - handle various possible fields
       let serviceName = 'General Service';
       if (technician.services && technician.services.length > 0) {
         serviceName = technician.services[0];
@@ -417,17 +423,16 @@ export class MessageRepository implements IMessageRepository {
         serviceName: serviceName,
       };
 
-      console.log(`✅ Processed technician details:`, result);
       return result;
     } catch (error) {
       console.error(
-        `❌ Error fetching technician details for ${technicianId}:`,
+        `Error fetching technician details for ${technicianId}:`,
         error
       );
       return null;
     }
   }
-  // In MessageRepository.ts - improve getOrderServiceName
+
   async getOrderServiceName(orderId: string): Promise<string> {
     try {
       const order = await OrderSchema.findById(orderId)
@@ -435,21 +440,13 @@ export class MessageRepository implements IMessageRepository {
         .exec();
 
       if (!order) {
-        console.warn(`❌ Order not found with ID: ${orderId}`);
+        console.warn(`Order not found with ID: ${orderId}`);
         return 'Service';
       }
 
-      console.log(`✅ Order service details:`, {
-        serviceName: order.serviceName,
-        problemDescription: order.problemDescription,
-      });
-
       return order.serviceName || 'Service';
     } catch (error) {
-      console.error(
-        `❌ Error fetching order service name for ${orderId}:`,
-        error
-      );
+      console.error(`Error fetching order service name for ${orderId}:`, error);
       return 'Service';
     }
   }
@@ -459,7 +456,57 @@ export class MessageRepository implements IMessageRepository {
 
       return order?.status || null;
     } catch (error) {
-      console.error(`❌ Error fetching order status for ${orderId}:`, error);
+      console.error(`Error fetching order status for ${orderId}:`, error);
+      return null;
+    }
+  }
+
+  async getUserDetails(userId: string): Promise<{
+    fullName: string;
+    profilePictureUrl: string;
+    phone: string;
+  } | null> {
+    try {
+      const user = await UserSchema.findById(userId)
+        .select('fullName profilePictureUrl phone')
+        .lean()
+        .exec();
+
+      if (!user) {
+        console.warn(`User not found with ID: ${userId}`);
+        return null;
+      }
+
+      const result = {
+        fullName: user.fullName || 'Customer',
+        profilePictureUrl: user.profilePictureUrl || '',
+        phone: user.phone || '',
+      };
+
+      return result;
+    } catch (error) {
+      console.error(`Error fetching user details for ${userId}:`, error);
+      return null;
+    }
+  }
+
+  async getTechnicianIdByUserId(userId: string): Promise<string | null> {
+    try {
+      const technician = await Technician.findOne({ userId })
+        .select('_id')
+        .lean()
+        .exec();
+
+      if (!technician) {
+        console.warn(`No technician found for user ID: ${userId}`);
+        return null;
+      }
+
+      const technicianId = technician._id.toString();
+
+      return technicianId;
+    } catch (error) {
+      console.error(`Error finding technician ID for user ${userId}:`, error);
       return null;
     }
   }
@@ -482,19 +529,33 @@ export class MessageRepository implements IMessageRepository {
     };
   }
 
-  // In MessageRepository.ts - FIX mapRoomToDomain method
   private mapRoomToDomain(doc: any): IMessageRoom {
-    // Handle both Document and plain objects from lean()
     const roomDoc = doc.toObject ? doc.toObject() : doc;
 
-    // DEBUG: Log what we're actually getting
-    console.log('🔍 Mapping room to domain:', {
-      id: roomDoc._id,
-      hasTechnicianSnapshot: !!roomDoc.technicianSnapshot,
-      technicianSnapshot: roomDoc.technicianSnapshot,
-    });
+    let userId: string;
+    if (typeof roomDoc.userId === 'string') {
+      // If userId is already a string (not populated)
+      userId = roomDoc.userId;
+    } else if (roomDoc.userId && typeof roomDoc.userId === 'object') {
+      // If userId is a populated object, extract the _id
+      userId =
+        (roomDoc.userId as any)._id?.toString() || roomDoc.userId.toString();
+    } else {
+      // Fallback
+      userId = roomDoc.userId?.toString() || '';
+    }
 
-    // Ensure technicianSnapshot has proper structure
+    let userSnapshot = undefined;
+    if (roomDoc.userSnapshot) {
+      userSnapshot = {
+        fullName: String(roomDoc.userSnapshot.fullName || 'Customer'),
+        profilePictureUrl: String(roomDoc.userSnapshot.profilePictureUrl || ''),
+        phone: String(roomDoc.userSnapshot.phone || ''),
+      };
+    } else {
+      console.warn('No userSnapshot found for room:', roomDoc._id);
+    }
+
     let technicianSnapshot = undefined;
     if (roomDoc.technicianSnapshot) {
       technicianSnapshot = {
@@ -512,14 +573,15 @@ export class MessageRepository implements IMessageRepository {
           : undefined,
       };
     } else {
-      console.warn('⚠️ No technicianSnapshot found for room:', roomDoc._id);
+      console.warn('No technicianSnapshot found for room:', roomDoc._id);
     }
 
     const result = {
       _id: roomDoc._id?.toString() || '',
       orderId: roomDoc.orderId?.toString() || '',
-      userId: roomDoc.userId?.toString() || '',
+      userId: userId,
       technicianId: roomDoc.technicianId?.toString() || '',
+      userSnapshot: userSnapshot,
       technicianSnapshot: technicianSnapshot,
       isActive: roomDoc.isActive !== false, // Default to true if not set
       createdAt: roomDoc.createdAt || new Date(),
@@ -539,13 +601,6 @@ export class MessageRepository implements IMessageRepository {
       orderStatus:
         roomDoc.orderStatus || roomDoc.technicianSnapshot?.orderStatus,
     };
-
-    console.log('✅ Mapped room result:', {
-      id: result._id,
-      technicianName: result.technicianSnapshot?.displayName,
-      serviceName: result.technicianSnapshot?.serviceName,
-      orderStatus: result.technicianSnapshot?.orderStatus,
-    });
 
     return result;
   }

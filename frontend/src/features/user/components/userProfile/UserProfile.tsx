@@ -22,6 +22,8 @@ import { AddAddressModal } from "./modals/AddAddressModal";
 import { EditAddressModal } from "./modals/EditAddressModal";
 import { AddMoneyModal } from "./modals/AddMoneyModal";
 import { WithdrawMoneyModal } from "./modals/WithdrawMoneyModal";
+import { useAppDispatch } from "../../../../hooks/redux";
+import { updateUser } from "../../../../store/slices/authSlice";
 
 const UserProfile: React.FC = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -53,6 +55,8 @@ const UserProfile: React.FC = () => {
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
 
   const navigate = useNavigate();
+
+  const dispatch = useAppDispatch();
 
   // Load user data
   useEffect(() => {
@@ -117,10 +121,16 @@ const UserProfile: React.FC = () => {
       const response = await userService.uploadProfilePicture(file);
 
       if (response.success && response.data?.profilePictureUrl) {
+        const newProfilePictureUrl = response.data.profilePictureUrl;
         setUserData((prev) =>
           prev
             ? { ...prev, profilePicture: response.data.profilePictureUrl }
             : null
+        );
+        dispatch(
+          updateUser({
+            profilePictureUrl: newProfilePictureUrl,
+          })
         );
         toast.success("Profile picture updated successfully!");
       } else {
@@ -191,6 +201,14 @@ const UserProfile: React.FC = () => {
                 gender: updatedUser.gender,
               }
             : null
+        );
+
+        dispatch(
+          updateUser({
+            fullName: updatedUser.fullName,
+            phone: updatedUser.phone,
+            email: updatedUser.email,
+          })
         );
 
         setIsEditingPersonal(false);

@@ -13,6 +13,10 @@ export interface IMessageService {
     userId: string,
     userType: 'user' | 'technician'
   ): Promise<void>;
+  markAllMessagesAsRead(
+    userId: string,
+    userType: 'user' | 'technician'
+  ): Promise<void>;
   initializeChatRoom(
     orderId: string,
     userId: string,
@@ -24,4 +28,5 @@ export interface IMessageService {
     userType: 'user' | 'technician'
   ): Promise<number>;
   syncOrderStatusWithRoom(orderId: string): Promise<void>;
+  getTechnicianIdByUserId(userId: string): Promise<string | null>;
 }

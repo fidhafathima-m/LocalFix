@@ -7,5 +7,6 @@ export const MESSAGE_ROUTES = {
   GET_UNREAD_COUNT: "/messages/unread-count",
   SEND_MESSAGE: "/messages/send",
   INITIALIZE_CHAT_ROOM: "/messages/room/initialize",
+  MARK_ALL_READ: "/messages/mark-all-read",
   CLOSE_CHAT_ROOM: (orderId: string) => `/messages/room/close/${orderId}`,
 } as const;

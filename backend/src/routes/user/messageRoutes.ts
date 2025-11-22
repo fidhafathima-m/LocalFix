@@ -15,6 +15,7 @@ router.get(
 );
 router.post('/read', messageController.markMessagesAsRead);
 router.get('/unread-count', messageController.getUnreadCount);
+router.patch('/mark-all-read', messageController.markAllMessagesAsRead);
 
 router.post('/send', messageController.sendMessage);
 router.post('/room/initialize', messageController.initializeChatRoom);

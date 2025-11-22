@@ -16,6 +16,7 @@ export class MessageService implements IMessageService {
     );
 
     if (!room || !room.isActive) {
+      console.error('Backend: Chat room is not active or does not exist');
       throw new Error('Chat room is not active or does not exist');
     }
 
@@ -52,26 +53,32 @@ export class MessageService implements IMessageService {
     return this._messageRepository.getMessagesByOrder(orderId, limit);
   }
 
-  // In MessageService.ts - FIX THE syncOrderStatusWithRoom method
+  async getTechnicianIdByUserId(userId: string): Promise<string | null> {
+    try {
+      const technicianId =
+        await this._messageRepository.getTechnicianIdByUserId(userId);
+      return technicianId;
+    } catch (error) {
+      console.error(`Error converting user ID to technician ID:`, error);
+      return null;
+    }
+  }
+
   async syncOrderStatusWithRoom(orderId: string): Promise<void> {
     try {
       const orderStatus = await this._messageRepository.getOrderStatus(orderId);
       if (orderStatus) {
-        // Get the current room first to preserve existing technician details
         const currentRoom =
           await this._messageRepository.getRoomByOrder(orderId);
 
         if (currentRoom) {
           await this._messageRepository.updateRoom(orderId, {
             technicianSnapshot: {
-              ...currentRoom.technicianSnapshot, // ✅ PRESERVE existing details
-              orderStatus: orderStatus, // ✅ ONLY update orderStatus
+              ...currentRoom.technicianSnapshot,
+              orderStatus: orderStatus,
             },
             orderStatus: orderStatus,
           });
-          console.log(
-            `✅ Synced order status for room ${orderId}: ${orderStatus}`
-          );
         }
       }
     } catch (error) {
@@ -113,7 +120,42 @@ export class MessageService implements IMessageService {
     }
   }
 
-  // In MessageService.ts - IMPROVE getTechnicianSnapshot
+  async markAllMessagesAsRead(
+    userId: string,
+    userType: 'user' | 'technician'
+  ): Promise<void> {
+    try {
+      // Get all active conversations for this user
+      const conversations = await this._messageRepository.getRoomsByUser(
+        userId,
+        userType
+      );
+
+      // Mark all messages as read for each conversation
+      for (const conversation of conversations) {
+        await this._messageRepository.markMessagesAsRead(
+          conversation.orderId,
+          userId,
+          userType
+        );
+
+        // Reset unread count for this user in the room
+        await this._messageRepository.updateRoom(conversation.orderId, {
+          unreadCount: {
+            user: userType === 'user' ? 0 : conversation.unreadCount.user,
+            technician:
+              userType === 'technician'
+                ? 0
+                : conversation.unreadCount.technician,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error marking all messages as read:', error);
+      throw error;
+    }
+  }
+
   private async getTechnicianSnapshot(
     technicianId: string,
     orderId: string
@@ -124,32 +166,17 @@ export class MessageService implements IMessageService {
     orderStatus?: string;
   }> {
     try {
-      console.log(
-        `🔍 Creating technician snapshot for order: ${orderId}, technician: ${technicianId}`
-      );
-
-      // Fetch all data in parallel
       const [technicianDetails, orderDetails, orderStatus] = await Promise.all([
         this._messageRepository.getTechnicianDetails(technicianId),
         this._messageRepository.getOrderServiceName(orderId),
         this._messageRepository.getOrderStatus(orderId),
       ]);
 
-      console.log(`✅ Fetched data for snapshot:`, {
-        technicianDetails,
-        orderDetails,
-        orderStatus,
-      });
-
-      // Determine the best service name to use
       let serviceName = 'Service';
 
-      // Priority 1: Order service name
       if (orderDetails && orderDetails !== 'Service') {
         serviceName = orderDetails;
-      }
-      // Priority 2: Technician's service name
-      else if (technicianDetails?.serviceName) {
+      } else if (technicianDetails?.serviceName) {
         serviceName = technicianDetails.serviceName;
       }
 
@@ -160,11 +187,10 @@ export class MessageService implements IMessageService {
         orderStatus: orderStatus || undefined,
       };
 
-      console.log(`✅ Final technician snapshot:`, snapshot);
       return snapshot;
     } catch (error) {
-      console.error('❌ Error creating technician snapshot:', error);
-      // Return meaningful fallback data
+      console.error('Error creating technician snapshot:', error);
+      // Return fallback data
       return {
         displayName: 'Technician',
         profilePictureUrl: '',
@@ -174,28 +200,21 @@ export class MessageService implements IMessageService {
     }
   }
 
-  // In MessageService.ts - SIMPLIFY initializeChatRoom
   async initializeChatRoom(
     orderId: string,
     userId: string,
     technicianId: string
   ): Promise<IMessageRoom> {
     try {
-      console.log('🔄 Initializing chat room for order:', orderId);
-
-      // Use getOrCreateRoom which now handles technicianSnapshot properly
       const room = await this._messageRepository.getOrCreateRoom(
         orderId,
         userId,
         technicianId
       );
 
-      console.log('✅ Chat room initialized:', room._id);
-      console.log('🔍 Room technicianSnapshot:', room.technicianSnapshot);
-
       return room;
     } catch (error: any) {
-      console.error('❌ Error initializing chat room:', error);
+      console.error('Error initializing chat room:', error);
       throw new Error(`Failed to initialize chat room: ${error.message}`);
     }
   }

@@ -1,16 +1,23 @@
-// models/chat/ChatRoom.ts
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IMessageRoomDocument extends Document {
   orderId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   technicianId: mongoose.Types.ObjectId;
+
+  userSnapshot: {
+    fullName: string;
+    profilePictureUrl: string;
+    phone: string;
+  };
+
   technicianSnapshot: {
-    displayName: String;
-    profilePictureUrl: String;
-    serviceName: String;
+    displayName: string;
+    profilePictureUrl: string;
+    serviceName: string;
     orderStatus?: string;
   };
+
   isActive: boolean;
   lastMessage?: {
     message: string;
@@ -47,12 +54,20 @@ const messageRoomSchema = new Schema<IMessageRoomDocument>(
       required: true,
       index: true,
     },
+
+    userSnapshot: {
+      fullName: { type: String, required: true, default: 'Customer' },
+      profilePictureUrl: { type: String, default: '' },
+      phone: { type: String, default: '' },
+    },
+
     technicianSnapshot: {
       displayName: { type: String, required: true, default: 'Technician' },
       profilePictureUrl: { type: String, default: '' },
       serviceName: { type: String, required: true, default: 'Service' },
       orderStatus: { type: String },
     },
+
     isActive: {
       type: Boolean,
       default: true,

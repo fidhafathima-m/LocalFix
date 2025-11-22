@@ -5,10 +5,15 @@ import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { NotificationsNoneOutlined } from "@mui/icons-material";
+import {
+  LogoutOutlined,
+  NotificationsNoneOutlined,
+  QuestionAnswerOutlined,
+} from "@mui/icons-material";
 import { useNotification } from "../../context/notificationContext/NotificationContext";
 import { useSocket } from "../../context/SocketContext";
 import { NotificationDropdown } from "./NotificationDropdown";
+import { useMessage } from "../../context/MessageContext";
 
 interface HeaderProps {
   isApproved?: boolean;
@@ -26,17 +31,42 @@ const Header: React.FC<HeaderProps> = ({
   const { notificationCount } = useNotification();
   const [showNotificationDropdown, setShowNotificationDropdown] =
     useState(false);
-  const { isConnected } = useSocket();
+  const { socket, isConnected } = useSocket();
+  const { unreadMessageCount, markAllMessagesAsRead } = useMessage();
+  const dispatch = useAppDispatch();
+  const { isLoggedIn, user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     console.log(
       "Socket connection status:",
       isConnected ? "Connected" : "Disconnected"
     );
-  }, [isConnected]);
+    console.log("Socket object:", socket);
+  }, [isConnected, socket]);
 
-  const dispatch = useAppDispatch();
-  const { isLoggedIn, user } = useAppSelector((state) => state.auth);
+  useEffect(() => {
+    if (!socket || !isConnected || !isLoggedIn) return;
+
+    const handleUnreadCountUpdate = (data: {
+      count: number;
+      userType: string;
+    }) => {
+      // This will automatically update the badge via the context
+      console.log("Real-time unread count update:", data.count);
+    };
+
+    // Check if socket has on method
+    if (typeof socket.on === "function") {
+      socket.on("unread-message-count-update", handleUnreadCountUpdate);
+
+      return () => {
+        socket.off("unread-message-count-update", handleUnreadCountUpdate);
+      };
+    } else {
+      console.warn("Socket object does not have 'on' method:", socket);
+    }
+  }, [socket, isConnected, isLoggedIn]);
+
   const getUserType = () => {
     if (propUserType) return propUserType;
 
@@ -55,6 +85,31 @@ const Header: React.FC<HeaderProps> = ({
     setIsClient(true);
   }, []);
 
+  const handleMessagesClick = async () => {
+    // Mark all messages as read before navigating
+    if (unreadMessageCount > 0) {
+      await markAllMessagesAsRead();
+    }
+
+    // Navigate to messages page
+    if (userType === "serviceProvider") {
+      navigate("/technician/messages");
+    } else {
+      navigate("/messages");
+    }
+
+    closeMobileMenu();
+  };
+
+  const handleProfileClick = () => {
+    if (userType === "serviceProvider") {
+      navigate("/technician/profile");
+    } else {
+      navigate("/my-profile");
+    }
+    closeMobileMenu();
+  };
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -62,6 +117,7 @@ const Header: React.FC<HeaderProps> = ({
       closeMobileMenu();
     }
   };
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleNotificationClick = () => {
     if (userType === "serviceProvider") {
@@ -127,6 +183,28 @@ const Header: React.FC<HeaderProps> = ({
     "bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium";
   const mobileSignUpButtonStyles =
     "bg-blue-600 text-white px-6 py-3.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-center mx-4 my-2";
+
+  // Get user profile picture or fallback to initials
+  const getUserAvatar = () => {
+    if (!user) return null;
+
+    // For regular users or fallback
+    return user.profilePictureUrl;
+  };
+
+  const getUserInitials = () => {
+    if (!user) return "U";
+
+    if (user.fullName) {
+      return user.fullName.charAt(0).toUpperCase();
+    }
+
+    if (user.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+
+    return "U";
+  };
 
   const links = () => {
     if (!isClient) {
@@ -203,6 +281,19 @@ const Header: React.FC<HeaderProps> = ({
               My Orders
             </a>,
             <button
+              key="messages"
+              onClick={handleMessagesClick}
+              className="relative px-3 hover:text-blue-600 transition-colors cursor-pointer flex items-center"
+              title="Messages"
+            >
+              <QuestionAnswerOutlined />
+              {unreadMessageCount > 0 && (
+                <span className="absolute -top-2 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                  {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+                </span>
+              )}
+            </button>,
+            <button
               key="notifications"
               onClick={() =>
                 setShowNotificationDropdown(!showNotificationDropdown)
@@ -217,21 +308,30 @@ const Header: React.FC<HeaderProps> = ({
                 </span>
               )}
             </button>,
-            <a
+            <button
               key="profile"
-              href="/my-profile"
-              className="px-3 hover:text-blue-600 transition-colors"
-              onClick={closeMobileMenu}
+              onClick={handleProfileClick}
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer ml-2"
+              title="Profile"
             >
-              Profile
-            </a>,
-
+              {getUserAvatar() ? (
+                <img
+                  src={getUserAvatar()!}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <span className="text-gray-600 text-sm font-medium">
+                  {getUserInitials()}
+                </span>
+              )}
+            </button>,
             <button
               key="logout"
               onClick={handleLogout}
               className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
             >
-              Logout
+              <LogoutOutlined />
             </button>,
           ];
         }
@@ -295,7 +395,7 @@ const Header: React.FC<HeaderProps> = ({
                 onClick={handleLogout}
                 className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
               >
-                Logout
+                <LogoutOutlined />
               </button>,
             ];
           } else if (isApproved) {
@@ -316,20 +416,12 @@ const Header: React.FC<HeaderProps> = ({
               >
                 Messages
               </a>,
-              <a
-                key="profile"
-                href="/technician/profile"
-                className="px-3 hover:text-blue-600 transition-colors"
-                onClick={closeMobileMenu}
-              >
-                Profile
-              </a>,
               <button
                 key="logout"
                 onClick={handleLogout}
                 className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
               >
-                Logout
+                <LogoutOutlined />
               </button>,
             ];
           } else {
@@ -355,14 +447,22 @@ const Header: React.FC<HeaderProps> = ({
                 onClick={handleLogout}
                 className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
               >
-                Logout
+                <LogoutOutlined />
               </button>,
             ];
           }
         }
       case "admin":
         if (isLoggedIn) {
-          return [];
+          return [
+            <button
+              key="logout"
+              onClick={handleLogout}
+              className="px-3 text-red-500 hover:text-blue-600 transition-colors cursor-pointer"
+            >
+              <LogoutOutlined />
+            </button>,
+          ];
         } else {
           return [];
         }

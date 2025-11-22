@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useSocket } from "../../../../../../context/SocketContext";
 import { messageService } from "../../../../../../services/user/messageService";
 import { ChatThread } from "../../../../../user/components/messages/sections/ChatThread";
+import { useMessage } from "../../../../../../context/MessageContext";
 
 interface Conversation {
   id: string;
@@ -38,6 +39,9 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
   const [searchParams] = useSearchParams();
 
   const technicianProfile = dashboardData?.profile;
+
+  const { refreshUnreadCount } = useMessage();
+
   const { socket, isConnected } = useSocket();
 
   const orderId = searchParams.get("orderId");
@@ -51,6 +55,10 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
       orderStatus
     );
   };
+
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]);
 
   const getChatStatusMessage = (orderStatus?: string) => {
     if (!orderStatus) return "Chat Available";
@@ -72,55 +80,86 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
     return "bg-gray-100 text-gray-600";
   };
 
-  // Load conversations
   const loadConversations = async () => {
-    if (!technicianProfile?._id) return;
+    const technicianId = dashboardData?.profile?._id;
+    if (!technicianId) {
+      console.error("No technician ID found");
+      return;
+    }
 
     try {
       setLoading(true);
-      const chatRooms = await messageService.getTechnicianConversations();
+      const chatRooms = await messageService.getTechnicianConversations(
+        technicianId
+      );
 
-      console.log("📨 Raw technician chat rooms from API:", chatRooms);
+      const formattedConversations: Conversation[] = chatRooms.map(
+        (room, index) => {
+          const customerName = room.userSnapshot?.fullName || "Customer";
+          const customerAvatar = room.userSnapshot?.profilePictureUrl || "";
+          const customerPhone = room.userSnapshot?.phone || "";
 
-      const formattedConversations: Conversation[] = chatRooms.map((room) => {
-        // Handle both string userId and populated user object
-        let customerName = "Customer";
-        let customerAvatar = "";
-        let customerId = "";
+          let recipientId: string;
 
-        if (typeof room.userId === "object" && room.userId !== null) {
-          // userId is a populated object
-          customerName = room.userId.fullName || "Customer";
-          customerAvatar =
-            room.userId.profilePicture || room.userId.profilePictureUrl || "";
-          customerId = room.userId._id;
-        } else {
-          // userId is just a string ID
-          customerId = room.userId;
+          if (typeof room.userId === "string") {
+            recipientId = room.userId;
+          } else if (room.userId && typeof room.userId === "object") {
+            const userIdObj = room.userId as any;
+
+            if (userIdObj._id != null) {
+              recipientId =
+                typeof userIdObj._id === "string"
+                  ? userIdObj._id
+                  : userIdObj._id?.toString?.() || "unknown";
+            } else if (userIdObj.id != null) {
+              recipientId =
+                typeof userIdObj.id === "string"
+                  ? userIdObj.id
+                  : userIdObj.id?.toString?.() || "unknown";
+            } else {
+              try {
+                recipientId = userIdObj.toString?.() || "unknown";
+              } catch (e) {
+                console.error(
+                  `Room ${index + 1}: Cannot extract recipientId:`,
+                  userIdObj,
+                  e
+                );
+                recipientId = "unknown";
+              }
+            }
+          } else {
+            console.warn(
+              `Room ${index + 1}: Invalid userId type:`,
+              typeof room.userId,
+              room.userId
+            );
+            recipientId = String(room.userId || "unknown");
+          }
+
+          return {
+            id: room._id!,
+            orderId: room.orderId,
+            recipientId: recipientId,
+            name: customerName,
+            avatar: customerAvatar,
+            phone: customerPhone,
+            service: room.technicianSnapshot?.serviceName || "Service",
+            lastMessage: room.lastMessage?.message || "No messages yet",
+            timestamp: room.lastMessage
+              ? new Date(room.lastMessage.timestamp).toLocaleTimeString(
+                  "en-IN",
+                  {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }
+                )
+              : "No messages",
+            unread: room.unreadCount?.technician || 0,
+            orderStatus:
+              room.technicianSnapshot?.orderStatus || room.orderStatus,
+          };
         }
-
-        return {
-          id: room._id!,
-          orderId: room.orderId,
-          recipientId: customerId,
-          name: customerName,
-          avatar: customerAvatar,
-          service: room.technicianSnapshot?.serviceName || "Service",
-          lastMessage: room.lastMessage?.message || "No messages yet",
-          timestamp: room.lastMessage
-            ? new Date(room.lastMessage.timestamp).toLocaleTimeString("en-IN", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "No messages",
-          unread: room.unreadCount?.technician || 0,
-          orderStatus: room.technicianSnapshot?.orderStatus || room.orderStatus,
-        };
-      });
-
-      console.log(
-        "✅ Formatted technician conversations:",
-        formattedConversations
       );
       setConversations(formattedConversations);
     } catch (error) {
@@ -146,7 +185,6 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
       !hasHandledInitialConversation &&
       conversations.length >= 0
     ) {
-      console.log("🚀 Handling initial conversation for order:", orderId);
       handleOrderBasedConversation(orderId, customerId, serviceName);
       setHasHandledInitialConversation(true);
     }
@@ -171,11 +209,9 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
       );
 
       if (existingConv) {
-        console.log("📨 Found existing conversation:", existingConv.id);
         setSelectedConversation(existingConv.id);
         clearUrlParameters();
       } else {
-        console.log("🆕 Creating new conversation for order:", orderId);
         await createAndSelectConversation(orderId, customerId, serviceName);
       }
     } catch (error) {
@@ -206,16 +242,14 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
     try {
       const newRoom = await messageService.initializeChatRoom(
         orderId,
-        customerId, // For technician, userId is customerId
-        technicianProfile._id // technicianId is the technician's ID
+        customerId,
+        technicianProfile._id
       );
 
-      console.log("✅ Chat room initialized:", newRoom._id);
       await loadConversations();
 
       if (newRoom._id) {
         setSelectedConversation(newRoom._id);
-        console.log("🎯 Selected new conversation by room ID:", newRoom._id);
         clearUrlParameters();
 
         if (!newRoom.lastMessage) {
@@ -251,7 +285,6 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
         messageType: "text",
       });
 
-      console.log("👋 Welcome message sent");
       await loadConversations();
     } catch (error) {
       console.error("Error sending welcome message:", error);
@@ -278,8 +311,6 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({
     if (!socket) return;
 
     const handleOrderStatusUpdate = (data: any) => {
-      console.log("🔄 Real-time order status update:", data);
-
       // Update the conversation with new status
       setConversations((prev) =>
         prev.map((conv) =>

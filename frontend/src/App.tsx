@@ -1,4 +1,5 @@
 import "./App.css";
+import { MessageProvider } from "./context/MessageContext";
 import { NotificationProvider } from "./context/notificationContext/NotificationContext";
 import { useAppSelector } from "./hooks/redux";
 import AppRoutes from "./routes/AppRoutes";
@@ -36,9 +37,11 @@ function App() {
   };
 
   return (
-    <NotificationProvider userId={user?._id}>
-      <AppRoutes />
-    </NotificationProvider>
+    <MessageProvider>
+      <NotificationProvider userId={user?._id}>
+        <AppRoutes />
+      </NotificationProvider>
+    </MessageProvider>
   );
 }
 

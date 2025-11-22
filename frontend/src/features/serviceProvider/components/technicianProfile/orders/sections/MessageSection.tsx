@@ -1,7 +1,6 @@
-// components/technician/order/sections/ChatSection.tsx
 import React, { useState } from "react";
-import { ChatBubbleOutlineOutlined, CloseOutlined } from "@mui/icons-material";
-import { ChatThread } from "../../../../../user/components/messages/sections/ChatThread";
+import { ChatBubbleOutlineOutlined, ArrowOutward } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
 interface ChatSectionProps {
   orderId: string;
@@ -19,10 +18,9 @@ const ChatSection: React.FC<ChatSectionProps> = ({
   customerName,
   customerProfilePhoto,
   serviceName,
-  technicianId,
   orderStatus,
 }) => {
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const navigate = useNavigate();
   const [showChatDisabledMessage, setShowChatDisabledMessage] = useState(false);
 
   // Chat available during active service stages
@@ -31,14 +29,6 @@ const ChatSection: React.FC<ChatSectionProps> = ({
     "confirmed",
     "on_the_way",
     "in_progress",
-  ].includes(orderStatus);
-
-  // Chat disabled for these statuses
-  const isChatDisabled = [
-    "pending",
-    "completed",
-    "cancelled",
-    "refunded",
   ].includes(orderStatus);
 
   const getStatusMessage = () => {
@@ -61,22 +51,30 @@ const ChatSection: React.FC<ChatSectionProps> = ({
 
   const handleChatClick = () => {
     if (isChatAvailable) {
-      setIsChatOpen(true);
+      // Create URLSearchParams from current location
+      const searchParams = new URLSearchParams(location.search);
+
+      // Set the tab to messages
+      searchParams.set("tab", "messages");
+
+      // Add order parameters
+      searchParams.set("orderId", orderId);
+      searchParams.set("customerId", customerId);
+      searchParams.set("serviceName", serviceName);
+
+      // Navigate with all parameters preserved
+      navigate(`/technician/dashboard?${searchParams.toString()}`);
     } else {
       setShowChatDisabledMessage(true);
       setTimeout(() => setShowChatDisabledMessage(false), 3000);
     }
   };
 
-  const handleCloseChat = () => {
-    setIsChatOpen(false);
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
-          Chat with Customer
+          Customer Communication
         </h3>
         <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor()}`}>
           {getStatusMessage()}
@@ -120,7 +118,8 @@ const ChatSection: React.FC<ChatSectionProps> = ({
           } transition-colors`}
         >
           <ChatBubbleOutlineOutlined className="w-5 h-5" />
-          {isChatAvailable ? "Open Chat" : "Chat Not Available"}
+          {isChatAvailable ? "Go to Messages" : "Chat Not Available"}
+          {isChatAvailable && <ArrowOutward className="w-4 h-4" />}
         </button>
 
         {showChatDisabledMessage && (
@@ -140,19 +139,20 @@ const ChatSection: React.FC<ChatSectionProps> = ({
 
         {isChatAvailable && (
           <div className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="font-medium text-blue-900">Chat is now available!</p>
+            <p className="font-medium text-blue-900">Chat is available!</p>
             <p className="mt-1 text-blue-800">
-              You can communicate with the customer about service details,
-              arrival time, or any questions.
+              Click "Go to Messages" to communicate with the customer about
+              service details, arrival time, or any questions. All your
+              conversations are organized in the Messages tab.
             </p>
           </div>
         )}
 
-        {isChatDisabled && (
+        {!isChatAvailable && (
           <div className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-3">
             <p>
               {orderStatus === "pending" &&
-                "Once you accept this order, you'll be able to chat with the customer."}
+                "Once you accept this order, you'll be able to chat with the customer in the Messages tab."}
               {orderStatus === "completed" &&
                 "This service has been completed. For new inquiries, please ask the customer to book a new service."}
               {orderStatus === "cancelled" &&
@@ -163,61 +163,6 @@ const ChatSection: React.FC<ChatSectionProps> = ({
           </div>
         )}
       </div>
-
-      {/* Chat Modal */}
-      {isChatOpen && (
-        <div className="fixed inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-4xl h-[80vh] flex flex-col min-h-0">
-            {/* Chat Header */}
-            <div className="border-b border-gray-200 p-4 bg-white flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  {customerProfilePhoto ? (
-                    <img
-                      src={customerProfilePhoto}
-                      alt={customerName}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-blue-600 font-medium text-sm">
-                      {customerName.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">
-                    {customerName}
-                  </div>
-                  <div className="text-sm text-gray-600">{serviceName}</div>
-                  <div className="text-xs text-green-600 font-medium">
-                    ● Active Service
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={handleCloseChat}
-                className="text-gray-400 hover:text-gray-600 p-2"
-              >
-                <CloseOutlined className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Chat Thread - Make scrollable */}
-            <div className="flex-1 min-h-0">
-              <ChatThread
-                orderId={orderId}
-                recipientId={customerId}
-                recipientName={customerName}
-                recipientProfilePhoto={customerProfilePhoto}
-                recipientService={serviceName}
-                currentUserId={technicianId}
-                currentUserType="technician"
-                onClose={handleCloseChat}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

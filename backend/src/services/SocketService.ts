@@ -210,9 +210,14 @@ export class SocketService {
         console.error('Error getting unread count:', error);
       }
     });
+
+    socket.on('leave-user-room', (data: { userId: string }) => {
+      const roomName = `user-${data.userId}`;
+      socket.leave(roomName);
+      console.log(`🔔 User ${data.userId} left notification room`);
+    });
   }
 
-  // In SocketService.ts - update the setupOrderStatusHandlers method
   private setupOrderStatusHandlers(socket: any): void {
     // Join order room for status updates
     socket.on(
@@ -228,10 +233,6 @@ export class SocketService {
         } catch (error) {
           console.error('Error syncing order status on room join:', error);
         }
-
-        console.log(
-          `📊 ${userType} ${userId} joined order status room: ${roomName}`
-        );
       }
     );
 
@@ -258,24 +259,16 @@ export class SocketService {
     );
   }
 
-  // In SocketService.ts - ADD DEBUG LOGGING to notifyOrderStatusChange method
   public async notifyOrderStatusChange(
     orderId: string,
     newStatus: string
   ): Promise<void> {
     try {
-      console.log('🔊 DEBUG: notifyOrderStatusChange called');
-      console.log('🔊 DEBUG: Order ID:', orderId);
-      console.log('🔊 DEBUG: New Status:', newStatus);
-
       const roomName = `order-status-${orderId}`;
 
       // Check how many clients are in the room
       const room = this._io.sockets.adapter.rooms.get(roomName);
       const clientCount = room ? room.size : 0;
-
-      console.log('🔊 DEBUG: Room:', roomName);
-      console.log('🔊 DEBUG: Clients in room:', clientCount);
 
       // Emit to all users in the order status room
       this._io.to(roomName).emit('order-status-updated', {
@@ -283,13 +276,35 @@ export class SocketService {
         newStatus,
         timestamp: new Date().toISOString(),
       });
-
-      console.log('✅ DEBUG: Order status update emitted successfully');
-      console.log('✅ DEBUG: Event: order-status-updated');
     } catch (error) {
-      console.error('❌ DEBUG: Error sending order status update:', error);
+      console.error('DEBUG: Error sending order status update:', error);
       throw error;
     }
+  }
+
+  public async updateUserUnreadMessageCount(
+    userId: string,
+    userType: 'user' | 'technician'
+  ): Promise<void> {
+    try {
+      const count = await this._messageService.getUnreadCount(userId, userType);
+
+      // Send to user's personal room
+      this._io.to(`user-${userId}`).emit('unread-message-count-update', {
+        count,
+        userType,
+      });
+    } catch (error) {
+      console.error('Error updating unread message count:', error);
+    }
+  }
+
+  // Method to manually trigger unread count sync
+  public async syncUnreadCountForUser(
+    userId: string,
+    userType: 'user' | 'technician'
+  ): Promise<void> {
+    await this.updateUserUnreadMessageCount(userId, userType);
   }
 
   public async sendLiveNotification(userId: string, notificationData: any) {
@@ -541,8 +556,16 @@ export class SocketService {
             userId,
             userType
           );
+          const updatedCount = await this._messageService.getUnreadCount(
+            userId,
+            userType
+          );
 
-          console.log(`User ${userId} joined chat room: ${roomName}`);
+          // Send to the specific user who joined
+          socket.emit('unread-message-count-update', {
+            count: updatedCount,
+            userType,
+          });
         } catch (error) {
           console.error('Error joining chat room:', error);
           socket.emit('chat-error', { message: 'Failed to join chat room' });
@@ -550,7 +573,6 @@ export class SocketService {
       }
     );
 
-    // In SocketService.ts - Update the send-message handler
     socket.on(
       'send-message',
       async (data: {
@@ -561,17 +583,10 @@ export class SocketService {
         receiverType: 'user' | 'technician';
         message: string;
         messageType?: 'text' | 'image' | 'file';
-        tempId?: string; // Add tempId as optional
+        tempId?: string;
       }) => {
         try {
-          console.log('💬 Sending message via socket:', {
-            orderId: data.orderId,
-            senderId: data.senderId,
-            receiverId: data.receiverId,
-            tempId: data.tempId,
-          });
-
-          // Save message to database (without tempId)
+          // Save message to database
           const messageToSave = {
             orderId: data.orderId,
             senderId: data.senderId,
@@ -587,19 +602,27 @@ export class SocketService {
 
           const roomName = `chat-${data.orderId}`;
 
-          // FIX: Use socket.broadcast.to() to exclude sender
           socket.broadcast.to(roomName).emit('new-message', {
             message: savedMessage,
             roomName,
           });
 
-          console.log('✅ Message broadcasted to room (excluding sender)');
-
-          // Also emit to sender for confirmation (but with a different event)
           socket.emit('message-sent', {
             message: savedMessage,
-            tempId: data.tempId, // Add tempId to handle optimistic updates
+            tempId: data.tempId,
           });
+          const receiverUnreadCount = await this._messageService.getUnreadCount(
+            data.receiverId,
+            data.receiverType
+          );
+
+          // Send unread count update to receiver
+          this._io
+            .to(`user-${data.receiverId}`)
+            .emit('unread-message-count-update', {
+              count: receiverUnreadCount,
+              userType: data.receiverType,
+            });
         } catch (error) {
           console.error('Error sending message:', error);
           socket.emit('chat-error', { message: 'Failed to send message' });
@@ -609,6 +632,61 @@ export class SocketService {
             tempId: data.tempId,
             error: 'Failed to send message',
           });
+        }
+      }
+    );
+
+    socket.on(
+      'mark-all-messages-read',
+      async (data: { userId: string; userType: 'user' | 'technician' }) => {
+        try {
+          const { userId, userType } = data;
+
+          // Mark all messages as read
+          await this._messageService.markAllMessagesAsRead(userId, userType);
+
+          // Get updated count (should be 0)
+          const updatedCount = await this._messageService.getUnreadCount(
+            userId,
+            userType
+          );
+
+          // Notify the user
+          socket.emit('unread-message-count-update', {
+            count: updatedCount,
+            userType,
+          });
+
+          // Also broadcast to user's personal room
+          this._io.to(`user-${userId}`).emit('unread-message-count-update', {
+            count: updatedCount,
+            userType,
+          });
+        } catch (error) {
+          console.error('Error marking all messages as read:', error);
+          socket.emit('chat-error', {
+            message: 'Failed to mark messages as read',
+          });
+        }
+      }
+    );
+
+    socket.on(
+      'get-unread-message-count',
+      async (data: { userId: string; userType: 'user' | 'technician' }) => {
+        try {
+          const { userId, userType } = data;
+          const count = await this._messageService.getUnreadCount(
+            userId,
+            userType
+          );
+
+          socket.emit('unread-message-count-update', {
+            count,
+            userType,
+          });
+        } catch (error) {
+          console.error('Error getting unread count:', error);
         }
       }
     );
