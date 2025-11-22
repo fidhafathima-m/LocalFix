@@ -1,8 +1,8 @@
-import { Date, Document, Types } from "mongoose";
+import { Date, Document, Types } from 'mongoose';
 
 interface IWalletTransaction {
   txId: string;
-  type: "credit" | "debit";
+  type: 'credit' | 'debit';
   amount: number;
   balanceAfter: number;
   description: string;
@@ -10,12 +10,12 @@ interface IWalletTransaction {
 }
 
 type ApplicationStatus =
-  | "not-applied"
-  | "draft"
-  | "submitted"
-  | "under_review"
-  | "approved"
-  | "rejected";
+  | 'not-applied'
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'approved'
+  | 'rejected';
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
@@ -25,7 +25,7 @@ export interface IUser extends Document {
   passwordHash?: string;
   isVerified: boolean;
   roles: string[];
-  status: "Active" | "Inactive" | "Blocked";
+  status: 'Active' | 'Inactive' | 'Blocked';
   applicationStatus?: ApplicationStatus;
   applicationDate?: Date;
   approvalDate?: Date;
@@ -44,6 +44,7 @@ export interface IUser extends Document {
   lastLogin?: Date;
   loginDevice?: string;
   profilePictureUrl?: string;
+  profilePicture?: string;
   gender?: string;
   dateOfBirth?: string;
   bankAccounts?: {
@@ -66,7 +67,7 @@ export interface IUserCreate {
   roles: string[];
   isVerified: boolean;
   applicationStatus?: ApplicationStatus;
-  status?: "Active" | "Inactive" | "Blocked";
+  status?: 'Active' | 'Inactive' | 'Blocked';
   wallet?: {
     balance?: number;
     transactions?: IWalletTransaction[];
@@ -81,10 +82,10 @@ export interface IUserUpdate {
   passwordHash?: string;
   isVerified?: boolean;
   applicationStatus?: ApplicationStatus;
-  status?: "Active" | "Inactive" | "Blocked";
+  status?: 'Active' | 'Inactive' | 'Blocked';
   isDeleted?: boolean;
-  "wallet.balance"?: number;
-  "wallet.transactions"?: IWalletTransaction[];
+  'wallet.balance'?: number;
+  'wallet.transactions'?: IWalletTransaction[];
   applicationDate?: Date;
   approvalDate?: Date;
   rejectionReason?: string;

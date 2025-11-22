@@ -33,7 +33,8 @@ export const getSafeApplicationStatus = (
 export interface User {
   _id: string;
   fullName: string;
-  profilePictureUrl: string;
+  profilePictureUrl: string | undefined;
+  profilePicture?: string | undefined;
   phone?: string;
   email?: string;
   roles: string[];
@@ -104,7 +105,19 @@ const authSlice = createSlice({
       }>
     ) => {
       state.loading = false;
-      state.user = action.payload.user;
+      const userData: User = {
+        _id: action.payload.user._id,
+        fullName: action.payload.user.fullName,
+        profilePictureUrl: action.payload.user.profilePictureUrl,
+        profilePicture: action.payload.user.profilePicture,
+        phone: action.payload.user.phone,
+        email: action.payload.user.email,
+        roles: action.payload.user.roles,
+        applicationStatus: action.payload.user.applicationStatus,
+        isVerified: action.payload.user.isVerified,
+      };
+
+      state.user = userData;
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
       state.isLoggedIn = true;
@@ -115,7 +128,7 @@ const authSlice = createSlice({
       localStorage.setItem(
         "auth",
         JSON.stringify({
-          user: action.payload.user,
+          user: userData,
           accessToken: action.payload.accessToken,
           refreshToken: action.payload.refreshToken,
         })
@@ -133,7 +146,6 @@ const authSlice = createSlice({
       localStorage.removeItem("auth");
     },
     logout: (state) => {
-      // Save application data BEFORE clearing auth
       const user = state.user;
 
       state.user = null;
@@ -174,7 +186,19 @@ const authSlice = createSlice({
     },
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
-        state.user = { ...state.user, ...action.payload };
+        const updatedUser = {
+          ...state.user,
+          ...action.payload,
+          profilePictureUrl:
+            action.payload.profilePictureUrl ||
+            action.payload.profilePicture ||
+            state.user.profilePictureUrl,
+          profilePicture:
+            action.payload.profilePicture ||
+            action.payload.profilePictureUrl ||
+            state.user.profilePicture,
+        };
+        state.user = updatedUser;
         state.applicationStatus =
           action.payload.applicationStatus || state.applicationStatus;
 
@@ -213,6 +237,31 @@ const authSlice = createSlice({
         }
       }
     },
+    updateProfilePicture: (state, action: PayloadAction<string>) => {
+      if (state.user) {
+        state.user.profilePictureUrl = action.payload;
+        state.user.profilePicture = action.payload;
+
+        // Update localStorage
+        const currentAuth = localStorage.getItem("auth");
+        if (currentAuth) {
+          const authData = JSON.parse(currentAuth);
+          const updatedUser = {
+            ...authData.user,
+            profilePictureUrl: action.payload,
+            profilePicture: action.payload,
+          };
+
+          localStorage.setItem(
+            "auth",
+            JSON.stringify({
+              ...authData,
+              user: updatedUser,
+            })
+          );
+        }
+      }
+    },
     clearError: (state) => {
       state.error = null;
     },
@@ -239,6 +288,7 @@ export const {
   logout,
   updateTokens,
   updateUser,
+  updateProfilePicture,
   updateApplicationStatus,
   clearError,
   setLoading,

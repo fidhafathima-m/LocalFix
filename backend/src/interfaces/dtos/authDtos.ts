@@ -87,6 +87,8 @@ export interface UserResponseDto {
   applicationStatus: string;
   isVerified: boolean;
   status: string;
+  profilePictureUrl?: string | undefined;
+  profilePicture?: string;
 }
 
 export interface AuthTokensDto {

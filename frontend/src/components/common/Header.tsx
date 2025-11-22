@@ -41,7 +41,6 @@ const Header: React.FC<HeaderProps> = ({
       "Socket connection status:",
       isConnected ? "Connected" : "Disconnected"
     );
-    console.log("Socket object:", socket);
   }, [isConnected, socket]);
 
   useEffect(() => {
@@ -184,12 +183,10 @@ const Header: React.FC<HeaderProps> = ({
   const mobileSignUpButtonStyles =
     "bg-blue-600 text-white px-6 py-3.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-center mx-4 my-2";
 
-  // Get user profile picture or fallback to initials
   const getUserAvatar = () => {
     if (!user) return null;
 
-    // For regular users or fallback
-    return user.profilePictureUrl;
+    return user.profilePictureUrl || user.profilePicture;
   };
 
   const getUserInitials = () => {

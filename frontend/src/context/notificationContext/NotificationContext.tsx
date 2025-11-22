@@ -106,7 +106,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   useEffect(() => {
     if (!socket || !userId || !isConnected) {
-      console.log("Socket not available for notifications");
       return;
     }
 

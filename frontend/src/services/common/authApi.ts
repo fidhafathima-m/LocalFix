@@ -1,21 +1,40 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { AuthResponse, ForgotPasswordData, GoogleAuthData, LoginCredentials, OTPData, ResendOTPData, ResetPasswordData, SignupData } from "../../interface/user/IAuth";
+import type {
+  AuthResponse,
+  ForgotPasswordData,
+  GoogleAuthData,
+  LoginCredentials,
+  OTPData,
+  ResendOTPData,
+  ResetPasswordData,
+  SignupData,
+} from "../../interface/user/IAuth";
 import { AUTH_ROUTES } from "../../routes/authRoutes";
 import api from "../../utils/axiosConfig";
 
-
-
 const normalizeAuthResponse = (response: AuthResponse): AuthResponse => {
+  const userData =
+    response.data?.data?.user || response.data?.user || response.user;
+  const accessTokenData =
+    response.data?.data?.accessToken ||
+    response.data?.accessToken ||
+    response.accessToken;
+  const refreshTokenData =
+    response.data?.data?.refreshToken ||
+    response.data?.refreshToken ||
+    response.refreshToken;
+
   const normalized = {
     ...response,
-    user: response.data?.user || response.user,
-    accessToken: response.data?.accessToken || response.accessToken,
-    refreshToken: response.data?.refreshToken || response.refreshToken,
-    token:
-      response.data?.token ||
-      response.data?.data?.token ||
-      response.accessToken ||
-      response.token,
+    data: {
+      user: userData,
+      accessToken: accessTokenData,
+      refreshToken: refreshTokenData,
+    },
+    user: userData,
+    accessToken: accessTokenData,
+    refreshToken: refreshTokenData,
+    token: accessTokenData,
   };
 
   return normalized;
@@ -27,7 +46,7 @@ export const authAPI = {
       const response = await api.post<AuthResponse>(AUTH_ROUTES.REFRESH_TOKEN, {
         refreshToken,
       });
-      
+
       const normalized = {
         ...response.data,
         success: response.data.success,
@@ -39,7 +58,7 @@ export const authAPI = {
         accessToken: response.data.data?.accessToken,
         refreshToken: response.data.data?.refreshToken,
       };
-      
+
       return normalized;
     } catch (error: any) {
       if (error.response?.data) {
@@ -77,7 +96,10 @@ export const authAPI = {
         AUTH_ROUTES.LOGIN,
         credentials
       );
-      return normalizeAuthResponse(response.data);
+
+      const normalized = normalizeAuthResponse(response.data);
+
+      return normalized;
     } catch (error: any) {
       if (error.response?.data) {
         return normalizeAuthResponse(error.response.data);

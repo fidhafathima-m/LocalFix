@@ -36,6 +36,8 @@ const UserLogin: React.FC = () => {
         const userData: User = {
           _id: userDataFromResponse._id,
           fullName: userDataFromResponse.fullName,
+          profilePictureUrl: userDataFromResponse.profilePictureUrl,
+          profilePicture: userDataFromResponse.profilePicture,
           phone: userDataFromResponse.phone || "",
           email: userDataFromResponse.email || "",
           roles: userDataFromResponse.roles,
@@ -54,7 +56,10 @@ const UserLogin: React.FC = () => {
         );
 
         // Redirect to the original URL instead of home
-        setTimeout(() => navigate(from, { replace: true, state: location.state }), 1000);
+        setTimeout(
+          () => navigate(from, { replace: true, state: location.state }),
+          1000
+        );
 
         return { success: true, message: res.message };
       } else {
@@ -62,7 +67,8 @@ const UserLogin: React.FC = () => {
         return { success: false, message: res.message };
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error?.message : "Login failed";
+      const errorMessage =
+        error instanceof Error ? error?.message : "Login failed";
       dispatch(loginFailure(errorMessage));
       return { success: false, message: errorMessage };
     }

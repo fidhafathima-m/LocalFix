@@ -88,6 +88,9 @@ export class AuthService implements IAuthService {
               roles: existingUser.roles,
             },
           });
+          return ResponseHelper.conflict(
+            'Email already registered for this role. Please use a different email or try logging in.'
+          );
         }
       }
 
@@ -101,6 +104,9 @@ export class AuthService implements IAuthService {
               roles: existingUser.roles,
             },
           });
+          return ResponseHelper.conflict(
+            'Phone number already registered for this role. Please use a different phone number or try logging in.'
+          );
         }
       }
 
@@ -238,6 +244,7 @@ export class AuthService implements IAuthService {
           ...context,
           userId: user._id,
           existingRoles: user.roles,
+          profilePicture: user.profilePictureUrl || user.profilePicture,
         });
 
         // User exists, add new role if not already present
@@ -646,6 +653,8 @@ export class AuthService implements IAuthService {
         ...context,
         userId: user._id,
         userRoles: user.roles,
+        profilePictureUrl: user.profilePictureUrl,
+        profilePicture: user.profilePicture,
       });
 
       return ResponseHelper.success(AUTH_MESSAGES.LOGIN_SUCCESS, {
@@ -1645,6 +1654,8 @@ export class AuthService implements IAuthService {
       applicationStatus: user.applicationStatus || 'not-applied',
       isVerified: user.isVerified,
       status: user.status,
+      profilePictureUrl: user.profilePictureUrl,
+      profilePicture: user.profilePicture,
     };
   }
 

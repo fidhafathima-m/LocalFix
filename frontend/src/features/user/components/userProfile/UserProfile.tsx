@@ -23,7 +23,10 @@ import { EditAddressModal } from "./modals/EditAddressModal";
 import { AddMoneyModal } from "./modals/AddMoneyModal";
 import { WithdrawMoneyModal } from "./modals/WithdrawMoneyModal";
 import { useAppDispatch } from "../../../../hooks/redux";
-import { updateUser } from "../../../../store/slices/authSlice";
+import {
+  updateProfilePicture,
+  updateUser,
+} from "../../../../store/slices/authSlice";
 
 const UserProfile: React.FC = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -122,16 +125,27 @@ const UserProfile: React.FC = () => {
 
       if (response.success && response.data?.profilePictureUrl) {
         const newProfilePictureUrl = response.data.profilePictureUrl;
+
+        // Update local state
         setUserData((prev) =>
           prev
-            ? { ...prev, profilePicture: response.data.profilePictureUrl }
+            ? {
+                ...prev,
+                profilePicture: newProfilePictureUrl,
+                profilePictureUrl: newProfilePictureUrl,
+              }
             : null
         );
+
+        dispatch(updateProfilePicture(newProfilePictureUrl));
+
         dispatch(
           updateUser({
             profilePictureUrl: newProfilePictureUrl,
+            profilePicture: newProfilePictureUrl,
           })
         );
+
         toast.success("Profile picture updated successfully!");
       } else {
         toast.error(response.message || "Failed to upload profile picture");

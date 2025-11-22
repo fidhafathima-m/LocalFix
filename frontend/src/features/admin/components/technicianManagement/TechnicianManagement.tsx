@@ -80,7 +80,7 @@ const TechnicianManagement: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const itemsPerPage = 5;
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500)
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const {
     actionInProgress,
@@ -95,12 +95,12 @@ const TechnicianManagement: React.FC = () => {
   });
 
   useEffect(() => {
-      if (searchQuery !== debouncedSearchQuery) {
-        setSearchLoading(true);
-      } else {
-        setSearchLoading(false);
-      }
-    }, [searchQuery, debouncedSearchQuery]);
+    if (searchQuery !== debouncedSearchQuery) {
+      setSearchLoading(true);
+    } else {
+      setSearchLoading(false);
+    }
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Fetch technicians and applications
   const fetchData = async () => {
@@ -147,7 +147,9 @@ const TechnicianManagement: React.FC = () => {
           app.personal?.fullName
             ?.toLowerCase()
             .includes(debouncedSearchQuery.toLowerCase()) ||
-          app.email.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          app.email
+            .toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase()) ||
           app.personal?.phoneNumber?.includes(debouncedSearchQuery);
 
         const matchesService =
@@ -178,8 +180,12 @@ const TechnicianManagement: React.FC = () => {
 
         // Apply search and other filters
         const matchesSearch =
-          tech.displayName.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-          tech.user?.email?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          tech.displayName
+            .toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase()) ||
+          tech.user?.email
+            ?.toLowerCase()
+            .includes(debouncedSearchQuery.toLowerCase()) ||
           tech.user?.phone?.includes(debouncedSearchQuery) ||
           tech.workAreas.some((area) =>
             area.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
@@ -401,7 +407,7 @@ const TechnicianManagement: React.FC = () => {
             </td>
             <td className="px-6 py-4 whitespace-nowrap">
               <div className="text-sm text-gray-900">
-               {tech.phone || tech.user?.phone || "N/A"}
+                {tech.phone || tech.user?.phone || "N/A"}
               </div>
               <div className="text-sm text-gray-500">
                 {tech.user?.email || tech.email}
@@ -590,10 +596,10 @@ const TechnicianManagement: React.FC = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                   {searchLoading && (
-                      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                      </div>
-                    )}
+                    <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
                   <SearchOutlined className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
               </div>
@@ -631,21 +637,6 @@ const TechnicianManagement: React.FC = () => {
                         <option>5 Star</option>
                         <option>4+ Star</option>
                         <option>3+ Star</option>
-                      </select>
-                      <ExpandMoreOutlined className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="relative">
-                      <select className="appearance-none w-full pl-4 pr-10 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white">
-                        <option>All Locations</option>
-                        <option>Kannur</option>
-                        <option>Kochi</option>
-                        <option>Kollam</option>
-                        <option>Thiruvananthapuram</option>
-                        <option>Thrissur</option>
-                        <option>Malappuram</option>
-                        <option>Kozhikode</option>
                       </select>
                       <ExpandMoreOutlined className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
                     </div>

@@ -74,7 +74,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       // Connection established
       newSocket.on("connect", () => {
-        console.log("Connected to server - Socket ID:", newSocket.id);
+        console.log("Connected to server");
         setIsConnected(true);
         connectionAttemptsRef.current = 0;
         isConnectingRef.current = false;

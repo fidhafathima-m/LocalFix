@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { AdminSidebar } from "../adminDashboard/actions/AdminSidebar";
@@ -14,6 +15,8 @@ import ReviewsRatingsTab from "../../components/technicianManagement/tabs/Review
 import ActiveBookingsTab from "../../components/technicianManagement/tabs/ActiveBookingsTab";
 import type { TechnicianDetails } from "../../../../validation/types/technicianTypes";
 import { TechnicianMangementService } from "../../../../services/admin/TechnicianManagementService";
+import { OrderManagementService } from "../../../../services/admin/OrderManagementService";
+import { reviewService } from "../../../../services/user/reviewService";
 
 export const TechnicianProfile: React.FC = () => {
   const { technicianId } = useParams<{ technicianId: string }>();
@@ -22,6 +25,81 @@ export const TechnicianProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { technicians } = useAppSelector((state) => state.admin);
+
+  const [headerData, setHeaderData] = useState({
+    rating: 0,
+    jobsCompleted: 0,
+    totalEarnings: 0,
+    activeBookings: 0,
+  });
+
+  const calculateHeaderData = async (
+    techId: string,
+    techData?: TechnicianDetails
+  ) => {
+    try {
+      let correctRating = techData?.averageRating || 0;
+      try {
+        const statsResponse = await reviewService.getTechnicianReviewStats(
+          techId
+        );
+        if (statsResponse.success && statsResponse.data) {
+          correctRating = statsResponse.data.averageRating || correctRating;
+        }
+      } catch (reviewError) {
+        console.error(
+          "Using rating from technician data:",
+          correctRating,
+          reviewError
+        );
+      }
+
+      const response = await OrderManagementService.getOrdersByTechnician(
+        techId,
+        1,
+        100
+      );
+
+      const orders = response.orders || [];
+
+      const completedOrders = orders.filter(
+        (order: any) => order.status === "completed"
+      );
+      const activeOrders = orders.filter((order: any) =>
+        [
+          "pending",
+          "confirmed",
+          "in_progress",
+          "accepted",
+          "on_the_way",
+        ].includes(order.status)
+      );
+
+      const totalEarnings = completedOrders.reduce(
+        (total: number, order: any) => total + (order.totalAmount || 0),
+        0
+      );
+
+      const headerDataToSet = {
+        rating: correctRating,
+        jobsCompleted: completedOrders.length,
+        totalEarnings: totalEarnings,
+        activeBookings: activeOrders.length,
+      };
+
+      setHeaderData(headerDataToSet);
+    } catch (error) {
+      console.error("Error calculating header data:", error);
+      // Fallback to technician data if available
+      const headerDataToSet = {
+        rating: techData?.averageRating || 0,
+        jobsCompleted: techData?.completedJobs || techData?.totalJobs || 0,
+        totalEarnings: techData?.totalEarnings || 0,
+        activeBookings: techData?.ongoingJobs || 0,
+      };
+      setHeaderData(headerDataToSet);
+    }
+  };
 
   const getActiveTab = (): string => {
     const pathSegments = location.pathname.split("/");
@@ -70,10 +148,15 @@ export const TechnicianProfile: React.FC = () => {
         (t) => t._id === technicianId
       );
       if (existingTechnician) {
-        setTechnician(existingTechnician as TechnicianDetails);
+        const techData = existingTechnician as TechnicianDetails;
+        setTechnician(techData);
+        calculateHeaderData(technicianId, techData);
         setLoading(false);
         return;
       }
+    }
+    if (technicianId && !technician) {
+      fetchTechnicianDetails();
     }
   }, [technicianId, technicians]);
 
@@ -91,7 +174,9 @@ export const TechnicianProfile: React.FC = () => {
       );
 
       if (response.data.success && response.data.data) {
-        setTechnician(response.data.data.technician);
+        const techData = response.data.data.technician || response.data.data;
+        setTechnician(techData);
+        await calculateHeaderData(technicianId, techData);
       } else {
         throw new Error(
           response.data.message || "Failed to load technician details"
@@ -175,10 +260,10 @@ export const TechnicianProfile: React.FC = () => {
           isApproved={technician.status === "approved"}
           isRejected={technician.status === "rejected"}
           isSuspended={technician.status === "suspended"}
-          rating={technician.averageRating}
-          jobsCompleted={technician.completedJobs || 0}
-          totalEarnings={technician.totalEarnings || 0}
-          activeBookings={technician.ongoingJobs || 0}
+          rating={headerData.rating}
+          jobsCompleted={headerData.jobsCompleted}
+          totalEarnings={headerData.totalEarnings}
+          activeBookings={headerData.activeBookings}
           profilePictureUrl={getProfilePictureUrl(technician)}
         />
 
@@ -259,7 +344,7 @@ export const TechnicianProfile: React.FC = () => {
             <ActiveBookingsTab technician={technician} />
           )}
 
-          {/* Admin Actions - Dynamic based on status */}
+          {/* Admin Actions */}
           <AdminActions
             type={getAdminActionsType()}
             technicianId={technician._id}
