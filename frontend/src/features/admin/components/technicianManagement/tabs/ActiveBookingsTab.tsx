@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import type { TechnicianDetails } from "../../../../../validation/types/technicianTypes";
 import { OrderManagementService } from "../../../../../services/admin/OrderManagementService";
-import { formatDateTime} from "../utils/dateUtils";
+import { formatDateTime } from "../utils/dateUtils";
 import {
   CalendarTodayOutlined,
   FmdGoodOutlined,
   AccessTime,
+  AccessAlarmOutlined,
 } from "@mui/icons-material";
 
 interface ActiveBookingsTabProps {
@@ -51,19 +52,25 @@ const ActiveBookingsTab: React.FC<ActiveBookingsTabProps> = ({
         setError(null);
 
         // Fetch all orders for this technician
-        const response = await OrderManagementService.getOrdersByTechnician(technician._id, 1, 100);
-        
+        const response = await OrderManagementService.getOrdersByTechnician(
+          technician._id,
+          1,
+          100
+        );
+
         const orders = response.orders || response.data?.orders || [];
 
         // Filter active orders (pending, accepted, in_progress, on_the_way)
         const active = orders.filter((order: Order) =>
-          ["pending", "accepted", "in_progress", "on_the_way"].includes(order.status)
+          ["pending", "accepted", "in_progress", "on_the_way"].includes(
+            order.status
+          )
         );
 
         setActiveOrders(active);
       } catch (err) {
-        console.error('Error fetching active orders:', err);
-        setError('Failed to load active bookings');
+        console.error("Error fetching active orders:", err);
+        setError("Failed to load active bookings");
       } finally {
         setLoading(false);
       }
@@ -76,13 +83,13 @@ const ActiveBookingsTab: React.FC<ActiveBookingsTabProps> = ({
 
   const getCustomerInfo = (order: Order) => {
     try {
-      if (order.userId && typeof order.userId === 'object') {
+      if (order.userId && typeof order.userId === "object") {
         return {
           name: order.userId.fullName || "Customer",
           phone: order.userId.phone || "Not provided",
           email: order.userId.email || "Not provided",
         };
-      } else if (typeof order.userId === 'string') {
+      } else if (typeof order.userId === "string") {
         const fullNameMatch = order.userId.match(/fullName:\s*'([^']+)'/);
         const phoneMatch = order.userId.match(/phone:\s*'([^']+)'/);
         const emailMatch = order.userId.match(/email:\s*'([^']+)'/);
@@ -188,7 +195,8 @@ const ActiveBookingsTab: React.FC<ActiveBookingsTabProps> = ({
         <h2 className="text-lg font-medium">Active Bookings</h2>
         {activeOrders.length > 0 && (
           <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium">
-            {activeOrders.length} {activeOrders.length === 1 ? "Booking" : "Bookings"}
+            {activeOrders.length}{" "}
+            {activeOrders.length === 1 ? "Booking" : "Bookings"}
           </span>
         )}
       </div>
@@ -205,7 +213,7 @@ const ActiveBookingsTab: React.FC<ActiveBookingsTabProps> = ({
         <div className="space-y-4">
           {activeOrders.map((order) => {
             const customerInfo = getCustomerInfo(order);
-            
+
             return (
               <div
                 key={order._id}
@@ -226,7 +234,7 @@ const ActiveBookingsTab: React.FC<ActiveBookingsTabProps> = ({
                         {getStatusText(order.status)}
                       </span>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-gray-600 mb-1">
@@ -242,14 +250,21 @@ const ActiveBookingsTab: React.FC<ActiveBookingsTabProps> = ({
                       <div>
                         <p className="text-gray-600 mb-1 flex items-center">
                           <CalendarTodayOutlined className="h-4 w-4 mr-1 text-gray-400" />
-                          <strong>When:</strong> {formatDateTime(order.scheduledAt)}
+                          <strong>When:</strong>{" "}
+                          {formatDateTime(order.scheduledAt)}
                         </p>
                         <p className="text-gray-600 mb-1">
+                          <AccessAlarmOutlined className="h-4 w-4 mr-1 text-gray-400" />
                           <strong>Time Slot:</strong> {order.timeSlot}
                         </p>
                         <p className="text-gray-600 flex items-center">
                           <FmdGoodOutlined className="h-4 w-4 mr-1 text-gray-400" />
-                          <strong>Address:</strong> {order.address.street}, {order.address.city}
+                          <strong>Address:</strong>{" "}
+                          {order.address
+                            ? `${order.address.street || ""}, ${
+                                order.address.city || ""
+                              }`.trim()
+                            : "Address not available"}
                         </p>
                       </div>
                     </div>
@@ -257,7 +272,8 @@ const ActiveBookingsTab: React.FC<ActiveBookingsTabProps> = ({
                     {order.problemDescription && (
                       <div className="mt-3 p-3 bg-gray-50 rounded">
                         <p className="text-sm text-gray-600">
-                          <strong>Problem Description:</strong> {order.problemDescription}
+                          <strong>Problem Description:</strong>{" "}
+                          {order.problemDescription}
                         </p>
                       </div>
                     )}
@@ -305,27 +321,41 @@ const ActiveBookingsTab: React.FC<ActiveBookingsTabProps> = ({
       {/* Summary Stats */}
       {activeOrders.length > 0 && (
         <div className="mt-6 pt-6 border-t border-gray-200">
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Booking Summary</h3>
+          <h3 className="text-sm font-medium text-gray-900 mb-3">
+            Booking Summary
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-lg font-bold text-blue-800">{activeOrders.length}</p>
+              <p className="text-lg font-bold text-blue-800">
+                {activeOrders.length}
+              </p>
               <p className="text-xs text-blue-600">Total Active</p>
             </div>
             <div className="text-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <p className="text-lg font-bold text-yellow-800">
-                {activeOrders.filter(order => order.status === "pending").length}
+                {
+                  activeOrders.filter((order) => order.status === "pending")
+                    .length
+                }
               </p>
               <p className="text-xs text-yellow-600">Pending</p>
             </div>
             <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-lg font-bold text-blue-800">
-                {activeOrders.filter(order => order.status === "accepted").length}
+                {
+                  activeOrders.filter((order) => order.status === "accepted")
+                    .length
+                }
               </p>
               <p className="text-xs text-blue-600">Confirmed</p>
             </div>
             <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
               <p className="text-lg font-bold text-purple-800">
-                {activeOrders.filter(order => ["in_progress", "on_the_way"].includes(order.status)).length}
+                {
+                  activeOrders.filter((order) =>
+                    ["in_progress", "on_the_way"].includes(order.status)
+                  ).length
+                }
               </p>
               <p className="text-xs text-purple-600">In Progress</p>
             </div>

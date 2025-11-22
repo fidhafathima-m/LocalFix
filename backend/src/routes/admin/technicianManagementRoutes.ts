@@ -1,89 +1,133 @@
-import { admin, protect } from "../../middleware/authMiddleware";
-import { Router } from "express";
+import { technicianManagementSubscriptionController } from '../../config/container';
+import { admin, protect } from '../../middleware/authMiddleware';
+import { Router } from 'express';
 
 export const createTechnicianRoutes = (technicianManagementController: any) => {
   const router = Router();
 
-  router.get("/public", technicianManagementController.getPublicTechnicians);
+  router.get('/public', technicianManagementController.getPublicTechnicians);
   router.get(
-    "/public/service/:service",
-    technicianManagementController.getTechniciansByService,
+    '/public/service/:service',
+    technicianManagementController.getTechniciansByService
   );
   router.get(
-    "/public/:id",
-    technicianManagementController.getPublicTechnicianById,
+    '/public/:id',
+    technicianManagementController.getPublicTechnicianById
   );
   router.get(
-    "/public/:technicianId/availability",
-    technicianManagementController.getTechnicianPublicAvailability,
+    '/public/:technicianId/availability',
+    technicianManagementController.getTechnicianPublicAvailability
   );
 
   router.get(
-    "/",
+    '/',
     protect,
     admin,
-    technicianManagementController.getAllTechnicians,
+    technicianManagementController.getAllTechnicians
   );
   router.get(
-    "/stats",
+    '/stats',
     protect,
     admin,
-    technicianManagementController.getTechnicianStats,
+    technicianManagementController.getTechnicianStats
   );
   router.get(
-    "/:id",
+    '/:id',
     protect,
     admin,
-    technicianManagementController.getTechnicianById,
+    technicianManagementController.getTechnicianById
   );
   router.patch(
-    "/:id/status",
+    '/:id/status',
     protect,
     admin,
-    technicianManagementController.updateTechnicianStatus,
+    technicianManagementController.updateTechnicianStatus
   );
 
   // APPLICATION MANAGEMENT ROUTES
   router.get(
-    "/applications/pending",
+    '/applications/pending',
     protect,
     admin,
-    technicianManagementController.getPendingApplications,
+    technicianManagementController.getPendingApplications
   );
   router.get(
-    "/applications/stats",
+    '/applications/stats',
     protect,
     admin,
-    technicianManagementController.getApplicationStats,
+    technicianManagementController.getApplicationStats
   );
   router.get(
-    "/applications/:id",
+    '/applications/:id',
     protect,
     admin,
-    technicianManagementController.getApplicationById,
+    technicianManagementController.getApplicationById
   );
   router.patch(
-    "/applications/:id/approve",
+    '/applications/:id/approve',
     protect,
     admin,
-    technicianManagementController.approveApplication,
+    technicianManagementController.approveApplication
   );
   router.patch(
-    "/applications/:id/reject",
+    '/applications/:id/reject',
     protect,
     admin,
-    technicianManagementController.rejectApplication,
+    technicianManagementController.rejectApplication
   );
 
   // SLOT RULES & AVAILABILITY ROUTES
   router.get(
-    "/:id/slot-rules",
-    technicianManagementController.getTechnicianSlotRules,
+    '/:id/slot-rules',
+    technicianManagementController.getTechnicianSlotRules
   );
 
   router.get(
-    "/:id/availability",
-    technicianManagementController.getTechnicianAvailability,
+    '/:id/availability',
+    technicianManagementController.getTechnicianAvailability
+  );
+
+  // SUBSCRIPTION ROUTES
+  router.get(
+    '/technician-subscriptions',
+    protect,
+    admin,
+    technicianManagementSubscriptionController.getTechnicianSubscriptions
+  );
+
+  router.get(
+    '/technician-subscriptions/stats',
+    protect,
+    admin,
+    technicianManagementSubscriptionController.getSubscriptionStats
+  );
+
+  router.get(
+    '/technician-subscriptions/:id',
+    protect,
+    admin,
+    technicianManagementSubscriptionController.getSubscriptionById
+  );
+
+  router.get(
+    '/:technicianId/subscriptions',
+    protect,
+    admin,
+    technicianManagementSubscriptionController.getSubscriptionsByTechnician
+  );
+
+  router.get(
+    '/:technicianId/subscriptions/current',
+    protect,
+    admin,
+    technicianManagementSubscriptionController.getTechnicianCurrentSubscription
+  );
+
+  router.patch(
+    '/technician-subscriptions/:id/status',
+    protect,
+    admin,
+    technicianManagementSubscriptionController.updateSubscriptionStatus
   );
 
   return router;

@@ -37,6 +37,10 @@ export const TechnicianProfileTabs: React.FC<TechnicianProfileTabsProps> = ({
       id: "active-bookings",
       name: "Active Bookings",
     },
+    {
+      id: "subscription",
+      name: "Subscriptions",
+    },
   ];
   return (
     <div className="border-b border-gray-200">

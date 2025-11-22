@@ -17,6 +17,7 @@ import type { TechnicianDetails } from "../../../../validation/types/technicianT
 import { TechnicianMangementService } from "../../../../services/admin/TechnicianManagementService";
 import { OrderManagementService } from "../../../../services/admin/OrderManagementService";
 import { reviewService } from "../../../../services/user/reviewService";
+import { SubscriptionTab } from "./tabs/Subscription/SubscriptionTab";
 
 export const TechnicianProfile: React.FC = () => {
   const { technicianId } = useParams<{ technicianId: string }>();
@@ -342,6 +343,9 @@ export const TechnicianProfile: React.FC = () => {
           )}
           {activeTab === "active-bookings" && (
             <ActiveBookingsTab technician={technician} />
+          )}
+          {activeTab === "subscription" && (
+            <SubscriptionTab technician={technician} />
           )}
 
           {/* Admin Actions */}

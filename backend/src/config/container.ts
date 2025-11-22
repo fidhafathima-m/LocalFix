@@ -95,6 +95,9 @@ import { TechnicianChatController } from '../controllers/technician/technicianCh
 import { MessageRepository } from '../repositories/user/MessageRepository';
 import { MessageService } from '../services/MessageService';
 import { MessageController } from '../controllers/user/messageController';
+import { TechnicianManagementSubscriptionRepository } from '../repositories/admin/TechnicianManagementSubscriptionRepository';
+import { TechnicianManagementSubscriptionService } from '../services/TechnicianManagementSubscriptionService';
+import { TechnicianManagementSubscriptionController } from '../controllers/admin/technicianManagementSubscriptionController';
 
 const loggerService = new LoggerService();
 
@@ -330,6 +333,19 @@ const messageRepository = new MessageRepository();
 const messageService = new MessageService(messageRepository);
 const messageController = new MessageController(messageService, loggerService);
 
+const technicianManagementSubscriptionRepository =
+  new TechnicianManagementSubscriptionRepository();
+const technicianManagementSubscriptionService =
+  new TechnicianManagementSubscriptionService(
+    technicianManagementSubscriptionRepository,
+    loggerService
+  );
+const technicianManagementSubscriptionController =
+  new TechnicianManagementSubscriptionController(
+    technicianManagementSubscriptionService,
+    loggerService
+  );
+
 export const createSocketDependentServices = (server: any) => {
   const socketService = new SocketService(
     server,
@@ -514,4 +530,7 @@ export {
   messageRepository,
   messageService,
   messageController,
+  technicianManagementSubscriptionRepository,
+  technicianManagementSubscriptionService,
+  technicianManagementSubscriptionController,
 };

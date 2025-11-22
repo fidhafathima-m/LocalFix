@@ -74,7 +74,6 @@ const TechnicianManagement: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All Services");
-  const [ratingFilter, setRatingFilter] = useState("All Ratings");
   const [activeTab, setActiveTab] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -195,13 +194,7 @@ const TechnicianManagement: React.FC = () => {
           serviceFilter === "All Services" ||
           tech.services.includes(serviceFilter);
 
-        const matchesRating =
-          ratingFilter === "All Ratings" ||
-          (ratingFilter === "5 Star" && tech.averageRating >= 4.8) ||
-          (ratingFilter === "4+ Star" && tech.averageRating >= 4.0) ||
-          (ratingFilter === "3+ Star" && tech.averageRating >= 3.0);
-
-        return matchesSearch && matchesService && matchesRating;
+        return matchesSearch && matchesService;
       });
     }
   };
@@ -220,7 +213,7 @@ const TechnicianManagement: React.FC = () => {
   // Reset to page 1 when filters or tab change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchQuery, serviceFilter, ratingFilter, activeTab]);
+  }, [debouncedSearchQuery, serviceFilter, activeTab]);
 
   // Count calculations
   const pendingApplications = applications.length;
@@ -622,25 +615,6 @@ const TechnicianManagement: React.FC = () => {
                     <option>Geyser/Water Heater</option>
                   </select>
                   <ExpandMoreOutlined className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-              <div className="md:col-start-2 md:col-span-2">
-                <div className="flex space-x-4">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <select
-                        className="appearance-none w-full pl-4 pr-10 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
-                        value={ratingFilter}
-                        onChange={(e) => setRatingFilter(e.target.value)}
-                      >
-                        <option>All Ratings</option>
-                        <option>5 Star</option>
-                        <option>4+ Star</option>
-                        <option>3+ Star</option>
-                      </select>
-                      <ExpandMoreOutlined className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
