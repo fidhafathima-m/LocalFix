@@ -43,18 +43,37 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     technicianId || technicianProfile?._id || authUser?._id;
 
   // Check if spare parts request already exists
+  // Check if spare parts request already exists
   useEffect(() => {
     const checkExistingRequest = async () => {
       if (!order._id) return;
 
       try {
         setLoading(true);
-        const request = await SparePartsService.getSparePartsRequestsByOrder(
+        const response = await SparePartsService.getSparePartsRequestsByOrder(
           order._id
         );
-        setHasExistingRequest(!!request);
+
+        console.log("Spare parts request check response:", response);
+
+        // Handle different response structures
+        if (response && Array.isArray(response)) {
+          // If it returns an array, check if there's at least one request
+          setHasExistingRequest(response.length > 0);
+        } else if (response && typeof response === "object") {
+          // If it returns an object with data array
+          const requests = response.data || response.requests || response;
+          if (Array.isArray(requests)) {
+            setHasExistingRequest(requests.length > 0);
+          } else {
+            setHasExistingRequest(!!requests);
+          }
+        } else {
+          setHasExistingRequest(false);
+        }
       } catch (error) {
         console.error("Error checking spare parts request:", error);
+        setHasExistingRequest(false);
       } finally {
         setLoading(false);
       }
@@ -62,6 +81,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
     if (order.status === "in_progress" || order.status === "on_the_way") {
       checkExistingRequest();
+    } else {
+      // Reset for other statuses
+      setHasExistingRequest(false);
     }
   }, [order._id, order.status]);
 
@@ -468,15 +490,65 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   // Simple function to render spare parts button only if no existing request
   const renderSparePartsButton = () => {
-    if (loading || hasExistingRequest) {
+    console.log("🔧 Spare parts button conditions:", {
+      loading,
+      hasExistingRequest,
+      orderStatus: order.status,
+      canShow:
+        !loading &&
+        !hasExistingRequest &&
+        (order.status === "in_progress" || order.status === "on_the_way"),
+    });
+
+    if (loading) {
+      console.log("❌ Not showing - loading");
+      return (
+        <button
+          disabled
+          className="w-full bg-gray-400 text-white py-3 rounded-lg font-medium cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          Checking Spare Parts...
+        </button>
+      );
+    }
+
+    if (hasExistingRequest) {
+      console.log("❌ Not showing - existing request found");
+      return (
+        <button
+          disabled
+          className="w-full bg-gray-400 text-white py-3 rounded-lg font-medium cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          Spare Parts Requested ✓
+        </button>
+      );
+    }
+
+    // Only show for specific statuses
+    if (order.status !== "in_progress" && order.status !== "on_the_way") {
+      console.log("❌ Not showing - wrong status:", order.status);
       return null;
     }
 
+    console.log("✅ Showing spare parts button");
     return (
       <button
         onClick={() => setShowSparePartsModal(true)}
         className="w-full bg-pink-600 text-white py-3 rounded-lg font-medium hover:bg-pink-700 transition-colors flex items-center justify-center gap-2"
       >
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
         Request Spare Parts
       </button>
     );

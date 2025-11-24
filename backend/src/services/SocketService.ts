@@ -462,7 +462,7 @@ export class SocketService {
       return this.sendLiveNotification(technicianId, {
         userId: technicianId,
         userType: 'technician',
-        type: 'application_status',
+        type: 'application_approved',
         title: messageConfig.title,
         message: messageConfig.message,
         priority: 'high',
