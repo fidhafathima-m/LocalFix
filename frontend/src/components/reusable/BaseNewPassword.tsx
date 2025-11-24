@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 
 export type UserType = "user" | "serviceProvider" | "admin";
@@ -17,7 +16,7 @@ export interface BaseNewPasswordProps {
   userType: UserType;
   onSubmit: (
     data: NewPasswordFormData
-  ) => Promise<{ success: boolean; message?: string; error?: any }> | void;
+  ) => Promise<{ success: boolean; message?: string; error?: unknown }> | void;
   onSuccess?: (data: NewPasswordFormData) => void;
   onFailure?: (error: string) => void;
   loading?: boolean;
@@ -140,9 +139,10 @@ const BaseNewPassword: React.FC<BaseNewPasswordProps> = ({
       } else {
         onSuccess?.(formData);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Password reset error:", error);
-      const errorMessage = error.message || "Password reset failed";
+      const errorMessage =
+        error instanceof Error ? error.message : "Password reset failed";
       setErrors({ password: errorMessage });
       onFailure?.(errorMessage);
     } finally {

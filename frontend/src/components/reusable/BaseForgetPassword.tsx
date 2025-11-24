@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -21,7 +20,7 @@ export interface BaseForgetPasswordProps {
     phone?: string;
     email?: string;
     userType: UserType;
-  }) => Promise<{ success: boolean; message?: string; error?: any }>;
+  }) => Promise<{ success: boolean; message?: string; error?: unknown }>;
   onSuccess?: (data: ForgetPasswordFormData) => void;
   onFailure?: (error: string) => void;
   loading?: boolean;
@@ -163,9 +162,10 @@ const BaseForgetPassword: React.FC<BaseForgetPasswordProps> = ({
         toast.error(errorMessage);
         onFailure?.(errorMessage);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Forgot password error:", error);
-      const errorMessage = error.message || "Failed to send OTP";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to send OTP";
       toast.error(errorMessage);
       onFailure?.(errorMessage);
     } finally {

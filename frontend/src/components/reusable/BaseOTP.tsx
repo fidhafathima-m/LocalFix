@@ -127,7 +127,7 @@ const BaseOTP: React.FC<BaseOTPProps> = ({
 
         if (result.redirectPath) {
           navigate(result.redirectPath, { replace: true });
-        } 
+        }
       } else {
         const errorMessage = result.message || "OTP verification failed";
         setError(errorMessage);

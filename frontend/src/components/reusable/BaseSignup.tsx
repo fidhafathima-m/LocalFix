@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -30,7 +29,7 @@ interface BaseSignUpProps {
     phone?: string;
     password: string;
     userType: "user" | "serviceProvider"; // Keep as string for backend
-  }) => Promise<{ success: boolean; message?: string; error?: any }>;
+  }) => Promise<{ success: boolean; message?: string; error?: unknown }>;
   onSuccess?: (data: SignUpFormData) => void;
   onFailure?: (error: string) => void;
   loading?: boolean;
@@ -142,9 +141,10 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
         toast.error(errorMessage);
         onFailure?.(errorMessage);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Signup error:", error);
-      const errorMessage = error.message || "Sign up failed";
+      const errorMessage =
+        error instanceof Error ? error.message : "Sign up failed";
       toast.error(errorMessage);
       onFailure?.(errorMessage);
     }

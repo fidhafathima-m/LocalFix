@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -73,7 +72,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         .filter((notif) => !notif.isRead)
         .slice(0, 3);
       setRecentNotifications(unreadNotifications);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load notifications:", err);
     } finally {
       setLoadingNotifications(false);
@@ -86,7 +85,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       setRecentNotifications([]);
       contextMarkAllAsRead();
       toast.success("All notifications marked as read");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to mark all notifications as read:", err);
       toast.error("Failed to mark all notifications as read");
     }

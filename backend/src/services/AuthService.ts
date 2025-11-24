@@ -626,7 +626,7 @@ export class AuthService implements IAuthService {
           ...context,
           userId: user._id,
         });
-        return ResponseHelper.unauthorized(AUTH_MESSAGES.INVALID_CREDENTIALS);
+        return ResponseHelper.notFound(AUTH_MESSAGES.INVALID_CREDENTIALS);
       }
 
       this._logger.info('Password verified successfully, generating tokens', {
@@ -1126,10 +1126,14 @@ export class AuthService implements IAuthService {
         }
       );
 
-      return ResponseHelper.success(AUTH_MESSAGES.OTP_SENT, {
+      // Return the token in the expected structure
+      return ResponseHelper.success(AUTH_MESSAGES.OTP_VERIFIED, {
         token: tempToken,
+        // Add these fields to match frontend expectations
+        accessToken: tempToken, // Some frontends expect this
         userType: userType,
         identifier: phone || email,
+        redirectPath: `/reset-password?token=${tempToken}&userType=${userType}&identifier=${encodeURIComponent(phone || email!)}`,
       });
     } catch (error: unknown) {
       const errorMessage =

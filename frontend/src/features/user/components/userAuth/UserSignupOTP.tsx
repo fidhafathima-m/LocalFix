@@ -2,13 +2,13 @@ import React from "react";
 import { useLocation } from "react-router-dom";
 import { useAppDispatch } from "../../../../hooks/redux";
 import { loginSuccess, type User } from "../../../../store/slices/authSlice";
-import { type OTPData } from "../../../../services/common/authApi";
 import BaseOTP, {
   type OTPFormData,
   type UserType,
   type OTPContext,
 } from "../../../../components/reusable/BaseOTP";
 import { UserAuthService } from "../../../../services/user/userAuthService";
+import type { OTPData } from "../../../../interface/user/IAuth";
 
 interface LocationState {
   phone?: string;
@@ -51,7 +51,6 @@ const UserSignupOTP: React.FC = () => {
 
     const res = await UserAuthService.verifyOTP(otpData);
 
-
     if (!res.success) {
       throw new Error(res.message || "OTP verification failed");
     }
@@ -69,6 +68,8 @@ const UserSignupOTP: React.FC = () => {
     const userWithRoles: User = {
       _id: userData._id,
       fullName: userData.fullName,
+      profilePicture: userData.profilePicture,
+      profilePictureUrl: userData.profilePictureUrl,
       phone: userData.phone || "",
       email: userData.email || "",
       roles: userData.roles || [],
@@ -79,6 +80,8 @@ const UserSignupOTP: React.FC = () => {
       _id: userData._id,
       fullName: userData.fullName,
       phone: userData.phone || "",
+      profilePicture: userData.profilePicture || "",
+      profilePictureUrl: userData.profilePictureUrl || "",
       email: userData.email || "",
       roles: userData.roles || ["user"],
       isVerified: userData.isVerified || false,
