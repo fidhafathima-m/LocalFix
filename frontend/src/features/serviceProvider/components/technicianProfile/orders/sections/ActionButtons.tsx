@@ -54,8 +54,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           order._id
         );
 
-        console.log("Spare parts request check response:", response);
-
         // Handle different response structures
         if (response && Array.isArray(response)) {
           // If it returns an array, check if there's at least one request
@@ -476,7 +474,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       setShowSparePartsModal(false);
       setHasExistingRequest(true);
 
-      console.log("Spare parts request created:", response);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Failed to submit spare parts request:", error);
@@ -490,18 +487,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   // Simple function to render spare parts button only if no existing request
   const renderSparePartsButton = () => {
-    console.log("🔧 Spare parts button conditions:", {
-      loading,
-      hasExistingRequest,
-      orderStatus: order.status,
-      canShow:
-        !loading &&
-        !hasExistingRequest &&
-        (order.status === "in_progress" || order.status === "on_the_way"),
-    });
-
     if (loading) {
-      console.log("❌ Not showing - loading");
       return (
         <button
           disabled
@@ -513,7 +499,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     }
 
     if (hasExistingRequest) {
-      console.log("❌ Not showing - existing request found");
       return (
         <button
           disabled
@@ -526,11 +511,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
     // Only show for specific statuses
     if (order.status !== "in_progress" && order.status !== "on_the_way") {
-      console.log("❌ Not showing - wrong status:", order.status);
       return null;
     }
 
-    console.log("✅ Showing spare parts button");
     return (
       <button
         onClick={() => setShowSparePartsModal(true)}
