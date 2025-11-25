@@ -3,7 +3,7 @@ import {
   CreateCategoryDto,
   UpdateCategoryDto,
   CategoryListResponseDto,
-} from "../../dtos/categoryDtos";
+} from '../../dtos/categoryDtos';
 
 export interface ICategoryService {
   createCategory(createDto: CreateCategoryDto): Promise<CategoryResponseDto>;
@@ -12,7 +12,8 @@ export interface ICategoryService {
   getAllCategories(
     page?: number,
     limit?: number,
-    search?: string
+    search?: string,
+    status?: string
   ): Promise<CategoryListResponseDto>;
   updateCategory(
     categoryId: string,

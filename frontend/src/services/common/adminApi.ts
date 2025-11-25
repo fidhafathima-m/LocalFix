@@ -164,9 +164,19 @@ export const adminAPI = {
     ),
 
   // Categories
-  getCategories: (page: number = 1, limit: number = 10, search?: string) =>
+  getCategories: (
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    status?: string
+  ) =>
     api.get<ApiResponse<CategoriesResponse>>(ADMIN_ROUTES.CATEGORIES, {
-      params: { page, limit, search },
+      params: {
+        page,
+        limit,
+        search: search || undefined,
+        status: status || undefined,
+      },
     }),
 
   getCategoryById: (categoryId: string) =>
@@ -205,21 +215,32 @@ export const adminAPI = {
     categoryId: string,
     page: number = 1,
     limit: number = 10,
-    search?: string
-  ) =>
-    api.get<ApiResponse<ServicesResponse>>(
+    search?: string,
+    status?: string
+  ) => {
+    const params: any = { page, limit };
+
+    if (search && search.trim()) {
+      params.search = search;
+    }
+
+    if (status && status.trim()) {
+      params.status = status;
+    }
+
+    return api.get<ApiResponse<ServicesResponse>>(
       ADMIN_ROUTES.SERVICES_BY_CATEGORY(categoryId),
-      {
-        params: { page, limit, search },
-      }
-    ),
+      { params }
+    );
+  },
 
   getAllServices: (
     page: number = 1,
     limit: number = 10,
     search?: string,
     sortBy?: string,
-    sortOrder?: string
+    sortOrder?: string,
+    status?: string
   ) =>
     api.get<ApiResponse<ServicesResponse>>(ADMIN_ROUTES.SERVICES, {
       params: {
@@ -228,6 +249,7 @@ export const adminAPI = {
         search,
         sortBy,
         sortOrder,
+        status,
       },
     }),
 

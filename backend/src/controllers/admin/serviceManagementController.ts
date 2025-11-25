@@ -194,6 +194,7 @@ export class ServiceManagementController {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
+    const status = req.query.status as string;
 
     const context = {
       operation: 'getServicesByCategoryId',
@@ -211,7 +212,8 @@ export class ServiceManagementController {
         categoryId,
         page,
         limit,
-        search
+        search,
+        status
       );
 
       this._logger.info('Services by category retrieved successfully', {
@@ -246,6 +248,7 @@ export class ServiceManagementController {
     const search = req.query.search as string;
     const sortBy = (req.query.sortBy as string) || 'name';
     const sortOrder = (req.query.sortOrder as string) || 'asc';
+    const status = req.query.status as string;
 
     const context = {
       operation: 'getAllServices',
@@ -254,6 +257,7 @@ export class ServiceManagementController {
       search,
       sortBy,
       sortOrder,
+      status,
       timestamp: new Date().toISOString(),
     };
 
@@ -265,7 +269,8 @@ export class ServiceManagementController {
         limit,
         search,
         sortBy,
-        sortOrder
+        sortOrder,
+        status
       );
 
       this._logger.info('All services retrieved successfully', {

@@ -11,12 +11,16 @@ import {
   DeleteOutlineOutlined,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import type { Category, CreateCategoryData, UpdateCategoryData } from "../../../../interface/admin/IAdminApi";
+import type {
+  Category,
+  CreateCategoryData,
+  UpdateCategoryData,
+} from "../../../../interface/admin/IAdminApi";
 import { CategoryManagementService } from "../../../../services/admin/CategoryManagementService";
 import { AdminSidebar } from "../adminDashboard/actions/AdminSidebar";
 import { AddCategoryModal } from "./modals/AddCategoryModal";
 import { EditCategoryModal } from "./modals/EditCategoryModal";
-import Search from "../adminDashboard/actions/Search"
+import Search from "../adminDashboard/actions/Search";
 import { useDebounce } from "../../../../hooks/useDebounce";
 
 const CategoryManagement: React.FC = () => {
@@ -43,22 +47,27 @@ const CategoryManagement: React.FC = () => {
   const categoriesPerPage = 10;
 
   useEffect(() => {
-      if (searchQuery !== debouncedSearchQuery) {
-        setSearchLoading(true);
-      } else {
-        setSearchLoading(false);
-      }
-    }, [searchQuery, debouncedSearchQuery]);
+    if (searchQuery !== debouncedSearchQuery) {
+      setSearchLoading(true);
+    } else {
+      setSearchLoading(false);
+    }
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Update the loadCategories function
-  const loadCategories = async (page: number = 1, search?: string) => {
+  const loadCategories = async (
+    page: number = 1,
+    search?: string,
+    status?: string
+  ) => {
     try {
       setLoading(true);
 
       const response = await CategoryManagementService.getCategories(
         page,
         categoriesPerPage,
-        search
+        search,
+        status !== "All Status" ? status : undefined // Only send if not 'All Status'
       );
 
       if (response && Array.isArray(response.categories)) {
@@ -85,8 +94,12 @@ const CategoryManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    loadCategories(currentPage, debouncedSearchQuery);
-  }, [currentPage, debouncedSearchQuery]);
+    loadCategories(
+      currentPage,
+      debouncedSearchQuery,
+      statusFilter !== "All Status" ? statusFilter : undefined
+    );
+  }, [currentPage, debouncedSearchQuery, statusFilter]);
 
   useEffect(() => {
     setCurrentPage(1);

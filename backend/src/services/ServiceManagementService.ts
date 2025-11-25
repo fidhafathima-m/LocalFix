@@ -1,19 +1,19 @@
-import { IServiceService } from "../interfaces/services/admin/IServiceManagementService";
-import { IServiceRepository } from "../interfaces/repository/admin/IServiceRepository";
+import { IServiceService } from '../interfaces/services/admin/IServiceManagementService';
+import { IServiceRepository } from '../interfaces/repository/admin/IServiceRepository';
 import {
   ServiceResponseDto,
   CreateServiceDto,
   UpdateServiceDto,
   ServiceListResponseDto,
-} from "../interfaces/dtos/serviceDtos";
-import { SERVICE_MESSAGES, ServiceStatus } from "../constants";
-import { Types } from "mongoose";
-import { Item } from "../models/category/itemSchema";
-import { ILogger } from "@/interfaces/utils/ILogger";
+} from '../interfaces/dtos/serviceDtos';
+import { SERVICE_MESSAGES, ServiceStatus } from '../constants';
+import { Types } from 'mongoose';
+import { Item } from '../models/category/itemSchema';
+import { ILogger } from '@/interfaces/utils/ILogger';
 import {
   toServiceListResponseDto,
   toServiceResponseDto,
-} from "../mappers/serviceMapper";
+} from '../mappers/serviceMapper';
 
 export class ServiceService implements IServiceService {
   private _serviceRepository: IServiceRepository;
@@ -25,10 +25,10 @@ export class ServiceService implements IServiceService {
   }
 
   async createService(
-    createDto: CreateServiceDto,
+    createDto: CreateServiceDto
   ): Promise<ServiceResponseDto> {
     const context = {
-      operation: "createService",
+      operation: 'createService',
       data: {
         serviceName: createDto.name,
         categoryId: createDto.categoryId,
@@ -39,20 +39,20 @@ export class ServiceService implements IServiceService {
     };
 
     try {
-      this._logger.info("Creating new service", context);
+      this._logger.info('Creating new service', context);
 
       // Check if service with same name already exists
-      this._logger.debug("Checking for existing service with same name", {
+      this._logger.debug('Checking for existing service with same name', {
         ...context,
         serviceName: createDto.name,
       });
 
       const existingService = await this._serviceRepository.findByName(
-        createDto.name,
+        createDto.name
       );
 
       if (existingService) {
-        this._logger.warn("Service creation failed - service already exists", {
+        this._logger.warn('Service creation failed - service already exists', {
           ...context,
           existingServiceId: existingService._id?.toString(),
         });
@@ -60,13 +60,13 @@ export class ServiceService implements IServiceService {
       }
 
       // Validate category ID
-      this._logger.debug("Validating category ID", {
+      this._logger.debug('Validating category ID', {
         ...context,
         categoryId: createDto.categoryId,
       });
 
       if (!Types.ObjectId.isValid(createDto.categoryId)) {
-        this._logger.warn("Invalid category ID provided", {
+        this._logger.warn('Invalid category ID provided', {
           ...context,
           categoryId: createDto.categoryId,
         });
@@ -78,12 +78,12 @@ export class ServiceService implements IServiceService {
         categoryId: new Types.ObjectId(createDto.categoryId),
         status: createDto.status || ServiceStatus.ACTIVE,
         rating: createDto.rating || 4.5,
-        estimatedDuration: createDto.estimatedDuration || "2-4 hours",
+        estimatedDuration: createDto.estimatedDuration || '2-4 hours',
         features: createDto.features || [],
         popular: createDto.popular || false,
       };
 
-      this._logger.debug("Creating service with data", {
+      this._logger.debug('Creating service with data', {
         ...context,
         serviceData: {
           ...serviceData,
@@ -94,7 +94,7 @@ export class ServiceService implements IServiceService {
 
       const service = await this._serviceRepository.create(serviceData);
 
-      this._logger.info("Service created successfully", {
+      this._logger.info('Service created successfully', {
         ...context,
         serviceId: service._id?.toString(),
       });
@@ -102,8 +102,8 @@ export class ServiceService implements IServiceService {
       return toServiceResponseDto(service);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Create service operation failed", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Create service operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -114,21 +114,21 @@ export class ServiceService implements IServiceService {
 
   async getServiceById(serviceId: string): Promise<ServiceResponseDto> {
     const context = {
-      operation: "getServiceById",
+      operation: 'getServiceById',
       data: { serviceId },
     };
 
     try {
-      this._logger.info("Fetching service by ID", context);
+      this._logger.info('Fetching service by ID', context);
 
       const service = await this._serviceRepository.findById(serviceId);
 
       if (!service) {
-        this._logger.warn("Service not found by ID", context);
+        this._logger.warn('Service not found by ID', context);
         throw new Error(SERVICE_MESSAGES.SERVICE_NOT_FOUND);
       }
 
-      this._logger.debug("Service found, counting active items", {
+      this._logger.debug('Service found, counting active items', {
         ...context,
         serviceName: service.name,
       });
@@ -138,7 +138,7 @@ export class ServiceService implements IServiceService {
         isActive: true,
       });
 
-      this._logger.debug("Item count retrieved", {
+      this._logger.debug('Item count retrieved', {
         ...context,
         itemCount,
       });
@@ -148,7 +148,7 @@ export class ServiceService implements IServiceService {
         itemCount,
       };
 
-      this._logger.info("Service retrieved successfully with item count", {
+      this._logger.info('Service retrieved successfully with item count', {
         ...context,
         serviceId: service._id?.toString(),
         itemCount,
@@ -157,8 +157,8 @@ export class ServiceService implements IServiceService {
       return toServiceResponseDto(serviceWithCount);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Get service by ID operation failed", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Get service by ID operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -169,21 +169,21 @@ export class ServiceService implements IServiceService {
 
   async getServiceBySlug(slug: string): Promise<ServiceResponseDto> {
     const context = {
-      operation: "getServiceBySlug",
+      operation: 'getServiceBySlug',
       data: { slug },
     };
 
     try {
-      this._logger.info("Fetching service by slug", context);
+      this._logger.info('Fetching service by slug', context);
 
       const service = await this._serviceRepository.findBySlug(slug);
 
       if (!service) {
-        this._logger.warn("Service not found by slug", context);
+        this._logger.warn('Service not found by slug', context);
         throw new Error(SERVICE_MESSAGES.SERVICE_NOT_FOUND);
       }
 
-      this._logger.info("Service retrieved successfully by slug", {
+      this._logger.info('Service retrieved successfully by slug', {
         ...context,
         serviceId: service._id?.toString(),
         serviceName: service.name,
@@ -192,8 +192,8 @@ export class ServiceService implements IServiceService {
       return toServiceResponseDto(service);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Get service by slug operation failed", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Get service by slug operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -207,28 +207,31 @@ export class ServiceService implements IServiceService {
     page: number = 1,
     limit: number = 10,
     search?: string,
+    status?: string
   ): Promise<ServiceListResponseDto> {
     const context = {
-      operation: "getServicesByCategoryId",
+      operation: 'getServicesByCategoryId',
       data: {
         categoryId,
         page,
         limit,
         hasSearch: !!search,
         searchQuery: search,
+        hasStatusFilter: !!status && status !== 'All Status',
+        statusFilter: status,
       },
     };
 
     try {
-      this._logger.info("Fetching services by category ID", context);
+      this._logger.info('Fetching services by category ID', context);
 
-      this._logger.debug("Validating category ID", {
+      this._logger.debug('Validating category ID', {
         ...context,
         categoryId,
       });
 
       if (!Types.ObjectId.isValid(categoryId)) {
-        this._logger.warn("Invalid category ID provided", context);
+        this._logger.warn('Invalid category ID provided', context);
         throw new Error(SERVICE_MESSAGES.INVALID_CATEGORY_ID);
       }
 
@@ -237,7 +240,7 @@ export class ServiceService implements IServiceService {
       let total: number;
 
       if (search) {
-        this._logger.debug("Performing search for services in category", {
+        this._logger.debug('Performing search for services in category', {
           ...context,
           searchQuery: search,
         });
@@ -246,46 +249,54 @@ export class ServiceService implements IServiceService {
           categoryId,
           search,
           limit,
+          { name: 1 },
+          status
         );
         total = services.length;
 
-        this._logger.debug("Category search completed", {
+        this._logger.debug('Category search completed', {
           ...context,
           servicesFound: services.length,
         });
       } else {
         this._logger.debug(
-          "Fetching all services in category with pagination",
+          'Fetching all services in category with pagination',
           {
             ...context,
             skip,
             limit,
-          },
+          }
         );
 
         services = await this._serviceRepository.findAll(
           { categoryId: new Types.ObjectId(categoryId) },
           skip,
           limit,
+          { name: 1 },
+          search,
+          status
         );
-        total = await this._serviceRepository.count({
-          categoryId: new Types.ObjectId(categoryId),
-        });
 
-        this._logger.debug("Services retrieved from repository", {
+        total = await this._serviceRepository.count(
+          { categoryId: new Types.ObjectId(categoryId) },
+          status,
+          search
+        );
+
+        this._logger.debug('Services retrieved from repository', {
           ...context,
           servicesCount: services.length,
           totalCount: total,
         });
       }
 
-      this._logger.debug("Counting items for each service", {
+      this._logger.debug('Counting items for each service', {
         ...context,
         servicesToProcess: services.length,
       });
 
       const servicesWithCounts = await Promise.all(
-        services.map(async (service) => {
+        services.map(async service => {
           const itemCount = await Item.countDocuments({
             serviceId: service._id,
             isActive: true,
@@ -295,10 +306,10 @@ export class ServiceService implements IServiceService {
             ...service.toObject(),
             itemCount,
           };
-        }),
+        })
       );
 
-      this._logger.debug("Item counts calculated for all services", {
+      this._logger.debug('Item counts calculated for all services', {
         ...context,
         processedServices: servicesWithCounts.length,
       });
@@ -307,10 +318,10 @@ export class ServiceService implements IServiceService {
         servicesWithCounts,
         total,
         page,
-        limit,
+        limit
       );
 
-      this._logger.info("Services by category retrieved successfully", {
+      this._logger.info('Services by category retrieved successfully', {
         ...context,
         totalServices: total,
         returnedServices: result.services.length,
@@ -319,8 +330,8 @@ export class ServiceService implements IServiceService {
       return result;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Get services by category operation failed", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Get services by category operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -333,11 +344,12 @@ export class ServiceService implements IServiceService {
     page: number = 1,
     limit: number = 10,
     search?: string,
-    sortBy: string = "name",
-    sortOrder: string = "asc",
+    sortBy: string = 'name',
+    sortOrder: string = 'asc',
+    status?: string
   ): Promise<ServiceListResponseDto> {
     const context = {
-      operation: "getAllServices",
+      operation: 'getAllServices',
       data: {
         page,
         limit,
@@ -345,11 +357,13 @@ export class ServiceService implements IServiceService {
         searchQuery: search,
         sortBy,
         sortOrder,
+        hasStatusFilter: !!status && status !== 'All Status',
+        statusFilter: status,
       },
     };
 
     try {
-      this._logger.info("Fetching all services", context);
+      this._logger.info('Fetching all services', context);
 
       const skip = (page - 1) * limit;
       let services: any[];
@@ -358,20 +372,20 @@ export class ServiceService implements IServiceService {
       // Build sort object
       const sortOptions: any = {};
       switch (sortBy) {
-        case "price":
-          sortOptions.avgBasePrice = sortOrder === "desc" ? -1 : 1;
+        case 'price':
+          sortOptions.avgBasePrice = sortOrder === 'desc' ? -1 : 1;
           break;
-        case "rating":
-          sortOptions.rating = sortOrder === "desc" ? -1 : 1;
+        case 'rating':
+          sortOptions.rating = sortOrder === 'desc' ? -1 : 1;
           break;
-        case "name":
+        case 'name':
         default:
-          sortOptions.name = sortOrder === "desc" ? -1 : 1;
+          sortOptions.name = sortOrder === 'desc' ? -1 : 1;
           break;
       }
 
       if (search) {
-        this._logger.debug("Performing search for services", {
+        this._logger.debug('Performing search for services', {
           ...context,
           searchQuery: search,
         });
@@ -380,15 +394,16 @@ export class ServiceService implements IServiceService {
           search,
           limit,
           sortOptions,
+          status
         );
         total = services.length;
 
-        this._logger.debug("Search completed", {
+        this._logger.debug('Search completed', {
           ...context,
           servicesFound: services.length,
         });
       } else {
-        this._logger.debug("Fetching all services with pagination", {
+        this._logger.debug('Fetching all services with pagination', {
           ...context,
           skip,
           limit,
@@ -400,10 +415,13 @@ export class ServiceService implements IServiceService {
           skip,
           limit,
           sortOptions,
+          search,
+          status
         );
-        total = await this._serviceRepository.count();
 
-        this._logger.debug("Services retrieved from repository", {
+        total = await this._serviceRepository.count({}, status, search);
+
+        this._logger.debug('Services retrieved from repository', {
           ...context,
           servicesCount: services.length,
           totalCount: total,
@@ -412,7 +430,7 @@ export class ServiceService implements IServiceService {
 
       const result = toServiceListResponseDto(services, total, page, limit);
 
-      this._logger.info("All services retrieved successfully", {
+      this._logger.info('All services retrieved successfully', {
         ...context,
         totalServices: total,
         returnedServices: result.services.length,
@@ -421,8 +439,8 @@ export class ServiceService implements IServiceService {
       return result;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Get all services operation failed", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Get all services operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -433,10 +451,10 @@ export class ServiceService implements IServiceService {
 
   async updateService(
     serviceId: string,
-    updateDto: UpdateServiceDto,
+    updateDto: UpdateServiceDto
   ): Promise<ServiceResponseDto> {
     const context = {
-      operation: "updateService",
+      operation: 'updateService',
       data: {
         serviceId,
         updateFields: Object.keys(updateDto),
@@ -444,19 +462,19 @@ export class ServiceService implements IServiceService {
     };
 
     try {
-      this._logger.info("Updating service", context);
+      this._logger.info('Updating service', context);
 
       // Check if service exists
-      this._logger.debug("Checking if service exists", context);
+      this._logger.debug('Checking if service exists', context);
 
       const existingService = await this._serviceRepository.findById(serviceId);
 
       if (!existingService) {
-        this._logger.warn("Service not found for update", context);
+        this._logger.warn('Service not found for update', context);
         throw new Error(SERVICE_MESSAGES.SERVICE_NOT_FOUND);
       }
 
-      this._logger.debug("Service found, checking for name changes", {
+      this._logger.debug('Service found, checking for name changes', {
         ...context,
         currentName: existingService.name,
         newName: updateDto.name,
@@ -465,22 +483,22 @@ export class ServiceService implements IServiceService {
       // If name is being updated, check for duplicates
       if (updateDto.name && updateDto.name !== existingService.name) {
         this._logger.debug(
-          "Service name is being changed, checking for duplicates",
+          'Service name is being changed, checking for duplicates',
           {
             ...context,
             newName: updateDto.name,
-          },
+          }
         );
 
         const duplicateService = await this._serviceRepository.findByName(
-          updateDto.name,
+          updateDto.name
         );
 
         if (
           duplicateService &&
           (duplicateService as any)._id.toString() !== serviceId
         ) {
-          this._logger.warn("Service update failed - duplicate name found", {
+          this._logger.warn('Service update failed - duplicate name found', {
             ...context,
             duplicateServiceId: (duplicateService as any)._id?.toString(),
           });
@@ -488,8 +506,8 @@ export class ServiceService implements IServiceService {
         }
 
         this._logger.debug(
-          "No duplicate name found, proceeding with update",
-          context,
+          'No duplicate name found, proceeding with update',
+          context
         );
       }
 
@@ -499,8 +517,8 @@ export class ServiceService implements IServiceService {
       if (updatePayload.rating === undefined) {
         delete updatePayload.rating;
         this._logger.debug(
-          "Rating field removed from update payload as it was undefined",
-          context,
+          'Rating field removed from update payload as it was undefined',
+          context
         );
       }
 
@@ -510,13 +528,13 @@ export class ServiceService implements IServiceService {
         Types.ObjectId.isValid(updatePayload.categoryId)
       ) {
         updatePayload.categoryId = new Types.ObjectId(updatePayload.categoryId);
-        this._logger.debug("Category ID converted to ObjectId", {
+        this._logger.debug('Category ID converted to ObjectId', {
           ...context,
           categoryId: updatePayload.categoryId.toString(),
         });
       }
 
-      this._logger.debug("Performing service update in repository", {
+      this._logger.debug('Performing service update in repository', {
         ...context,
         updatePayload: {
           ...updatePayload,
@@ -526,15 +544,15 @@ export class ServiceService implements IServiceService {
 
       const updatedService = await this._serviceRepository.update(
         serviceId,
-        updatePayload as any,
+        updatePayload as any
       );
 
       if (!updatedService) {
-        this._logger.error("Service repository update returned null", context);
+        this._logger.error('Service repository update returned null', context);
         throw new Error(SERVICE_MESSAGES.FAILED_UPDATE_SERVICE);
       }
 
-      this._logger.info("Service updated successfully", {
+      this._logger.info('Service updated successfully', {
         ...context,
         serviceId: updatedService._id?.toString(),
       });
@@ -542,8 +560,8 @@ export class ServiceService implements IServiceService {
       return toServiceResponseDto(updatedService);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Update service operation failed", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Update service operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -554,24 +572,24 @@ export class ServiceService implements IServiceService {
 
   async deleteService(serviceId: string): Promise<void> {
     const context = {
-      operation: "deleteService",
+      operation: 'deleteService',
       data: { serviceId },
     };
 
     try {
-      this._logger.info("Deleting service", context);
+      this._logger.info('Deleting service', context);
 
       // Check if service exists
-      this._logger.debug("Checking if service exists for deletion", context);
+      this._logger.debug('Checking if service exists for deletion', context);
 
       const existingService = await this._serviceRepository.findById(serviceId);
 
       if (!existingService) {
-        this._logger.warn("Service not found for deletion", context);
+        this._logger.warn('Service not found for deletion', context);
         throw new Error(SERVICE_MESSAGES.SERVICE_NOT_FOUND);
       }
 
-      this._logger.debug("Service found, proceeding with deletion", {
+      this._logger.debug('Service found, proceeding with deletion', {
         ...context,
         serviceName: existingService.name,
       });
@@ -580,17 +598,17 @@ export class ServiceService implements IServiceService {
 
       if (!deleted) {
         this._logger.error(
-          "Service repository deletion returned false",
-          context,
+          'Service repository deletion returned false',
+          context
         );
         throw new Error(SERVICE_MESSAGES.FAILED_DELETE_SERVICE);
       }
 
-      this._logger.info("Service deleted successfully", context);
+      this._logger.info('Service deleted successfully', context);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Delete service operation failed", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Delete service operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -601,10 +619,10 @@ export class ServiceService implements IServiceService {
 
   async searchServices(
     query: string,
-    limit: number = 10,
+    limit: number = 10
   ): Promise<ServiceResponseDto[]> {
     const context = {
-      operation: "searchServices",
+      operation: 'searchServices',
       data: {
         query,
         limit,
@@ -612,22 +630,22 @@ export class ServiceService implements IServiceService {
     };
 
     try {
-      this._logger.info("Searching services", context);
+      this._logger.info('Searching services', context);
 
-      this._logger.debug("Performing search in repository", context);
+      this._logger.debug('Performing search in repository', context);
 
       const services = await this._serviceRepository.search(query, limit);
 
-      this._logger.info("Service search completed successfully", {
+      this._logger.info('Service search completed successfully', {
         ...context,
         servicesFound: services.length,
       });
 
-      return services.map((service) => toServiceResponseDto(service));
+      return services.map(service => toServiceResponseDto(service));
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Search services operation failed", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Search services operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

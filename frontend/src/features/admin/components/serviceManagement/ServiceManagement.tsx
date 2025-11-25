@@ -14,11 +14,16 @@ import {
   ChevronLeftOutlined,
 } from "@mui/icons-material";
 import Search from "../adminDashboard/actions/Search";
-import type { CreateServiceData, Service, UpdateServiceData } from "../../../../interface/admin/IAdminApi";
+import type {
+  CreateServiceData,
+  Service,
+  UpdateServiceData,
+} from "../../../../interface/admin/IAdminApi";
 import { ServiceManagementService } from "../../../../services/admin/ServiceManagementService";
 import { AdminSidebar } from "../adminDashboard/actions/AdminSidebar";
 import { AddServiceModal } from "../categoryManagement/modals/AddServiceModal";
 import { EditServiceModal } from "../categoryManagement/modals/EditServiceModal";
+import { useDebounce } from "../../../../hooks/useDebounce";
 
 const ServiceManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -37,13 +42,28 @@ const ServiceManagement: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const [searchLoading, setSearchLoading] = useState(false);
+
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const servicesPerPage = 10;
 
-  const loadServices = async (page: number = 1, search?: string) => {
+  useEffect(() => {
+    if (searchQuery !== debouncedSearchQuery) {
+      setSearchLoading(true);
+    } else {
+      setSearchLoading(false);
+    }
+  }, [searchQuery, debouncedSearchQuery]);
+
+  const loadServices = async (
+    page: number = 1,
+    search?: string,
+    status?: string
+  ) => {
     try {
       setLoading(true);
 
@@ -51,7 +71,8 @@ const ServiceManagement: React.FC = () => {
         category.id,
         page,
         servicesPerPage,
-        search
+        search,
+        status
       );
 
       if (response && typeof response === "object") {
@@ -76,12 +97,14 @@ const ServiceManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    loadServices(currentPage, searchQuery);
-  }, [currentPage, searchQuery, category.id]);
+    const statusToSend =
+      statusFilter !== "All Status" ? statusFilter : undefined;
+    loadServices(currentPage, debouncedSearchQuery, statusToSend);
+  }, [currentPage, debouncedSearchQuery, category.id, statusFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, debouncedSearchQuery]);
 
   const handleCreateService = async (serviceData: CreateServiceData) => {
     try {
@@ -93,7 +116,7 @@ const ServiceManagement: React.FC = () => {
       if (response && response.service) {
         toast.success("Service created successfully");
         setShowAddModal(false);
-        await loadServices(currentPage, searchQuery); // Refresh the list
+        await loadServices(currentPage, debouncedSearchQuery); // Refresh the list
         return { success: true };
       } else {
         toast.error("Failed to create service");
@@ -128,7 +151,7 @@ const ServiceManagement: React.FC = () => {
         toast.success("Service updated successfully");
         setShowEditModal(false);
         setSelectedService(null);
-        await loadServices(currentPage, searchQuery); // Refresh the list
+        await loadServices(currentPage, debouncedSearchQuery); // Refresh the list
         return { success: true };
       } else {
         toast.error("Failed to update service");
@@ -162,7 +185,7 @@ const ServiceManagement: React.FC = () => {
 
       if (response) {
         toast.success("Service deleted successfully");
-        await loadServices(currentPage, searchQuery); // Refresh the list
+        await loadServices(currentPage, debouncedSearchQuery); // Refresh the list
       } else {
         toast.error("Failed to delete service");
       }
@@ -272,6 +295,11 @@ const ServiceManagement: React.FC = () => {
                 <div className="w-full md:w-auto flex-1">
                   <div className="relative">
                     <Search value={searchQuery} onChange={handleSearch} />
+                    {searchLoading && (
+                      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="w-full md:w-auto flex gap-4">
@@ -412,9 +440,12 @@ const ServiceManagement: React.FC = () => {
                           colSpan={6}
                           className="px-6 py-8 text-center text-sm text-gray-500"
                         >
-                          {searchQuery ? (
+                          {debouncedSearchQuery ? (
                             <div>
-                              <p>No services found matching "{searchQuery}"</p>
+                              <p>
+                                No services found matching "
+                                {debouncedSearchQuery}"
+                              </p>
                               <button
                                 onClick={() => setSearchQuery("")}
                                 className="mt-2 text-blue-600 hover:text-blue-800"

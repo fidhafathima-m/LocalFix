@@ -10,14 +10,16 @@ export class ServiceManagementService {
     categoryId: string,
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
+    status?: string
   ) {
     try {
       const response = await adminAPI.getServicesByCategory(
         categoryId,
         page,
         limit,
-        search
+        search,
+        status
       );
 
       // Extract data from the response
@@ -34,7 +36,8 @@ export class ServiceManagementService {
     limit: number = 10,
     search?: string,
     sortBy?: string,
-    sortOrder?: string
+    sortOrder?: string,
+    status?: string
   ) {
     try {
       const response = await adminAPI.getAllServices(
@@ -42,7 +45,8 @@ export class ServiceManagementService {
         limit,
         search,
         sortBy,
-        sortOrder
+        sortOrder,
+        status
       );
       return this.handleResponse(response);
     } catch (error: any) {

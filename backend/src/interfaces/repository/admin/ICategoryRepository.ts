@@ -2,8 +2,8 @@ import {
   ICategory,
   ICategoryCreate,
   ICategoryUpdate,
-} from "../../admin/ICategoryManagement";
-import { FilterQuery, Types } from "mongoose";
+} from '../../admin/ICategoryManagement';
+import { FilterQuery, Types } from 'mongoose';
 
 export interface ICategoryRepository {
   create(categoryData: ICategoryCreate): Promise<ICategory>;
@@ -13,13 +13,19 @@ export interface ICategoryRepository {
   findAll(
     filter?: FilterQuery<ICategory>,
     skip?: number,
-    limit?: number
+    limit?: number,
+    search?: string,
+    status?: string
   ): Promise<ICategory[]>;
   update(
     categoryId: string | Types.ObjectId,
     updateData: ICategoryUpdate
   ): Promise<ICategory | null>;
   delete(categoryId: string | Types.ObjectId): Promise<boolean>;
-  count(filter?: FilterQuery<ICategory>): Promise<number>;
-  search(query: string, limit?: number): Promise<ICategory[]>;
+  count(
+    filter?: FilterQuery<ICategory>,
+    search?: string,
+    status?: string
+  ): Promise<number>;
+  search(query: string, limit?: number, status?: string): Promise<ICategory[]>;
 }

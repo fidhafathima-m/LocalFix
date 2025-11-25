@@ -167,27 +167,34 @@ export class CategoryManagementController {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
+    const status = req.query.status as string;
 
     const context = {
       operation: 'getAllCategories',
       page,
       limit,
       search,
+      status,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info('Fetching all categories', context);
+      this._logger.info('Fetching all categories with filters', context);
 
       const result = await this._categoryService.getAllCategories(
         page,
         limit,
-        search
+        search,
+        status
       );
 
-      this._logger.info('Categories retrieved successfully', {
+      this._logger.info('Categories retrieved successfully with filters', {
         ...context,
         totalCategories: result.total,
+        appliedFilters: {
+          search: !!search,
+          status: status && status !== 'All Status' ? status : 'none',
+        },
       });
 
       const response = ResponseHelper.success(
@@ -200,7 +207,7 @@ export class CategoryManagementController {
         error instanceof Error
           ? error.message
           : CATEGORY_MESSAGES.FAILED_FETCH_CATEGORIES;
-      this._logger.error('Get all categories controller error', {
+      this._logger.error('Get all categories with filters controller error', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

@@ -2,8 +2,8 @@ import {
   ServiceResponseDto,
   ServiceListResponseDto,
   ServiceMapper as IServiceMapper,
-} from "../interfaces/dtos/serviceDtos";
-import { IService } from "../interfaces/admin/IServiceManagement";
+} from '../interfaces/dtos/serviceDtos';
+import { IService } from '../interfaces/admin/IServiceManagement';
 
 export const toServiceResponseDto = (service: IService): ServiceResponseDto => {
   return {
@@ -29,13 +29,15 @@ export const toServiceListResponseDto = (
   services: IService[],
   total: number,
   page: number,
-  limit: number
+  limit: number,
+  status?: string
 ): ServiceListResponseDto => {
   return {
-    services: services.map((service) => toServiceResponseDto(service)),
+    services: services.map(service => toServiceResponseDto(service)),
     total,
     page,
     limit,
+    status,
     totalPages: Math.ceil(total / limit),
   };
 };

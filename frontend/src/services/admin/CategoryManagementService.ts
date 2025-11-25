@@ -1,15 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { CreateCategoryData, UpdateCategoryData } from "../../interface/admin/IAdminApi";
+import type {
+  CreateCategoryData,
+  UpdateCategoryData,
+} from "../../interface/admin/IAdminApi";
 import { adminAPI } from "../common/adminApi";
 
 export class CategoryManagementService {
   static async getCategories(
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
+    status?: string
   ) {
     try {
-      const response = await adminAPI.getCategories(page, limit, search);
+      const response = await adminAPI.getCategories(
+        page,
+        limit,
+        search,
+        status
+      );
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to get categories");

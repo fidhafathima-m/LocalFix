@@ -182,7 +182,8 @@ export class CategoryService implements ICategoryService {
   async getAllCategories(
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
+    status?: string
   ): Promise<CategoryListResponseDto> {
     const context = {
       operation: 'getAllCategories',
@@ -191,44 +192,64 @@ export class CategoryService implements ICategoryService {
         limit,
         hasSearch: !!search,
         searchQuery: search,
+        hasStatusFilter: !!status && status !== 'All Status',
+        statusFilter: status,
       },
     };
 
     try {
-      this._logger.info('Fetching all categories', context);
+      this._logger.info('Fetching all categories with filters', context);
 
       const skip = (page - 1) * limit;
       let categories: ICategory[];
       let total: number;
 
       if (search) {
-        this._logger.debug('Performing search for categories', {
+        this._logger.debug('Performing search for categories with filters', {
           ...context,
           searchQuery: search,
+          statusFilter: status,
         });
 
-        categories = await this._categoryRepository.search(search, limit);
+        categories = await this._categoryRepository.search(
+          search,
+          limit,
+          status
+        );
         total = categories.length;
 
-        this._logger.debug('Search completed', {
+        this._logger.debug('Search with filters completed', {
           ...context,
           categoriesFound: categories.length,
         });
       } else {
-        this._logger.debug('Fetching all categories with pagination', {
-          ...context,
+        this._logger.debug(
+          'Fetching all categories with filters and pagination',
+          {
+            ...context,
+            skip,
+            limit,
+            statusFilter: status,
+          }
+        );
+
+        categories = await this._categoryRepository.findAll(
+          {},
           skip,
           limit,
-        });
+          search,
+          status
+        );
+        total = await this._categoryRepository.count({}, search, status);
 
-        categories = await this._categoryRepository.findAll({}, skip, limit);
-        total = await this._categoryRepository.count();
-
-        this._logger.debug('Categories retrieved from repository', {
-          ...context,
-          categoriesCount: categories.length,
-          totalCount: total,
-        });
+        this._logger.debug(
+          'Categories retrieved from repository with filters',
+          {
+            ...context,
+            categoriesCount: categories.length,
+            totalCount: total,
+          }
+        );
       }
 
       this._logger.debug('Counting services for each category', {
@@ -262,17 +283,21 @@ export class CategoryService implements ICategoryService {
         limit
       );
 
-      this._logger.info('All categories retrieved successfully', {
+      this._logger.info('All categories retrieved successfully with filters', {
         ...context,
         totalCategories: total,
         returnedCategories: result.categories.length,
+        appliedFilters: {
+          search: !!search,
+          status: status && status !== 'All Status' ? status : 'none',
+        },
       });
 
       return result;
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
-      this._logger.error('Get all categories operation failed', {
+      this._logger.error('Get all categories with filters operation failed', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,

@@ -1,5 +1,5 @@
-import { Types } from "mongoose";
-import { ServiceStatus } from "../../constants";
+import { Types } from 'mongoose';
+import { ServiceStatus } from '../../constants';
 
 export interface ServiceResponseDto {
   id: string;
@@ -50,6 +50,7 @@ export interface ServiceListResponseDto {
   page: number;
   limit: number;
   totalPages: number;
+  status?: string;
 }
 
 export interface ServiceMapper {

@@ -3,7 +3,7 @@ import {
   CreateServiceDto,
   UpdateServiceDto,
   ServiceListResponseDto,
-} from "../../dtos/serviceDtos";
+} from '../../dtos/serviceDtos';
 
 export interface IServiceService {
   createService(createDto: CreateServiceDto): Promise<ServiceResponseDto>;
@@ -13,14 +13,16 @@ export interface IServiceService {
     categoryId: string,
     page?: number,
     limit?: number,
-    search?: string
+    search?: string,
+    status?: string
   ): Promise<ServiceListResponseDto>;
   getAllServices(
     page?: number,
     limit?: number,
     search?: string,
     sortBy?: string,
-    sortOrder?: string
+    sortOrder?: string,
+    status?: string
   ): Promise<ServiceListResponseDto>;
   updateService(
     serviceId: string,
