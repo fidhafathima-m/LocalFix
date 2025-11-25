@@ -1,18 +1,18 @@
-import { Response } from "express";
+import { Response } from 'express';
 import {
   IReviewService,
   ReportReviewRequest,
-} from "../../interfaces/services/user/IReviewService";
-import { ResponseHelper } from "../../utils/responseHelper";
-import { GENERAL_MESSAGES } from "../../constants";
+} from '../../interfaces/services/user/IReviewService';
+import { ResponseHelper } from '../../utils/responseHelper';
+import { GeneralMessages } from '../../constants';
 import {
   CreateReviewRequestDto,
   UpdateReviewRequestDto,
-} from "../../interfaces/dtos/reviewDtos";
-import { AuthRequest } from "@/middleware/authMiddleware";
-import { IReviewRepository } from "../../interfaces/repository/user/IReviewRepository";
-import { ILogger } from "@/interfaces/utils/ILogger";
-import { toReviewDto } from "../../mappers/reviewMapper";
+} from '../../interfaces/dtos/reviewDtos';
+import { AuthRequest } from '@/middleware/authMiddleware';
+import { IReviewRepository } from '../../interfaces/repository/user/IReviewRepository';
+import { ILogger } from '@/interfaces/utils/ILogger';
+import { toReviewDto } from '../../mappers/reviewMapper';
 
 export class ReviewController {
   private _reviewService: IReviewService;
@@ -22,7 +22,7 @@ export class ReviewController {
   constructor(
     reviewService: IReviewService,
     reviewRepository: IReviewRepository,
-    logger: ILogger,
+    logger: ILogger
   ) {
     this._reviewService = reviewService;
     this._reviewRepository = reviewRepository;
@@ -34,22 +34,22 @@ export class ReviewController {
     const reviewData: CreateReviewRequestDto = req.body;
 
     const context = {
-      operation: "createReview",
+      operation: 'createReview',
       userId,
       orderId: reviewData?.orderId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Creating new review", context);
+      this._logger.info('Creating new review', context);
 
       if (!userId) {
         this._logger.warn(
-          "Create review failed - authentication required",
-          context,
+          'Create review failed - authentication required',
+          context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -57,20 +57,20 @@ export class ReviewController {
 
       const result = await this._reviewService.createReview(userId, reviewData);
 
-      this._logger.info("Review created successfully", {
+      this._logger.info('Review created successfully', {
         ...context,
         reviewId: result.data?.id,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Create review controller error", {
+      this._logger.error('Create review controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -81,22 +81,22 @@ export class ReviewController {
     const reviewData: UpdateReviewRequestDto = req.body;
 
     const context = {
-      operation: "updateReview",
+      operation: 'updateReview',
       userId,
       reviewId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Updating review", context);
+      this._logger.info('Updating review', context);
 
       if (!userId) {
         this._logger.warn(
-          "Update review failed - authentication required",
-          context,
+          'Update review failed - authentication required',
+          context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -105,20 +105,20 @@ export class ReviewController {
       const result = await this._reviewService.updateReview(
         userId,
         reviewId,
-        reviewData,
+        reviewData
       );
 
-      this._logger.info("Review updated successfully", context);
+      this._logger.info('Review updated successfully', context);
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Update review controller error", {
+      this._logger.error('Update review controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -128,22 +128,22 @@ export class ReviewController {
     const { reviewId } = req.params;
 
     const context = {
-      operation: "deleteReview",
+      operation: 'deleteReview',
       userId,
       reviewId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Deleting review", context);
+      this._logger.info('Deleting review', context);
 
       if (!userId) {
         this._logger.warn(
-          "Delete review failed - authentication required",
-          context,
+          'Delete review failed - authentication required',
+          context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -151,17 +151,17 @@ export class ReviewController {
 
       const result = await this._reviewService.deleteReview(userId, reviewId);
 
-      this._logger.info("Review deleted successfully", context);
+      this._logger.info('Review deleted successfully', context);
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Delete review controller error", {
+      this._logger.error('Delete review controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -170,27 +170,27 @@ export class ReviewController {
     const { reviewId } = req.params;
 
     const context = {
-      operation: "getReviewById",
+      operation: 'getReviewById',
       reviewId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching review by ID", context);
+      this._logger.info('Fetching review by ID', context);
 
       const result = await this._reviewService.getReviewById(reviewId);
 
-      this._logger.info("Review retrieved successfully", context);
+      this._logger.info('Review retrieved successfully', context);
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get review by ID controller error", {
+      this._logger.error('Get review by ID controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -199,21 +199,21 @@ export class ReviewController {
     const userId = req.user?.id;
 
     const context = {
-      operation: "getUserReviews",
+      operation: 'getUserReviews',
       userId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching user reviews", context);
+      this._logger.info('Fetching user reviews', context);
 
       if (!userId) {
         this._logger.warn(
-          "Get user reviews failed - authentication required",
-          context,
+          'Get user reviews failed - authentication required',
+          context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -221,34 +221,34 @@ export class ReviewController {
 
       const result = await this._reviewService.getUserReviews(userId);
 
-      this._logger.info("User reviews retrieved successfully", {
+      this._logger.info('User reviews retrieved successfully', {
         ...context,
         reviewCount: result.data?.reviews?.length || 0,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get user reviews controller error", {
+      this._logger.error('Get user reviews controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
   getTechnicianReviews = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const { technicianId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
 
     const context = {
-      operation: "getTechnicianReviews",
+      operation: 'getTechnicianReviews',
       technicianId,
       page,
       limit,
@@ -256,28 +256,28 @@ export class ReviewController {
     };
 
     try {
-      this._logger.info("Fetching technician reviews", context);
+      this._logger.info('Fetching technician reviews', context);
 
       const result = await this._reviewService.getTechnicianReviews(
         technicianId,
         page,
-        limit,
+        limit
       );
 
-      this._logger.info("Technician reviews retrieved successfully", {
+      this._logger.info('Technician reviews retrieved successfully', {
         ...context,
         reviewCount: result.data?.reviews?.length || 0,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get technician reviews controller error", {
+      this._logger.error('Get technician reviews controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -286,105 +286,105 @@ export class ReviewController {
     const { orderId } = req.params;
 
     const context = {
-      operation: "getOrderReview",
+      operation: 'getOrderReview',
       orderId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching review for order", context);
+      this._logger.info('Fetching review for order', context);
 
       const review = await this._reviewRepository.findByOrderId(orderId);
 
       if (!review) {
-        this._logger.info("No review found for order", context);
+        this._logger.info('No review found for order', context);
         const response = ResponseHelper.success(
-          "No review found for this order",
-          null,
+          'No review found for this order',
+          null
         );
         res.status(response.statusCode).json(response);
         return;
       }
 
-      this._logger.info("Order review retrieved successfully", context);
+      this._logger.info('Order review retrieved successfully', context);
 
       const reviewDto = toReviewDto(review);
       const response = ResponseHelper.success(
-        "Review retrieved successfully",
-        reviewDto,
+        'Review retrieved successfully',
+        reviewDto
       );
       res.status(response.statusCode).json(response);
     } catch (error: unknown) {
-      this._logger.error("Get order review controller error", {
+      this._logger.error('Get order review controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
   getTechnicianReviewStats = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const { technicianId } = req.params;
 
     const context = {
-      operation: "getTechnicianReviewStats",
+      operation: 'getTechnicianReviewStats',
       technicianId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching technician review stats", context);
+      this._logger.info('Fetching technician review stats', context);
 
       const result =
         await this._reviewService.getTechnicianReviewStats(technicianId);
 
       this._logger.info(
-        "Technician review stats retrieved successfully",
-        context,
+        'Technician review stats retrieved successfully',
+        context
       );
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get technician review stats controller error", {
+      this._logger.error('Get technician review stats controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
   canUserReviewOrder = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const userId = req.user?.id;
     const { orderId } = req.params;
 
     const context = {
-      operation: "canUserReviewOrder",
+      operation: 'canUserReviewOrder',
       userId,
       orderId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Checking if user can review order", context);
+      this._logger.info('Checking if user can review order', context);
 
       if (!userId) {
         this._logger.warn(
-          "Check review permission failed - authentication required",
-          context,
+          'Check review permission failed - authentication required',
+          context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -392,25 +392,25 @@ export class ReviewController {
 
       const canReview = await this._reviewService.canUserReviewOrder(
         userId,
-        orderId,
+        orderId
       );
 
       const response = ResponseHelper.success(
-        "Review permission checked successfully",
+        'Review permission checked successfully',
         {
           canReview,
-        },
+        }
       );
 
       res.status(response.statusCode).json(response);
     } catch (error: unknown) {
-      this._logger.error("Check review permission controller error", {
+      this._logger.error('Check review permission controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -420,7 +420,7 @@ export class ReviewController {
     const reportData: ReportReviewRequest = req.body;
 
     const context = {
-      operation: "reportReview",
+      operation: 'reportReview',
       userId,
       reviewId,
       reason: reportData.reason,
@@ -428,15 +428,15 @@ export class ReviewController {
     };
 
     try {
-      this._logger.info("Reporting review", context);
+      this._logger.info('Reporting review', context);
 
       if (!userId) {
         this._logger.warn(
-          "Report review failed - authentication required",
-          context,
+          'Report review failed - authentication required',
+          context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -444,8 +444,8 @@ export class ReviewController {
 
       // Validate required fields
       if (!reportData.reason || reportData.reason.trim().length === 0) {
-        this._logger.warn("Report review failed - reason required", context);
-        const errorResponse = ResponseHelper.badRequest("Reason is required");
+        this._logger.warn('Report review failed - reason required', context);
+        const errorResponse = ResponseHelper.badRequest('Reason is required');
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
@@ -453,20 +453,20 @@ export class ReviewController {
       const result = await this._reviewService.reportReview(
         userId,
         reviewId,
-        reportData,
+        reportData
       );
 
-      this._logger.info("Review reported successfully", context);
+      this._logger.info('Review reported successfully', context);
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Report review controller error", {
+      this._logger.error('Report review controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

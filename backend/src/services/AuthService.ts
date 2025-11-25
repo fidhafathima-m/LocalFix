@@ -13,11 +13,11 @@ import { ISocialAccountRepository } from '../interfaces/repository/user/ISocialA
 import { ResponseHelper } from '../utils/responseHelper';
 import {
   AUTH_MESSAGES,
-  GENERAL_MESSAGES,
+  GeneralMessages,
   OTP_CONFIG,
-  OTP_PURPOSES,
-  USER_STATUS,
-  USER_ROLES,
+  OTPPurpose,
+  UserStatus,
+  UserRoles,
 } from '../constants';
 import { IUser } from '@/interfaces/user/IUser';
 
@@ -116,7 +116,7 @@ export class AuthService implements IAuthService {
 
       const otpData: OtpCreationDataDto = {
         otpHash,
-        purpose: OTP_PURPOSES.SIGNUP,
+        purpose: OTPPurpose.SIGNUP,
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
       };
       if (phone) otpData.phone = phone;
@@ -125,7 +125,7 @@ export class AuthService implements IAuthService {
       await this._otpRepository.create(otpData);
       this._logger.info('OTP record created successfully', {
         ...context,
-        otpPurpose: OTP_PURPOSES.SIGNUP,
+        otpPurpose: OTPPurpose.SIGNUP,
       });
 
       // Send OTP
@@ -196,7 +196,7 @@ export class AuthService implements IAuthService {
       const record = await this._otpRepository.findLatest(
         phone,
         email,
-        OTP_PURPOSES.SIGNUP
+        OTPPurpose.SIGNUP
       );
 
       if (!record) {
@@ -598,7 +598,7 @@ export class AuthService implements IAuthService {
         return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_DELETED);
       }
 
-      if (user.status === USER_STATUS.BLOCKED) {
+      if (user.status === UserStatus.BLOCKED) {
         this._logger.warn('Login attempt for blocked account', {
           ...context,
           userId: user._id,
@@ -606,7 +606,7 @@ export class AuthService implements IAuthService {
         return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_BLOCKED);
       }
 
-      if (user.status !== USER_STATUS.ACTIVE) {
+      if (user.status !== UserStatus.ACTIVE) {
         this._logger.warn('Login attempt for inactive account', {
           ...context,
           userId: user._id,
@@ -726,15 +726,15 @@ export class AuthService implements IAuthService {
 
         // Map frontend userType to backend role
         switch (userType) {
-          case USER_ROLES.SERVICE_PROVIDER:
-            expectedRole = USER_ROLES.SERVICE_PROVIDER;
+          case UserRoles.SERVICE_PROVIDER:
+            expectedRole = UserRoles.SERVICE_PROVIDER;
             break;
-          case USER_ROLES.ADMIN:
-            expectedRole = USER_ROLES.ADMIN;
+          case UserRoles.ADMIN:
+            expectedRole = UserRoles.ADMIN;
             break;
-          case USER_ROLES.USER:
+          case UserRoles.USER:
           default:
-            expectedRole = USER_ROLES.USER;
+            expectedRole = UserRoles.USER;
             break;
         }
 
@@ -770,7 +770,7 @@ export class AuthService implements IAuthService {
         return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_DELETED);
       }
 
-      if (user.status === USER_STATUS.BLOCKED) {
+      if (user.status === UserStatus.BLOCKED) {
         this._logger.warn('Forgot password attempt for blocked account', {
           ...context,
           userId: user._id,
@@ -778,7 +778,7 @@ export class AuthService implements IAuthService {
         return ResponseHelper.forbidden(AUTH_MESSAGES.ACCOUNT_BLOCKED);
       }
 
-      if (user.status !== USER_STATUS.ACTIVE) {
+      if (user.status !== UserStatus.ACTIVE) {
         this._logger.warn('Forgot password attempt for inactive account', {
           ...context,
           userId: user._id,
@@ -798,7 +798,7 @@ export class AuthService implements IAuthService {
 
       const otpData: OtpCreationDataDto = {
         otpHash,
-        purpose: OTP_PURPOSES.RESET,
+        purpose: OTPPurpose.RESET,
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
       };
       if (phone) otpData.phone = phone;
@@ -808,7 +808,7 @@ export class AuthService implements IAuthService {
       this._logger.debug('OTP record created for password reset', {
         ...context,
         userId: user._id,
-        purpose: OTP_PURPOSES.RESET,
+        purpose: OTPPurpose.RESET,
       });
 
       const sentChannels: string[] = [];
@@ -1077,16 +1077,16 @@ export class AuthService implements IAuthService {
       });
 
       // For technicians, verify the user exists with correct role
-      if (userType === USER_ROLES.SERVICE_PROVIDER) {
+      if (userType === UserRoles.SERVICE_PROVIDER) {
         this._logger.debug('Verifying service provider user exists', {
           ...context,
-          userType: USER_ROLES.SERVICE_PROVIDER,
+          userType: UserRoles.SERVICE_PROVIDER,
         });
 
         const identifier = phone || email!;
         const user = await this._userRepository.findByIdentifier(
           identifier,
-          USER_ROLES.SERVICE_PROVIDER
+          UserRoles.SERVICE_PROVIDER
         );
         if (!user) {
           this._logger.warn(
@@ -1094,7 +1094,7 @@ export class AuthService implements IAuthService {
             {
               ...context,
               identifier,
-              userType: USER_ROLES.SERVICE_PROVIDER,
+              userType: UserRoles.SERVICE_PROVIDER,
             }
           );
           return ResponseHelper.notFound(`${userType} not found`);
@@ -1170,7 +1170,7 @@ export class AuthService implements IAuthService {
       }
 
       // Validate purpose parameter
-      if (!purpose || !Object.values(OTP_PURPOSES).includes(purpose as any)) {
+      if (!purpose || !Object.values(OTPPurpose).includes(purpose as any)) {
         this._logger.warn('Invalid OTP purpose provided', {
           ...context,
           providedPurpose: purpose,
@@ -1179,12 +1179,12 @@ export class AuthService implements IAuthService {
       }
 
       // For forgot password, check if user exists
-      if (purpose === OTP_PURPOSES.RESET) {
+      if (purpose === OTPPurpose.RESET) {
         const identifier = phone || email!;
         this._logger.debug('Verifying user exists for password reset OTP', {
           ...context,
           identifier,
-          purpose: OTP_PURPOSES.RESET,
+          purpose: OTPPurpose.RESET,
         });
 
         const user = await this._userRepository.findByIdentifier(identifier);
@@ -1496,8 +1496,8 @@ export class AuthService implements IAuthService {
             email: email,
             isVerified: true,
             roles:
-              userType === USER_ROLES.SERVICE_PROVIDER
-                ? [USER_ROLES.SERVICE_PROVIDER]
+              userType === UserRoles.SERVICE_PROVIDER
+                ? [UserRoles.SERVICE_PROVIDER]
                 : ['user'],
             applicationStatus: 'not-applied',
           });
@@ -1516,10 +1516,10 @@ export class AuthService implements IAuthService {
 
           // Update role if needed - add service provider role if not present
           if (
-            userType === USER_ROLES.SERVICE_PROVIDER &&
-            !user.roles.includes(USER_ROLES.SERVICE_PROVIDER)
+            userType === UserRoles.SERVICE_PROVIDER &&
+            !user.roles.includes(UserRoles.SERVICE_PROVIDER)
           ) {
-            const updatedRoles = [...user.roles, USER_ROLES.SERVICE_PROVIDER];
+            const updatedRoles = [...user.roles, UserRoles.SERVICE_PROVIDER];
             user = await this._userRepository.update(user._id!.toString(), {
               roles: updatedRoles,
             });

@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { IUserManagementService } from '../../interfaces/services/admin/IUserManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
-import { GENERAL_MESSAGES } from '../../constants';
+import { GeneralMessages } from '../../constants';
 import {
   UsersListResponseDto,
   UserManagementResponseDto,
@@ -28,14 +28,23 @@ export class UserManagementController {
     };
 
     try {
-      this._logger.info('Fetching all users', context);
+      const search = req.query.search as string;
+      const status = req.query.status as string;
+
+      this._logger.info('Fetching users with filters', {
+        ...context,
+        search,
+        status,
+      });
 
       const result: UsersListResponseDto =
-        await this._userManagementService.getUsers();
+        await this._userManagementService.getUsers(search, status);
 
       this._logger.info('Users retrieved successfully', {
         ...context,
-        count: result?.users?.length,
+        count: result?.users?.length || 0,
+        hasSearch: !!search,
+        hasStatusFilter: !!status,
       });
 
       res.status(result.statusCode).json(result);
@@ -46,7 +55,7 @@ export class UserManagementController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -92,7 +101,7 @@ export class UserManagementController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -137,7 +146,7 @@ export class UserManagementController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -169,7 +178,7 @@ export class UserManagementController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -199,7 +208,7 @@ export class UserManagementController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -233,7 +242,7 @@ export class UserManagementController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

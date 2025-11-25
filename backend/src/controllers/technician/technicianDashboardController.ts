@@ -1,22 +1,19 @@
-import { Response } from "express";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import { ITechnicianDashboardService } from "../../interfaces/services/technician/ITechnicianDashboardService";
-import { ResponseHelper } from "../../utils/responseHelper";
-import { GENERAL_MESSAGES } from "../../constants";
+import { Response } from 'express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { ITechnicianDashboardService } from '../../interfaces/services/technician/ITechnicianDashboardService';
+import { ResponseHelper } from '../../utils/responseHelper';
+import { GeneralMessages } from '../../constants';
 import {
   DashboardOverviewResponseDto,
   TechnicianProfileResponseDto,
-} from "../../interfaces/dtos/technicianDashboardDtos";
-import { ILogger } from "@/interfaces/utils/ILogger";
+} from '../../interfaces/dtos/technicianDashboardDtos';
+import { ILogger } from '@/interfaces/utils/ILogger';
 
 export class TechnicianDashboardController {
   private _dashboardService: ITechnicianDashboardService;
   private _logger: ILogger;
 
-  constructor(
-    dashboardService: ITechnicianDashboardService,
-    logger: ILogger
-  ) {
+  constructor(dashboardService: ITechnicianDashboardService, logger: ILogger) {
     this._dashboardService = dashboardService;
     this._logger = logger;
   }
@@ -28,17 +25,17 @@ export class TechnicianDashboardController {
     const technicianId = req.user?.id;
 
     const context = {
-      operation: "getDashboardOverview",
+      operation: 'getDashboardOverview',
       technicianId,
       timestamp: new Date().toISOString(),
     };
     try {
-      this._logger.info("Fetchning dashboard overview", context);
+      this._logger.info('Fetchning dashboard overview', context);
 
       if (!technicianId) {
-        this._logger.warn("Authemtication required", context);
+        this._logger.warn('Authemtication required', context);
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -47,16 +44,16 @@ export class TechnicianDashboardController {
       const result: DashboardOverviewResponseDto =
         await this._dashboardService.getDashboardOverview(technicianId);
 
-      this._logger.info("Dashboard retrieved successfully", {
+      this._logger.info('Dashboard retrieved successfully', {
         ...context,
         overview: result?.overview,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error) {
-      console.error("Get dashboard overview controller error:", error);
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
-      this._logger.error("Get technician dashboard error", {
+      console.error('Get dashboard overview controller error:', error);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
+      this._logger.error('Get technician dashboard error', {
         ...context,
         error: error,
       });
@@ -70,17 +67,17 @@ export class TechnicianDashboardController {
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const context = {
-      operation: "getTechnicianProfile",
+      operation: 'getTechnicianProfile',
       technicianId,
       timestamp: new Date().toISOString(),
     };
     try {
-      this._logger.info("Fetchning technician profile", context);
+      this._logger.info('Fetchning technician profile', context);
 
       if (!technicianId) {
-        this._logger.warn("Authemtication required", context);
+        this._logger.warn('Authemtication required', context);
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -89,16 +86,16 @@ export class TechnicianDashboardController {
       const result: TechnicianProfileResponseDto =
         await this._dashboardService.getTechnicianProfile(technicianId);
 
-      this._logger.info("Technician profile retrieved successfully", {
+      this._logger.info('Technician profile retrieved successfully', {
         ...context,
         profile: result?.profile,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error) {
-      console.error("Get technician profile controller error:", error);
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
-      this._logger.error("Get technician profile error", {
+      console.error('Get technician profile controller error:', error);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
+      this._logger.error('Get technician profile error', {
         ...context,
         error: error,
       });

@@ -1,11 +1,11 @@
-import { Response } from "express";
-import { ITechnicianProfileService } from "../../interfaces/services/technician/ITechnicianProfileService";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import { ResponseHelper } from "../../utils/responseHelper";
-import { GENERAL_MESSAGES } from "../../constants";
-import { TechnicianProfileResponseDto } from "@/interfaces/dtos/technicianProfileDtos";
-import { ILogger } from "@/interfaces/utils/ILogger";
-import { toStaticDataDto } from "../../mappers/technicianProfileMappers";
+import { Response } from 'express';
+import { ITechnicianProfileService } from '../../interfaces/services/technician/ITechnicianProfileService';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { ResponseHelper } from '../../utils/responseHelper';
+import { GeneralMessages } from '../../constants';
+import { TechnicianProfileResponseDto } from '@/interfaces/dtos/technicianProfileDtos';
+import { ILogger } from '@/interfaces/utils/ILogger';
+import { toStaticDataDto } from '../../mappers/technicianProfileMappers';
 
 export class TechnicianProfileController {
   private _profileService: ITechnicianProfileService;
@@ -20,16 +20,16 @@ export class TechnicianProfileController {
   private handleServiceResponse(
     result: any,
     res: Response,
-    successMessage?: string,
+    successMessage?: string
   ): void {
     // Check if result already has statusCode (is a response object)
-    if (result && "statusCode" in result) {
+    if (result && 'statusCode' in result) {
       res.status(result.statusCode).json(result);
     } else {
       // If it's a raw data object, wrap it in a success response
       const successResponse = ResponseHelper.success(
-        successMessage || "Operation completed successfully",
-        result,
+        successMessage || 'Operation completed successfully',
+        result
       );
       res.status(successResponse.statusCode).json(successResponse);
     }
@@ -38,21 +38,21 @@ export class TechnicianProfileController {
   getProfile = async (req: AuthRequest, res: Response): Promise<void> => {
     const technicianId = req.user?.id;
     const context = {
-      operation: "getProfile",
+      operation: 'getProfile',
       technicianId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching technician profile", context);
+      this._logger.info('Fetching technician profile', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Get profile failed - authentication required",
-          context,
+          'Get profile failed - authentication required',
+          context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -61,48 +61,48 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.getTechnicianProfile(technicianId);
 
-      this._logger.info("Profile retrieved successfully", {
+      this._logger.info('Profile retrieved successfully', {
         ...context,
         profileStatus: result?.profile?.status,
       });
 
-      this.handleServiceResponse(result, res, "Profile retrieved successfully");
+      this.handleServiceResponse(result, res, 'Profile retrieved successfully');
     } catch (error: unknown) {
-      this._logger.error("Get profile controller error", {
+      this._logger.error('Get profile controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
   updatePersonalInfo = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
 
     const context = {
-      operation: "updatePersonalInfo",
+      operation: 'updatePersonalInfo',
       technicianId,
       updateFields: Object.keys(updateData),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Updating personal information", context);
+      this._logger.info('Updating personal information', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Update personal info failed - authentication required",
-          context,
+          'Update personal info failed - authentication required',
+          context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -111,10 +111,10 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updatePersonalInformation(
           technicianId,
-          updateData,
+          updateData
         );
 
-      this._logger.info("Personal information updated successfully", {
+      this._logger.info('Personal information updated successfully', {
         ...context,
         updatedFieldCount: Object.keys(updateData).length,
       });
@@ -122,16 +122,16 @@ export class TechnicianProfileController {
       this.handleServiceResponse(
         result,
         res,
-        "Personal information updated successfully",
+        'Personal information updated successfully'
       );
     } catch (error: unknown) {
-      this._logger.error("Update personal info controller error", {
+      this._logger.error('Update personal info controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -142,7 +142,7 @@ export class TechnicianProfileController {
       const file = req.file;
 
       const context = {
-        operation: "uploadPhoto",
+        operation: 'uploadPhoto',
         technicianId,
         fileName: file?.originalname,
         fileSize: file?.size,
@@ -150,15 +150,15 @@ export class TechnicianProfileController {
       };
 
       try {
-        this._logger.info("Uploading profile photo", context);
+        this._logger.info('Uploading profile photo', context);
 
         if (!technicianId) {
           this._logger.warn(
-            "Upload photo failed - authentication required",
-            context,
+            'Upload photo failed - authentication required',
+            context
           );
           const unauthorizedResponse = ResponseHelper.unauthorized(
-            "Authentication required",
+            'Authentication required'
           );
           res
             .status(unauthorizedResponse.statusCode)
@@ -167,32 +167,32 @@ export class TechnicianProfileController {
         }
 
         if (!file) {
-          this._logger.warn("Upload photo failed - no file uploaded", context);
+          this._logger.warn('Upload photo failed - no file uploaded', context);
           const badRequestResponse =
-            ResponseHelper.badRequest("No file uploaded");
+            ResponseHelper.badRequest('No file uploaded');
           res.status(badRequestResponse.statusCode).json(badRequestResponse);
           return;
         }
 
         const result = await this._profileService.uploadPhoto(
           technicianId,
-          file,
+          file
         );
 
-        this._logger.info("Profile photo uploaded successfully", {
+        this._logger.info('Profile photo uploaded successfully', {
           ...context,
           uploadSuccess: result.success,
         });
 
         res.status(result.statusCode).json(result);
       } catch (error: unknown) {
-        this._logger.error("Upload photo controller error", {
+        this._logger.error('Upload photo controller error', {
           ...context,
           error: error instanceof Error ? error.message : undefined,
           stack: error instanceof Error ? error.stack : undefined,
         });
 
-        const errorResponse = ResponseHelper.error("Failed to upload photo");
+        const errorResponse = ResponseHelper.error('Failed to upload photo');
         res.status(errorResponse.statusCode).json(errorResponse);
       }
     },
@@ -200,28 +200,28 @@ export class TechnicianProfileController {
 
   updateIdentityVerification = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
 
     const context = {
-      operation: "updateIdentityVerification",
+      operation: 'updateIdentityVerification',
       technicianId,
       updateFields: Object.keys(updateData),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Updating identity verification", context);
+      this._logger.info('Updating identity verification', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Update identity verification failed - authentication required",
-          context,
+          'Update identity verification failed - authentication required',
+          context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -230,10 +230,10 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updateIdentityVerification(
           technicianId,
-          updateData,
+          updateData
         );
 
-      this._logger.info("Identity verification updated successfully", {
+      this._logger.info('Identity verification updated successfully', {
         ...context,
         verification: result?.profile?.identityVerification,
       });
@@ -241,44 +241,44 @@ export class TechnicianProfileController {
       this.handleServiceResponse(
         result,
         res,
-        "Identity verification updated successfully",
+        'Identity verification updated successfully'
       );
     } catch (error: unknown) {
-      this._logger.error("Update identity verification controller error", {
+      this._logger.error('Update identity verification controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
   updateSkillsServices = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
 
     const context = {
-      operation: "updateSkillsServices",
+      operation: 'updateSkillsServices',
       technicianId,
       updateFields: Object.keys(updateData),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Updating skills and services", context);
+      this._logger.info('Updating skills and services', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Update skills services failed - authentication required",
-          context,
+          'Update skills services failed - authentication required',
+          context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -287,10 +287,10 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updateSkillsServices(
           technicianId,
-          updateData,
+          updateData
         );
 
-      this._logger.info("Skills and services updated successfully", {
+      this._logger.info('Skills and services updated successfully', {
         ...context,
         servicesCount: result?.profile?.services?.length,
       });
@@ -298,44 +298,44 @@ export class TechnicianProfileController {
       this.handleServiceResponse(
         result,
         res,
-        "Skills and services updated successfully",
+        'Skills and services updated successfully'
       );
     } catch (error: unknown) {
-      this._logger.error("Update skills services controller error", {
+      this._logger.error('Update skills services controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
   updateAvailability = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
 
     const context = {
-      operation: "updateAvailability",
+      operation: 'updateAvailability',
       technicianId,
       updateFields: Object.keys(updateData),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Updating availability preferences", context);
+      this._logger.info('Updating availability preferences', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Update availability failed - authentication required",
-          context,
+          'Update availability failed - authentication required',
+          context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -344,10 +344,10 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updateAvailabilityPreferences(
           technicianId,
-          updateData,
+          updateData
         );
 
-      this._logger.info("Availability updated successfully", {
+      this._logger.info('Availability updated successfully', {
         ...context,
         isAvailable: result?.profile?.availabilityPreferences?.isAvailable,
       });
@@ -355,44 +355,44 @@ export class TechnicianProfileController {
       this.handleServiceResponse(
         result,
         res,
-        "Availability updated successfully",
+        'Availability updated successfully'
       );
     } catch (error: unknown) {
-      this._logger.error("Update availability controller error", {
+      this._logger.error('Update availability controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
   updateBankPayment = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const updateData = req.body;
 
     const context = {
-      operation: "updateBankPayment",
+      operation: 'updateBankPayment',
       technicianId,
       updateFields: Object.keys(updateData),
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Updating bank and payment details", context);
+      this._logger.info('Updating bank and payment details', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Update bank payment failed - authentication required",
-          context,
+          'Update bank payment failed - authentication required',
+          context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -401,27 +401,27 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updateBankPaymentDetails(
           technicianId,
-          updateData,
+          updateData
         );
 
       this._logger.info(
-        "Bank and payment details updated successfully",
-        context,
+        'Bank and payment details updated successfully',
+        context
       );
 
       this.handleServiceResponse(
         result,
         res,
-        "Bank and payment details updated successfully",
+        'Bank and payment details updated successfully'
       );
     } catch (error: unknown) {
-      this._logger.error("Update bank payment controller error", {
+      this._logger.error('Update bank payment controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -431,21 +431,21 @@ export class TechnicianProfileController {
     const updateData = req.body;
 
     const context = {
-      operation: "updatePassword",
+      operation: 'updatePassword',
       technicianId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Updating password", context);
+      this._logger.info('Updating password', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Update password failed - authentication required",
-          context,
+          'Update password failed - authentication required',
+          context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -454,17 +454,17 @@ export class TechnicianProfileController {
       const result: TechnicianProfileResponseDto =
         await this._profileService.updatePassword(technicianId, updateData);
 
-      this._logger.info("Password updated successfully", context);
+      this._logger.info('Password updated successfully', context);
 
-      this.handleServiceResponse(result, res, "Password updated successfully");
+      this.handleServiceResponse(result, res, 'Password updated successfully');
     } catch (error: unknown) {
-      this._logger.error("Update password controller error", {
+      this._logger.error('Update password controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -476,7 +476,7 @@ export class TechnicianProfileController {
       const file = req.file;
 
       const context = {
-        operation: "uploadDocument",
+        operation: 'uploadDocument',
         technicianId,
         documentType,
         fileName: file?.originalname,
@@ -485,15 +485,15 @@ export class TechnicianProfileController {
       };
 
       try {
-        this._logger.info("Uploading document", context);
+        this._logger.info('Uploading document', context);
 
         if (!technicianId) {
           this._logger.warn(
-            "Upload document failed - authentication required",
-            context,
+            'Upload document failed - authentication required',
+            context
           );
           const unauthorizedResponse = ResponseHelper.unauthorized(
-            "Authentication required",
+            'Authentication required'
           );
           res
             .status(unauthorizedResponse.statusCode)
@@ -503,22 +503,22 @@ export class TechnicianProfileController {
 
         if (!file) {
           this._logger.warn(
-            "Upload document failed - no file uploaded",
-            context,
+            'Upload document failed - no file uploaded',
+            context
           );
           const badRequestResponse =
-            ResponseHelper.badRequest("No file uploaded");
+            ResponseHelper.badRequest('No file uploaded');
           res.status(badRequestResponse.statusCode).json(badRequestResponse);
           return;
         }
 
         if (!documentType) {
           this._logger.warn(
-            "Upload document failed - document type required",
-            context,
+            'Upload document failed - document type required',
+            context
           );
           const badRequestResponse = ResponseHelper.badRequest(
-            "Document type is required",
+            'Document type is required'
           );
           res.status(badRequestResponse.statusCode).json(badRequestResponse);
           return;
@@ -527,23 +527,23 @@ export class TechnicianProfileController {
         const result = await this._profileService.uploadDocument(
           technicianId,
           file,
-          documentType,
+          documentType
         );
 
-        this._logger.info("Document uploaded successfully", {
+        this._logger.info('Document uploaded successfully', {
           ...context,
           uploadSuccess: result.success,
         });
 
         res.status(result.statusCode).json(result);
       } catch (error: unknown) {
-        this._logger.error("Upload document controller error", {
+        this._logger.error('Upload document controller error', {
           ...context,
           error: error instanceof Error ? error.message : undefined,
           stack: error instanceof Error ? error.stack : undefined,
         });
 
-        const errorResponse = ResponseHelper.error("Failed to upload document");
+        const errorResponse = ResponseHelper.error('Failed to upload document');
         res.status(errorResponse.statusCode).json(errorResponse);
       }
     },
@@ -551,55 +551,55 @@ export class TechnicianProfileController {
 
   getStaticData = async (req: AuthRequest, res: Response): Promise<void> => {
     const context = {
-      operation: "getStaticData",
+      operation: 'getStaticData',
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching static data", context);
+      this._logger.info('Fetching static data', context);
 
       const staticData = toStaticDataDto();
 
-      this._logger.info("Static data retrieved successfully", context);
+      this._logger.info('Static data retrieved successfully', context);
 
       const successResponse = ResponseHelper.success(
-        "Static data retrieved successfully",
-        staticData,
+        'Static data retrieved successfully',
+        staticData
       );
       res.status(successResponse.statusCode).json(successResponse);
     } catch (error: unknown) {
-      this._logger.error("Get static data error", {
+      this._logger.error('Get static data error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error("Failed to fetch static data");
+      const errorResponse = ResponseHelper.error('Failed to fetch static data');
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
 
   deactivateProfile = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const context = {
-      operation: "deactivateProfile",
+      operation: 'deactivateProfile',
       technicianId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Deactivating profile", context);
+      this._logger.info('Deactivating profile', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Deactivate profile failed - authentication required",
-          context,
+          'Deactivate profile failed - authentication required',
+          context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
@@ -612,22 +612,22 @@ export class TechnicianProfileController {
           },
         });
 
-      this._logger.info("Profile deactivated successfully", context);
+      this._logger.info('Profile deactivated successfully', context);
 
       this.handleServiceResponse(
         result,
         res,
-        "Profile deactivated successfully",
+        'Profile deactivated successfully'
       );
     } catch (error: unknown) {
-      this._logger.error("Deactivate profile error", {
+      this._logger.error('Deactivate profile error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(
-        "Failed to deactivate profile",
+        'Failed to deactivate profile'
       );
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -636,41 +636,41 @@ export class TechnicianProfileController {
   deleteAccount = async (req: AuthRequest, res: Response): Promise<void> => {
     const technicianId = req.user?.id;
     const context = {
-      operation: "deleteAccount",
+      operation: 'deleteAccount',
       technicianId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Processing account deletion request", context);
+      this._logger.info('Processing account deletion request', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Delete account failed - authentication required",
-          context,
+          'Delete account failed - authentication required',
+          context
         );
         const unauthorizedResponse = ResponseHelper.unauthorized(
-          "Authentication required",
+          'Authentication required'
         );
         res.status(unauthorizedResponse.statusCode).json(unauthorizedResponse);
         return;
       }
 
-      this._logger.info("Account deletion request received", context);
+      this._logger.info('Account deletion request received', context);
 
       const successResponse = ResponseHelper.success(
-        "Account deletion request received. This action will be processed within 24 hours.",
+        'Account deletion request received. This action will be processed within 24 hours.'
       );
       res.status(successResponse.statusCode).json(successResponse);
     } catch (error: unknown) {
-      this._logger.error("Delete account error", {
+      this._logger.error('Delete account error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
       const errorResponse = ResponseHelper.error(
-        "Failed to process account deletion",
+        'Failed to process account deletion'
       );
       res.status(errorResponse.statusCode).json(errorResponse);
     }
@@ -679,32 +679,32 @@ export class TechnicianProfileController {
   getSlotRules = async (req: AuthRequest, res: Response): Promise<void> => {
     const technicianId = req.user?.id;
     const context = {
-      operation: "getSlotRules",
+      operation: 'getSlotRules',
       technicianId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching slot rules", context);
+      this._logger.info('Fetching slot rules', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Get slot rules failed - authentication required",
-          context,
+          'Get slot rules failed - authentication required',
+          context
         );
-        res.status(401).json({ success: false, message: "Unauthorized" });
+        res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
 
       const result = await this._profileService.getSlotRules(technicianId);
 
-      this._logger.info("Slot rules retrieved successfully", {
+      this._logger.info('Slot rules retrieved successfully', {
         ...context,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get slot rules controller error", {
+      this._logger.error('Get slot rules controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -712,45 +712,45 @@ export class TechnicianProfileController {
 
       res.status(500).json({
         success: false,
-        message: "Internal server error",
+        message: 'Internal server error',
       });
     }
   };
 
   getTechnicianAvailability = async (
     req: AuthRequest,
-    res: Response,
+    res: Response
   ): Promise<void> => {
     const technicianId = req.user?.id;
     const context = {
-      operation: "getTechnicianAvailability",
+      operation: 'getTechnicianAvailability',
       technicianId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching technician availability", context);
+      this._logger.info('Fetching technician availability', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Get technician availability failed - authentication required",
-          context,
+          'Get technician availability failed - authentication required',
+          context
         );
-        res.status(401).json({ success: false, message: "Unauthorized" });
+        res.status(401).json({ success: false, message: 'Unauthorized' });
         return;
       }
 
       const result =
         await this._profileService.getTechnicianAvailability(technicianId);
 
-      this._logger.info("Technician availability retrieved successfully", {
+      this._logger.info('Technician availability retrieved successfully', {
         ...context,
         isAvailable: result.profile?.availabilityPreferences?.isAvailable,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get technician availability controller error", {
+      this._logger.error('Get technician availability controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -758,7 +758,7 @@ export class TechnicianProfileController {
 
       res.status(500).json({
         success: false,
-        message: "Internal server error",
+        message: 'Internal server error',
       });
     }
   };

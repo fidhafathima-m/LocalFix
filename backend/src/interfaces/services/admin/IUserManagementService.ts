@@ -3,16 +3,16 @@ import {
   UpdateUserStatusRequestDto,
   UserManagementResponseDto,
   UsersListResponseDto,
-} from "@/interfaces/dtos/userDtos";
-import { ApiResponse } from "../../../utils/responseHelper";
+} from '@/interfaces/dtos/userDtos';
+import { ApiResponse } from '../../../utils/responseHelper';
 import {
   IUserWithAddress,
   UpdateUserStatusRequest,
   EditUserRequest,
-} from "../../admin/IUserManagements";
+} from '../../admin/IUserManagements';
 
 export interface IUserManagementService {
-  getUsers(): Promise<UsersListResponseDto>;
+  getUsers(search?: string, status?: string): Promise<UsersListResponseDto>;
 
   updateUserStatus(
     userId: string,

@@ -2,9 +2,9 @@
 import { adminAPI } from "../common/adminApi";
 
 export class UserMangementService {
-  static async getUsers() {
+  static async getUsers(search?: string, status?: string) {
     try {
-      const response = await adminAPI.getUsers();
+      const response = await adminAPI.getUsers(search, status);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to get users");

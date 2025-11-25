@@ -1,9 +1,9 @@
-import { Response } from "express";
-import { ResponseHelper } from "../../utils/responseHelper";
-import { GENERAL_MESSAGES } from "../../constants";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import { IOrderService } from "@/interfaces/services/user/IOrderService";
-import { ILogger } from "@/interfaces/utils/ILogger";
+import { Response } from 'express';
+import { ResponseHelper } from '../../utils/responseHelper';
+import { GeneralMessages } from '../../constants';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { IOrderService } from '@/interfaces/services/user/IOrderService';
+import { ILogger } from '@/interfaces/utils/ILogger';
 
 export class OrderController {
   private _orderService: IOrderService;
@@ -20,7 +20,7 @@ export class OrderController {
     const limit = parseInt(req.query.limit as string) || 10;
 
     const context = {
-      operation: "getUserOrders",
+      operation: 'getUserOrders',
       userId,
       page,
       limit,
@@ -28,15 +28,15 @@ export class OrderController {
     };
 
     try {
-      this._logger.info("Fetching user orders", context);
+      this._logger.info('Fetching user orders', context);
 
       if (!userId) {
         this._logger.warn(
-          "Get user orders failed - authentication required",
+          'Get user orders failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -48,20 +48,20 @@ export class OrderController {
         limit
       );
 
-      this._logger.info("User orders retrieved successfully", {
+      this._logger.info('User orders retrieved successfully', {
         ...context,
         orderCount: result.data?.orders.length || 0,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get user orders controller error", {
+      this._logger.error('Get user orders controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -71,22 +71,22 @@ export class OrderController {
     const { orderId } = req.params;
 
     const context = {
-      operation: "getOrderById",
+      operation: 'getOrderById',
       userId,
       orderId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching order by ID", context);
+      this._logger.info('Fetching order by ID', context);
 
       if (!userId) {
         this._logger.warn(
-          "Get order failed - authentication required",
+          'Get order failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -94,20 +94,20 @@ export class OrderController {
 
       const result = await this._orderService.getOrderById(userId, orderId);
 
-      this._logger.info("Order retrieved successfully", {
+      this._logger.info('Order retrieved successfully', {
         ...context,
         orderFound: !!result.data,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get order by ID controller error", {
+      this._logger.error('Get order by ID controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -118,7 +118,7 @@ export class OrderController {
     const { reason } = req.body;
 
     const context = {
-      operation: "cancelOrder",
+      operation: 'cancelOrder',
       userId,
       orderId,
       reason,
@@ -126,24 +126,24 @@ export class OrderController {
     };
 
     try {
-      this._logger.info("Cancelling order", context);
+      this._logger.info('Cancelling order', context);
 
       if (!userId) {
         this._logger.warn(
-          "Cancel order failed - authentication required",
+          'Cancel order failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
 
       if (!reason) {
-        this._logger.warn("Cancel order failed - reason required", context);
+        this._logger.warn('Cancel order failed - reason required', context);
         const badRequestResponse = ResponseHelper.badRequest(
-          "Cancellation reason is required"
+          'Cancellation reason is required'
         );
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
@@ -155,17 +155,17 @@ export class OrderController {
         reason
       );
 
-      this._logger.info("Order cancelled successfully", context);
+      this._logger.info('Order cancelled successfully', context);
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Cancel order controller error", {
+      this._logger.error('Cancel order controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -175,7 +175,7 @@ export class OrderController {
     const { newDate, newTimeSlot } = req.body;
 
     const context = {
-      operation: "rescheduleOrder",
+      operation: 'rescheduleOrder',
       userId,
       orderId,
       newDate,
@@ -184,28 +184,28 @@ export class OrderController {
     };
 
     try {
-      this._logger.info("Rescheduling order", context);
+      this._logger.info('Rescheduling order', context);
 
       if (!userId) {
         this._logger.warn(
-          "Reschedule order failed - authentication required",
+          'Reschedule order failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
 
       if (!newDate || !newTimeSlot) {
-        this._logger.warn("Reschedule order failed - missing required fields", {
+        this._logger.warn('Reschedule order failed - missing required fields', {
           ...context,
           hasNewDate: !!newDate,
           hasNewTimeSlot: !!newTimeSlot,
         });
         const badRequestResponse = ResponseHelper.badRequest(
-          "New date and time slot are required"
+          'New date and time slot are required'
         );
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
@@ -215,11 +215,11 @@ export class OrderController {
       const scheduledAt = new Date(newDate);
       if (isNaN(scheduledAt.getTime())) {
         this._logger.warn(
-          "Reschedule order failed - invalid date format",
+          'Reschedule order failed - invalid date format',
           context
         );
         const badRequestResponse = ResponseHelper.badRequest(
-          "Invalid date format"
+          'Invalid date format'
         );
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
@@ -228,11 +228,11 @@ export class OrderController {
       // Check if the new date is in the future
       if (scheduledAt <= new Date()) {
         this._logger.warn(
-          "Reschedule order failed - date must be in future",
+          'Reschedule order failed - date must be in future',
           context
         );
         const badRequestResponse = ResponseHelper.badRequest(
-          "New date must be in the future"
+          'New date must be in the future'
         );
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
@@ -246,24 +246,24 @@ export class OrderController {
       );
 
       if (!result.success) {
-        this._logger.warn("Reschedule order service returned failure", {
+        this._logger.warn('Reschedule order service returned failure', {
           ...context,
           error: result.message,
           statusCode: result.statusCode,
         });
       } else {
-        this._logger.info("Order rescheduled successfully", context);
+        this._logger.info('Order rescheduled successfully', context);
       }
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Reschedule order controller error", {
+      this._logger.error('Reschedule order controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -275,22 +275,22 @@ export class OrderController {
     const { bookingId, paymentData } = req.body;
 
     const context = {
-      operation: "createOrderFromBooking",
+      operation: 'createOrderFromBooking',
       userId,
       bookingId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Creating order from booking", context);
+      this._logger.info('Creating order from booking', context);
 
       if (!userId) {
         this._logger.warn(
-          "Create order failed - authentication required",
+          'Create order failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -298,11 +298,11 @@ export class OrderController {
 
       if (!bookingId || !paymentData) {
         this._logger.warn(
-          "Create order failed - missing required fields",
+          'Create order failed - missing required fields',
           context
         );
         const badRequestResponse = ResponseHelper.badRequest(
-          "Booking ID and payment data are required"
+          'Booking ID and payment data are required'
         );
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
@@ -313,17 +313,17 @@ export class OrderController {
         paymentData
       );
 
-      this._logger.info("Order created successfully from booking", context);
+      this._logger.info('Order created successfully from booking', context);
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Create order from booking controller error", {
+      this._logger.error('Create order from booking controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -335,22 +335,22 @@ export class OrderController {
     const { bookingId } = req.params;
 
     const context = {
-      operation: "getOrderByBookingId",
+      operation: 'getOrderByBookingId',
       userId,
       bookingId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching order by booking ID", context);
+      this._logger.info('Fetching order by booking ID', context);
 
       if (!userId) {
         this._logger.warn(
-          "Get order failed - authentication required",
+          'Get order failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -361,20 +361,20 @@ export class OrderController {
         bookingId
       );
 
-      this._logger.info("Order retrieved successfully by booking ID", {
+      this._logger.info('Order retrieved successfully by booking ID', {
         ...context,
         orderFound: !!result.data,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get order by booking ID controller error", {
+      this._logger.error('Get order by booking ID controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -387,22 +387,22 @@ export class OrderController {
     const paymentData = req.body;
 
     const context = {
-      operation: "updateOrderPayment",
+      operation: 'updateOrderPayment',
       userId,
       orderId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Updating order payment", context);
+      this._logger.info('Updating order payment', context);
 
       if (!userId) {
         this._logger.warn(
-          "Update payment failed - authentication required",
+          'Update payment failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -413,17 +413,17 @@ export class OrderController {
         paymentData
       );
 
-      this._logger.info("Order payment updated successfully", context);
+      this._logger.info('Order payment updated successfully', context);
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Update order payment controller error", {
+      this._logger.error('Update order payment controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

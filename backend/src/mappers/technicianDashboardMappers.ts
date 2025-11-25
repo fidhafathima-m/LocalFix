@@ -1,19 +1,19 @@
-import { Types } from "mongoose";
+import { Types } from 'mongoose';
 import {
   DashboardOverviewDto,
   TechnicianProfileDto,
   PersonalInfoDto,
   AddressDto,
-} from "../interfaces/dtos/technicianDashboardDtos";
-import { ITechnician } from "../interfaces/technician/ITechnician";
-import { IUser } from "../interfaces/user/IUser";
-import { IAddress } from "../interfaces/user/IAddress";
+} from '../interfaces/dtos/technicianDashboardDtos';
+import { ITechnician } from '../interfaces/technician/ITechnician';
+import { IUser } from '../interfaces/user/IUser';
+import { IAddress } from '../interfaces/user/IAddress';
 import {
   DASHBOARD_DEFAULTS,
   PERSONAL_INFO_DEFAULTS,
   LANGUAGE_FORMAT_OPTIONS,
-  TECHNICIAN_STATUS,
-} from "../constants";
+  TechnicianStatus,
+} from '../constants';
 
 export const toDashboardOverviewDto = (
   technician: ITechnician
@@ -36,11 +36,11 @@ export const toTechnicianProfileDto = (
   const personalInfo = _mapPersonalInfo(technician, userAddress);
 
   return {
-    _id: technician._id?.toString() || "",
-    userId: technician.userId?.toString() || "",
-    displayName: technician.displayName || "",
-    email: user.email || "",
-    phone: user.phone || technician.phone || "",
+    _id: technician._id?.toString() || '',
+    userId: technician.userId?.toString() || '',
+    displayName: technician.displayName || '',
+    email: user.email || '',
+    phone: user.phone || technician.phone || '',
     services: technician.services || [],
     experienceYears:
       technician.experienceYears || DASHBOARD_DEFAULTS.EXPERIENCE_YEARS,
@@ -48,10 +48,10 @@ export const toTechnicianProfileDto = (
     averageRating:
       technician.averageRating || DASHBOARD_DEFAULTS.AVERAGE_RATING,
     ratingCount: technician.ratingCount || DASHBOARD_DEFAULTS.RATING_COUNT,
-    profilePictureUrl: technician.profilePictureUrl || "",
-    isVerified: technician.status === TECHNICIAN_STATUS.APPROVED,
+    profilePictureUrl: technician.profilePictureUrl || '',
+    isVerified: technician.status === TechnicianStatus.APPROVED,
     bio: technician.bio || PERSONAL_INFO_DEFAULTS.BIO,
-    status: technician.status || "",
+    status: technician.status || '',
     suspensionReason: technician.suspensionReason,
     suspendedAt: technician.suspendedAt,
     personalInfo,
@@ -117,14 +117,12 @@ const _formatLanguages = (languages: unknown): string[] => {
   }
 
   if (Array.isArray(languages)) {
-    const result = languages.filter(
-      (lang) => lang && String(lang).trim() !== ""
-    );
+    const result = languages.filter(lang => lang && String(lang).trim() !== '');
     return result.slice(0, LANGUAGE_FORMAT_OPTIONS.MAX_LANGUAGES);
   }
 
-  if (typeof languages === "string") {
-    if (languages.trim() === "") {
+  if (typeof languages === 'string') {
+    if (languages.trim() === '') {
       return [];
     }
 
@@ -133,12 +131,12 @@ const _formatLanguages = (languages: unknown): string[] => {
 
       if (Array.isArray(parsed)) {
         const result = parsed.filter(
-          (lang: unknown) => lang && String(lang).trim() !== ""
+          (lang: unknown) => lang && String(lang).trim() !== ''
         );
         return result.slice(0, LANGUAGE_FORMAT_OPTIONS.MAX_LANGUAGES);
       }
 
-      if (parsed && typeof parsed === "string") {
+      if (parsed && typeof parsed === 'string') {
         return [parsed.trim()];
       }
     } catch (e) {
@@ -146,7 +144,7 @@ const _formatLanguages = (languages: unknown): string[] => {
         const result = languages
           .split(LANGUAGE_FORMAT_OPTIONS.DELIMITERS.COMMA)
           .map((lang: string) => lang.trim())
-          .filter((lang) => lang !== "");
+          .filter(lang => lang !== '');
         return result.slice(0, LANGUAGE_FORMAT_OPTIONS.MAX_LANGUAGES);
       }
       return [languages.trim()];

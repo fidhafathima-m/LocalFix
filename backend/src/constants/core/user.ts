@@ -1,13 +1,13 @@
-export const USER_STATUS = {
-  ACTIVE: "Active",
-  INACTIVE: "Inactive",
-  BLOCKED: "Blocked",
-  PENDING: "pending",
-} as const;
+export enum UserStatus {
+  ACTIVE = 'Active',
+  INACTIVE = 'Inactive',
+  BLOCKED = 'Blocked',
+  PENDING = 'pending',
+}
 
-export const USER_ROLES = {
-  USER: "user",
-  SERVICE_PROVIDER: "serviceProvider",
-  TECHNICIAN: "technician",
-  ADMIN: "admin",
-} as const;
+export enum UserRoles {
+  USER = 'user',
+  SERVICE_PROVIDER = 'serviceProvider',
+  TECHNICIAN = 'technician',
+  ADMIN = 'admin',
+}

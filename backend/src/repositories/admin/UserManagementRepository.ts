@@ -1,13 +1,14 @@
-import { Model, Types } from "mongoose";
-import { BaseRepository } from "../BaseRepository";
-import { IUserManagementRepository } from "../../interfaces/repository/admin/IUserManagementRepository";
+import { Model, Types } from 'mongoose';
+import { BaseRepository } from '../BaseRepository';
+import { IUserManagementRepository } from '../../interfaces/repository/admin/IUserManagementRepository';
 import {
   IUser,
   IUserWithAddress,
-} from "../../interfaces/admin/IUserManagements";
-import User from "../../models/UserSchema";
-import UserAddress, { IUserAddress } from "../../models/UserAddressSchema";
-import bcrypt from "bcrypt";
+} from '../../interfaces/admin/IUserManagements';
+import User from '../../models/UserSchema';
+import UserAddress, { IUserAddress } from '../../models/UserAddressSchema';
+import bcrypt from 'bcrypt';
+import UserSchema from '../../models/UserSchema';
 
 export class UserManagementRepository
   extends BaseRepository<IUser>
@@ -22,55 +23,82 @@ export class UserManagementRepository
 
   async findUserAddresses(userId: string): Promise<IUserAddress[]> {
     try {
-
       const addresses = await UserAddress.find({
         userId: new Types.ObjectId(userId),
       }).exec();
 
       return addresses;
     } catch (error) {
-      console.error("Error finding user addresses:", error);
+      console.error('Error finding user addresses:', error);
       return [];
     }
   }
 
-  async findAllUsers(): Promise<IUserWithAddress[]> {
-    return this.model.aggregate([
-      {
-        $match: {
-          roles: "user",
-          isDeleted: { $ne: true },
+  async findAllUsers(
+    search?: string,
+    status?: string
+  ): Promise<IUserWithAddress[]> {
+    try {
+      // Build match conditions
+      const matchConditions: any = {
+        roles: 'user',
+        isDeleted: { $ne: true },
+      };
+
+      // Add status filter if provided
+      if (status && status !== 'All Status' && status !== 'all') {
+        matchConditions.status = status;
+      }
+
+      // Add search filter if provided
+      if (search && search.trim()) {
+        const searchRegex = new RegExp(search.trim(), 'i');
+        matchConditions.$or = [
+          { fullName: { $regex: searchRegex } },
+          { email: { $regex: searchRegex } },
+          { phone: { $regex: searchRegex } },
+        ];
+      }
+
+      const aggregationPipeline: any[] = [
+        {
+          $match: matchConditions,
         },
-      },
-      { $sort: { createdAt: -1 } },
-      {
-        $lookup: {
-          from: "useraddresses",
-          localField: "_id",
-          foreignField: "userId",
-          as: "addresses",
+        { $sort: { createdAt: -1 } },
+        {
+          $lookup: {
+            from: 'useraddresses',
+            localField: '_id',
+            foreignField: 'userId',
+            as: 'addresses',
+          },
         },
-      },
-      {
-        $addFields: {
-          defaultAddress: {
-            $first: {
-              $filter: {
-                input: "$addresses",
-                as: "addr",
-                cond: { $eq: ["$$addr.isDefault", true] },
+        {
+          $addFields: {
+            defaultAddress: {
+              $first: {
+                $filter: {
+                  input: '$addresses',
+                  as: 'addr',
+                  cond: { $eq: ['$$addr.isDefault', true] },
+                },
               },
             },
           },
         },
-      },
-      { $project: { addresses: 0, passwordHash: 0 } },
-    ]);
+        { $project: { addresses: 0, passwordHash: 0 } },
+      ];
+
+      return await this.model.aggregate(aggregationPipeline);
+    } catch (error) {
+      console.error('Error finding users:', error);
+      throw error;
+    }
   }
 
   async updateUserStatus(
     userId: string,
-    status: "Active" | "Inactive" | "Blocked"
+    status: 'Active' | 'Inactive' | 'Blocked'
   ): Promise<IUser | null> {
     return this.update(userId, { $set: { status } });
   }
@@ -86,22 +114,22 @@ export class UserManagementRepository
     blockedUsers: number;
   }> {
     const userMatchCondition = {
-      roles: "user",
+      roles: 'user',
       isDeleted: { $ne: true },
     };
 
     const totalUsers = await this.count(userMatchCondition);
     const activeUsers = await this.count({
       ...userMatchCondition,
-      status: "Active",
+      status: 'Active',
     });
     const inactiveUsers = await this.count({
       ...userMatchCondition,
-      status: "Inactive",
+      status: 'Inactive',
     });
     const blockedUsers = await this.count({
       ...userMatchCondition,
-      status: "Blocked",
+      status: 'Blocked',
     });
 
     return { totalUsers, activeUsers, inactiveUsers, blockedUsers };
@@ -110,13 +138,13 @@ export class UserManagementRepository
     try {
       return await this.model.findOne({ email, isDeleted: { $ne: true } });
     } catch (error) {
-      console.error("Error finding user by email:", error);
+      console.error('Error finding user by email:', error);
       return null;
     }
   }
   async verifyPassword(userId: string, password: string): Promise<boolean> {
     try {
-      const user = await this.model.findById(userId).select("+passwordHash");
+      const user = await this.model.findById(userId).select('+passwordHash');
 
       if (!user || !user.passwordHash) {
         return false;
@@ -126,7 +154,7 @@ export class UserManagementRepository
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
       return isPasswordValid;
     } catch (error) {
-      console.error("Error verifying password:", error);
+      console.error('Error verifying password:', error);
       return false;
     }
   }
@@ -154,7 +182,7 @@ export class UserManagementRepository
 
       return updatedUser;
     } catch (error) {
-      console.error("Error updating password:", error);
+      console.error('Error updating password:', error);
       return null;
     }
   }

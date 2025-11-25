@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Types } from 'mongoose';
 import {
   TechnicianProfileDto,
   PersonalInfoDto,
@@ -9,33 +9,33 @@ import {
   DocumentDataDto,
   SecuritySettingsDto,
   StaticDataDto,
-} from "../interfaces/dtos/technicianProfileDtos";
-import { ITechnician } from "../interfaces/technician/ITechnician";
-import { IUser } from "../interfaces/user/IUser";
+} from '../interfaces/dtos/technicianProfileDtos';
+import { ITechnician } from '../interfaces/technician/ITechnician';
+import { IUser } from '../interfaces/user/IUser';
 import {
   PERSONAL_INFO_DEFAULTS,
   SKILLS_DEFAULTS,
   AVAILABILITY_DEFAULTS,
   PAYMENT_DEFAULTS,
-  VERIFICATION_STATUS,
-  DOCUMENT_STATUS,
+  VerificationStatus,
+  DocumentStatus,
   SECURITY_SETTINGS_DEFAULTS,
-} from "../constants";
+} from '../constants';
 
 export const toTechnicianProfileDto = (
   technician: ITechnician,
-  user: IUser,
+  user: IUser
 ): TechnicianProfileDto => {
   const bankPaymentDetails = _mapBankPaymentDetails(technician);
 
   const mappedDocuments = _mapDocuments(technician);
 
   const result = {
-    _id: technician._id?.toString() || "",
-    userId: technician.userId?.toString() || "",
-    displayName: technician.displayName || "",
-    email: user.email || "",
-    phone: user.phone || technician.phone || "",
+    _id: technician._id?.toString() || '',
+    userId: technician.userId?.toString() || '',
+    displayName: technician.displayName || '',
+    email: user.email || '',
+    phone: user.phone || technician.phone || '',
     profilePictureUrl:
       technician.profilePictureUrl ||
       PERSONAL_INFO_DEFAULTS.PROFILE_PICTURE_URL,
@@ -44,7 +44,7 @@ export const toTechnicianProfileDto = (
     workAreas: technician.workAreas || [],
     serviceRadiusKm:
       technician.serviceRadiusKm || AVAILABILITY_DEFAULTS.WORK_RADIUS,
-    status: technician.status || "",
+    status: technician.status || '',
     averageRating: technician.averageRating,
     ratingCount: technician.ratingCount,
     totalJobs: technician.totalJobs,
@@ -75,72 +75,72 @@ export const toTechnicianProfileDto = (
 export const toStaticDataDto = (): StaticDataDto => {
   return {
     languages: [
-      { value: "english", label: "English" },
-      { value: "spanish", label: "Spanish" },
-      { value: "french", label: "French" },
-      { value: "german", label: "German" },
-      { value: "hindi", label: "Hindi" },
+      { value: 'english', label: 'English' },
+      { value: 'spanish', label: 'Spanish' },
+      { value: 'french', label: 'French' },
+      { value: 'german', label: 'German' },
+      { value: 'hindi', label: 'Hindi' },
     ],
     genders: [
-      { value: "male", label: "Male" },
-      { value: "female", label: "Female" },
-      { value: "other", label: "Other" },
-      { value: "prefer-not-to-say", label: "Prefer not to say" },
+      { value: 'male', label: 'Male' },
+      { value: 'female', label: 'Female' },
+      { value: 'other', label: 'Other' },
+      { value: 'prefer-not-to-say', label: 'Prefer not to say' },
     ],
     idTypes: [
-      { value: "passport", label: "Passport" },
-      { value: "driver_license", label: "Driver's License" },
-      { value: "national_id", label: "National ID" },
-      { value: "aadhaar", label: "Aadhaar Card" },
+      { value: 'passport', label: 'Passport' },
+      { value: 'driver_license', label: "Driver's License" },
+      { value: 'national_id', label: 'National ID' },
+      { value: 'aadhaar', label: 'Aadhaar Card' },
     ],
     services: [
-      { value: "ac-repair", label: "AC Repair", basePrice: 499 },
+      { value: 'ac-repair', label: 'AC Repair', basePrice: 499 },
       {
-        value: "washing-machine",
-        label: "Washing Machine Repair",
+        value: 'washing-machine',
+        label: 'Washing Machine Repair',
         basePrice: 399,
       },
-      { value: "refrigerator", label: "Refrigerator Repair", basePrice: 599 },
-      { value: "fan-repair", label: "Fan Repair", basePrice: 299 },
-      { value: "tv-repair", label: "TV Repair", basePrice: 699 },
+      { value: 'refrigerator', label: 'Refrigerator Repair', basePrice: 599 },
+      { value: 'fan-repair', label: 'Fan Repair', basePrice: 299 },
+      { value: 'tv-repair', label: 'TV Repair', basePrice: 699 },
     ],
     serviceAreas: [
-      { value: "sector-1", label: "Sector 1" },
-      { value: "sector-2", label: "Sector 2" },
-      { value: "sector-3", label: "Sector 3" },
-      { value: "sector-4", label: "Sector 4" },
+      { value: 'sector-1', label: 'Sector 1' },
+      { value: 'sector-2', label: 'Sector 2' },
+      { value: 'sector-3', label: 'Sector 3' },
+      { value: 'sector-4', label: 'Sector 4' },
     ],
     documentTypes: [
-      { value: "id_proof", label: "ID Proof" },
-      { value: "address_proof", label: "Address Proof" },
-      { value: "police_verification", label: "Police Verification" },
-      { value: "certificate", label: "Professional Certificate" },
+      { value: 'id_proof', label: 'ID Proof' },
+      { value: 'address_proof', label: 'Address Proof' },
+      { value: 'police_verification', label: 'Police Verification' },
+      { value: 'certificate', label: 'Professional Certificate' },
     ],
     verificationStatuses: [
-      { value: "pending", label: "Pending", color: "yellow" },
-      { value: "approved", label: "Approved", color: "green" },
-      { value: "rejected", label: "Rejected", color: "red" },
-      { value: "needs_reupload", label: "Needs Re-upload", color: "orange" },
+      { value: 'pending', label: 'Pending', color: 'yellow' },
+      { value: 'approved', label: 'Approved', color: 'green' },
+      { value: 'rejected', label: 'Rejected', color: 'red' },
+      { value: 'needs_reupload', label: 'Needs Re-upload', color: 'orange' },
     ],
     withdrawalPreferences: [
-      { value: "auto", label: "Automatic weekly withdrawal" },
-      { value: "manual", label: "Manual withdrawal request" },
+      { value: 'auto', label: 'Automatic weekly withdrawal' },
+      { value: 'manual', label: 'Manual withdrawal request' },
     ],
     daysOfWeek: [
-      { value: "monday", label: "Monday" },
-      { value: "tuesday", label: "Tuesday" },
-      { value: "wednesday", label: "Wednesday" },
-      { value: "thursday", label: "Thursday" },
-      { value: "friday", label: "Friday" },
-      { value: "saturday", label: "Saturday" },
-      { value: "sunday", label: "Sunday" },
+      { value: 'monday', label: 'Monday' },
+      { value: 'tuesday', label: 'Tuesday' },
+      { value: 'wednesday', label: 'Wednesday' },
+      { value: 'thursday', label: 'Thursday' },
+      { value: 'friday', label: 'Friday' },
+      { value: 'saturday', label: 'Saturday' },
+      { value: 'sunday', label: 'Sunday' },
     ],
   };
 };
 
 const _mapPersonalInfo = (
   technician: ITechnician,
-  user: IUser,
+  user: IUser
 ): PersonalInfoDto => {
   return {
     fullName:
@@ -151,7 +151,7 @@ const _mapPersonalInfo = (
       technician.personalInfo?.phoneNumber ||
       technician.phone ||
       PERSONAL_INFO_DEFAULTS.PHONE_NUMBER,
-    email: user.email || "",
+    email: user.email || '',
     dateOfBirth:
       technician.personalInfo?.dateOfBirth ||
       PERSONAL_INFO_DEFAULTS.DATE_OF_BIRTH,
@@ -164,22 +164,22 @@ const _mapPersonalInfo = (
       technician.profilePictureUrl ||
       PERSONAL_INFO_DEFAULTS.PROFILE_PICTURE_URL,
     address: technician.personalInfo?.address || {
-      street: "Not specified",
-      city: "Not specified",
-      state: "Not specified",
-      pincode: "Not specified",
-      landmark: "Not specified",
+      street: 'Not specified',
+      city: 'Not specified',
+      state: 'Not specified',
+      pincode: 'Not specified',
+      landmark: 'Not specified',
     },
   };
 };
 
 const _mapIdentityVerification = (
-  technician: ITechnician,
+  technician: ITechnician
 ): IdentityVerificationDto => {
   return {
     verificationStatus:
       technician.identityVerification?.verificationStatus ||
-      VERIFICATION_STATUS.PENDING,
+      VerificationStatus.PENDING,
     governmentIdType: technician.identityVerification?.idType,
     governmentIdNumber: technician.identityVerification?.idNumber,
     idDocument: technician.identityVerification?.idDocument,
@@ -196,7 +196,7 @@ const _mapSkillsServices = (technician: ITechnician): SkillsServicesDto => {
 };
 
 const _mapAvailabilityPreferences = (
-  technician: ITechnician,
+  technician: ITechnician
 ): AvailabilityPreferencesDto => {
   return {
     isAvailable:
@@ -209,7 +209,7 @@ const _mapAvailabilityPreferences = (
 };
 
 const _mapBankPaymentDetails = (
-  technician: ITechnician,
+  technician: ITechnician
 ): BankPaymentDetailsDto => {
   if (technician.paymentDetails) {
     return {
@@ -255,12 +255,12 @@ const _mapDocuments = (technician: ITechnician): DocumentDataDto[] => {
   const mappedDocuments = documents.map((doc: any) => {
     const mappedDoc = {
       _id: doc._id?.toString() || new Types.ObjectId().toString(),
-      type: doc.type || "",
-      fileName: doc.fileName || "",
-      url: doc.url || "",
+      type: doc.type || '',
+      fileName: doc.fileName || '',
+      url: doc.url || '',
       uploadedAt: doc.uploadedAt || new Date(),
       verified: doc.verified || false,
-      status: doc.status || DOCUMENT_STATUS.PENDING,
+      status: doc.status || DocumentStatus.PENDING,
       verifiedAt: doc.verifiedAt,
     };
 

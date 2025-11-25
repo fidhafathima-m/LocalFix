@@ -1,11 +1,11 @@
-import { IUser, IUserWithAddress } from "../../admin/IUserManagements";
-import { IBaseRepository } from "../IBaseRepository";
+import { IUser, IUserWithAddress } from '../../admin/IUserManagements';
+import { IBaseRepository } from '../IBaseRepository';
 
 export interface IUserManagementRepository extends IBaseRepository<IUser> {
-  findAllUsers(): Promise<IUserWithAddress[]>;
+  findAllUsers(search?: string, status?: string): Promise<IUserWithAddress[]>;
   updateUserStatus(
     userId: string,
-    status: "Active" | "Inactive" | "Blocked"
+    status: 'Active' | 'Inactive' | 'Blocked'
   ): Promise<IUser | null>;
   softDeleteUser(userId: string): Promise<IUser | null>;
   getUserStats(): Promise<{

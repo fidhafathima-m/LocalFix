@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../../middleware/authMiddleware';
 import { ITechnicianApplicationService } from '../../interfaces/services/technician/ITechnicianApplicationService';
 import { ResponseHelper } from '../../utils/responseHelper';
-import { GENERAL_MESSAGES } from '../../constants';
+import { GeneralMessages } from '../../constants';
 import {
   StartApplicationRequestDto,
   SaveStepRequestDto,
@@ -56,7 +56,7 @@ export class TechnicianApplicationController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -95,7 +95,7 @@ export class TechnicianApplicationController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -171,7 +171,7 @@ export class TechnicianApplicationController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -224,7 +224,7 @@ export class TechnicianApplicationController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -259,7 +259,7 @@ export class TechnicianApplicationController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -306,7 +306,7 @@ export class TechnicianApplicationController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -359,7 +359,7 @@ export class TechnicianApplicationController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -415,7 +415,7 @@ export class TechnicianApplicationController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -469,7 +469,7 @@ export class TechnicianApplicationController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

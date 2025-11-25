@@ -25,11 +25,19 @@ export const VALIDATION = {
   MAX_PASSWORD_LENGTH: 128,
 } as const;
 
-export const RESPONSE_STATUS = {
-  SUCCESS: 'success',
-  ERROR: 'error',
-  FAIL: 'fail',
-} as const;
+export enum ResponseStatus {
+  SUCCESS = 'success',
+  ERROR = 'error',
+  FAIL = 'fail',
+}
+
+export enum OTPPurpose {
+  SIGNUP = 'signup',
+  RESET = 'reset',
+  LOGIN = 'login',
+  APPLICATION = 'application',
+  VERIFICATION = 'verification',
+}
 
 export const OTP_CONFIG = {
   LENGTH: 6,
@@ -37,21 +45,11 @@ export const OTP_CONFIG = {
   EXPIRY_MS: 5 * 60 * 1000, // 5 minutes in milliseconds
 } as const;
 
-export const OTP_PURPOSES = {
-  SIGNUP: 'signup',
-  RESET: 'reset',
-  LOGIN: 'login',
-  APPLICATION: 'application',
-  VERIFICATION: 'verification',
-} as const;
-
-export type OTPPurpose = keyof typeof OTP_PURPOSES;
-
-export const GENERAL_MESSAGES = {
-  SERVER_ERROR: 'Internal server error',
-  UNAUTHORIZED: 'Unauthorized access',
-  FORBIDDEN: 'Access forbidden',
-  NOT_FOUND: 'Resource not found',
-  BAD_REQUEST: 'Bad request',
-  CONFLICT: 'Resource already exists',
-} as const;
+export enum GeneralMessages {
+  SERVER_ERROR = 'Internal server error',
+  UNAUTHORIZED = 'Unauthorized access',
+  FORBIDDEN = 'Access forbidden',
+  NOT_FOUND = 'Resource not found',
+  BAD_REQUEST = 'Bad request',
+  CONFLICT = 'Resource already exists',
+}

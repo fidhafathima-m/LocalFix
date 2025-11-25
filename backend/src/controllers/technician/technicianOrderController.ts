@@ -1,9 +1,9 @@
-import { Response } from "express";
-import { IOrderService } from "../../interfaces/services/user/IOrderService";
-import { ResponseHelper } from "../../utils/responseHelper";
-import { GENERAL_MESSAGES } from "../../constants";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import { ILogger } from "@/interfaces/utils/ILogger";
+import { Response } from 'express';
+import { IOrderService } from '../../interfaces/services/user/IOrderService';
+import { ResponseHelper } from '../../utils/responseHelper';
+import { GeneralMessages } from '../../constants';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { ILogger } from '@/interfaces/utils/ILogger';
 
 class TechnicianOrderController {
   private _orderService: IOrderService;
@@ -23,7 +23,7 @@ class TechnicianOrderController {
     const limit = parseInt(req.query.limit as string) || 10;
 
     const context = {
-      operation: "getTechnicianOrders",
+      operation: 'getTechnicianOrders',
       technicianId,
       page,
       limit,
@@ -31,15 +31,15 @@ class TechnicianOrderController {
     };
 
     try {
-      this._logger.info("Fetching technician orders", context);
+      this._logger.info('Fetching technician orders', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Get technician orders failed - authentication required",
+          'Get technician orders failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -51,20 +51,20 @@ class TechnicianOrderController {
         limit
       );
 
-      this._logger.info("Technician orders retrieved successfully", {
+      this._logger.info('Technician orders retrieved successfully', {
         ...context,
         orderCount: result.data?.orders?.length || 0,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get technician orders controller error", {
+      this._logger.error('Get technician orders controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -77,22 +77,22 @@ class TechnicianOrderController {
     const { orderId } = req.params;
 
     const context = {
-      operation: "getTechnicianOrderById",
+      operation: 'getTechnicianOrderById',
       technicianId,
       orderId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching technician order by ID", context);
+      this._logger.info('Fetching technician order by ID', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Get technician order failed - authentication required",
+          'Get technician order failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -103,20 +103,20 @@ class TechnicianOrderController {
         orderId
       );
 
-      this._logger.info("Technician order retrieved successfully", {
+      this._logger.info('Technician order retrieved successfully', {
         ...context,
         orderFound: !!result,
       });
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get technician order by ID controller error", {
+      this._logger.error('Get technician order by ID controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -130,7 +130,7 @@ class TechnicianOrderController {
     const { status, reason } = req.body;
 
     const context = {
-      operation: "updateOrderStatus",
+      operation: 'updateOrderStatus',
       technicianId,
       orderId,
       status,
@@ -139,15 +139,15 @@ class TechnicianOrderController {
     };
 
     try {
-      this._logger.info("Updating order status", context);
+      this._logger.info('Updating order status', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Update order status failed - authentication required",
+          'Update order status failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
@@ -155,11 +155,11 @@ class TechnicianOrderController {
 
       if (!status) {
         this._logger.warn(
-          "Update order status failed - status required",
+          'Update order status failed - status required',
           context
         );
         const badRequestResponse =
-          ResponseHelper.badRequest("Status is required");
+          ResponseHelper.badRequest('Status is required');
         res.status(badRequestResponse.statusCode).json(badRequestResponse);
         return;
       }
@@ -167,21 +167,21 @@ class TechnicianOrderController {
       const result = await this._orderService.updateOrderStatus(
         orderId,
         status,
-        "technician",
+        'technician',
         reason
       );
 
-      this._logger.info("Order status updated successfully", context);
+      this._logger.info('Order status updated successfully', context);
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Update order status controller error", {
+      this._logger.error('Update order status controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };
@@ -193,44 +193,43 @@ class TechnicianOrderController {
     const technicianId = req.user?.id;
 
     const context = {
-      operation: "getTechnicianOrderStats",
+      operation: 'getTechnicianOrderStats',
       technicianId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching technician order stats", context);
+      this._logger.info('Fetching technician order stats', context);
 
       if (!technicianId) {
         this._logger.warn(
-          "Get technician order stats failed - authentication required",
+          'Get technician order stats failed - authentication required',
           context
         );
         const errorResponse = ResponseHelper.unauthorized(
-          "Authentication required"
+          'Authentication required'
         );
         res.status(errorResponse.statusCode).json(errorResponse);
         return;
       }
 
-      const result = await this._orderService.getTechnicianOrderStats(
-        technicianId
-      );
+      const result =
+        await this._orderService.getTechnicianOrderStats(technicianId);
 
       this._logger.info(
-        "Technician order stats retrieved successfully",
+        'Technician order stats retrieved successfully',
         context
       );
 
       res.status(result.statusCode).json(result);
     } catch (error: unknown) {
-      this._logger.error("Get technician order stats controller error", {
+      this._logger.error('Get technician order stats controller error', {
         ...context,
         error: error instanceof Error ? error.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const errorResponse = ResponseHelper.error(GENERAL_MESSAGES.SERVER_ERROR);
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
       res.status(errorResponse.statusCode).json(errorResponse);
     }
   };

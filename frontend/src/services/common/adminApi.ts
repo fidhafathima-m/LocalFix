@@ -42,7 +42,13 @@ import type { ReviewStatsResponse } from "../user/reviewService";
 
 export const adminAPI = {
   // Users
-  getUsers: () => api.get<ApiResponse<UsersResponse>>(ADMIN_ROUTES.USERS),
+  getUsers: (search?: string, status?: string) =>
+    api.get<ApiResponse<UsersResponse>>(ADMIN_ROUTES.USERS, {
+      params: {
+        search: search || undefined,
+        status: status || undefined,
+      },
+    }),
 
   updateUser: (userId: string, updates: Partial<User>) =>
     api.put<ApiResponse<UserResponse>>(

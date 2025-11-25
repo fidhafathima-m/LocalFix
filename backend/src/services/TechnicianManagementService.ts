@@ -1,4 +1,4 @@
-import { TechnicianManagementRepository } from "../repositories/admin/TechnicianManagemnetRepository";
+import { TechnicianManagementRepository } from '../repositories/admin/TechnicianManagemnetRepository';
 import {
   IAdminTechnician,
   ITechnician,
@@ -13,12 +13,12 @@ import {
   RejectApplicationRequest,
   TechnicianFilters,
   ApplicationFilters,
-} from "../interfaces/admin/ITechnicianManagement";
-import { Types } from "mongoose";
-import { emailService } from "./EmailService";
-import { ITechnicianManagementService } from "../interfaces/services/admin/ITechnicianManagementService";
-import { ITechnicianManagementRepository } from "../interfaces/repository/admin/ITechnicianManagementRepository";
-import { ResponseHelper } from "../utils/responseHelper";
+} from '../interfaces/admin/ITechnicianManagement';
+import { Types } from 'mongoose';
+import { emailService } from './EmailService';
+import { ITechnicianManagementService } from '../interfaces/services/admin/ITechnicianManagementService';
+import { ITechnicianManagementRepository } from '../interfaces/repository/admin/ITechnicianManagementRepository';
+import { ResponseHelper } from '../utils/responseHelper';
 import {
   TECHNICIAN_MANAGEMENT_MESSAGES,
   STATUS_MAPPING,
@@ -32,12 +32,12 @@ import {
   PAGINATION_DEFAULTS,
   EMAIL_CONFIG,
   BANK_DETAILS_DEFAULTS,
-  TECHNICIAN_STATUS,
+  TechnicianStatus,
   APPLICATION_STATUS,
-} from "../constants";
-import { IUser } from "@/interfaces/user/IUser";
-import { IAddress } from "@/interfaces/user/IAddress";
-import { IUserAddress } from "@/models/UserAddressSchema";
+} from '../constants';
+import { IUser } from '@/interfaces/user/IUser';
+import { IAddress } from '@/interfaces/user/IAddress';
+import { IUserAddress } from '@/models/UserAddressSchema';
 import {
   ApplicationFiltersDto,
   ApplicationListDto,
@@ -48,17 +48,17 @@ import {
   TechnicianListDto,
   TechnicianListResponseDto,
   UpdateStatusRequestDto,
-} from "@/interfaces/dtos/technicianDtos";
-import { TechnicianAvailabilityService } from "./AvailabilityService";
-import { RRule } from "rrule";
-import { INotificationService } from "@/interfaces/services/INotificationService";
-import { ILogger } from "@/interfaces/utils/ILogger";
-import { toTechnicianDetailDto } from "../mappers/technicianMappers";
+} from '@/interfaces/dtos/technicianDtos';
+import { TechnicianAvailabilityService } from './AvailabilityService';
+import { RRule } from 'rrule';
+import { INotificationService } from '@/interfaces/services/INotificationService';
+import { ILogger } from '@/interfaces/utils/ILogger';
+import { toTechnicianDetailDto } from '../mappers/technicianMappers';
 import {
   toApplicationDetailDto,
   toApplicationListDto,
-} from "../mappers/applicationMapper";
-import { SocketService } from "./SocketService";
+} from '../mappers/applicationMapper';
+import { SocketService } from './SocketService';
 
 interface DocumentInfo {
   url: string;
@@ -91,7 +91,7 @@ interface FilterQuery {
   averageRating?: { $gte?: number; $lte?: number };
   workAreas?: { $in: RegExp[] };
   $or?: Array<{ [key: string]: RegExp }>;
-  "skills.services"?: string;
+  'skills.services'?: string;
   [key: string]: unknown;
 }
 
@@ -119,7 +119,7 @@ export class TechnicianManagementService
   constructor(
     technicianRepository: ITechnicianManagementRepository,
     socketService: SocketService,
-    logger: ILogger,
+    logger: ILogger
   ) {
     this._technicianRepository = technicianRepository;
     this._logger = logger;
@@ -127,11 +127,11 @@ export class TechnicianManagementService
   }
 
   private formatApplicationDocuments(documents: unknown): FormattedDocuments {
-    if (!documents || typeof documents !== "object") return {};
+    if (!documents || typeof documents !== 'object') return {};
 
     const formatted: FormattedDocuments = {};
 
-    DOCUMENT_FIELDS.forEach((key) => {
+    DOCUMENT_FIELDS.forEach(key => {
       const doc = (documents as Record<string, any>)[key];
       if (doc && doc.url) {
         formatted[key] = {
@@ -147,15 +147,15 @@ export class TechnicianManagementService
   }
 
   async getAllTechnicians(
-    filters: TechnicianFiltersDto,
+    filters: TechnicianFiltersDto
   ): Promise<TechnicianListResponseDto> {
     const context = {
-      operation: "getAllTechnicians",
+      operation: 'getAllTechnicians',
       filters,
       timestamp: new Date().toISOString(),
     };
     try {
-      this._logger.info("Fetching all technicians", context);
+      this._logger.info('Fetching all technicians', context);
       const {
         status = FILTER_DEFAULTS.STATUS,
         service = FILTER_DEFAULTS.SERVICE,
@@ -170,15 +170,15 @@ export class TechnicianManagementService
       const filter: FilterQuery = {};
 
       // Status filter
-      if (status && status !== "all") {
+      if (status && status !== 'all') {
         const dbStatus = STATUS_FILTER_MAPPING[status] || status;
         filter.status = dbStatus;
       } else {
         filter.status = {
           $in: [
-            TECHNICIAN_STATUS.APPROVED,
-            TECHNICIAN_STATUS.SUSPENDED,
-            TECHNICIAN_STATUS.REJECTED,
+            TechnicianStatus.APPROVED,
+            TechnicianStatus.SUSPENDED,
+            TechnicianStatus.REJECTED,
           ],
         };
       }
@@ -199,22 +199,22 @@ export class TechnicianManagementService
 
       // Search filter
       if (search) {
-        const searchRegex = new RegExp(search as string, "i");
-        filter.$or = SEARCH_FIELDS.TECHNICIAN.map((field) => ({
+        const searchRegex = new RegExp(search as string, 'i');
+        filter.$or = SEARCH_FIELDS.TECHNICIAN.map(field => ({
           [field]: searchRegex,
         }));
       }
 
       // Location filter
       if (location && location !== FILTER_DEFAULTS.LOCATION) {
-        filter.workAreas = { $in: [new RegExp(location as string, "i")] };
+        filter.workAreas = { $in: [new RegExp(location as string, 'i')] };
       }
 
       const pageNum = Number(page);
       const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
 
-      this._logger.debug("Fetching technicians from repository", {
+      this._logger.debug('Fetching technicians from repository', {
         ...context,
         filter,
         skip,
@@ -225,7 +225,7 @@ export class TechnicianManagementService
       const technicians = await this._technicianRepository.findAllTechnicians(
         filter,
         skip,
-        limitNum,
+        limitNum
       );
       const total = await this._technicianRepository.countTechnicians(filter);
 
@@ -235,17 +235,17 @@ export class TechnicianManagementService
           ...context,
           count: technicians.length,
           total,
-        },
+        }
       );
 
       const technicianDtos: TechnicianListDto[] = await Promise.all(
         technicians.map(async (tech: ITechnician) => {
           const adminTechnician = await this.convertToAdminTechnician(tech);
           return this.mapAdminTechnicianToListDto(adminTechnician);
-        }),
+        })
       );
 
-      this._logger.info("Successfully retrieved technicians", {
+      this._logger.info('Successfully retrieved technicians', {
         ...context,
         finalCount: technicianDtos.length,
       });
@@ -262,33 +262,33 @@ export class TechnicianManagementService
             hasNext: pageNum < Math.ceil(total / limitNum),
             hasPrev: pageNum > 1,
           },
-        },
+        }
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch technicians", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch technicians', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS
       );
     }
   }
 
   private mapAdminTechnicianToListDto(
-    adminTechnician: IAdminTechnician,
+    adminTechnician: IAdminTechnician
   ): TechnicianListDto {
     return {
       _id: adminTechnician._id.toString(),
-      userId: adminTechnician.userId?.toString() || "",
-      displayName: adminTechnician.displayName || "",
-      email: adminTechnician.email || "",
-      phone: adminTechnician.phone || "",
+      userId: adminTechnician.userId?.toString() || '',
+      displayName: adminTechnician.displayName || '',
+      email: adminTechnician.email || '',
+      phone: adminTechnician.phone || '',
       services: adminTechnician.services || [],
-      status: adminTechnician.status || "",
+      status: adminTechnician.status || '',
       experienceYears: adminTechnician.experienceYears || 0,
       ratingCount: adminTechnician.ratingCount || 0,
       averageRating: adminTechnician.averageRating || 0,
@@ -304,74 +304,74 @@ export class TechnicianManagementService
   }
   async getTechnicianById(id: string): Promise<SingleTechnicianResponseDto> {
     const context = {
-      operation: "getTechnicianById",
+      operation: 'getTechnicianById',
       technicianId: id,
       timestamp: new Date().toISOString(),
     };
     try {
-      this._logger.info("Fetching technician by ID", context);
+      this._logger.info('Fetching technician by ID', context);
       const technician =
         await this._technicianRepository.findTechnicianById(id);
 
       if (!technician) {
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND,
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
         );
       }
 
-      this._logger.debug("Technician found, converting to admin view", context);
+      this._logger.debug('Technician found, converting to admin view', context);
       const adminTechnician = await this.convertToAdminTechnician(technician);
 
       const technicianDto = toTechnicianDetailDto(adminTechnician);
 
-      this._logger.info("Successfully retrieved technician", context);
+      this._logger.info('Successfully retrieved technician', context);
 
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_RETRIEVED,
         {
           technician: technicianDto,
-        },
+        }
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch technician", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch technician', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN
       );
     }
   }
 
   private async convertToAdminTechnician(
-    technician: ITechnician,
+    technician: ITechnician
   ): Promise<IAdminTechnician> {
     const context = {
-      operation: "convertToAdminTechnician",
+      operation: 'convertToAdminTechnician',
       technicianId: technician._id.toString(),
       timestamp: new Date().toISOString(),
     };
     try {
-      this._logger.debug("Converting technician to admin view", context);
+      this._logger.debug('Converting technician to admin view', context);
       const user = await this._technicianRepository.findUserById(
-        technician.userId as Types.ObjectId,
+        technician.userId as Types.ObjectId
       );
 
       // Get technician's application data for personal info
       const application =
         await this._technicianRepository.findApplicationByTechnicianId(
-          technician._id.toString(),
+          technician._id.toString()
         );
 
       const userAddress = await this._technicianRepository.findUserAddress(
-        technician.userId as Types.ObjectId,
+        technician.userId as Types.ObjectId
       );
 
       const availabilityData = await this.getAvailabilityForFrontend(
-        technician._id.toString(),
+        technician._id.toString()
       );
       let finalAvailability = availabilityData;
       if (technician.availability?.weeklyPattern) {
@@ -382,24 +382,24 @@ export class TechnicianManagementService
       }
       const mapStatus = (
         status: string,
-        application?: ITechnicianApplication,
-      ): "pending" | "approved" | "rejected" | "suspended" => {
+        application?: ITechnicianApplication
+      ): 'pending' | 'approved' | 'rejected' | 'suspended' => {
         if (
           application &&
           [
             APPLICATION_STATUS.SUBMITTED,
             APPLICATION_STATUS.UNDER_REVIEW,
-            TECHNICIAN_STATUS.PENDING,
+            TechnicianStatus.PENDING,
           ].includes(application.status as any)
         ) {
-          return TECHNICIAN_STATUS.PENDING as "pending";
+          return TechnicianStatus.PENDING as 'pending';
         }
 
         const mappedStatus =
           STATUS_MAPPING[status as keyof typeof STATUS_MAPPING];
         return (
           mappedStatus ||
-          (status as "pending" | "approved" | "rejected" | "suspended")
+          (status as 'pending' | 'approved' | 'rejected' | 'suspended')
         );
       };
 
@@ -408,7 +408,7 @@ export class TechnicianManagementService
       const getPersonalInfo = (
         technician: ITechnician,
         application?: ITechnicianApplication,
-        userAddress?: IAddress | null | IUserAddress,
+        userAddress?: IAddress | null | IUserAddress
       ): PersonalInfo => {
         const hasRealTechnicianData =
           technician.personalInfo &&
@@ -499,16 +499,16 @@ export class TechnicianManagementService
       const personalInfo = getPersonalInfo(
         technician,
         application || undefined,
-        userAddress,
+        userAddress
       );
 
       const getDocuments = (
         technician: ITechnician,
-        application?: ITechnicianApplication,
+        application?: ITechnicianApplication
       ): FormattedDocuments => {
         if (application?.documents) {
           const formattedDocs = this.formatApplicationDocuments(
-            application.documents,
+            application.documents
           );
           return formattedDocs;
         }
@@ -520,7 +520,7 @@ export class TechnicianManagementService
             url: technician.profilePictureUrl,
             verified: true,
             uploadedAt: new Date(),
-            type: "profilePhoto",
+            type: 'profilePhoto',
           };
         }
 
@@ -535,9 +535,9 @@ export class TechnicianManagementService
         _id: technician._id,
         userId: technician.userId,
         displayName: technician.displayName,
-        email: user?.email || "",
-        phone: user?.phone || technician.phone || "",
-        bio: technician.bio || "",
+        email: user?.email || '',
+        phone: user?.phone || technician.phone || '',
+        bio: technician.bio || '',
         services: technician.services || [],
         experienceYears: technician.experienceYears || 0,
         workAreas: technician.workAreas || [],
@@ -549,13 +549,13 @@ export class TechnicianManagementService
         completedJobs: technician.completedJobs || 0,
         ongoingJobs: technician.ongoingJobs || 0,
         totalEarnings: technician.totalEarnings || 0,
-        profilePictureUrl: technician.profilePictureUrl || "",
+        profilePictureUrl: technician.profilePictureUrl || '',
         createdAt: technician.createdAt,
         updatedAt: technician.updatedAt,
         user: user
           ? {
-              email: user.email || "",
-              phone: user.phone || "",
+              email: user.email || '',
+              phone: user.phone || '',
               fullName: user.fullName || technician.displayName,
               createdAt: user.createdAt,
             }
@@ -568,15 +568,15 @@ export class TechnicianManagementService
         suspendedAt: technician.suspendedAt,
       };
       this._logger.debug(
-        "Successfully converted technician to admin view",
-        context,
+        'Successfully converted technician to admin view',
+        context
       );
 
       return adminTechnician;
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to convert technician to admin view", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to convert technician to admin view', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
@@ -594,18 +594,18 @@ export class TechnicianManagementService
       // Convert slot rules to frontend schedule format
       const schedule = await this.convertSlotRulesToSchedule(
         slotRules,
-        technicianId,
+        technicianId
       );
 
       return {
         isAvailable: true,
         schedule: schedule,
-        hasAvailability: schedule.some((day) => day.slots.length > 0),
+        hasAvailability: schedule.some(day => day.slots.length > 0),
         slotRulesCount: slotRules.length,
         workRadius: slotRules[0]?.workRadius || 20,
       };
     } catch (error) {
-      console.error("Error getting availability for frontend:", error);
+      console.error('Error getting availability for frontend:', error);
       return {
         isAvailable: false,
         schedule: [],
@@ -616,16 +616,16 @@ export class TechnicianManagementService
 
   private async convertSlotRulesToSchedule(
     slotRules: any[],
-    technicianId: string,
+    technicianId: string
   ): Promise<any[]> {
     const days = [
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-      "sunday",
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
     ];
     const dayMap: { [key: string]: any } = {
       monday: RRule.MO,
@@ -641,11 +641,11 @@ export class TechnicianManagementService
     const upcomingAvailability =
       await this._technicianRepository.getUpcomingAvailability(technicianId, 7);
 
-    return days.map((day) => {
+    return days.map(day => {
       // Check if this day has any active slot rules
-      const hasRule = slotRules.some((rule) => {
+      const hasRule = slotRules.some(rule => {
         try {
-          if (!rule.rruleString || typeof rule.rruleString !== "string") {
+          if (!rule.rruleString || typeof rule.rruleString !== 'string') {
             return false;
           }
 
@@ -678,7 +678,7 @@ export class TechnicianManagementService
   private getSlotsForDay(upcomingAvailability: any[], day: string): any[] {
     const slots: any[] = [];
 
-    upcomingAvailability.forEach((avail) => {
+    upcomingAvailability.forEach(avail => {
       const availDay = avail.date.getDay(); // 0 = Sunday, 1 = Monday, etc.
       const dayMap: { [key: string]: number } = {
         sunday: 0,
@@ -694,16 +694,16 @@ export class TechnicianManagementService
         // Add available slots for this day
         if (avail.timeSlots && Array.isArray(avail.timeSlots)) {
           avail.timeSlots.forEach((slot: any) => {
-            if (slot.status === "available") {
+            if (slot.status === 'available') {
               slots.push({
                 start:
                   slot.start instanceof Date
                     ? this.formatTime(slot.start)
-                    : slot.start || "09:00",
+                    : slot.start || '09:00',
                 end:
                   slot.end instanceof Date
                     ? this.formatTime(slot.end)
-                    : slot.end || "18:00",
+                    : slot.end || '18:00',
               });
             }
           });
@@ -715,21 +715,21 @@ export class TechnicianManagementService
   }
 
   private formatTime(date: Date): string {
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
       hour12: false,
     });
   }
   private convertAvailabilityToSchedule(availabilityData: any): any[] {
     const days = [
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-      "sunday",
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
     ];
 
     // If we have specific availability data, use it
@@ -738,7 +738,7 @@ export class TechnicianManagementService
     }
 
     // Fallback: Create a basic schedule based on slot rules
-    return days.map((day) => ({
+    return days.map(day => ({
       day,
       slots: [],
       available: false,
@@ -747,16 +747,16 @@ export class TechnicianManagementService
 
   async updateTechnicianStatus(
     id: string,
-    statusData: UpdateStatusRequestDto,
+    statusData: UpdateStatusRequestDto
   ): Promise<SingleTechnicianResponseDto> {
     const context = {
-      operation: "updateTechnicianStatus",
+      operation: 'updateTechnicianStatus',
       technicianId: id,
       newStatus: statusData.status,
       timestamp: new Date().toISOString(),
     };
     try {
-      this._logger.info("Updating technician status", context);
+      this._logger.info('Updating technician status', context);
       const {
         status,
         emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION,
@@ -766,15 +766,15 @@ export class TechnicianManagementService
       if (
         !status ||
         !VALID_STATUS_VALUES.includes(
-          status as "approved" | "rejected" | "suspended",
+          status as 'approved' | 'rejected' | 'suspended'
         )
       ) {
-        this._logger.warn("Invalid status provided", {
+        this._logger.warn('Invalid status provided', {
           ...context,
           providedStatus: status,
         });
         return ResponseHelper.badRequest(
-          TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED,
+          TECHNICIAN_MANAGEMENT_MESSAGES.VALID_STATUS_REQUIRED
         );
       }
       // Prepare update data
@@ -782,58 +782,58 @@ export class TechnicianManagementService
 
       // Store suspension/rejection reason and timestamp
       if (
-        status === TECHNICIAN_STATUS.SUSPENDED ||
-        status === TECHNICIAN_STATUS.REJECTED
+        status === TechnicianStatus.SUSPENDED ||
+        status === TechnicianStatus.REJECTED
       ) {
         updateData.suspensionReason = reason;
         updateData.suspendedAt = new Date();
-        this._logger.debug("Setting suspension data", {
+        this._logger.debug('Setting suspension data', {
           ...context,
           reason,
           suspendedAt: updateData.suspendedAt,
         });
-      } else if (status === TECHNICIAN_STATUS.APPROVED) {
+      } else if (status === TechnicianStatus.APPROVED) {
         // Clear suspension data when approving/reactivating
         updateData.suspensionReason = undefined;
         updateData.suspendedAt = undefined;
-        this._logger.debug("Clearing suspension data for approval", context);
+        this._logger.debug('Clearing suspension data for approval', context);
       }
 
       const technician =
         await this._technicianRepository.updateTechnicianStatus(
           id,
           status,
-          updateData,
+          updateData
         );
 
       if (!technician) {
-        this._logger.warn("Technician not found for status update", context);
+        this._logger.warn('Technician not found for status update', context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND,
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
         );
       }
 
-      this._logger.debug("Technician status updated in repository", context);
+      this._logger.debug('Technician status updated in repository', context);
 
       // Get user data for email
       const user = await this._technicianRepository.findUserById(
-        technician.userId as Types.ObjectId,
+        technician.userId as Types.ObjectId
       );
 
       let emailSent = false;
-      let emailMessage = "";
+      let emailMessage = '';
 
       // Send email notification if requested and user email exists
       if (emailNotification && user?.email) {
-        this._logger.debug("Sending email notification", {
+        this._logger.debug('Sending email notification', {
           ...context,
           userEmail: user.email,
           notificationType: status,
         });
-        if (status === TECHNICIAN_STATUS.APPROVED) {
+        if (status === TechnicianStatus.APPROVED) {
           emailSent = await emailService.sendApplicationApprovalEmail(
             user.email,
-            technician.displayName,
+            technician.displayName
           );
           emailMessage = emailSent
             ? TECHNICIAN_MANAGEMENT_MESSAGES.APPROVAL_EMAIL_SENT
@@ -841,101 +841,101 @@ export class TechnicianManagementService
 
           await this._technicianRepository.updateApplicationStatus(
             id,
-            APPLICATION_STATUS.APPROVED,
+            APPLICATION_STATUS.APPROVED
           );
         } else {
           emailSent = await emailService.sendStatusUpdateEmail(
             user.email,
             technician.displayName,
             status,
-            reason,
+            reason
           );
           emailMessage = emailSent
             ? TECHNICIAN_MANAGEMENT_MESSAGES.STATUS_EMAIL_SENT.replace(
-                "${status}",
-                status,
+                '${status}',
+                status
               )
             : TECHNICIAN_MANAGEMENT_MESSAGES.EMAIL_SEND_FAILED;
         }
         this._logger.info(
-          `Email notification ${emailSent ? "sent" : "failed"}`,
+          `Email notification ${emailSent ? 'sent' : 'failed'}`,
           {
             ...context,
             emailSent,
-          },
+          }
         );
       }
 
       const adminTechnician = await this.convertToAdminTechnician(technician);
       const technicianDto = toTechnicianDetailDto(adminTechnician);
 
-      this._logger.info("Successfully updated technician status", context);
+      this._logger.info('Successfully updated technician status', context);
 
       return ResponseHelper.success(
         `${TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATUS_UPDATED.replace(
-          "${status}",
-          status,
+          '${status}',
+          status
         )}${emailMessage}`,
         {
           technician: technicianDto,
-        },
+        }
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to update technician status", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to update technician status', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_UPDATE_STATUS
       );
     }
   }
 
   async getTechnicianStats(): Promise<TechnicianStatsResponse> {
     const context = {
-      operation: "getTechnicianStats",
+      operation: 'getTechnicianStats',
       timestamp: new Date().toISOString(),
     };
     try {
-      this._logger.info("Fetching technician statistics", context);
+      this._logger.info('Fetching technician statistics', context);
       const stats = await this._technicianRepository.getTechnicianStats();
 
-      this._logger.info("Successfully retrieved technician statistics", {
+      this._logger.info('Successfully retrieved technician statistics', {
         ...context,
         stats,
       });
 
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_STATS_RETRIEVED,
-        stats,
+        stats
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch technician statistics", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch technician statistics', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_STATS
       );
     }
   }
 
   async getPendingApplications(
-    filters: ApplicationFiltersDto,
+    filters: ApplicationFiltersDto
   ): Promise<ApplicationListResponseDto> {
     const context = {
-      operation: "getPendingApplications",
+      operation: 'getPendingApplications',
       filters,
       timestamp: new Date().toISOString(),
     };
     try {
-      this._logger.info("Fetching pending application", context);
+      this._logger.info('Fetching pending application', context);
       const {
         status = FILTER_DEFAULTS.APPLICATION_STATUS,
         search,
@@ -946,27 +946,27 @@ export class TechnicianManagementService
 
       // Build filter object
       const filter: FilterQuery = {
-        status: { $in: (status as string).split(",") },
+        status: { $in: (status as string).split(',') },
       };
 
       // Search filter
       if (search) {
-        const searchRegex = new RegExp(search as string, "i");
-        filter.$or = SEARCH_FIELDS.APPLICATION.map((field) => ({
+        const searchRegex = new RegExp(search as string, 'i');
+        filter.$or = SEARCH_FIELDS.APPLICATION.map(field => ({
           [field]: searchRegex,
         }));
       }
 
       // Service filter
       if (service && service !== FILTER_DEFAULTS.SERVICE) {
-        filter["skills.services"] = service;
+        filter['skills.services'] = service;
       }
 
       const pageNum = Number(page);
       const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
 
-      this._logger.debug("Fetching application from repository", {
+      this._logger.debug('Fetching application from repository', {
         ...context,
         filter,
         skip,
@@ -976,12 +976,12 @@ export class TechnicianManagementService
       const applications = await this._technicianRepository.findAllApplications(
         filter,
         skip,
-        limitNum,
+        limitNum
       );
       const total = await this._technicianRepository.countApplications(filter);
 
-      const applicationDtos: ApplicationListDto[] = applications.map((app) =>
-        toApplicationListDto(app),
+      const applicationDtos: ApplicationListDto[] = applications.map(app =>
+        toApplicationListDto(app)
       );
 
       this._logger.info(`Found application`, {
@@ -1000,75 +1000,75 @@ export class TechnicianManagementService
             total,
             pages: Math.ceil(total / limitNum),
           },
-        },
+        }
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch pending applications", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch pending applications', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS
       );
     }
   }
 
   async approveApplication(id: string): Promise<ApplicationListResponseDto> {
     const context = {
-      operation: "approveApplication",
+      operation: 'approveApplication',
       applicationId: id,
       timestamp: new Date().toISOString(),
     };
     try {
-      this._logger.info("Approving application", context);
+      this._logger.info('Approving application', context);
       const application =
         await this._technicianRepository.findApplicationById(id);
       if (!application) {
-        this._logger.warn("Application not found for approval", context);
+        this._logger.warn('Application not found for approval', context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND,
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
         );
       }
 
       const availabilityService = new TechnicianAvailabilityService(
-        this._logger,
+        this._logger
       );
 
       // Update application status
       const updatedApplication =
         await this._technicianRepository.updateApplicationStatus(
           id,
-          APPLICATION_STATUS.APPROVED,
+          APPLICATION_STATUS.APPROVED
         );
 
       if (!updatedApplication) {
         this._logger.error(
-          "Failed to update application status in repostory",
-          context,
+          'Failed to update application status in repostory',
+          context
         );
         return ResponseHelper.badRequest(
-          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED,
+          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
         );
       }
 
-      this._logger.info("Application status updated to approved", context);
+      this._logger.info('Application status updated to approved', context);
 
       // Update user's application status
       await this._technicianRepository.updateUserApplicationStatus(
         application.technicianId as Types.ObjectId,
-        APPLICATION_STATUS.APPROVED,
+        APPLICATION_STATUS.APPROVED
       );
 
-      this._logger.info("User application status updated", context);
+      this._logger.info('User application status updated', context);
 
       // Update or create technician record
       const technician =
         await this._technicianRepository.findOrCreateTechnician(application);
 
-      this._logger.debug("Technician record processed", {
+      this._logger.debug('Technician record processed', {
         ...context,
         technicianId: technician._id?.toString(),
       });
@@ -1079,7 +1079,7 @@ export class TechnicianManagementService
         try {
           let locationData: any;
 
-          if (typeof application.identity.location === "string") {
+          if (typeof application.identity.location === 'string') {
             locationData = JSON.parse(application.identity.location);
           } else {
             locationData = application.identity.location;
@@ -1091,8 +1091,8 @@ export class TechnicianManagementService
           ) {
             const [lng, lat] = locationData.coordinates;
             if (
-              typeof lng === "number" &&
-              typeof lat === "number" &&
+              typeof lng === 'number' &&
+              typeof lat === 'number' &&
               lng !== 0 &&
               lat !== 0
             ) {
@@ -1100,17 +1100,17 @@ export class TechnicianManagementService
             }
           }
         } catch (error) {
-          console.error("Error parsing location data:", error);
+          console.error('Error parsing location data:', error);
         }
       }
 
       if (technician && locationCoordinates) {
         await this._technicianRepository.updateTechnicianLocation(
           technician._id.toString(),
-          locationCoordinates,
+          locationCoordinates
         );
 
-        this._logger.info("Technician location updated in repository", {
+        this._logger.info('Technician location updated in repository', {
           ...context,
           technicianId: technician._id?.toString(),
           locationCoordinates,
@@ -1121,25 +1121,25 @@ export class TechnicianManagementService
           // Convert application availability format to technician availability format
           const technicianAvailability =
             this.convertApplicationAvailabilityToTechnicianAvailability(
-              application.availability,
+              application.availability
             );
 
           this._logger.info(
-            "Creating technician availability from application",
-            context,
+            'Creating technician availability from application',
+            context
           );
 
           await availabilityService.createTechnicianAvailabilityFromApplication(
             technician._id.toString(),
-            technicianAvailability,
+            technicianAvailability
           );
 
           // VERIFY the slot rules were actually created with correct timings
           const slotRules = await this._technicianRepository.getActiveSlotRules(
-            technician._id.toString(),
+            technician._id.toString()
           );
 
-          this._logger.debug("Fetching active slot rules of technician", {
+          this._logger.debug('Fetching active slot rules of technician', {
             ...context,
             technicianId: technician._id?.toString(),
             slotRulesCount: slotRules.length,
@@ -1151,7 +1151,7 @@ export class TechnicianManagementService
             const mondayTiming = applicationPattern.monday;
             if (mondayTiming && mondayTiming.available) {
               // Get all active slot rules to check if any match Monday's timing
-              const hasCorrectMondayTiming = slotRules.some((rule) => {
+              const hasCorrectMondayTiming = slotRules.some(rule => {
                 return (
                   rule.startTime === mondayTiming.startTime &&
                   rule.endTime === mondayTiming.endTime
@@ -1160,14 +1160,14 @@ export class TechnicianManagementService
 
               if (!hasCorrectMondayTiming) {
                 this._logger.warn(
-                  "Monday timing mismatch in generated slot rules",
+                  'Monday timing mismatch in generated slot rules',
                   {
                     expected: `${mondayTiming.startTime}-${mondayTiming.endTime}`,
-                    actual: slotRules.map((r) => `${r.startTime}-${r.endTime}`),
-                  },
+                    actual: slotRules.map(r => `${r.startTime}-${r.endTime}`),
+                  }
                 );
               } else {
-                this._logger.info("Monday timing verified correctly", {
+                this._logger.info('Monday timing verified correctly', {
                   expected: `${mondayTiming.startTime}-${mondayTiming.endTime}`,
                   ruleCount: slotRules.length,
                 });
@@ -1176,20 +1176,20 @@ export class TechnicianManagementService
           }
 
           if (slotRules.length === 0) {
-            this._logger.error("Failed to create slot rules", context);
-            throw new Error("Failed to create slot rules during approval");
+            this._logger.error('Failed to create slot rules', context);
+            throw new Error('Failed to create slot rules during approval');
           }
         } catch (availabilityError) {
           this._logger.error(
-            "Failed to transfer availability during approval",
+            'Failed to transfer availability during approval',
             {
               ...context,
               error: availabilityError,
-            },
+            }
           );
           console.error(
-            "CRITICAL ERROR in availability transfer:",
-            availabilityError,
+            'CRITICAL ERROR in availability transfer:',
+            availabilityError
           );
         }
       } else {
@@ -1206,18 +1206,18 @@ export class TechnicianManagementService
                 url: doc.url,
                 uploadedAt: doc.uploadedAt || new Date(),
                 verified: true,
-                status: "approved" as const,
+                status: 'approved' as const,
                 verifiedAt: new Date(),
               });
             }
-          },
+          }
         );
 
         await this._technicianRepository.updateTechnicianDocuments(
           technician._id.toString(),
-          technicianDocuments,
+          technicianDocuments
         );
-        this._logger.info("Updated technician documents during approval", {
+        this._logger.info('Updated technician documents during approval', {
           ...context,
           technicianId: technician._id?.toString(),
           technicianDocuments,
@@ -1231,14 +1231,14 @@ export class TechnicianManagementService
 
         if (Array.isArray(rawLanguages)) {
           languagesArray = rawLanguages;
-        } else if (typeof rawLanguages === "string") {
+        } else if (typeof rawLanguages === 'string') {
           try {
             const parsed = JSON.parse(rawLanguages);
             languagesArray = Array.isArray(parsed) ? parsed : [rawLanguages];
           } catch {
-            if ((rawLanguages as string).includes(",")) {
+            if ((rawLanguages as string).includes(',')) {
               languagesArray = (rawLanguages as string)
-                .split(",")
+                .split(',')
                 .map((lang: string) => lang.trim());
             } else {
               languagesArray = [rawLanguages as string];
@@ -1249,11 +1249,11 @@ export class TechnicianManagementService
 
       let addressData: Record<string, unknown> = {};
       if (application.identity?.address) {
-        if (typeof application.identity.address === "string") {
+        if (typeof application.identity.address === 'string') {
           try {
             addressData = JSON.parse(application.identity.address);
           } catch (e) {
-            console.error("Error parsing address JSON:", e);
+            console.error('Error parsing address JSON:', e);
             addressData = {};
           }
         } else {
@@ -1262,10 +1262,10 @@ export class TechnicianManagementService
       }
 
       const identityVerificationData = {
-        idType: this.mapIdType(application.identity?.idType || ""),
-        idNumber: application.identity?.idNumber || "",
-        idDocument: application.documents?.idProof?.url || "",
-        verificationStatus: "approved" as const,
+        idType: this.mapIdType(application.identity?.idType || ''),
+        idNumber: application.identity?.idNumber || '',
+        idDocument: application.documents?.idProof?.url || '',
+        verificationStatus: 'approved' as const,
         verified: true,
         verifiedAt: new Date(),
       };
@@ -1277,10 +1277,10 @@ export class TechnicianManagementService
             ...technician.personalInfo,
             languages: languagesArray,
             address: addressData,
-          },
+          }
         );
 
-        this._logger.info("Updated technician profile info during approval", {
+        this._logger.info('Updated technician profile info during approval', {
           ...context,
           technicianId: technician._id?.toString(),
           personalInfo: technician.personalInfo,
@@ -1288,15 +1288,15 @@ export class TechnicianManagementService
 
         await this._technicianRepository.updateTechnicianIdentityVerification(
           technician._id.toString(),
-          identityVerificationData,
+          identityVerificationData
         );
         this._logger.info(
-          "Updated technician identification and verification during approval",
+          'Updated technician identification and verification during approval',
           {
             ...context,
             technicianId: technician._id?.toString(),
             identityVerificationData,
-          },
+          }
         );
 
         if (application.documents) {
@@ -1308,17 +1308,17 @@ export class TechnicianManagementService
               url: doc.url,
               uploadedAt: doc.uploadedAt || new Date(),
               verified: true,
-              status: "approved" as const,
+              status: 'approved' as const,
               verifiedAt: new Date(),
-            }),
+            })
           );
 
           await this._technicianRepository.updateTechnicianDocuments(
             technician._id.toString(),
-            technicianDocuments,
+            technicianDocuments
           );
 
-          this._logger.info("Updated technician documents during approval", {
+          this._logger.info('Updated technician documents during approval', {
             ...context,
             technicianId: technician._id?.toString(),
             technicianDocuments,
@@ -1331,39 +1331,39 @@ export class TechnicianManagementService
 
         const paymentDetails = {
           bankAccount: {
-            holderName: bankData.accountHolderName?.trim() || "",
-            accountNumber: bankData.accountNumber || "",
-            ifscCode: bankData.ifscCode || "",
-            bankName: bankData.bankName || "",
+            holderName: bankData.accountHolderName?.trim() || '',
+            accountNumber: bankData.accountNumber || '',
+            ifscCode: bankData.ifscCode || '',
+            bankName: bankData.bankName || '',
           },
-          upiId: bankData.upiId || "",
-          withdrawalPreference: "auto" as const,
+          upiId: bankData.upiId || '',
+          withdrawalPreference: 'auto' as const,
         };
 
         const updateResult =
           await this._technicianRepository.updateTechnicianPaymentDetails(
             technician._id.toString(),
-            paymentDetails,
+            paymentDetails
           );
 
         this._logger.info(
-          "Updated technician payment details during approval",
+          'Updated technician payment details during approval',
           {
             ...context,
             technicianId: technician._id?.toString(),
             paymentDetails,
-          },
+          }
         );
       }
 
       // Send approval email
       let emailSent = false;
-      let emailMessage = "";
+      let emailMessage = '';
 
       if (application.email) {
         emailSent = await emailService.sendApplicationApprovalEmail(
           application.email,
-          application.personal?.fullName || "Technician",
+          application.personal?.fullName || 'Technician'
         );
         emailMessage = emailSent
           ? TECHNICIAN_MANAGEMENT_MESSAGES.APPROVAL_EMAIL_SENT
@@ -1372,7 +1372,7 @@ export class TechnicianManagementService
 
       const applicationDto = toApplicationListDto(updatedApplication);
 
-      this._logger.info(`Email notification ${emailSent ? "sent" : "failed"}`, {
+      this._logger.info(`Email notification ${emailSent ? 'sent' : 'failed'}`, {
         ...context,
         emailSent,
       });
@@ -1380,8 +1380,8 @@ export class TechnicianManagementService
       if (technician) {
         await this._socketService.notifyApplicationStatus(
           technician._id.toString(),
-          "approved",
-          application.personal?.fullName || "Technician",
+          'approved',
+          application.personal?.fullName || 'Technician'
         );
       }
 
@@ -1390,23 +1390,23 @@ export class TechnicianManagementService
         {
           applications: [applicationDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-        },
+        }
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to approve technician", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to approve technician', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_APPROVE_APPLICATION
       );
     }
   }
   private convertApplicationAvailabilityToTechnicianAvailability(
-    applicationAvailability: any,
+    applicationAvailability: any
   ): any {
     if (!applicationAvailability) {
       return {
@@ -1446,7 +1446,7 @@ export class TechnicianManagementService
           startTime: dayData.startTime,
           endTime: dayData.endTime,
         };
-      },
+      }
     );
 
     const result = {
@@ -1464,16 +1464,16 @@ export class TechnicianManagementService
   }
   async rejectApplication(
     id: string,
-    rejectData: RejectApplicationRequestDto,
+    rejectData: RejectApplicationRequestDto
   ): Promise<ApplicationListResponseDto> {
     const context = {
-      operation: "rejectApplication",
+      operation: 'rejectApplication',
       technicianId: id,
       rejectData,
       timestamp: new Date().toString(),
     };
     try {
-      this._logger.info("Rejecting technician", context);
+      this._logger.info('Rejecting technician', context);
       const {
         rejectionReason,
         emailNotification = EMAIL_CONFIG.DEFAULT_NOTIFICATION,
@@ -1482,49 +1482,49 @@ export class TechnicianManagementService
       const application =
         await this._technicianRepository.findApplicationById(id);
       if (!application) {
-        this._logger.warn("Technician application not found", context);
+        this._logger.warn('Technician application not found', context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND,
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
         );
       }
 
       if (application.technicianId) {
         const technician = await this._technicianRepository.findTechnicianById(
-          application.technicianId.toString(),
+          application.technicianId.toString()
         );
 
         if (technician) {
-          this._logger.info("Technician found by technciianId to reject", {
+          this._logger.info('Technician found by technciianId to reject', {
             ...context,
             applicationId: application.technicianId.toString(),
           });
           await this._technicianRepository.updateTechnicianStatus(
             application.technicianId.toString(),
-            TECHNICIAN_STATUS.REJECTED,
+            TechnicianStatus.REJECTED
           );
-          this._logger.info("Technician status updated to reject", {
+          this._logger.info('Technician status updated to reject', {
             ...context,
             applicationId: application.technicianId.toString(),
-            status: TECHNICIAN_STATUS.REJECTED,
+            status: TechnicianStatus.REJECTED,
           });
         } else {
           const technicianByUser =
             await this._technicianRepository.findTechnicianByUserId(
-              application.technicianId.toString(),
+              application.technicianId.toString()
             );
           if (technicianByUser) {
-            this._logger.info("Technician found by userId to reject", {
+            this._logger.info('Technician found by userId to reject', {
               ...context,
               applicationId: application.technicianId.toString(),
             });
             await this._technicianRepository.updateTechnicianStatus(
               technicianByUser._id.toString(),
-              TECHNICIAN_STATUS.REJECTED,
+              TechnicianStatus.REJECTED
             );
-            this._logger.info("Technician status updated to reject", {
+            this._logger.info('Technician status updated to reject', {
               ...context,
               applicationId: application.technicianId.toString(),
-              status: TECHNICIAN_STATUS.REJECTED,
+              status: TechnicianStatus.REJECTED,
             });
           }
         }
@@ -1537,13 +1537,13 @@ export class TechnicianManagementService
           {
             rejectionReason,
             rejectedAt: new Date(),
-          },
+          }
         );
 
       if (!updatedApplication) {
         this._logger.warn("Technician's status update failed", context);
         return ResponseHelper.badRequest(
-          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED,
+          TECHNICIAN_MANAGEMENT_MESSAGES.UPDATE_APPLICATION_FAILED
         );
       }
 
@@ -1555,18 +1555,18 @@ export class TechnicianManagementService
 
       await this._technicianRepository.updateUserApplicationStatus(
         application.technicianId as Types.ObjectId,
-        APPLICATION_STATUS.REJECTED,
+        APPLICATION_STATUS.REJECTED
       );
 
       // Send rejection email
       let emailSent = false;
-      let emailMessage = "";
+      let emailMessage = '';
 
       if (emailNotification && application.email) {
         emailSent = await emailService.sendApplicationRejectionEmail(
           application.email,
-          application.personal?.fullName || "Applicant",
-          rejectionReason,
+          application.personal?.fullName || 'Applicant',
+          rejectionReason
         );
         emailMessage = emailSent
           ? TECHNICIAN_MANAGEMENT_MESSAGES.REJECTION_EMAIL_SENT
@@ -1575,7 +1575,7 @@ export class TechnicianManagementService
 
       const applicationDto = toApplicationListDto(updatedApplication);
 
-      this._logger.info(`Email notification ${emailSent ? "sent" : "failed"}`, {
+      this._logger.info(`Email notification ${emailSent ? 'sent' : 'failed'}`, {
         ...context,
         emailSent,
       });
@@ -1585,38 +1585,38 @@ export class TechnicianManagementService
         {
           applications: [applicationDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-        },
+        }
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to reject technician", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to reject technician', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_REJECT_APPLICATION
       );
     }
   }
   async getApplicationById(id: string): Promise<ApplicationListResponseDto> {
     const context = {
-      operation: "getApplicationById",
+      operation: 'getApplicationById',
       technicianId: id,
       timestamp: new Date().toString(),
     };
     try {
-      this._logger.info("Fetching application by id", context);
+      this._logger.info('Fetching application by id', context);
       const application =
         await this._technicianRepository.findApplicationById(id);
       if (!application) {
-        this._logger.warn("Application not found", context);
+        this._logger.warn('Application not found', context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND,
+          TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_NOT_FOUND
         );
       }
-      this._logger.info("Application found in repository", {
+      this._logger.info('Application found in repository', {
         ...context,
         technicianId: id,
       });
@@ -1624,12 +1624,12 @@ export class TechnicianManagementService
       // Get user data
       const user = await this._technicianRepository.updateUserApplicationStatus(
         application.technicianId as Types.ObjectId,
-        application.status,
+        application.status
       );
 
       // Format documents from TechnicianApplication.documents for frontend
       const formattedDocuments = this.formatApplicationDocuments(
-        application.documents || {},
+        application.documents || {}
       );
 
       const applicationData: ITechnicianApplication = {
@@ -1642,7 +1642,7 @@ export class TechnicianManagementService
 
       const applicationDto = toApplicationDetailDto(applicationData);
 
-      this._logger.info("Application retrieved", {
+      this._logger.info('Application retrieved', {
         ...context,
         technicianId: application.technicianId,
         userId: user,
@@ -1653,73 +1653,73 @@ export class TechnicianManagementService
         {
           applications: [applicationDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-        },
+        }
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch application by id", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch application by id', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION
       );
     }
   }
 
   async getApplicationStats(): Promise<ApplicationStatsResponse> {
     const context = {
-      operation: "getApplicationStats",
+      operation: 'getApplicationStats',
       timestamp: new Date().toString(),
     };
     try {
-      this._logger.info("Fetching application stats", context);
+      this._logger.info('Fetching application stats', context);
       const stats = await this._technicianRepository.getApplicationStats();
 
-      this._logger.info("Application stats retrieved", {
+      this._logger.info('Application stats retrieved', {
         ...context,
         stats,
       });
 
       return ResponseHelper.success(
         TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATION_STATS_RETRIEVED,
-        stats,
+        stats
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch application stats", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch application stats', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION_STATS,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATION_STATS
       );
     }
   }
 
   async getTechnicianByApplicationId(
-    applicationId: string,
+    applicationId: string
   ): Promise<TechnicianListResponseDto> {
     const context = {
-      operation: "getTechnicianByApplicationId",
+      operation: 'getTechnicianByApplicationId',
       applicationId: applicationId,
       timestamp: new Date().toString(),
     };
     try {
-      this._logger.info("Fetchnicng technician by application id", context);
+      this._logger.info('Fetchnicng technician by application id', context);
       const technician =
         await this._technicianRepository.findTechnicianByApplicationId(
-          applicationId,
+          applicationId
         );
 
       if (!technician) {
-        this._logger.warn("Technician not found for application", context);
+        this._logger.warn('Technician not found for application', context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND_FOR_APPLICATION,
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND_FOR_APPLICATION
         );
       }
 
@@ -1727,7 +1727,7 @@ export class TechnicianManagementService
 
       const technicianDto = toTechnicianDetailDto(adminTechnician);
 
-      this._logger.info("Technician by application retrieved", {
+      this._logger.info('Technician by application retrieved', {
         ...context,
         technicians: [technicianDto],
         pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
@@ -1738,42 +1738,42 @@ export class TechnicianManagementService
         {
           technicians: [technicianDto],
           pagination: PAGINATION_DEFAULTS.SINGLE_RESULT,
-        },
+        }
       );
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch technician by application id", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch technician by application id', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
-        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP,
+        TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIAN_BY_APP
       );
     }
   }
   async getPublicTechnicians(
-    filters: TechnicianFiltersDto,
+    filters: TechnicianFiltersDto
   ): Promise<TechnicianListResponseDto> {
     const context = {
-      operation: "getPublicTechnicians",
+      operation: 'getPublicTechnicians',
       filters,
       timestamp: new Date().toString(),
     };
     try {
-      this._logger.info("fetching public technicians", context);
+      this._logger.info('fetching public technicians', context);
       const {
         service,
         page = PAGINATION_DEFAULTS.PAGE,
         limit = PAGINATION_DEFAULTS.LIMIT,
         search,
         location,
-        sortBy = "default",
+        sortBy = 'default',
       } = filters;
 
       const repoFilters: TechnicianFilter = {
-        status: "approved",
+        status: 'approved',
       };
 
       if (service) {
@@ -1782,13 +1782,13 @@ export class TechnicianManagementService
 
       // Search filter for public technicians
       if (search) {
-        const searchRegex = new RegExp(search as string, "i");
+        const searchRegex = new RegExp(search as string, 'i');
         repoFilters.$or = [
           { displayName: searchRegex },
           { services: searchRegex },
           { workAreas: searchRegex },
-          { "personalInfo.address.city": searchRegex },
-          { "personalInfo.address.state": searchRegex },
+          { 'personalInfo.address.city': searchRegex },
+          { 'personalInfo.address.state': searchRegex },
         ];
       }
 
@@ -1799,7 +1799,7 @@ export class TechnicianManagementService
       let sortOptions: any = {};
 
       switch (sortBy) {
-        case "rating":
+        case 'rating':
           // Sort by rating (highest first), then by number of ratings, then by experience
           sortOptions = {
             averageRating: -1,
@@ -1809,7 +1809,7 @@ export class TechnicianManagementService
           };
           break;
 
-        case "experience":
+        case 'experience':
           // Sort by experience (highest first), then by rating, then by number of ratings
           sortOptions = {
             experienceYears: -1,
@@ -1819,19 +1819,19 @@ export class TechnicianManagementService
           };
           break;
 
-        case "nearby":
+        case 'nearby':
           // For nearby, we need to handle this differently with location data
           sortOptions = { createdAt: -1 };
           break;
 
-        case "default":
+        case 'default':
         default:
           // Default: sort by creation date (newest first)
           sortOptions = { createdAt: -1 };
           break;
       }
 
-      this._logger.info("Get public technicians with pagination and sorting", {
+      this._logger.info('Get public technicians with pagination and sorting', {
         ...context,
         filters: repoFilters,
         skip,
@@ -1846,16 +1846,16 @@ export class TechnicianManagementService
           repoFilters,
           skip,
           limitNum,
-          sortOptions,
+          sortOptions
         );
 
       const total =
         await this._technicianRepository.countPublicTechnicians(repoFilters);
 
-      this._logger.debug("Technicians returned in sorted order", {
+      this._logger.debug('Technicians returned in sorted order', {
         ...context,
         sortBy,
-        technicians: technicians.map((tech) => ({
+        technicians: technicians.map(tech => ({
           id: tech._id,
           name: tech.displayName,
           rating: tech.averageRating,
@@ -1878,14 +1878,14 @@ export class TechnicianManagementService
           };
 
           return publicTechnician;
-        }),
+        })
       );
 
-      this._logger.info("Technicians retrieved with sorting", {
+      this._logger.info('Technicians retrieved with sorting', {
         ...context,
         techniciansCount: technicianDtos.length,
         sortBy,
-        sampleRatings: technicianDtos.slice(0, 3).map((t) => ({
+        sampleRatings: technicianDtos.slice(0, 3).map(t => ({
           name: t.displayName,
           rating: t.averageRating,
           experience: t.experienceYears,
@@ -1898,7 +1898,7 @@ export class TechnicianManagementService
         },
       });
 
-      return ResponseHelper.success("Technicians retrieved successfully", {
+      return ResponseHelper.success('Technicians retrieved successfully', {
         technicians: technicianDtos,
         pagination: {
           page: pageNum,
@@ -1911,42 +1911,42 @@ export class TechnicianManagementService
       });
     } catch (error) {
       console.error(
-        "Backend Service: Error getting public technicians:",
-        error,
+        'Backend Service: Error getting public technicians:',
+        error
       );
-      this._logger.error("Failed to get public technicians", {
+      this._logger.error('Failed to get public technicians', {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to retrieve technicians");
+      return ResponseHelper.error('Failed to retrieve technicians');
     }
   }
   async getPublicTechnicianById(
-    id: string,
+    id: string
   ): Promise<SingleTechnicianResponseDto> {
     const context = {
-      operation: "getPublicTechnicianById",
+      operation: 'getPublicTechnicianById',
       technicianId: id,
       timestamp: new Date().toString(),
     };
     try {
-      this._logger.info("Get technician by id", context);
+      this._logger.info('Get technician by id', context);
       const technician =
         await this._technicianRepository.findTechnicianById(id);
 
       if (!technician) {
-        this._logger.warn("Technician not found", context);
+        this._logger.warn('Technician not found', context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND,
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
         );
       }
 
       // Only return approved technicians to public
-      if (technician.status !== "approved") {
-        this._logger.warn("Technician with approved status not found", context);
+      if (technician.status !== 'approved') {
+        this._logger.warn('Technician with approved status not found', context);
         return ResponseHelper.notFound(
-          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND,
+          TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIAN_NOT_FOUND
         );
       }
 
@@ -1959,7 +1959,7 @@ export class TechnicianManagementService
         await this._technicianRepository.getUpcomingAvailabilityProfile(
           id,
           startDate,
-          endDate,
+          endDate
         );
 
       // Get active slot rules to understand the pattern
@@ -1988,7 +1988,7 @@ export class TechnicianManagementService
         slotRules: slotRules,
       };
 
-      this._logger.info("Technician retrieved with REAL availability", {
+      this._logger.info('Technician retrieved with REAL availability', {
         ...context,
         technicianId: id,
         availabilityRecordsCount: availabilityRecords.length,
@@ -1999,15 +1999,15 @@ export class TechnicianManagementService
         TECHNICIAN_MANAGEMENT_MESSAGES.TECHNICIANS_RETRIEVED,
         {
           technician: responseData,
-        },
+        }
       );
     } catch (error) {
-      this._logger.error("Failed to get public technicians by id", {
+      this._logger.error('Failed to get public technicians by id', {
         ...context,
         error: error,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to retrieve technician");
+      return ResponseHelper.error('Failed to retrieve technician');
     }
   }
   private async processAvailabilityData(
@@ -2022,12 +2022,12 @@ export class TechnicianManagementService
         };
       };
       availableWeeks?: number[];
-    },
+    }
   ): Promise<void> {
     try {
-      const SlotRule = require("../models/technician/SlotRuleSchema").default;
+      const SlotRule = require('../models/technician/SlotRuleSchema').default;
       const TechnicianAvailability =
-        require("../models/technician/TechnicianAvailabilitySchema").default;
+        require('../models/technician/TechnicianAvailabilitySchema').default;
 
       const technicianObjectId = new Types.ObjectId(technicianId);
 
@@ -2050,17 +2050,17 @@ export class TechnicianManagementService
         },
         {
           $set: { isActive: false },
-        },
+        }
       );
 
       const days = [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday",
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+        'sunday',
       ];
       const dayMap: { [key: string]: any } = {
         monday: RRule.MO,
@@ -2147,43 +2147,43 @@ export class TechnicianManagementService
         } catch (ruleError) {
           console.error(
             `Error processing slot rule ${slotRule.name}:`,
-            ruleError,
+            ruleError
           );
         }
       }
     } catch (error) {
-      console.error("Error in processAvailabilityData:", error);
+      console.error('Error in processAvailabilityData:', error);
       throw error;
     }
   }
   private mapIdType(governmentIdType: string): string {
     const idTypeMap: { [key: string]: string } = {
-      drivingLicense: "driving_license",
-      passport: "passport",
-      aadhaar: "aadhaar",
-      voterId: "national_id",
-      panCard: "national_id",
+      drivingLicense: 'driving_license',
+      passport: 'passport',
+      aadhaar: 'aadhaar',
+      voterId: 'national_id',
+      panCard: 'national_id',
     };
 
-    return idTypeMap[governmentIdType] || "national_id";
+    return idTypeMap[governmentIdType] || 'national_id';
   }
   async getTechnicianSlotRules(technicianId: string): Promise<any> {
     const context = {
-      operation: "getPublicTechnicianSlotRules",
+      operation: 'getPublicTechnicianSlotRules',
       technicianId,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info("Fetching public technician slot rules", context);
+      this._logger.info('Fetching public technician slot rules', context);
 
       // First verify technician exists and is approved
       const technician =
         await this._technicianRepository.findTechnicianById(technicianId);
 
-      if (!technician || technician.status !== "approved") {
-        this._logger.warn("Technician not found or not approved", context);
-        return ResponseHelper.notFound("Technician not found");
+      if (!technician || technician.status !== 'approved') {
+        this._logger.warn('Technician not found or not approved', context);
+        return ResponseHelper.notFound('Technician not found');
       }
 
       const slotRules =
@@ -2194,28 +2194,28 @@ export class TechnicianManagementService
         slotRulesCount: slotRules.length,
       });
 
-      return ResponseHelper.success("Slot rules retrieved successfully", {
+      return ResponseHelper.success('Slot rules retrieved successfully', {
         slotRules,
       });
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch public slot rules", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch public slot rules', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to retrieve slot rules");
+      return ResponseHelper.error('Failed to retrieve slot rules');
     }
   }
 
   async getTechnicianAvailability(
     technicianId: string,
     startDate?: string,
-    endDate?: string,
+    endDate?: string
   ): Promise<any> {
     const context = {
-      operation: "getPublicTechnicianAvailability",
+      operation: 'getPublicTechnicianAvailability',
       technicianId,
       startDate,
       endDate,
@@ -2223,15 +2223,15 @@ export class TechnicianManagementService
     };
 
     try {
-      this._logger.info("Fetching public technician availability", context);
+      this._logger.info('Fetching public technician availability', context);
 
       // First verify technician exists and is approved
       const technician =
         await this._technicianRepository.findTechnicianById(technicianId);
 
-      if (!technician || technician.status !== "approved") {
-        this._logger.warn("Technician not found or not approved", context);
-        return ResponseHelper.notFound("Technician not found");
+      if (!technician || technician.status !== 'approved') {
+        this._logger.warn('Technician not found or not approved', context);
+        return ResponseHelper.notFound('Technician not found');
       }
 
       // Default to next 7 days if no dates provided
@@ -2243,7 +2243,7 @@ export class TechnicianManagementService
         await this._technicianRepository.getUpcomingAvailabilityProfile(
           technicianId,
           start,
-          end,
+          end
         );
 
       this._logger.info(
@@ -2251,31 +2251,31 @@ export class TechnicianManagementService
         {
           ...context,
           availabilityCount: availability.length,
-        },
+        }
       );
 
-      return ResponseHelper.success("Availability retrieved successfully", {
+      return ResponseHelper.success('Availability retrieved successfully', {
         availability,
       });
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch public availability", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch public availability', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to retrieve availability");
+      return ResponseHelper.error('Failed to retrieve availability');
     }
   }
 
   async getTechnicianPublicAvailability(
     technicianId: string,
     startDate?: string,
-    endDate?: string,
+    endDate?: string
   ): Promise<any> {
     const context = {
-      operation: "getTechnicianPublicAvailability",
+      operation: 'getTechnicianPublicAvailability',
       technicianId,
       startDate,
       endDate,
@@ -2283,15 +2283,15 @@ export class TechnicianManagementService
     };
 
     try {
-      this._logger.info("Fetching public technician availability", context);
+      this._logger.info('Fetching public technician availability', context);
 
       // First verify technician exists and is approved
       const technician =
         await this._technicianRepository.findTechnicianById(technicianId);
 
-      if (!technician || technician.status !== "approved") {
-        this._logger.warn("Technician not found or not approved", context);
-        return ResponseHelper.notFound("Technician not found");
+      if (!technician || technician.status !== 'approved') {
+        this._logger.warn('Technician not found or not approved', context);
+        return ResponseHelper.notFound('Technician not found');
       }
 
       // Default to next 7 days if no dates provided
@@ -2303,7 +2303,7 @@ export class TechnicianManagementService
         await this._technicianRepository.getUpcomingAvailabilityProfile(
           technicianId,
           start,
-          end,
+          end
         );
 
       // Format the availability for frontend display
@@ -2315,28 +2315,28 @@ export class TechnicianManagementService
         {
           ...context,
           availabilityCount: availability.length,
-        },
+        }
       );
 
-      return ResponseHelper.success("Availability retrieved successfully", {
+      return ResponseHelper.success('Availability retrieved successfully', {
         availability: formattedAvailability,
       });
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      this._logger.error("Failed to fetch public availability", {
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Failed to fetch public availability', {
         ...context,
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      return ResponseHelper.error("Failed to retrieve availability");
+      return ResponseHelper.error('Failed to retrieve availability');
     }
   }
 
   private formatAvailabilityForDisplay(availabilityRecords: any[]): any[] {
-    return availabilityRecords.map((record) => {
+    return availabilityRecords.map(record => {
       const availableSlots = record.timeSlots
-        .filter((slot: any) => slot.status === "available")
+        .filter((slot: any) => slot.status === 'available')
         .map((slot: any) => ({
           start:
             slot.start instanceof Date
@@ -2351,7 +2351,7 @@ export class TechnicianManagementService
       return {
         date: record.date,
         dayName: new Date(record.date)
-          .toLocaleDateString("en-US", { weekday: "long" })
+          .toLocaleDateString('en-US', { weekday: 'long' })
           .toLowerCase(),
         slots: availableSlots,
         isToday: this.isToday(new Date(record.date)),

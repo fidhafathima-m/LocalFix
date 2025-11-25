@@ -47,28 +47,10 @@ const UserManagement: React.FC = () => {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  // Filter users based on statusFilter
-  const filteredUsers =
-    statusFilter === "All Status"
-      ? users
-      : users.filter((u) => u.status === statusFilter);
-
-  // Apply search filter
-  const searchedUsers = debouncedSearchQuery
-    ? filteredUsers.filter(
-        (u) =>
-          u.fullName
-            .toLowerCase()
-            .includes(debouncedSearchQuery.toLowerCase()) ||
-          u.email?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-      )
-    : filteredUsers;
-
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = searchedUsers.slice(indexOfFirstUser, indexOfLastUser);
-
-  const totalPages = Math.ceil(searchedUsers.length / usersPerPage);
+  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(users.length / usersPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -86,7 +68,10 @@ const UserManagement: React.FC = () => {
     const loadUsers = async () => {
       dispatch(fetchUsersStart());
       try {
-        const response = await UserMangementService.getUsers();
+        const response = await UserMangementService.getUsers(
+          debouncedSearchQuery,
+          statusFilter !== "All Status" ? statusFilter : undefined
+        );
 
         if (response.data.success && response.data.data) {
           const usersData =
@@ -110,7 +95,7 @@ const UserManagement: React.FC = () => {
       }
     };
     loadUsers();
-  }, [dispatch]);
+  }, [dispatch, debouncedSearchQuery, statusFilter]);
 
   const handleOpenViewModal = (user: User) => {
     setSelectedUser(user);
