@@ -1,17 +1,20 @@
-import { Technician } from "../../models/technician/TechnicianSchema";
+import { Technician } from '../../models/technician/TechnicianSchema';
 import {
   TechnicianApplication,
   ITechnicianApplication as ModelITechnicianApplication,
-} from "../../models/technician/TechnicianApplicationSchema";
-import User from "../../models/UserSchema";
-import UserAddressSchema from "../../models/UserAddressSchema";
-import { Types } from "mongoose";
+} from '../../models/technician/TechnicianApplicationSchema';
+import User from '../../models/UserSchema';
+import UserAddressSchema from '../../models/UserAddressSchema';
+import { Types } from 'mongoose';
 import {
   ITechnician,
   IAdminTechnician,
   ITechnicianApplication as AdminITechnicianApplication,
-} from "../../interfaces/admin/ITechnicianManagement";
-import { ITechnicianManagementRepository } from "../../interfaces/repository/admin/ITechnicianManagementRepository";
+} from '../../interfaces/admin/ITechnicianManagement';
+import {
+  ApplicationFilter,
+  ITechnicianManagementRepository,
+} from '../../interfaces/repository/admin/ITechnicianManagementRepository';
 import {
   PersonalInfo,
   SkillsInfo,
@@ -20,11 +23,11 @@ import {
   BankInfo,
   IdentityInfo,
   WeeklyPattern,
-} from "../../interfaces/technician/ITechnician";
-import { IUser } from "@/interfaces/admin/IUserManagements";
-import { IUserAddress } from "@/models/UserAddressSchema";
-import SlotRuleSchema from "../../models/technician/SlotRuleSchema";
-import TechnicianAvailabilitySchema from "../../models/technician/TechnicianAvailabilitySchema";
+} from '../../interfaces/technician/ITechnician';
+import { IUser } from '@/interfaces/admin/IUserManagements';
+import { IUserAddress } from '@/models/UserAddressSchema';
+import SlotRuleSchema from '../../models/technician/SlotRuleSchema';
+import TechnicianAvailabilitySchema from '../../models/technician/TechnicianAvailabilitySchema';
 
 // Define interfaces for filter and data objects
 interface TechnicianFilter {
@@ -38,17 +41,6 @@ interface TechnicianFilter {
     $lte?: Date;
   };
   search?: string;
-  [key: string]: unknown;
-}
-
-interface ApplicationFilter {
-  status?: string | { $in: string[] };
-  "skills.services"?: string;
-  $or?: Array<{ [key: string]: RegExp }>;
-  submittedAt?: {
-    $gte?: Date;
-    $lte?: Date;
-  };
   [key: string]: unknown;
 }
 
@@ -67,7 +59,7 @@ interface PaymentDetails {
     bankName?: string;
   };
   upiId?: string;
-  withdrawalPreference?: "auto" | "manual";
+  withdrawalPreference?: 'auto' | 'manual';
   [key: string]: unknown;
 }
 
@@ -82,34 +74,34 @@ const convertToAdminApplication = (
   let weeklyPattern: WeeklyPattern = {};
 
   // Convert old structure to new structure if needed
-  if (availabilityData && typeof availabilityData === "object") {
+  if (availabilityData && typeof availabilityData === 'object') {
     // Check for nested availability structure (old format)
     if (
-      "availability" in availabilityData &&
+      'availability' in availabilityData &&
       availabilityData.availability &&
-      typeof availabilityData.availability === "object" &&
-      "weeklyPattern" in availabilityData.availability
+      typeof availabilityData.availability === 'object' &&
+      'weeklyPattern' in availabilityData.availability
     ) {
       weeklyPattern = availabilityData.availability
         .weeklyPattern as WeeklyPattern;
     }
     // Check for direct weeklyPattern (new format)
-    else if ("weeklyPattern" in availabilityData) {
+    else if ('weeklyPattern' in availabilityData) {
       weeklyPattern = availabilityData.weeklyPattern as WeeklyPattern;
     }
     // Check for old weeklyAvailability structure and convert
-    else if ("weeklyAvailability" in availabilityData) {
+    else if ('weeklyAvailability' in availabilityData) {
       const oldWeeklyAvailability = availabilityData.weeklyAvailability as any;
       weeklyPattern = {};
 
       // Convert from old structure { enabled, startTime, endTime } to new structure { available, startTime, endTime }
-      Object.keys(oldWeeklyAvailability).forEach((day) => {
+      Object.keys(oldWeeklyAvailability).forEach(day => {
         const dayData = oldWeeklyAvailability[day];
-        if (dayData && typeof dayData === "object") {
+        if (dayData && typeof dayData === 'object') {
           weeklyPattern[day as keyof WeeklyPattern] = {
             available: dayData.enabled || false,
-            startTime: dayData.startTime || "09:00",
-            endTime: dayData.endTime || "18:00",
+            startTime: dayData.startTime || '09:00',
+            endTime: dayData.endTime || '18:00',
           };
         }
       });
@@ -119,72 +111,72 @@ const convertToAdminApplication = (
   // If no weeklyPattern was found, create default
   if (Object.keys(weeklyPattern).length === 0) {
     weeklyPattern = {
-      monday: { available: false, startTime: "09:00", endTime: "18:00" },
-      tuesday: { available: false, startTime: "09:00", endTime: "18:00" },
-      wednesday: { available: false, startTime: "09:00", endTime: "18:00" },
-      thursday: { available: false, startTime: "09:00", endTime: "18:00" },
-      friday: { available: false, startTime: "09:00", endTime: "18:00" },
-      saturday: { available: false, startTime: "09:00", endTime: "18:00" },
-      sunday: { available: false, startTime: "09:00", endTime: "18:00" },
+      monday: { available: false, startTime: '09:00', endTime: '18:00' },
+      tuesday: { available: false, startTime: '09:00', endTime: '18:00' },
+      wednesday: { available: false, startTime: '09:00', endTime: '18:00' },
+      thursday: { available: false, startTime: '09:00', endTime: '18:00' },
+      friday: { available: false, startTime: '09:00', endTime: '18:00' },
+      saturday: { available: false, startTime: '09:00', endTime: '18:00' },
+      sunday: { available: false, startTime: '09:00', endTime: '18:00' },
     };
   }
 
   const baseApplication = {
     _id: app._id as Types.ObjectId,
     technicianId: app.technicianId as Types.ObjectId,
-    email: app.email || "",
-    status: app.status || "draft",
+    email: app.email || '',
+    status: app.status || 'draft',
     stepsCompleted: app.stepsCompleted || [],
     personal: app.personal
       ? {
-          fullName: app.personal.fullName || "",
-          phoneNumber: app.personal.phoneNumber || "",
-          email: app.personal.email || "",
-          gender: app.personal.gender || "",
-          dateOfBirth: app.personal.dateOfBirth || "",
+          fullName: app.personal.fullName || '',
+          phoneNumber: app.personal.phoneNumber || '',
+          email: app.personal.email || '',
+          gender: app.personal.gender || '',
+          dateOfBirth: app.personal.dateOfBirth || '',
           address: app.personal.address
             ? {
-                street: app.personal.address.street || "",
-                city: app.personal.address.city || "",
-                state: app.personal.address.state || "",
-                pincode: app.personal.address.pincode || "",
+                street: app.personal.address.street || '',
+                city: app.personal.address.city || '',
+                state: app.personal.address.state || '',
+                pincode: app.personal.address.pincode || '',
               }
             : undefined,
         }
       : {
-          fullName: "",
-          phoneNumber: "",
-          email: "",
-          gender: "",
-          dateOfBirth: "",
+          fullName: '',
+          phoneNumber: '',
+          email: '',
+          gender: '',
+          dateOfBirth: '',
         },
     identity: app.identity || {
-      governmentIdType: "",
-      governmentIdNumber: "",
-      idDocument: "",
+      governmentIdType: '',
+      governmentIdNumber: '',
+      idDocument: '',
       verified: false,
-      verificationStatus: "pending" as const,
+      verificationStatus: 'pending' as const,
     },
     skills: {
       services: (skillsData as any).services || [],
-      yearsOfExperience: (skillsData as any).yearsOfExperience || "",
+      yearsOfExperience: (skillsData as any).yearsOfExperience || '',
       languages: getLanguagesFromSkills(skillsData),
-      bio: (skillsData as any).bio || "",
+      bio: (skillsData as any).bio || '',
       serviceAreas: (skillsData as any).serviceAreas || [],
-      workRadius: (skillsData as any).workRadius || "",
+      workRadius: (skillsData as any).workRadius || '',
     },
     availability: {
       serviceAreas: availabilityData.serviceAreas || [],
-      workRadius: availabilityData.workRadius || "",
+      workRadius: availabilityData.workRadius || '',
       weeklyPattern: weeklyPattern,
     },
     bank: app.bank || {
-      accountHolderName: "",
-      accountNumber: "",
-      ifscCode: "",
-      upiId: "",
-      bankName: "",
-      withdrawalPreference: "",
+      accountHolderName: '',
+      accountNumber: '',
+      ifscCode: '',
+      upiId: '',
+      bankName: '',
+      withdrawalPreference: '',
     },
     documents: app.documents || {},
     agreement: app.agreement || false,
@@ -219,16 +211,16 @@ const getLanguagesFromSkills = (skillsData: any): string[] => {
     return languages;
   }
 
-  if (typeof languages === "string") {
+  if (typeof languages === 'string') {
     try {
       // Try to parse as JSON array
       const parsed = JSON.parse(languages);
       return Array.isArray(parsed) ? parsed : [languages];
     } catch {
       // If not JSON, try comma-separated or return as single item array
-      if (languages.includes(",")) {
+      if (languages.includes(',')) {
         return languages
-          .split(",")
+          .split(',')
           .map((lang: string) => lang.trim())
           .filter(Boolean);
       }
@@ -248,13 +240,13 @@ const convertToModelApplication = (app: AdminITechnicianApplication): any => {
     availabilityData = {
       ...availabilityData,
       weeklyPattern: {
-        monday: { available: false, startTime: "09:00", endTime: "18:00" },
-        tuesday: { available: false, startTime: "09:00", endTime: "18:00" },
-        wednesday: { available: false, startTime: "09:00", endTime: "18:00" },
-        thursday: { available: false, startTime: "09:00", endTime: "18:00" },
-        friday: { available: false, startTime: "09:00", endTime: "18:00" },
-        saturday: { available: false, startTime: "09:00", endTime: "18:00" },
-        sunday: { available: false, startTime: "09:00", endTime: "18:00" },
+        monday: { available: false, startTime: '09:00', endTime: '18:00' },
+        tuesday: { available: false, startTime: '09:00', endTime: '18:00' },
+        wednesday: { available: false, startTime: '09:00', endTime: '18:00' },
+        thursday: { available: false, startTime: '09:00', endTime: '18:00' },
+        friday: { available: false, startTime: '09:00', endTime: '18:00' },
+        saturday: { available: false, startTime: '09:00', endTime: '18:00' },
+        sunday: { available: false, startTime: '09:00', endTime: '18:00' },
       },
     };
   }
@@ -292,7 +284,7 @@ export class TechnicianManagementRepository
     limit: number
   ): Promise<ITechnician[]> {
     const technicians = await Technician.find(filter)
-      .populate("userId", "email phone fullName")
+      .populate('userId', 'email phone fullName')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -307,7 +299,7 @@ export class TechnicianManagementRepository
 
   async findTechnicianById(id: string): Promise<ITechnician | null> {
     const technician = await Technician.findById(id)
-      .populate("userId", "email phone fullName createdAt")
+      .populate('userId', 'email phone fullName createdAt')
       .lean();
 
     return technician as ITechnician | null;
@@ -337,7 +329,7 @@ export class TechnicianManagementRepository
 
       return technician as ITechnician;
     } catch (error) {
-      console.error("Repository: Error updating technician status:", error);
+      console.error('Repository: Error updating technician status:', error);
       throw error;
     }
   }
@@ -367,7 +359,7 @@ export class TechnicianManagementRepository
       });
       return technician as ITechnician | null;
     } catch (error) {
-      console.error("Error finding technician by userId:", error);
+      console.error('Error finding technician by userId:', error);
       return null;
     }
   }
@@ -380,9 +372,9 @@ export class TechnicianManagementRepository
     recent: number;
   }> {
     const total = await Technician.countDocuments();
-    const active = await Technician.countDocuments({ status: "approved" });
-    const pending = await Technician.countDocuments({ status: "pending" });
-    const suspended = await Technician.countDocuments({ status: "suspended" });
+    const active = await Technician.countDocuments({ status: 'approved' });
+    const pending = await Technician.countDocuments({ status: 'pending' });
+    const suspended = await Technician.countDocuments({ status: 'suspended' });
 
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -404,7 +396,7 @@ export class TechnicianManagementRepository
       .skip(skip)
       .limit(limit);
 
-    return applications.map((app) => convertToAdminApplication(app));
+    return applications.map(app => convertToAdminApplication(app));
   }
 
   async countApplications(filter: Record<string, unknown>): Promise<number> {
@@ -442,7 +434,7 @@ export class TechnicianManagementRepository
         }
         if (additionalData.rejectedAt) {
           updateData.rejectedAt = additionalData.rejectedAt;
-        } else if (status === "rejected") {
+        } else if (status === 'rejected') {
           updateData.rejectedAt = new Date();
         }
         if (additionalData.reviewNotes) {
@@ -459,7 +451,7 @@ export class TechnicianManagementRepository
       if (!result) return null;
       return convertToAdminApplication(result);
     } catch (error) {
-      console.error("Error in updateApplicationStatus:", error);
+      console.error('Error in updateApplicationStatus:', error);
       throw error;
     }
   }
@@ -473,13 +465,13 @@ export class TechnicianManagementRepository
   }> {
     const total = await TechnicianApplication.countDocuments();
     const pending = await TechnicianApplication.countDocuments({
-      status: { $in: ["submitted", "under_review"] },
+      status: { $in: ['submitted', 'under_review'] },
     });
     const approved = await TechnicianApplication.countDocuments({
-      status: "approved",
+      status: 'approved',
     });
     const rejected = await TechnicianApplication.countDocuments({
-      status: "rejected",
+      status: 'rejected',
     });
 
     const oneWeekAgo = new Date();
@@ -511,12 +503,12 @@ export class TechnicianManagementRepository
         userId,
         isDefault: true,
       })
-        .select("street city state pincode landmark")
+        .select('street city state pincode landmark')
         .lean();
 
       return address as IUserAddress | null;
     } catch (error) {
-      console.error("Error finding user address:", error);
+      console.error('Error finding user address:', error);
       return null;
     }
   }
@@ -535,16 +527,16 @@ export class TechnicianManagementRepository
       const languages = application.skills?.languages || [];
       const languagesArray = Array.isArray(languages)
         ? languages
-        : typeof languages === "string"
-        ? [languages]
-        : [];
+        : typeof languages === 'string'
+          ? [languages]
+          : [];
 
       // Prepare personal info
       const personalInfo: PersonalInfo = {
         fullName:
           application.personal?.fullName ||
           technician?.personalInfo?.fullName ||
-          "Technician",
+          'Technician',
         email: application.personal?.email || technician?.personalInfo?.email,
         phoneNumber:
           application.personal?.phoneNumber ||
@@ -568,13 +560,13 @@ export class TechnicianManagementRepository
       const availabilityInfo = availabilityData || {
         isAvailable: true,
         weeklyPattern: application.availability?.weeklyPattern || {
-          monday: { available: false, startTime: "09:00", endTime: "18:00" },
-          tuesday: { available: false, startTime: "09:00", endTime: "18:00" },
-          wednesday: { available: false, startTime: "09:00", endTime: "18:00" },
-          thursday: { available: false, startTime: "09:00", endTime: "18:00" },
-          friday: { available: false, startTime: "09:00", endTime: "18:00" },
-          saturday: { available: false, startTime: "09:00", endTime: "18:00" },
-          sunday: { available: false, startTime: "09:00", endTime: "18:00" },
+          monday: { available: false, startTime: '09:00', endTime: '18:00' },
+          tuesday: { available: false, startTime: '09:00', endTime: '18:00' },
+          wednesday: { available: false, startTime: '09:00', endTime: '18:00' },
+          thursday: { available: false, startTime: '09:00', endTime: '18:00' },
+          friday: { available: false, startTime: '09:00', endTime: '18:00' },
+          saturday: { available: false, startTime: '09:00', endTime: '18:00' },
+          sunday: { available: false, startTime: '09:00', endTime: '18:00' },
         },
         availableWeeks: [1, 2, 3, 4],
       };
@@ -592,7 +584,7 @@ export class TechnicianManagementRepository
                 : technician.experienceYears,
               workAreas: serviceAreas,
               serviceRadiusKm: workRadius,
-              status: "approved",
+              status: 'approved',
               profilePictureUrl:
                 application.documents?.passportPhoto?.url ||
                 application.documents?.profilePhoto?.url ||
@@ -616,7 +608,7 @@ export class TechnicianManagementRepository
             : 0,
           workAreas: serviceAreas,
           serviceRadiusKm: workRadius,
-          status: "approved",
+          status: 'approved',
           profilePictureUrl:
             application.documents?.passportPhoto?.url ||
             application.documents?.profilePhoto?.url,
@@ -634,12 +626,12 @@ export class TechnicianManagementRepository
       }
 
       if (!technician) {
-        throw new Error("Technician could not be found or created");
+        throw new Error('Technician could not be found or created');
       }
 
       return technician as ITechnician;
     } catch (error) {
-      console.error("Find or create technician error:", error);
+      console.error('Find or create technician error:', error);
       throw error;
     }
   }
@@ -652,7 +644,7 @@ export class TechnicianManagementRepository
 
     const technician = await Technician.findOne({
       userId: application.technicianId,
-    }).populate("userId", "email phone fullName");
+    }).populate('userId', 'email phone fullName');
 
     return technician as ITechnician | null;
   }
@@ -660,12 +652,12 @@ export class TechnicianManagementRepository
   async findUserById(userId: Types.ObjectId): Promise<IUser | null> {
     try {
       const user = await User.findById(userId)
-        .select("email phone fullName createdAt")
+        .select('email phone fullName createdAt')
         .lean();
 
       return user as IUser | null;
     } catch (error) {
-      console.error("Error finding user by ID:", error);
+      console.error('Error finding user by ID:', error);
       return null;
     }
   }
@@ -677,7 +669,7 @@ export class TechnicianManagementRepository
       const application = await TechnicianApplication.findOne({
         technicianId: new Types.ObjectId(technicianId),
       })
-        .select("personal skills documents status")
+        .select('personal skills documents status')
         .lean();
 
       if (!application) {
@@ -686,7 +678,7 @@ export class TechnicianManagementRepository
           const appByUserId = await TechnicianApplication.findOne({
             technicianId: technician.userId,
           })
-            .select("personal skills documents status")
+            .select('personal skills documents status')
             .lean();
 
           return appByUserId
@@ -701,7 +693,7 @@ export class TechnicianManagementRepository
         ? convertToAdminApplication(application as ModelITechnicianApplication)
         : null;
     } catch (error) {
-      console.error("Error finding application by technician ID:", error);
+      console.error('Error finding application by technician ID:', error);
       return null;
     }
   }
@@ -724,16 +716,16 @@ export class TechnicianManagementRepository
         technicianId,
         {
           $set: {
-            "paymentDetails.bankAccount.holderName":
+            'paymentDetails.bankAccount.holderName':
               paymentDetails.bankAccount.holderName,
-            "paymentDetails.bankAccount.accountNumber":
+            'paymentDetails.bankAccount.accountNumber':
               paymentDetails.bankAccount.accountNumber,
-            "paymentDetails.bankAccount.ifscCode":
+            'paymentDetails.bankAccount.ifscCode':
               paymentDetails.bankAccount.ifscCode,
-            "paymentDetails.bankAccount.bankName":
+            'paymentDetails.bankAccount.bankName':
               paymentDetails.bankAccount.bankName,
-            "paymentDetails.upiId": paymentDetails.upiId,
-            "paymentDetails.withdrawalPreference":
+            'paymentDetails.upiId': paymentDetails.upiId,
+            'paymentDetails.withdrawalPreference':
               paymentDetails.withdrawalPreference,
           },
         },
@@ -742,7 +734,7 @@ export class TechnicianManagementRepository
 
       return !!result;
     } catch (error) {
-      console.error("Repository - Error updating payment details:", error);
+      console.error('Repository - Error updating payment details:', error);
       return false;
     }
   }
@@ -763,13 +755,13 @@ export class TechnicianManagementRepository
         technicianId,
         {
           $set: {
-            "identityVerification.idType": identityData.idType,
-            "identityVerification.idNumber": identityData.idNumber,
-            "identityVerification.idDocument": identityData.idDocument,
-            "identityVerification.verificationStatus":
+            'identityVerification.idType': identityData.idType,
+            'identityVerification.idNumber': identityData.idNumber,
+            'identityVerification.idDocument': identityData.idDocument,
+            'identityVerification.verificationStatus':
               identityData.verificationStatus,
-            "identityVerification.verified": identityData.verified,
-            "identityVerification.verifiedAt": identityData.verifiedAt,
+            'identityVerification.verified': identityData.verified,
+            'identityVerification.verifiedAt': identityData.verifiedAt,
           },
         },
         { new: true, runValidators: true }
@@ -778,7 +770,7 @@ export class TechnicianManagementRepository
       return !!result;
     } catch (error) {
       console.error(
-        "Repository - Error updating identity verification:",
+        'Repository - Error updating identity verification:',
         error
       );
       return false;
@@ -798,12 +790,12 @@ export class TechnicianManagementRepository
       );
 
       if (!updatedApplication) {
-        throw new Error("Application not found");
+        throw new Error('Application not found');
       }
 
       return convertToAdminApplication(updatedApplication);
     } catch (error) {
-      console.error("Error saving application:", error);
+      console.error('Error saving application:', error);
       throw error;
     }
   }
@@ -822,60 +814,87 @@ export class TechnicianManagementRepository
         { new: true }
       );
     } catch (error) {
-      console.error("Error updating technician documents:", error);
+      console.error('Error updating technician documents:', error);
       throw error;
     }
   }
-  async findTechnicians(filters: TechnicianFilter): Promise<ITechnician[]> {
+  async findTechnicians(
+    filters: TechnicianFilter,
+    search?: string,
+    status?: string,
+    service?: string
+  ): Promise<ITechnician[]> {
     try {
       // Build the MongoDB query
       const query: any = {};
 
       // Status filter
-      if (filters.status) {
-        if (typeof filters.status === "string") {
-          query.status = filters.status;
-        } else if (filters.status.$in) {
-          query.status = { $in: filters.status.$in };
-        }
+      if (status && status !== 'All Status' && status !== 'all') {
+        query.status = status;
       }
 
       // Service filter
-      if (filters.services) {
-        if (typeof filters.services === "string") {
-          query.services = { $in: [filters.services] };
-        } else if (filters.services.$in) {
-          query.services = { $in: filters.services.$in };
-        }
+      if (service && service !== 'All Services') {
+        query.services = { $in: [service] };
       }
 
-      // Rating filter
-      if (filters.averageRating) {
-        query.averageRating = filters.averageRating;
+      // Search filter (name, email, phone, work areas)
+      if (search && search.trim()) {
+        const searchRegex = new RegExp(search.trim(), 'i');
+        query.$or = [
+          { displayName: { $regex: searchRegex } },
+          { 'userId.email': { $regex: searchRegex } },
+          { phone: { $regex: searchRegex } },
+          { workAreas: { $in: [searchRegex] } },
+        ];
       }
 
-      // Work areas filter
-      if (filters.workAreas) {
-        query.workAreas = filters.workAreas;
-      }
-
-      // Search filter (name, email, etc.)
-      if (filters.$or) {
-        query.$or = filters.$or;
-      }
-
-      // Date range filter
-      if (filters.createdAt) {
-        query.createdAt = filters.createdAt;
-      }
       const technicians = await Technician.find(query)
-        .populate("userId", "email phone fullName")
+        .populate('userId', 'email phone fullName')
         .sort({ createdAt: -1 })
         .lean();
 
       return technicians as ITechnician[];
     } catch (error) {
-      console.error("Repository: Error finding technicians:", error);
+      console.error('Repository: Error finding technicians:', error);
+      throw error;
+    }
+  }
+
+  async findApplications(
+    filters: ApplicationFilter,
+    search?: string,
+    service?: string
+  ): Promise<AdminITechnicianApplication[]> {
+    try {
+      // Build the MongoDB query
+      const query: any = {
+        status: { $in: ['submitted', 'under_review'] }, // Only pending applications
+      };
+
+      // Service filter
+      if (service && service !== 'All Services') {
+        query['skills.services'] = { $in: [service] };
+      }
+
+      // Search filter (name, email, phone)
+      if (search && search.trim()) {
+        const searchRegex = new RegExp(search.trim(), 'i');
+        query.$or = [
+          { 'personal.fullName': { $regex: searchRegex } },
+          { email: { $regex: searchRegex } },
+          { 'personal.phoneNumber': { $regex: searchRegex } },
+        ];
+      }
+
+      const applications = await TechnicianApplication.find(query).sort({
+        submittedAt: -1,
+        createdAt: -1,
+      });
+
+      return applications.map(app => convertToAdminApplication(app));
+    } catch (error) {
+      console.error('Repository: Error finding applications:', error);
       throw error;
     }
   }
@@ -889,18 +908,18 @@ export class TechnicianManagementRepository
     try {
       const publicFilters = {
         ...filters,
-        status: "approved",
+        status: 'approved',
       };
 
       // Remove any sensitive filter fields that shouldn't be exposed publicly
       delete publicFilters.$or;
 
       // Build the MongoDB query
-      const query: any = { status: "approved" };
+      const query: any = { status: 'approved' };
 
       // Service filter
       if (filters.services) {
-        if (typeof filters.services === "string") {
+        if (typeof filters.services === 'string') {
           query.services = { $in: [filters.services] };
         } else if (filters.services.$in) {
           query.services = { $in: filters.services.$in };
@@ -920,8 +939,8 @@ export class TechnicianManagementRepository
       // Search filter (name, email, etc.)
       if (filters.$or) {
         // For public access, only allow search on safe fields
-        const safeSearchFields = ["displayName", "services", "workAreas"];
-        query.$or = filters.$or.filter((condition) => {
+        const safeSearchFields = ['displayName', 'services', 'workAreas'];
+        query.$or = filters.$or.filter(condition => {
           const field = Object.keys(condition)[0];
           return safeSearchFields.includes(field);
         });
@@ -933,14 +952,14 @@ export class TechnicianManagementRepository
       }
 
       const technicians = await Technician.find(query)
-        .populate("userId", "email phone fullName")
+        .populate('userId', 'email phone fullName')
         .sort(sortOptions)
         .skip(skip)
         .limit(limit)
         .lean();
 
       // Remove sensitive data before returning
-      const publicTechnicians = technicians.map((tech) => ({
+      const publicTechnicians = technicians.map(tech => ({
         ...tech,
         identityVerification: undefined,
         paymentDetails: undefined,
@@ -966,7 +985,7 @@ export class TechnicianManagementRepository
 
       return publicTechnicians as ITechnician[];
     } catch (error) {
-      console.error("Repository: Error finding public technicians:", error);
+      console.error('Repository: Error finding public technicians:', error);
       throw error;
     }
   }
@@ -974,11 +993,11 @@ export class TechnicianManagementRepository
   async countPublicTechnicians(filters: TechnicianFilter): Promise<number> {
     try {
       // Build the same query as findPublicTechnicians but for counting
-      const query: any = { status: "approved" };
+      const query: any = { status: 'approved' };
 
       // Service filter
       if (filters.services) {
-        if (typeof filters.services === "string") {
+        if (typeof filters.services === 'string') {
           query.services = { $in: [filters.services] };
         } else if (filters.services.$in) {
           query.services = { $in: filters.services.$in };
@@ -997,8 +1016,8 @@ export class TechnicianManagementRepository
 
       // Search filter
       if (filters.$or) {
-        const safeSearchFields = ["displayName", "services", "workAreas"];
-        query.$or = filters.$or.filter((condition) => {
+        const safeSearchFields = ['displayName', 'services', 'workAreas'];
+        query.$or = filters.$or.filter(condition => {
           const field = Object.keys(condition)[0];
           return safeSearchFields.includes(field);
         });
@@ -1013,19 +1032,19 @@ export class TechnicianManagementRepository
 
       return count;
     } catch (error) {
-      console.error("Repository: Error counting public technicians:", error);
+      console.error('Repository: Error counting public technicians:', error);
       throw error;
     }
   }
   async findById(id: string): Promise<ITechnician | null> {
     try {
       const technician = await Technician.findById(id)
-        .populate("userId", "email phone fullName")
+        .populate('userId', 'email phone fullName')
         .lean();
 
       return technician as ITechnician | null;
     } catch (error) {
-      console.error("Repository: Error finding technician by ID:", error);
+      console.error('Repository: Error finding technician by ID:', error);
       throw error;
     }
   }
@@ -1038,14 +1057,14 @@ export class TechnicianManagementRepository
         technicianId,
         {
           $set: {
-            "currentLocation.coordinates": coordinates,
-            "currentLocation.type": "Point",
+            'currentLocation.coordinates': coordinates,
+            'currentLocation.type': 'Point',
           },
         },
         { new: true }
       );
     } catch (error) {
-      console.error("Error updating technician location:", error);
+      console.error('Error updating technician location:', error);
       return null;
     }
   }
@@ -1071,7 +1090,7 @@ export class TechnicianManagementRepository
         hasAvailability: slotRules.length > 0,
       };
     } catch (error) {
-      console.error("Error getting technician availability:", error);
+      console.error('Error getting technician availability:', error);
       return null;
     }
   }
@@ -1093,7 +1112,7 @@ export class TechnicianManagementRepository
         },
       }).sort({ date: 1 });
     } catch (error) {
-      console.error("Error getting upcoming availability:", error);
+      console.error('Error getting upcoming availability:', error);
       return [];
     }
   }
@@ -1108,7 +1127,7 @@ export class TechnicianManagementRepository
         ],
       }).sort({ effectiveFrom: 1 });
     } catch (error) {
-      console.error("Error fetching active slot rules:", error);
+      console.error('Error fetching active slot rules:', error);
       throw error;
     }
   }
@@ -1127,7 +1146,7 @@ export class TechnicianManagementRepository
         },
       }).sort({ date: 1 });
     } catch (error) {
-      console.error("Error fetching upcoming availability:", error);
+      console.error('Error fetching upcoming availability:', error);
       throw error;
     }
   }
@@ -1145,7 +1164,7 @@ export class TechnicianManagementRepository
         },
       });
     } catch (error) {
-      console.error("Error finding availability by date:", error);
+      console.error('Error finding availability by date:', error);
       throw error;
     }
   }
@@ -1164,7 +1183,7 @@ export class TechnicianManagementRepository
         },
       }).sort({ date: 1 });
     } catch (error) {
-      console.error("Error finding availability in range:", error);
+      console.error('Error finding availability in range:', error);
       throw error;
     }
   }

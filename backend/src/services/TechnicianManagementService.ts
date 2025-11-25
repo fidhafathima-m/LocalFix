@@ -13,6 +13,7 @@ import {
   RejectApplicationRequest,
   TechnicianFilters,
   ApplicationFilters,
+  AdminITechnicianApplication,
 } from '../interfaces/admin/ITechnicianManagement';
 import { Types } from 'mongoose';
 import { emailService } from './EmailService';
@@ -147,107 +148,46 @@ export class TechnicianManagementService
   }
 
   async getAllTechnicians(
-    filters: TechnicianFiltersDto
+    filters: TechnicianFiltersDto & {
+      search?: string;
+      status?: string;
+      service?: string;
+    }
   ): Promise<TechnicianListResponseDto> {
     const context = {
       operation: 'getAllTechnicians',
       filters,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toString(),
     };
+
     try {
-      this._logger.info('Fetching all technicians', context);
-      const {
-        status = FILTER_DEFAULTS.STATUS,
-        service = FILTER_DEFAULTS.SERVICE,
-        rating = FILTER_DEFAULTS.RATING,
-        location = FILTER_DEFAULTS.LOCATION,
+      this._logger.info('Fetching all technicians with filters', context);
+
+      // Ensure page and limit are numbers
+      const page = Number(filters.page) || PAGINATION_DEFAULTS.PAGE;
+      const limit = Number(filters.limit) || PAGINATION_DEFAULTS.LIMIT;
+      const { search, status, service } = filters;
+
+      const technicians = await this._technicianRepository.findTechnicians(
+        {}, // pass empty filter object since we're handling filters in the method
         search,
-        page = PAGINATION_DEFAULTS.PAGE,
-        limit = PAGINATION_DEFAULTS.LIMIT,
-      } = filters;
+        status,
+        service
+      );
 
-      // Build filter object
-      const filter: FilterQuery = {};
+      // Pagination - ensure all calculations use numbers
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedTechnicians = technicians.slice(startIndex, endIndex);
 
-      // Status filter
-      if (status && status !== 'all') {
-        const dbStatus = STATUS_FILTER_MAPPING[status] || status;
-        filter.status = dbStatus;
-      } else {
-        filter.status = {
-          $in: [
-            TechnicianStatus.APPROVED,
-            TechnicianStatus.SUSPENDED,
-            TechnicianStatus.REJECTED,
-          ],
-        };
-      }
+      const technicianDtos = paginatedTechnicians.map(tech =>
+        this.mapToTechnicianDto(tech)
+      );
 
-      // Service filter
-      if (service && service !== FILTER_DEFAULTS.SERVICE) {
-        filter.services = service;
-      }
-
-      // Rating filter
-      if (rating && rating !== FILTER_DEFAULTS.RATING) {
-        const ratingFilter =
-          RATING_FILTER_MAPPING[rating as keyof typeof RATING_FILTER_MAPPING];
-        if (ratingFilter) {
-          filter.averageRating = ratingFilter;
-        }
-      }
-
-      // Search filter
-      if (search) {
-        const searchRegex = new RegExp(search as string, 'i');
-        filter.$or = SEARCH_FIELDS.TECHNICIAN.map(field => ({
-          [field]: searchRegex,
-        }));
-      }
-
-      // Location filter
-      if (location && location !== FILTER_DEFAULTS.LOCATION) {
-        filter.workAreas = { $in: [new RegExp(location as string, 'i')] };
-      }
-
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
-      const skip = (pageNum - 1) * limitNum;
-
-      this._logger.debug('Fetching technicians from repository', {
+      this._logger.debug('Technicians retrieved with filters', {
         ...context,
-        filter,
-        skip,
-        limit: limitNum,
-      });
-
-      // Get technicians with pagination
-      const technicians = await this._technicianRepository.findAllTechnicians(
-        filter,
-        skip,
-        limitNum
-      );
-      const total = await this._technicianRepository.countTechnicians(filter);
-
-      this._logger.info(
-        `Found ${technicians.length} technicians out of ${total} total`,
-        {
-          ...context,
-          count: technicians.length,
-          total,
-        }
-      );
-
-      const technicianDtos: TechnicianListDto[] = await Promise.all(
-        technicians.map(async (tech: ITechnician) => {
-          const adminTechnician = await this.convertToAdminTechnician(tech);
-          return this.mapAdminTechnicianToListDto(adminTechnician);
-        })
-      );
-
-      this._logger.info('Successfully retrieved technicians', {
-        ...context,
-        finalCount: technicianDtos.length,
+        technicianCount: technicians.length,
+        paginatedCount: technicianDtos.length,
       });
 
       return ResponseHelper.success(
@@ -255,26 +195,23 @@ export class TechnicianManagementService
         {
           technicians: technicianDtos,
           pagination: {
-            page: pageNum,
-            limit: limitNum,
-            total,
-            pages: Math.ceil(total / limitNum),
-            hasNext: pageNum < Math.ceil(total / limitNum),
-            hasPrev: pageNum > 1,
+            page: page, // Ensure this is number
+            limit: limit, // Ensure this is number
+            total: technicians.length,
+            pages: Math.ceil(technicians.length / limit),
           },
         }
-      );
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      this._logger.error('Failed to fetch technicians', {
+      ) as TechnicianListResponseDto; // Add type assertion
+    } catch (error) {
+      console.error('Error fetching technicians with filters:', error);
+      this._logger.error('Failed to get technicians with filters', {
         ...context,
-        error: errorMessage,
+        error: error,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_TECHNICIANS
-      );
+      ) as TechnicianListResponseDto;
     }
   }
 
@@ -927,92 +864,65 @@ export class TechnicianManagementService
   }
 
   async getPendingApplications(
-    filters: ApplicationFiltersDto
+    filters: ApplicationFiltersDto & { search?: string; service?: string }
   ): Promise<ApplicationListResponseDto> {
     const context = {
       operation: 'getPendingApplications',
       filters,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toString(),
     };
+
     try {
-      this._logger.info('Fetching pending application', context);
-      const {
-        status = FILTER_DEFAULTS.APPLICATION_STATUS,
+      this._logger.info('Fetching pending applications with filters', context);
+
+      // Ensure page and limit are numbers
+      const page = Number(filters.page) || PAGINATION_DEFAULTS.PAGE;
+      const limit = Number(filters.limit) || PAGINATION_DEFAULTS.LIMIT;
+      const { search, service } = filters;
+
+      const applications = await this._technicianRepository.findApplications(
+        {}, // pass empty filter object
         search,
-        service = FILTER_DEFAULTS.SERVICE,
-        page = FILTER_DEFAULTS.PAGE,
-        limit = FILTER_DEFAULTS.LIMIT,
-      } = filters;
-
-      // Build filter object
-      const filter: FilterQuery = {
-        status: { $in: (status as string).split(',') },
-      };
-
-      // Search filter
-      if (search) {
-        const searchRegex = new RegExp(search as string, 'i');
-        filter.$or = SEARCH_FIELDS.APPLICATION.map(field => ({
-          [field]: searchRegex,
-        }));
-      }
-
-      // Service filter
-      if (service && service !== FILTER_DEFAULTS.SERVICE) {
-        filter['skills.services'] = service;
-      }
-
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
-      const skip = (pageNum - 1) * limitNum;
-
-      this._logger.debug('Fetching application from repository', {
-        ...context,
-        filter,
-        skip,
-        limit: limitNum,
-      });
-
-      const applications = await this._technicianRepository.findAllApplications(
-        filter,
-        skip,
-        limitNum
-      );
-      const total = await this._technicianRepository.countApplications(filter);
-
-      const applicationDtos: ApplicationListDto[] = applications.map(app =>
-        toApplicationListDto(app)
+        service
       );
 
-      this._logger.info(`Found application`, {
+      // Pagination - ensure all calculations use numbers
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedApplications = applications.slice(startIndex, endIndex);
+
+      const applicationDtos = paginatedApplications.map(app =>
+        this.mapToApplicationDto(app)
+      );
+
+      this._logger.debug('Applications retrieved with filters', {
         ...context,
-        count: applications.length,
-        total,
+        applicationCount: applications.length,
+        paginatedCount: applicationDtos.length,
       });
 
       return ResponseHelper.success(
-        TECHNICIAN_MANAGEMENT_MESSAGES.PENDING_APPLICATIONS_RETRIEVED,
+        TECHNICIAN_MANAGEMENT_MESSAGES.APPLICATIONS_RETRIEVED,
         {
           applications: applicationDtos,
           pagination: {
-            page: pageNum,
-            limit: limitNum,
-            total,
-            pages: Math.ceil(total / limitNum),
+            page: page, // Ensure this is number
+            limit: limit, // Ensure this is number
+            total: applications.length,
+            pages: Math.ceil(applications.length / limit),
           },
         }
-      );
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      this._logger.error('Failed to fetch pending applications', {
+      ) as ApplicationListResponseDto; // Add type assertion
+    } catch (error) {
+      console.error('Error fetching applications with filters:', error);
+      this._logger.error('Failed to get applications with filters', {
         ...context,
-        error: errorMessage,
+        error: error,
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(
         TECHNICIAN_MANAGEMENT_MESSAGES.FAILED_FETCH_APPLICATIONS
-      );
+      ) as ApplicationListResponseDto;
     }
   }
 
@@ -2366,5 +2276,35 @@ export class TechnicianManagementService
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear()
     );
+  }
+
+  private mapToTechnicianDto(technician: ITechnician): any {
+    return {
+      _id: technician._id,
+      displayName: technician.displayName,
+      email: technician.personalInfo?.email,
+      phone: technician.phone,
+      services: technician.services,
+      experienceYears: technician.experienceYears,
+      workAreas: technician.workAreas,
+      status: technician.status,
+      averageRating: technician.averageRating,
+      profilePictureUrl: technician.profilePictureUrl,
+      createdAt: technician.createdAt,
+      updatedAt: technician.updatedAt,
+    };
+  }
+
+  private mapToApplicationDto(application: AdminITechnicianApplication): any {
+    return {
+      _id: application._id,
+      technicianId: application.technicianId,
+      email: application.email,
+      status: application.status,
+      personal: application.personal,
+      skills: application.skills,
+      submittedAt: application.submittedAt,
+      createdAt: application.createdAt,
+    };
   }
 }

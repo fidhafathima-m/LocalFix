@@ -10,17 +10,33 @@ export class TechnicianMangementService {
       throw this.handleError(error, "Failed to get application details");
     }
   }
-  static async getTechnicians() {
+  static async getTechnicians(
+    filters: {
+      status?: string;
+      service?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    } = {}
+  ) {
     try {
-      const response = await adminAPI.getTechnicians();
+      const response = await adminAPI.getTechnicians(filters);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to get technicians");
     }
   }
-  static async getPendingTechnicians() {
+
+  static async getPendingTechnicians(
+    filters: {
+      service?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    } = {}
+  ) {
     try {
-      const response = await adminAPI.getPendingApplications();
+      const response = await adminAPI.getPendingApplications(filters);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error, "Failed to get pending technicians");

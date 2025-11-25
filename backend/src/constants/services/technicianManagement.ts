@@ -12,6 +12,7 @@ export const TECHNICIAN_MANAGEMENT_MESSAGES = {
   APPLICATION_APPROVED: 'Application approved successfully',
   APPLICATION_REJECTED: 'Application rejected successfully',
   APPLICATION_RETRIEVED: 'Application retrieved successfully',
+  APPLICATIONS_RETRIEVED: 'Applications retrieved successfully',
   APPLICATION_STATS_RETRIEVED: 'Application statistics retrieved successfully',
   TECHNICIAN_BY_APPLICATION_RETRIEVED: 'Technician retrieved successfully',
 

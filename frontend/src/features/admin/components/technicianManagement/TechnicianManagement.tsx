@@ -108,8 +108,15 @@ const TechnicianManagement: React.FC = () => {
       dispatch(fetchApplicationsStart());
 
       const [techniciansResponse, applicationsResponse] = await Promise.all([
-        TechnicianMangementService.getTechnicians(),
-        TechnicianMangementService.getPendingTechnicians(),
+        TechnicianMangementService.getTechnicians({
+          search: debouncedSearchQuery,
+          service: serviceFilter !== "All Services" ? serviceFilter : undefined,
+          status: getStatusFilterForBackend(activeTab),
+        }),
+        TechnicianMangementService.getPendingTechnicians({
+          search: debouncedSearchQuery,
+          service: serviceFilter !== "All Services" ? serviceFilter : undefined,
+        }),
       ]);
 
       if (techniciansResponse.data.success && techniciansResponse.data.data) {
@@ -137,70 +144,23 @@ const TechnicianManagement: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [dispatch]);
+  }, [dispatch, debouncedSearchQuery, serviceFilter, activeTab]);
 
-  const getCurrentItems = (): (Technician | TechnicianApplication)[] => {
-    if (activeTab === "pending") {
-      return applications.filter((app) => {
-        const matchesSearch =
-          app.personal?.fullName
-            ?.toLowerCase()
-            .includes(debouncedSearchQuery.toLowerCase()) ||
-          app.email
-            .toLowerCase()
-            .includes(debouncedSearchQuery.toLowerCase()) ||
-          app.personal?.phoneNumber?.includes(debouncedSearchQuery);
-
-        const matchesService =
-          serviceFilter === "All Services" ||
-          (app.skills?.services?.includes(serviceFilter) ?? false);
-
-        return matchesSearch && matchesService;
-      });
-    } else {
-      return technicians.filter((tech) => {
-        // Filter by status
-        let statusMatch = false;
-        switch (activeTab) {
-          case "suspended":
-            statusMatch = tech.status === "suspended";
-            break;
-          case "active":
-            statusMatch = tech.status === "approved";
-            break;
-          case "rejected":
-            statusMatch = tech.status === "rejected";
-            break;
-          default:
-            statusMatch = false;
-        }
-
-        if (!statusMatch) return false;
-
-        // Apply search and other filters
-        const matchesSearch =
-          tech.displayName
-            .toLowerCase()
-            .includes(debouncedSearchQuery.toLowerCase()) ||
-          tech.user?.email
-            ?.toLowerCase()
-            .includes(debouncedSearchQuery.toLowerCase()) ||
-          tech.user?.phone?.includes(debouncedSearchQuery) ||
-          tech.workAreas.some((area) =>
-            area.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-          );
-
-        const matchesService =
-          serviceFilter === "All Services" ||
-          tech.services.includes(serviceFilter);
-
-        return matchesSearch && matchesService;
-      });
+  const getStatusFilterForBackend = (tab: string): string | undefined => {
+    switch (tab) {
+      case "active":
+        return "approved";
+      case "suspended":
+        return "suspended";
+      case "rejected":
+        return "rejected";
+      default:
+        return undefined; // For 'pending' tab, we don't need status filter
     }
   };
 
   // Pagination calculations
-  const currentItems = getCurrentItems();
+  const currentItems = activeTab === "pending" ? applications : technicians;
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;

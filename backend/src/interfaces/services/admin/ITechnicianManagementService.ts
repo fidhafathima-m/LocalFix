@@ -8,12 +8,16 @@ import {
   TechnicianListResponseDto,
   TechnicianStatsResponseDto,
   UpdateStatusRequestDto,
-} from "@/interfaces/dtos/technicianDtos";
+} from '@/interfaces/dtos/technicianDtos';
 
 export interface ITechnicianManagementService {
   // Technician methods
   getAllTechnicians(
-    filters: TechnicianFiltersDto
+    filters: TechnicianFiltersDto & {
+      search?: string;
+      status?: string;
+      service?: string;
+    }
   ): Promise<TechnicianListResponseDto>;
   getTechnicianById(id: string): Promise<SingleTechnicianResponseDto>;
   updateTechnicianStatus(
@@ -27,7 +31,7 @@ export interface ITechnicianManagementService {
 
   // Application methods
   getPendingApplications(
-    filters: ApplicationFiltersDto
+    filters: ApplicationFiltersDto & { search?: string; service?: string }
   ): Promise<ApplicationListResponseDto>;
   approveApplication(id: string): Promise<ApplicationListResponseDto>;
   rejectApplication(

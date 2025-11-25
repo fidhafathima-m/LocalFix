@@ -7,6 +7,8 @@ import {
   IdentityInfo,
   WeeklyPattern,
 } from '../technician/ITechnician';
+import { ApplicationListDto, TechnicianListDto } from '../dtos/technicianDtos';
+import { IUser } from './IUserManagements';
 
 export interface IAdminTechnician {
   _id: Types.ObjectId;
@@ -65,6 +67,7 @@ export interface ITechnician {
   phone?: string;
   personalInfo?: {
     fullName: string;
+    email?: string;
     gender?: string;
     phoneNumber?: string;
     dateOfBirth?: string;
@@ -244,4 +247,103 @@ export interface ApplicationFilters {
   service?: string;
   page?: number;
   limit?: number;
+}
+
+export interface PaginationDto {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  hasNext?: boolean;
+  hasPrev?: boolean;
+}
+
+export interface TechnicianListResponseDto {
+  success: boolean;
+  message: string;
+  data?: {
+    technicians: TechnicianListDto[];
+    pagination: PaginationDto;
+  };
+  statusCode: number;
+}
+
+export interface ApplicationListResponseDto {
+  success: boolean;
+  message: string;
+  data?: {
+    applications: ApplicationListDto[];
+    pagination: PaginationDto;
+  };
+  statusCode: number;
+}
+
+// In your interfaces file (e.g., ITechnicianManagement.ts)
+export interface AdminITechnicianApplication {
+  _id: Types.ObjectId;
+  technicianId: Types.ObjectId;
+  email: string;
+  status: string;
+  stepsCompleted: string[];
+  personal: {
+    fullName: string;
+    phoneNumber: string;
+    email: string;
+    gender: string;
+    dateOfBirth: string;
+    address?: {
+      street: string;
+      city: string;
+      state: string;
+      pincode: string;
+    };
+  };
+  identity: {
+    governmentIdType: string;
+    governmentIdNumber: string;
+    idDocument: string;
+    verified: boolean;
+    verificationStatus: string;
+    location?: any;
+    address?: any;
+  };
+  skills: {
+    services: string[];
+    yearsOfExperience: string | number;
+    languages: string[];
+    bio: string;
+    serviceAreas: string[];
+    workRadius: string;
+  };
+  availability: {
+    serviceAreas: string[];
+    workRadius: string;
+    weeklyPattern: {
+      [key: string]: {
+        available: boolean;
+        startTime: string;
+        endTime: string;
+      };
+    };
+  };
+  bank: {
+    accountHolderName: string;
+    accountNumber: string;
+    ifscCode: string;
+    upiId: string;
+    bankName: string;
+    withdrawalPreference: string;
+  };
+  documents: any;
+  agreement: boolean;
+  submittedAt?: Date;
+  reviewNotes?: string;
+  rejectionReason?: string;
+  rejectedAt?: Date;
+  resubmittedCount: number;
+  lastSubmittedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  user?: IUser;
+  toObject?: () => any;
 }

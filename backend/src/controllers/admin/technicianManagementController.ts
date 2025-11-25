@@ -163,20 +163,33 @@ export class TechnicianManagementController {
     req: AuthRequest,
     res: Response
   ): Promise<void> => {
-    const filters: TechnicianFiltersDto = req.query;
+    const { search, status, service, page, limit } = req.query;
     const context = {
       operation: 'getAllTechnicians',
-      filters,
+      search,
+      status,
+      service,
+      page,
+      limit,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info('Fetching all technicians (admin)', context);
+      this._logger.info('Fetching all technicians with filters', context);
+
+      const filters: any = {
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 10,
+        ...(search && { search: search as string }),
+        ...(status && status !== 'All Status' && { status: status as string }),
+        ...(service &&
+          service !== 'All Services' && { service: service as string }),
+      };
 
       const result: TechnicianListResponseDto =
         await this._technicianService.getAllTechnicians(filters);
 
-      this._logger.info('All technicians retrieved successfully (admin)', {
+      this._logger.info('Technicians retrieved successfully with filters', {
         ...context,
         count: result.data?.technicians?.length,
         total: result.data?.pagination?.total,
@@ -309,15 +322,26 @@ export class TechnicianManagementController {
     req: AuthRequest,
     res: Response
   ): Promise<void> => {
-    const filters: ApplicationFiltersDto = req.query;
+    const { search, service, page, limit } = req.query;
     const context = {
       operation: 'getPendingApplications',
-      filters,
+      search,
+      service,
+      page,
+      limit,
       timestamp: new Date().toISOString(),
     };
 
     try {
-      this._logger.info('Fetching pending applications', context);
+      this._logger.info('Fetching pending applications with filters', context);
+
+      const filters: any = {
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 10,
+        ...(search && { search: search as string }),
+        ...(service &&
+          service !== 'All Services' && { service: service as string }),
+      };
 
       const result: ApplicationListResponseDto =
         await this._technicianService.getPendingApplications(filters);

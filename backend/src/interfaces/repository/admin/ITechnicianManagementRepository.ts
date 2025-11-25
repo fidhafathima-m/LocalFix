@@ -1,13 +1,13 @@
-import { PersonalInfo } from "../../../interfaces/technician/ITechnician";
+import { PersonalInfo } from '../../../interfaces/technician/ITechnician';
 import {
   ITechnician,
   ITechnicianApplication,
   TechnicianFilters,
   ApplicationFilters,
-} from "../../admin/ITechnicianManagement";
-import { Types } from "mongoose";
-import { IUser } from "@/interfaces/admin/IUserManagements";
-import { IUserAddress } from "@/models/UserAddressSchema";
+} from '../../admin/ITechnicianManagement';
+import { Types } from 'mongoose';
+import { IUser } from '@/interfaces/admin/IUserManagements';
+import { IUserAddress } from '@/models/UserAddressSchema';
 
 export type FilterQuery = Record<string, unknown>;
 
@@ -25,6 +25,17 @@ interface TechnicianFilter {
   workAreas?: { $in: RegExp[] };
   $or?: Array<{ [key: string]: RegExp }>;
   createdAt?: {
+    $gte?: Date;
+    $lte?: Date;
+  };
+  [key: string]: unknown;
+}
+
+export interface ApplicationFilter {
+  status?: string | { $in: string[] };
+  'skills.services'?: string;
+  $or?: Array<{ [key: string]: RegExp }>;
+  submittedAt?: {
     $gte?: Date;
     $lte?: Date;
   };
@@ -130,7 +141,17 @@ export interface ITechnicianManagementRepository {
     technicianId: string,
     documents: any[]
   ): Promise<ITechnician | null>;
-  findTechnicians(filters: TechnicianFilter): Promise<ITechnician[]>;
+  findTechnicians(
+    filters: TechnicianFilter,
+    search?: string,
+    status?: string,
+    service?: string
+  ): Promise<ITechnician[]>;
+  findApplications(
+    filters: ApplicationFilter,
+    search?: string,
+    service?: string
+  ): Promise<any[]>;
   findPublicTechnicians(
     filters: TechnicianFilter,
     skip?: number,

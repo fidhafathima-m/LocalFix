@@ -83,14 +83,30 @@ export const adminAPI = {
     ),
 
   // Technicians
-  getTechnicians: (filters: { status?: string } = {}) =>
+  getTechnicians: (
+    filters: {
+      status?: string;
+      service?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    } = {}
+  ) =>
     api.get<ApiResponse<TechniciansResponse>>(ADMIN_ROUTES.TECHNICIANS, {
       params: filters,
     }),
 
-  getPendingApplications: () =>
+  getPendingApplications: (
+    filters: {
+      service?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    } = {}
+  ) =>
     api.get<ApiResponse<ApplicationsResponse>>(
-      ADMIN_ROUTES.APPLICATIONS_PENDING
+      ADMIN_ROUTES.APPLICATIONS_PENDING,
+      { params: filters }
     ),
 
   approveApplication: (applicationId: string) =>
