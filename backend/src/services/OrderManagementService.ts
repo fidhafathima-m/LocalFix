@@ -7,7 +7,7 @@ import {
   UpdateOrderStatusDto,
 } from '../interfaces/dtos/orderDtos';
 import { ORDER_MESSAGES } from '../constants';
-import { Types } from 'mongoose';
+import { FilterQuery, Types } from 'mongoose';
 import { ILogger } from '@/interfaces/utils/ILogger';
 import {
   toOrderListResponseDto,
@@ -58,6 +58,7 @@ export class OrderManagementService implements IOrderService {
     this._logger = logger;
   }
 
+  // In OrderManagementService - update getOrders method
   async getOrders(
     page: number = 1,
     limit: number = 10,
@@ -79,7 +80,7 @@ export class OrderManagementService implements IOrderService {
       const skip = (page - 1) * limit;
 
       // Build filter
-      const filter: OrderFilter = {};
+      const filter: FilterQuery<IOrder> = {};
       if (status && status !== 'all') {
         filter.status = status;
       }
@@ -92,7 +93,7 @@ export class OrderManagementService implements IOrderService {
           ...context,
           searchQuery: search,
         });
-        orders = await this._orderRepository.search(search, limit);
+        orders = await this._orderRepository.search(search, limit, status);
         total = orders.length;
       } else {
         this._logger.debug('Fetching orders with filter', {

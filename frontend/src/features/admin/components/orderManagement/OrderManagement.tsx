@@ -32,6 +32,8 @@ const OrderManagement: React.FC = () => {
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const ordersPerPage = 10;
 
   useEffect(() => {
@@ -42,39 +44,56 @@ const OrderManagement: React.FC = () => {
     }
   }, [searchQuery, debouncedSearchQuery]);
 
-  // Load orders from backend
-  const loadOrders = async () => {
+  // Load orders from backend with filters
+  const loadOrders = async (
+    page: number = 1,
+    search?: string,
+    status?: string
+  ) => {
     try {
       setLoading(true);
-      const response = await OrderManagementService.getOrders();
+      const response = await OrderManagementService.getOrders(
+        page,
+        ordersPerPage,
+        search,
+        status !== "all" ? status : undefined
+      );
 
       if (response && typeof response === "object") {
-        // Handle both nested and direct response structures
+        // Handle the response structure from backend
         const ordersData =
           response.orders || response.data?.orders || response.data || response;
 
         if (Array.isArray(ordersData)) {
           setOrders(ordersData);
-        } else if (
-          ordersData &&
-          typeof ordersData === "object" &&
-          Array.isArray(ordersData.orders)
-        ) {
-          setOrders(ordersData.orders);
+          setTotalCount(ordersData.length);
+          setTotalPages(Math.ceil(ordersData.length / ordersPerPage));
+        } else if (ordersData && typeof ordersData === "object") {
+          // Handle paginated response
+          setOrders(ordersData.orders || ordersData.services || []);
+          setTotalCount(ordersData.total || 0);
+          setTotalPages(ordersData.totalPages || 1);
         } else {
           console.error("Invalid orders data structure:", ordersData);
           setOrders([]);
+          setTotalCount(0);
+          setTotalPages(1);
         }
       } else {
         console.error("Invalid response structure:", response);
         setOrders([]);
+        setTotalCount(0);
+        setTotalPages(1);
       }
     } catch (error: any) {
       console.error("Error loading orders:", error);
       toast.error(error.message || "Failed to load orders");
       setOrders([]);
+      setTotalCount(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -91,47 +110,13 @@ const OrderManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    loadOrders();
+    loadOrders(currentPage, debouncedSearchQuery, statusFilter);
     loadOrderStats();
-  }, []);
+  }, [currentPage, debouncedSearchQuery, statusFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter, debouncedSearchQuery]);
-
-  // Filter orders based on statusFilter
-  const filteredOrders =
-    statusFilter === "all"
-      ? orders
-      : orders.filter((order) => order.status === statusFilter);
-
-  // Apply search filter
-  const searchedOrders = debouncedSearchQuery
-    ? filteredOrders.filter(
-        (order) =>
-          order.orderCode
-            .toLowerCase()
-            .includes(debouncedSearchQuery.toLowerCase()) ||
-          order.serviceName
-            .toLowerCase()
-            .includes(debouncedSearchQuery.toLowerCase()) ||
-          order.userId.fullName
-            .toLowerCase()
-            .includes(debouncedSearchQuery.toLowerCase()) ||
-          order.technicianId.displayName
-            .toLowerCase()
-            .includes(debouncedSearchQuery.toLowerCase())
-      )
-    : filteredOrders;
-
-  // Pagination calculations
-  const indexOfLastOrder = currentPage * ordersPerPage;
-  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
-  const currentOrders = searchedOrders.slice(
-    indexOfFirstOrder,
-    indexOfLastOrder
-  );
-  const totalPages = Math.ceil(searchedOrders.length / ordersPerPage);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -313,8 +298,8 @@ const OrderManagement: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {currentOrders.length > 0 ? (
-                    currentOrders.map((order) => (
+                  {orders.length > 0 ? (
+                    orders.map((order) => (
                       <tr key={order._id} className="hover:bg-gray-50">
                         {/* Order Details */}
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -429,14 +414,17 @@ const OrderManagement: React.FC = () => {
                         colSpan={7}
                         className="px-6 py-8 text-center text-sm text-gray-500"
                       >
-                        {searchQuery ? (
+                        {searchQuery || statusFilter !== "all" ? (
                           <div>
-                            <p>No orders found matching "{searchQuery}"</p>
+                            <p>No orders found matching your filters</p>
                             <button
-                              onClick={() => setSearchQuery("")}
+                              onClick={() => {
+                                setSearchQuery("");
+                                setStatusFilter("all");
+                              }}
                               className="mt-2 text-blue-600 hover:text-blue-800"
                             >
-                              Clear search
+                              Clear filters
                             </button>
                           </div>
                         ) : (
@@ -453,8 +441,8 @@ const OrderManagement: React.FC = () => {
             {totalPages > 1 && (
               <div className="flex justify-between items-center px-6 py-4 border-t bg-gray-50">
                 <span className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages} • Showing{" "}
-                  {currentOrders.length} of {searchedOrders.length} orders
+                  Page {currentPage} of {totalPages} • Showing {orders.length}{" "}
+                  of {totalCount} orders
                 </span>
 
                 <div className="flex space-x-2">

@@ -1,7 +1,7 @@
-import { FilterQuery, Types } from "mongoose";
-import { IOrderRepository } from "../../interfaces/repository/admin/IOrderRepository";
-import { IOrder } from "../../interfaces/user/IOrder";
-import OrderSchema from "../../models/OrderSchema";
+import { FilterQuery, Types } from 'mongoose';
+import { IOrderRepository } from '../../interfaces/repository/admin/IOrderRepository';
+import { IOrder } from '../../interfaces/user/IOrder';
+import OrderSchema from '../../models/OrderSchema';
 
 export class OrderManagementRepository implements IOrderRepository {
   async findAll(
@@ -10,14 +10,13 @@ export class OrderManagementRepository implements IOrderRepository {
     limit: number = 10
   ): Promise<IOrder[]> {
     try {
-      console.time("findAll-query");
+      console.time('findAll-query');
 
-      // Use projection to only fetch needed fields
       const orders = await OrderSchema.find(filter)
-        .populate("userId", "fullName email phone")
-        .populate("technicianId", "displayName profilePictureUrl")
+        .populate('userId', 'fullName email phone')
+        .populate('technicianId', 'displayName profilePictureUrl')
         .select(
-          "orderCode userId technicianId serviceName scheduledAt timeSlot status totalAmount payment createdAt"
+          'orderCode userId technicianId serviceName scheduledAt timeSlot status totalAmount payment createdAt'
         )
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -26,11 +25,11 @@ export class OrderManagementRepository implements IOrderRepository {
         .maxTimeMS(10000)
         .exec();
 
-      console.timeEnd("findAll-query");
+      console.timeEnd('findAll-query');
 
-      return orders.map((order) => this.convertToIOrder(order));
+      return orders.map(order => this.convertToIOrder(order));
     } catch (error) {
-      console.error("Error in findAll:", error);
+      console.error('Error in findAll:', error);
       throw error;
     }
   }
@@ -46,7 +45,7 @@ export class OrderManagementRepository implements IOrderRepository {
     monthlyRevenue: number;
   }> {
     try {
-      console.time("getOrderStats");
+      console.time('getOrderStats');
 
       const [
         totalOrders,
@@ -58,25 +57,25 @@ export class OrderManagementRepository implements IOrderRepository {
         revenueData,
       ] = await Promise.all([
         OrderSchema.countDocuments().maxTimeMS(5000).exec(),
-        OrderSchema.countDocuments({ status: "pending" })
+        OrderSchema.countDocuments({ status: 'pending' })
           .maxTimeMS(5000)
           .exec(),
-        OrderSchema.countDocuments({ status: "confirmed" })
+        OrderSchema.countDocuments({ status: 'confirmed' })
           .maxTimeMS(5000)
           .exec(),
-        OrderSchema.countDocuments({ status: "in_progress" })
+        OrderSchema.countDocuments({ status: 'in_progress' })
           .maxTimeMS(5000)
           .exec(),
-        OrderSchema.countDocuments({ status: "completed" })
+        OrderSchema.countDocuments({ status: 'completed' })
           .maxTimeMS(5000)
           .exec(),
-        OrderSchema.countDocuments({ status: "cancelled" })
+        OrderSchema.countDocuments({ status: 'cancelled' })
           .maxTimeMS(5000)
           .exec(),
         OrderSchema.aggregate([
           {
             $match: {
-              status: "completed",
+              status: 'completed',
               createdAt: {
                 $gte: new Date(
                   new Date().getFullYear(),
@@ -89,14 +88,14 @@ export class OrderManagementRepository implements IOrderRepository {
           {
             $group: {
               _id: null,
-              totalRevenue: { $sum: "$totalAmount" },
-              monthlyRevenue: { $sum: "$totalAmount" },
+              totalRevenue: { $sum: '$totalAmount' },
+              monthlyRevenue: { $sum: '$totalAmount' },
             },
           },
         ]).exec(),
       ]);
 
-      console.timeEnd("getOrderStats");
+      console.timeEnd('getOrderStats');
 
       return {
         totalOrders,
@@ -109,7 +108,7 @@ export class OrderManagementRepository implements IOrderRepository {
         monthlyRevenue: revenueData[0]?.monthlyRevenue || 0,
       };
     } catch (error) {
-      console.error("Error in getOrderStats:", error);
+      console.error('Error in getOrderStats:', error);
       // Return default values instead of failing
       return {
         totalOrders: 0,
@@ -124,23 +123,34 @@ export class OrderManagementRepository implements IOrderRepository {
     }
   }
 
-  async search(query: string, limit: number = 10): Promise<IOrder[]> {
+  async search(
+    query: string,
+    limit: number = 10,
+    status?: string
+  ): Promise<IOrder[]> {
     try {
-      console.time("search-query");
+      console.time('search-query');
 
-      // Create index-friendly search
-      const searchRegex = new RegExp(query, "i");
-
-      const orders = await OrderSchema.find({
+      // Build search filter
+      const searchFilter: FilterQuery<IOrder> = {
         $or: [
-          { orderCode: { $regex: searchRegex } },
-          { serviceName: { $regex: searchRegex } },
+          { orderCode: { $regex: query, $options: 'i' } },
+          { serviceName: { $regex: query, $options: 'i' } },
+          { 'userId.fullName': { $regex: query, $options: 'i' } },
+          { 'technicianId.displayName': { $regex: query, $options: 'i' } },
         ],
-      })
-        .populate("userId", "fullName email phone")
-        .populate("technicianId", "displayName profilePictureUrl")
+      };
+
+      // Add status filter if provided
+      if (status && status !== 'all') {
+        searchFilter.status = status;
+      }
+
+      const orders = await OrderSchema.find(searchFilter)
+        .populate('userId', 'fullName email phone')
+        .populate('technicianId', 'displayName profilePictureUrl')
         .select(
-          "orderCode userId technicianId serviceName scheduledAt timeSlot status totalAmount payment createdAt"
+          'orderCode userId technicianId serviceName scheduledAt timeSlot status totalAmount payment createdAt'
         )
         .limit(limit)
         .sort({ createdAt: -1 })
@@ -148,19 +158,19 @@ export class OrderManagementRepository implements IOrderRepository {
         .lean()
         .exec();
 
-      console.timeEnd("search-query");
+      console.timeEnd('search-query');
 
-      return orders.map((order) => this.convertToIOrder(order));
+      return orders.map(order => this.convertToIOrder(order));
     } catch (error) {
-      console.error("Error in search:", error);
+      console.error('Error in search:', error);
       return [];
     }
   }
 
   async findById(orderId: string | Types.ObjectId): Promise<IOrder | null> {
     const order = await OrderSchema.findById(orderId)
-      .populate("userId", "fullName email phone")
-      .populate("technicianId", "displayName profilePictureUrl")
+      .populate('userId', 'fullName email phone')
+      .populate('technicianId', 'displayName profilePictureUrl')
       .lean()
       .exec();
 
@@ -180,8 +190,8 @@ export class OrderManagementRepository implements IOrderRepository {
       { $set: updateData },
       { new: true, runValidators: true }
     )
-      .populate("userId", "fullName email phone")
-      .populate("technicianId", "displayName profilePictureUrl")
+      .populate('userId', 'fullName email phone')
+      .populate('technicianId', 'displayName profilePictureUrl')
       .lean()
       .exec();
 
@@ -196,7 +206,7 @@ export class OrderManagementRepository implements IOrderRepository {
     };
 
     return {
-      _id: leanOrder._id?.toString() || "",
+      _id: leanOrder._id?.toString() || '',
       bookingId: leanOrder.bookingId?.toString(),
       userId: leanOrder.userId,
       technicianId: leanOrder.technicianId,
@@ -215,14 +225,14 @@ export class OrderManagementRepository implements IOrderRepository {
               : undefined,
           }
         : {
-            method: "",
+            method: '',
             amount: 0,
-            status: "pending",
-            transactionId: "",
+            status: 'pending',
+            transactionId: '',
           },
       orderItems: (leanOrder.orderItems || []).map((item: any) => ({
         ...item,
-        _id: item._id?.toString() || "",
+        _id: item._id?.toString() || '',
       })),
       totalAmount: leanOrder.totalAmount || 0,
       technicianRating: leanOrder.technicianRating,
