@@ -1,5 +1,5 @@
-import { IOtpVerification } from "../interfaces/user/IOTP";
-import mongoose, { Schema, Document } from "mongoose";
+import { IOtpVerification } from '../interfaces/user/IOTP';
+import mongoose, { Schema, Document } from 'mongoose';
 
 const otpSchema = new Schema<IOtpVerification>(
   {
@@ -8,7 +8,7 @@ const otpSchema = new Schema<IOtpVerification>(
     otpHash: { type: String, required: true },
     purpose: {
       type: String,
-      enum: ["signup", "login", "reset", "application"],
+      enum: ['signup', 'login', 'reset', 'application'],
       required: true,
     },
     expiresAt: { type: Date, required: true },
@@ -17,4 +17,7 @@ const otpSchema = new Schema<IOtpVerification>(
   { timestamps: true }
 );
 
-export default mongoose.model<IOtpVerification>("OtpVerification", otpSchema);
+// TTL index on expiresAt field
+otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export default mongoose.model<IOtpVerification>('OtpVerification', otpSchema);

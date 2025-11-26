@@ -46,9 +46,20 @@ export class CategoryManagementService {
   static async createCategory(categoryData: CreateCategoryData) {
     try {
       const response = await adminAPI.createCategory(categoryData);
-      return this.handleResponse(response);
-    } catch (error) {
-      throw this.handleError(error, "Failed to create category");
+
+      return response.data || response;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      if (error.message) {
+        throw new Error(error.message);
+      }
+
+      throw new Error("Failed to create category");
     }
   }
 

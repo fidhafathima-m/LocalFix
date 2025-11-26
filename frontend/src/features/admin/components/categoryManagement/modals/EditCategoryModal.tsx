@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { CloseOutlined } from "@mui/icons-material";
-import { AdminSidebar } from "../../adminDashboard/actions/AdminSidebar";
 
 interface Category {
   iconUrl: string;
@@ -61,7 +60,6 @@ export function EditCategoryModal({
 
   return (
     <div className="fixed inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <AdminSidebar activePage="Category" />
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">

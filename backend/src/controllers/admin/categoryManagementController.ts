@@ -76,7 +76,12 @@ export class CategoryManagementController {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      const response = ResponseHelper.error(errorMessage);
+      const response = {
+        success: false,
+        message: errorMessage,
+        error: errorMessage,
+        statusCode: 400,
+      };
       res.status(response.statusCode).json(response);
     }
   };

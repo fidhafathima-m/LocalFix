@@ -490,8 +490,16 @@ const Checkout: React.FC = () => {
                 });
               }
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error("Payment verification error:", error);
+            // In your frontend error handling
+            if (error.code === "SERVER_ERROR" && error.source === "internal") {
+              toast.error(
+                "Payment service is temporarily unavailable. Please try again in a few minutes or use another payment method."
+              );
+            } else {
+              toast.error(error.description || "Payment failed");
+            }
             toast.error("Payment verification failed");
             navigate("/payment-failed", {
               replace: true,

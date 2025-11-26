@@ -117,12 +117,10 @@ const CategoryManagement: React.FC = () => {
         await loadCategories(currentPage, debouncedSearchQuery); // Refresh the list
         return { success: true };
       } else {
-        toast.error(response.message || "Failed to create category");
         return { success: false, message: response.message };
       }
     } catch (error: any) {
       console.error("Error creating category:", error);
-      toast.error(error.message || "Failed to create category");
       return {
         success: false,
         message: error.message || "Failed to create category",

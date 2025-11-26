@@ -5,8 +5,10 @@ import {
   AddOutlined,
   RemoveOutlined,
 } from "@mui/icons-material";
-import { AdminSidebar } from "../../adminDashboard/actions/AdminSidebar";
-import type { Service, UpdateServiceData } from "../../../../../interface/admin/IAdminApi";
+import type {
+  Service,
+  UpdateServiceData,
+} from "../../../../../interface/admin/IAdminApi";
 
 interface EditServiceModalProps {
   service: Service;
@@ -105,7 +107,6 @@ export function EditServiceModal({
 
   return (
     <div className="fixed inset-0 text-gray-400 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <AdminSidebar activePage="Category" />
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header - Fixed */}
         <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200">
