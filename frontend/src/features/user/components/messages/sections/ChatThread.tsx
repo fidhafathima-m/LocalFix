@@ -51,8 +51,18 @@ export function ChatThread({
   const typingTimeoutRef = useRef<NodeJS.Timeout>(null);
   const { socket, isConnected } = useSocket();
 
-  const listenersAddedRef = useRef(false);
+  // const listenersAddedRef = useRef(false);
   const receivedMessageIds = useRef(new Set<string>());
+
+  const handlersRef = useRef<{
+    handleNewMessage: ((data: any) => void) | null;
+    handleUserTyping: ((data: any) => void) | null;
+    handleMessageSent: ((data: any) => void) | null;
+  }>({
+    handleNewMessage: null,
+    handleUserTyping: null,
+    handleMessageSent: null,
+  });
 
   useEffect(() => {
     loadMessages();
@@ -60,27 +70,36 @@ export function ChatThread({
 
     return () => {
       leaveChatRoom();
+      // Clear received message IDs when component unmounts
+      receivedMessageIds.current.clear();
     };
   }, [orderId]);
 
+  // Add this to your useEffect for socket listeners
   useEffect(() => {
-    if (!socket || listenersAddedRef.current) return;
+    if (!socket) return;
 
     const handleNewMessage = (data: any) => {
-      if (!data.message || data.message.orderId !== orderId) return;
+      if (!data.message || data.message.orderId !== orderId) {
+        return;
+      }
 
       const msgId = data.message._id;
 
+      // CRITICAL: Ignore messages sent by current user from socket
+      const isSentByMe =
+        data.message.senderId === currentUserId &&
+        data.message.senderType === currentUserType;
+
+      if (isSentByMe) {
+        return;
+      }
+
       if (receivedMessageIds.current.has(msgId)) {
-        console.log("prevented duplicate:", msgId);
         return;
       }
 
       receivedMessageIds.current.add(msgId);
-
-      const isSentByMe =
-        data.message.senderId === currentUserId &&
-        data.message.senderType === currentUserType;
 
       const newMessage: Message = {
         id: msgId,
@@ -95,7 +114,10 @@ export function ChatThread({
         senderType: data.message.senderType,
       };
 
-      setMessages((prev) => [...prev, newMessage]);
+      setMessages((prev) => {
+        const newMessages = [...prev, newMessage];
+        return newMessages;
+      });
     };
 
     const handleUserTyping = (data: any) => {
@@ -104,10 +126,37 @@ export function ChatThread({
       }
     };
 
+    const handleMessageSent = (data: any) => {
+      console.log(
+        "FRONTEND: Message sent confirmation received:",
+        data.message?._id
+      );
+    };
+
+    // Store handlers in ref for cleanup
+    handlersRef.current = {
+      handleNewMessage,
+      handleUserTyping,
+      handleMessageSent,
+    };
+
+    // Remove any existing listeners first
+    socket.off("new-message", handleNewMessage);
+    socket.off("user-typing", handleUserTyping);
+    socket.off("message-sent", handleMessageSent);
+
+    // Add new listeners
     socket.on("new-message", handleNewMessage);
     socket.on("user-typing", handleUserTyping);
+    socket.on("message-sent", handleMessageSent);
 
-    listenersAddedRef.current = true;
+    return () => {
+      if (socket && handlersRef.current) {
+        socket.off("new-message", handlersRef.current.handleNewMessage!);
+        socket.off("user-typing", handlersRef.current.handleUserTyping!);
+        socket.off("message-sent", handlersRef.current.handleMessageSent!);
+      }
+    };
   }, [socket, orderId, currentUserId, currentUserType]);
 
   const loadMessages = async () => {
@@ -133,16 +182,26 @@ export function ChatThread({
         };
       });
 
-      const unique = new Map();
-      formattedMessages.forEach((m) => unique.set(m.id, m));
-      setMessages(Array.from(unique.values()));
+      // Populate receivedMessageIds with all loaded messages
+      formattedMessages.forEach((msg) => {
+        receivedMessageIds.current.add(msg.id);
+      });
+
+      // Better deduplication
+      const uniqueMessages = formattedMessages.reduce((acc, current) => {
+        if (!acc.find((msg) => msg.id === current.id)) {
+          acc.push(current);
+        }
+        return acc;
+      }, [] as Message[]);
+
+      setMessages(uniqueMessages);
     } catch (error) {
       console.error("Error loading messages:", error);
     } finally {
       setLoading(false);
     }
   };
-
   const joinChatRoom = () => {
     if (socket && isConnected) {
       socket.emit("join-chat-room", {
@@ -206,7 +265,18 @@ export function ChatThread({
         senderType: savedMessage.senderType,
       };
 
-      setMessages((prev) => [...prev, newMessageObj]);
+      // Use functional update to ensure we're working with latest state
+      setMessages((prev) => {
+        // Double-check for duplicates
+        const exists = prev.some((msg) => msg.id === newMessageObj.id);
+        if (exists) {
+          return prev;
+        }
+        const newMessages = [...prev, newMessageObj];
+        return newMessages;
+      });
+
+      receivedMessageIds.current.add(savedMessage._id!);
 
       if (socket && isConnected) {
         socket.emit("send-message", {
@@ -215,7 +285,7 @@ export function ChatThread({
         });
       }
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("FRONTEND: Error sending message:", error);
       setNewMessage(newMessage.trim());
       toast.error("Failed to send message.");
     } finally {

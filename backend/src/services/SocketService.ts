@@ -214,7 +214,6 @@ export class SocketService {
     socket.on('leave-user-room', (data: { userId: string }) => {
       const roomName = `user-${data.userId}`;
       socket.leave(roomName);
-      console.log(`🔔 User ${data.userId} left notification room`);
     });
   }
 
@@ -586,37 +585,59 @@ export class SocketService {
         tempId?: string;
       }) => {
         try {
-          // Save message to database
-          const messageToSave = {
-            orderId: data.orderId,
-            senderId: data.senderId,
-            senderType: data.senderType,
-            receiverId: data.receiverId,
-            receiverType: data.receiverType,
-            message: data.message,
-            messageType: data.messageType || 'text',
-          };
+          const recentMessages = await this._messageService.getRecentMessages(
+            data.orderId,
+            data.senderId,
+            5000 // 5 seconds
+          );
 
-          const savedMessage =
-            await this._messageService.sendMessage(messageToSave);
+          const duplicate = recentMessages.find(
+            msg =>
+              msg.message === data.message &&
+              msg.senderId === data.senderId &&
+              Date.now() - new Date(msg.timestamp).getTime() < 5000
+          );
+
+          let savedMessage;
+
+          if (duplicate) {
+            savedMessage = duplicate;
+          } else {
+            // Save message to database only if it's not a duplicate
+            const messageToSave = {
+              orderId: data.orderId,
+              senderId: data.senderId,
+              senderType: data.senderType,
+              receiverId: data.receiverId,
+              receiverType: data.receiverType,
+              message: data.message,
+              messageType: data.messageType || 'text',
+            };
+
+            savedMessage =
+              await this._messageService.sendMessage(messageToSave);
+          }
 
           const roomName = `chat-${data.orderId}`;
 
-          socket.broadcast.to(roomName).emit('new-message', {
+          // Send to everyone EXCEPT the sender
+          socket.to(roomName).emit('new-message', {
             message: savedMessage,
             roomName,
           });
 
+          // Send confirmation to sender
           socket.emit('message-sent', {
             message: savedMessage,
             tempId: data.tempId,
           });
+
+          // Update unread count for receiver
           const receiverUnreadCount = await this._messageService.getUnreadCount(
             data.receiverId,
             data.receiverType
           );
 
-          // Send unread count update to receiver
           this._io
             .to(`user-${data.receiverId}`)
             .emit('unread-message-count-update', {
@@ -626,8 +647,6 @@ export class SocketService {
         } catch (error) {
           console.error('Error sending message:', error);
           socket.emit('chat-error', { message: 'Failed to send message' });
-
-          // Notify sender that message failed
           socket.emit('message-failed', {
             tempId: data.tempId,
             error: 'Failed to send message',

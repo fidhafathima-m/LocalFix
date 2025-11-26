@@ -511,6 +511,30 @@ export class MessageRepository implements IMessageRepository {
     }
   }
 
+  async getRecentMessages(
+    orderId: string,
+    senderId: string,
+    timeWindowMs: number
+  ): Promise<IMessage[]> {
+    try {
+      const cutoffTime = new Date(Date.now() - timeWindowMs);
+
+      const messages = await Message.find({
+        orderId,
+        senderId,
+        timestamp: { $gte: cutoffTime },
+      })
+        .sort({ timestamp: -1 })
+        .limit(10)
+        .exec();
+
+      // Map MongoDB documents to domain models
+      return messages.map(this.mapMessageToDomain);
+    } catch (error) {
+      console.error('Error in getRecentMessages:', error);
+      return [];
+    }
+  }
   // Mappers
   private mapMessageToDomain(doc: IMessageDocument): IMessage {
     return {

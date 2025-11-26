@@ -240,4 +240,15 @@ export class MessageService implements IMessageService {
       );
     }, 0);
   }
+  async getRecentMessages(
+    orderId: string,
+    senderId: string,
+    timeWindowMs: number = 5000
+  ): Promise<IMessage[]> {
+    return this._messageRepository.getRecentMessages(
+      orderId,
+      senderId,
+      timeWindowMs
+    );
+  }
 }

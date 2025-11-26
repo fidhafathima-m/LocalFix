@@ -59,4 +59,10 @@ export interface IMessageRepository {
   syncOrderStatusWithRoom(orderId: string): Promise<IMessageRoom | null>;
 
   getTechnicianIdByUserId(userId: string): Promise<string | null>;
+
+  getRecentMessages(
+    orderId: string,
+    senderId: string,
+    timeWindowMs: number
+  ): Promise<IMessage[]>;
 }

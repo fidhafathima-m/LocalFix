@@ -29,4 +29,9 @@ export interface IMessageService {
   ): Promise<number>;
   syncOrderStatusWithRoom(orderId: string): Promise<void>;
   getTechnicianIdByUserId(userId: string): Promise<string | null>;
+  getRecentMessages(
+    orderId: string,
+    senderId: string,
+    timeWindowMs: number
+  ): Promise<IMessage[]>;
 }
