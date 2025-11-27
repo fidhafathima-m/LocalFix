@@ -1,4 +1,4 @@
-import { v2 as cloudinary } from "cloudinary";
+import { v2 as cloudinary } from 'cloudinary';
 
 // Validate configuration on startup
 if (
@@ -6,7 +6,7 @@ if (
   !process.env.CLOUDINARY_API_KEY ||
   !process.env.CLOUDINARY_API_SECRET
 ) {
-  throw new Error("Cloudinary configuration is missing");
+  throw new Error('Cloudinary configuration is missing');
 }
 
 cloudinary.config({
@@ -24,21 +24,21 @@ export interface CloudinaryUploadResult {
 }
 
 export const uploadToCloudinary = async (
-  file: Express.Multer.File
+  file: any
 ): Promise<CloudinaryUploadResult> => {
   try {
     if (!file.buffer || file.buffer.length === 0) {
-      console.error("No file buffer found");
-      throw new Error("File buffer is empty or corrupted");
+      console.error('No file buffer found');
+      throw new Error('File buffer is empty or corrupted');
     }
 
-    const isPdf = file.mimetype === "application/pdf";
-    const resourceType = isPdf ? "raw" : "image";
+    const isPdf = file.mimetype === 'application/pdf';
+    const resourceType = isPdf ? 'raw' : 'image';
 
     const uploadOptions: any = {
       resource_type: resourceType,
-      folder: "technician-documents",
-      access_mode: "public",
+      folder: 'technician-documents',
+      access_mode: 'public',
     };
 
     // Different handling for images vs PDFs
@@ -48,7 +48,7 @@ export const uploadToCloudinary = async (
       uploadOptions.use_filename = true;
     } else {
       // For images
-      uploadOptions.upload_preset = "image_preset";
+      uploadOptions.upload_preset = 'image_preset';
       uploadOptions.use_filename = true;
       uploadOptions.unique_filename = true;
     }
@@ -58,25 +58,25 @@ export const uploadToCloudinary = async (
         uploadOptions,
         (error, result) => {
           if (error) {
-            console.error("Cloudinary upload error:", error);
+            console.error('Cloudinary upload error:', error);
             reject(error);
           } else if (!result) {
-            reject(new Error("Cloudinary returned empty result"));
+            reject(new Error('Cloudinary returned empty result'));
           } else {
             resolve(result as CloudinaryUploadResult);
           }
         }
       );
 
-      uploadStream.on("error", (error) => {
-        console.error("Upload stream error:", error);
+      uploadStream.on('error', error => {
+        console.error('Upload stream error:', error);
         reject(error);
       });
 
       uploadStream.end(file.buffer);
     });
   } catch (error) {
-    console.error("Cloudinary upload failed:", error);
+    console.error('Cloudinary upload failed:', error);
     throw error;
   }
 };

@@ -495,7 +495,7 @@ export class AuthService implements IAuthService {
       if (error instanceof jwt.JsonWebTokenError) {
         this._logger.warn('Invalid refresh token', {
           ...context,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
         return ResponseHelper.unauthorized('Invalid refresh token');
       }

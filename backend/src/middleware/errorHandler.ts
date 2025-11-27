@@ -1,13 +1,12 @@
-import { Request, NextFunction } from 'express';
 import { LoggerService } from '../services/LoggerService';
 import { GeneralMessages } from '../constants';
-import { Response } from '../types/express';
+import { AuthRequest, Response, NextFunction } from '../types/express';
 
 const logger = new LoggerService();
 
 export const errorHandler = (
   error: Error,
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): void => {

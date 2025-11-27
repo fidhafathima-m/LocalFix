@@ -617,7 +617,21 @@ export class BookingService implements IBookingService {
           profilePictureUrl: technician.profilePictureUrl || '',
           averageRating: technician.averageRating || 0,
           ratingCount: technician.ratingCount || 0,
-          skills: technician.services || technician.skills || [],
+          skills: (() => {
+            // Normalize services/skills to string[]
+            const svc = (technician as any).services;
+            const sks = (technician as any).skills;
+            const arr = Array.isArray(svc)
+              ? svc
+              : Array.isArray(sks)
+                ? sks
+                : [];
+            return arr.map((item: any) =>
+              typeof item === 'string'
+                ? item
+                : item?.name || item?.skill || String(item)
+            );
+          })(),
           phone: technician.phone || '',
         },
         serviceName: order.serviceName,

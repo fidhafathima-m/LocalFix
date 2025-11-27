@@ -838,7 +838,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
 
   async uploadDocument(
     technicianId: string,
-    documentData: DocumentUploadDto | Express.Multer.File,
+    documentData: DocumentUploadDto | any,
     documentType?: string
   ): Promise<TechnicianProfileResponseDto> {
     try {
@@ -863,7 +863,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
         finalDocumentType = documentData.type;
       } else {
         // It's a Multer file
-        const file = documentData as Express.Multer.File;
+        const file = documentData as any;
 
         if (!documentType) {
           return ResponseHelper.badRequest(
@@ -947,7 +947,7 @@ export class TechnicianProfileService implements ITechnicianProfileService {
   }
   async uploadPhoto(
     technicianId: string,
-    file: Express.Multer.File
+    file: any
   ): Promise<TechnicianProfileResponseDto> {
     try {
       const technician =
