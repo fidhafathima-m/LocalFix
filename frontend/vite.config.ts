@@ -8,6 +8,14 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), svgr()],
   build: {
     outDir: "dist",
+    rollupOptions: {
+      output: {
+        manualChunks: undefined, // Disable code splitting for better compatibility
+        chunkFileNames: "assets/[name]-[hash].js",
+        entryFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash].[ext]",
+      },
+    },
   },
   base: "/",
 });
