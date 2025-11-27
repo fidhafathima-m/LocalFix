@@ -1,6 +1,7 @@
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 import { IOrderService } from '@/interfaces/services/user/IOrderService';
 import { ILogger } from '@/interfaces/utils/ILogger';
 

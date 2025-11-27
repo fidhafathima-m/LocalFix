@@ -2,7 +2,8 @@ import { IBookingService } from '../../interfaces/services/user/IBookingService'
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
 import { CreateBookingRequestDto } from '../../interfaces/dtos/bookingDtos';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 import { ILogger } from '@/interfaces/utils/ILogger';
 

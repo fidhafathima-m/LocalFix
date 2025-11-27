@@ -1,5 +1,6 @@
-import { AuthRequest, Response, NextFunction } from '../types/express';
+import { NextFunction, Response } from 'express';
 import { LoggerService } from '../services/LoggerService';
+import { AuthRequest } from './authMiddleware';
 
 const logger = new LoggerService();
 

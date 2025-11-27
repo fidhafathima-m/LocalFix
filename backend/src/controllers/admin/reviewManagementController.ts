@@ -2,7 +2,8 @@ import { ResponseHelper } from '../../utils/responseHelper';
 import { REVIEW_MESSAGES } from '../../constants';
 import { IAdminReviewService } from '@/interfaces/services/admin/IReviewManagementService';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 export class ReviewManagementController {
   private _reviewService: IAdminReviewService;

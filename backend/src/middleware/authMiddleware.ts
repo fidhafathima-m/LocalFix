@@ -1,11 +1,21 @@
+import { Request, Response, NextFunction } from 'express';
 import jwt, {
   JwtPayload,
   TokenExpiredError,
   JsonWebTokenError,
 } from 'jsonwebtoken';
 import User from '../models/UserSchema';
+import { Types } from 'mongoose';
 import { ResponseHelper } from '../utils/responseHelper';
-import { AuthRequest, Response, NextFunction } from '../types/express';
+
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    roles: string[];
+    email?: string;
+    currentRole?: string;
+  };
+}
 
 export const protect = async (
   req: AuthRequest,

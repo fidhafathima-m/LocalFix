@@ -1,7 +1,8 @@
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { ISparePartRequestService } from '../../interfaces/services/technician/ISparePartsRequestService';
 import { ResponseHelper } from '../../utils/responseHelper';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 export class SparePartsRequestController {
   private _service: ISparePartRequestService;

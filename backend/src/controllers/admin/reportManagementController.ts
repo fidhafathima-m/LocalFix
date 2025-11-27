@@ -1,7 +1,8 @@
 import { IReportService } from '../../interfaces/services/admin/IReportService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 export class ReportController {
   private _reportService: IReportService;

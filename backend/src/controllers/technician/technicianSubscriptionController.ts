@@ -3,7 +3,8 @@ import { ResponseHelper } from '../../utils/responseHelper';
 import { SUBSCRIPTION_MESSAGES } from '../../constants';
 import { LoggerService } from '../../services/LoggerService';
 import { ITechnicianSubscriptionService } from '../../interfaces/services/technician/ITechnicianSubscriptionService';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 export class TechnicianSubscriptionController {
   private subscriptionService: ISubscriptionService;

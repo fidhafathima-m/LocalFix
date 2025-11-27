@@ -8,7 +8,8 @@ import {
   CreateReviewRequestDto,
   UpdateReviewRequestDto,
 } from '../../interfaces/dtos/reviewDtos';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 import { IReviewRepository } from '../../interfaces/repository/user/IReviewRepository';
 import { ILogger } from '@/interfaces/utils/ILogger';

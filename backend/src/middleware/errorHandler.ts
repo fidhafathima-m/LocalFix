@@ -1,6 +1,7 @@
 import { LoggerService } from '../services/LoggerService';
 import { GeneralMessages } from '../constants';
-import { AuthRequest, Response, NextFunction } from '../types/express';
+import { AuthRequest } from './authMiddleware';
+import { NextFunction, Response } from 'express';
 
 const logger = new LoggerService();
 

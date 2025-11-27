@@ -283,7 +283,7 @@ export class ReportRepository implements IReportRepository {
     });
   }
 
-  private addPDFContent(doc: PDFKit.PDFDocument, data: any): void {
+  private addPDFContent(doc: typeof PDFDocument, data: any): void {
     // Title
     doc.fontSize(20).text('Business Analytics Report', { align: 'center' });
     doc.moveDown();

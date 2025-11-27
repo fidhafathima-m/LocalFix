@@ -2,7 +2,8 @@ import { UpdateUserProfileData } from '../../services/UserProfileService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { IUserProfileService } from '@/interfaces/services/user/IUserProfileService';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 export class UserProfileController {
   private _userProfileService: IUserProfileService;

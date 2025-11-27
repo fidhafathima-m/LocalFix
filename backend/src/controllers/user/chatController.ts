@@ -1,7 +1,8 @@
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { IChatService } from '../../interfaces/services/user/IChatService';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 export class ChatController {
   private _chatService: IChatService;

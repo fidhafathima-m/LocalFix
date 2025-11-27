@@ -1,7 +1,8 @@
 import { ResponseHelper } from '../../utils/responseHelper';
 import { IWalletService } from '../../interfaces/services/user/IWalletService';
 import { ILogger } from '../../interfaces/utils/ILogger';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 export class WalletController {
   private _walletService: IWalletService;

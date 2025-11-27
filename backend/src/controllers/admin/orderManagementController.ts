@@ -3,7 +3,8 @@ import { ResponseHelper } from '../../utils/responseHelper';
 import { ORDER_MESSAGES } from '../../constants';
 import { UpdateOrderStatusDto } from '../../interfaces/dtos/orderDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 export class OrderManagementController {
   private _orderService: IOrderService;

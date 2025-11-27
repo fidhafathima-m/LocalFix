@@ -1,7 +1,8 @@
 import { IAuthService } from '../../interfaces/services/user/IAuthService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 // Import DTOs
 import {

@@ -3,7 +3,8 @@ import { ResponseHelper } from '../../utils/responseHelper';
 import { ITEM_MESSAGES } from '../../constants';
 import { CreateItemDto, UpdateItemDto } from '../../interfaces/dtos/itemDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 export class ItemManagementController {
   private _itemService: IItemService;

@@ -1,4 +1,5 @@
-import { AuthRequest, Response } from '../../types/express';
+import { AuthRequest } from '../../middleware/authMiddleware';
+import { Response } from 'express';
 
 import { ITechnicianManagementService } from '../../interfaces/services/admin/ITechnicianManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
