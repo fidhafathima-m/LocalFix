@@ -82,7 +82,7 @@ export class EmailService implements IEmailService {
           <p>You can now log in to your technician dashboard and start accepting jobs immediately.</p>
 
           <div style="text-align: center;">
-            <a href="${process.env.FRONTEND_URL}/technician/dashboard" style="display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+            <a href="${process.env.FRONTEND_URL}/technician/login" style="display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
               Go to Dashboard
             </a>
           </div>
@@ -132,7 +132,7 @@ export class EmailService implements IEmailService {
           <p>We encourage you to review our technician requirements and consider applying again in the future.</p>
 
           <div style="text-align: center;">
-            <a href="${process.env.FRONTEND_URL}/technician/application" style="display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+            <a href="${process.env.FRONTEND_URL}/technician/login" style="display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
               Review Requirements
             </a>
           </div>
