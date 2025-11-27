@@ -33,3 +33,4 @@ export interface AuthRequest extends Request {
   [key: string]: any;
 }
 export { Response, NextFunction, Router } from 'express';
+export * from 'express';
