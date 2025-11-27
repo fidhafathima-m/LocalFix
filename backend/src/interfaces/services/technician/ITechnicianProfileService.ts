@@ -8,7 +8,7 @@ import {
   BankPaymentUpdateDto,
   SecuritySettingsUpdateDto,
   DocumentUploadDto,
-} from "../../dtos/technicianProfileDtos";
+} from '../../dtos/technicianProfileDtos';
 
 export interface ITechnicianProfileService {
   getTechnicianProfile(
@@ -41,13 +41,13 @@ export interface ITechnicianProfileService {
 
   uploadDocument(
     technicianId: string,
-    documentData: DocumentUploadDto | Express.Multer.File,
+    documentData: DocumentUploadDto | any,
     documentType?: string
   ): Promise<TechnicianProfileResponseDto>;
   getStaticData(): Promise<StaticDataResponseDto>;
   uploadPhoto(
     technicianId: string,
-    file: Express.Multer.File
+    file: any
   ): Promise<TechnicianProfileResponseDto>;
   getSlotRules(technicianId: string): Promise<TechnicianProfileResponseDto>;
   getTechnicianAvailability(

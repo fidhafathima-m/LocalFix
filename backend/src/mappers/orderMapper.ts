@@ -1,41 +1,41 @@
-import { IOrder } from "./../interfaces/user/IOrder";
+import { IOrder } from './../interfaces/user/IOrder';
 import {
   OrderResponseDto,
   OrderListResponseDto,
   OrderStatsDto,
-} from "../interfaces/dtos/orderDtos";
+} from '../interfaces/dtos/orderDtos';
 
 export const toOrderResponseDto = (order: IOrder): OrderResponseDto => {
   return {
-    _id: order._id?.toString() || "",
+    _id: order._id?.toString() || '',
     orderCode: order.orderCode,
     userId: order.userId as any,
     technicianId: order.technicianId as any,
     serviceName: order.serviceName,
-    problemDescription: order.problemDescription || "",
+    problemDescription: order.problemDescription || '',
     scheduledAt: order.scheduledAt?.toString() || new Date().toISOString(),
     timeSlot: order.timeSlot,
     address: order.address,
     status: order.status,
     payment: {
-      method: order.payment?.method || "",
+      method: order.payment?.method,
       amount: order.payment?.amount || 0,
-      status: order.payment?.status || "pending",
-      transactionId: order.payment?.transactionId || "",
+      status: order.payment?.status || 'pending',
+      transactionId: order.payment?.transactionId || '',
       paidAt: order.payment?.paidAt
         ? new Date(order.payment.paidAt).toISOString()
         : undefined,
     },
     totalAmount: order.totalAmount,
-    orderItems: (order.orderItems || []).map((item) => ({
-      _id: item._id?.toString() || "",
+    orderItems: (order.orderItems || []).map(item => ({
+      _id: item._id?.toString() || '',
       customName: item.customName,
       unitPrice: item.unitPrice,
       quantity: item.quantity,
       totalPrice: item.totalPrice,
       status: item.status,
     })),
-    history: (order.history || []).map((history) => ({
+    history: (order.history || []).map(history => ({
       status: history.status,
       description: history.description,
       updatedBy: history.updatedBy,
@@ -59,7 +59,7 @@ export const toOrderListResponseDto = (
   limit: number
 ): OrderListResponseDto => {
   return {
-    orders: orders.map((order) => toOrderResponseDto(order)),
+    orders: orders.map(order => toOrderResponseDto(order)),
     total,
     page,
     limit,

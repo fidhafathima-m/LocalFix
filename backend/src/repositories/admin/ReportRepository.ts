@@ -5,8 +5,6 @@ import { Technician } from '../../models/technician/TechnicianSchema';
 import ReviewSchema from '../../models/ReviewSchema';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
-import { createObjectCsvWriter } from 'csv-writer';
-import { PassThrough } from 'stream';
 
 export class ReportRepository implements IReportRepository {
   async getDashboardReportData(startDate?: Date, endDate?: Date): Promise<any> {
