@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import { INotificationService } from '../interfaces/services/INotificationService';
 import { ResponseHelper } from '../utils/responseHelper';
 import { ILogger } from '@/interfaces/utils/ILogger';

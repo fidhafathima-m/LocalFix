@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import { IItemService } from '../../interfaces/services/admin/IItemManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ITEM_MESSAGES } from '../../constants';

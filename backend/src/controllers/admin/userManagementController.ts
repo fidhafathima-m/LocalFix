@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import { IUserManagementService } from '../../interfaces/services/admin/IUserManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';

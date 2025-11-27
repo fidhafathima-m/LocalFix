@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { IWalletService } from '../../interfaces/services/user/IWalletService';
 import { ILogger } from '../../interfaces/utils/ILogger';

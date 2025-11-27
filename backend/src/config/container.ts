@@ -7,7 +7,7 @@ import { SocketService } from '../services/SocketService';
 import { PublicUserManagementController } from '../controllers/admin/publicUserManagementController';
 import { NotificationRepository } from '../repositories/NotificationRepository';
 import { NotificationService } from '../services/NotificationService';
-import { NotificationController } from '../controllers/INotificationController';
+import { NotificationController } from '../controllers/NotificationController';
 import { TechnicianApplicationRepository } from '../repositories/technician/TechnicianApplicationRepository';
 import { TechnicianRepository } from '../repositories/technician/TechnicianRepository';
 import { TechnicianDocumentRepository } from '../repositories/technician/TechnicianDocumentRepository';

@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import {
   IReviewService,
   ReportReviewRequest,

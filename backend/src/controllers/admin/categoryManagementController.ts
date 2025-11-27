@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import { ICategoryService } from '../../interfaces/services/admin/ICategoryManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { CATEGORY_MESSAGES } from '../../constants';

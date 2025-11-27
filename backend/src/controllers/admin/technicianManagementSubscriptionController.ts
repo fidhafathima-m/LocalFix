@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import { AuthRequest } from '../../types/express';
 
 import { ResponseHelper } from '../../utils/responseHelper';

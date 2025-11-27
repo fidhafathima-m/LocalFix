@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { PAYMENT_MESSAGES } from '../../constants';
 import { IPaymentService } from '@/interfaces/services/admin/IPaymentManagementService';

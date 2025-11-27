@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { REVIEW_MESSAGES } from '../../constants';
 import { IAdminReviewService } from '@/interfaces/services/admin/IReviewManagementService';

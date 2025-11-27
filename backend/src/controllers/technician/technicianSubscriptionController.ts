@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import { ISubscriptionService } from '../../interfaces/services/admin/ISubscriptionManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { SUBSCRIPTION_MESSAGES } from '../../constants';
