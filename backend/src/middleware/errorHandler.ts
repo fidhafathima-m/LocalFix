@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, NextFunction } from 'express';
 import { LoggerService } from '../services/LoggerService';
 import { GeneralMessages } from '../constants';
+import { Response } from '../types/express';
 
 const logger = new LoggerService();
 

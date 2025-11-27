@@ -1,5 +1,5 @@
 import 'module-alias/register';
-import express, { Application, Request, Response } from 'express';
+import express from 'express';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 dotenv.config();
@@ -49,7 +49,7 @@ import createSparePartsRequestRoutes from './routes/technician/sparePartsRoutes'
 
 connectDB();
 
-const app: Application = express();
+const app = express();
 const server = http.createServer(app);
 
 const {
@@ -131,7 +131,7 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/messages', messageRoutes);
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (req: express.Request, res: express.Response) => {
   res.send('Localfix API running...');
 });
 

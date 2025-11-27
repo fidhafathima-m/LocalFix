@@ -610,8 +610,7 @@ export class TechnicianApplicationService
               size: fileToUpload.size,
             });
 
-            // Convert UploadedFile to Express.Multer.File for uploadToCloudinary
-            const fileForUpload: Express.Multer.File = {
+            const fileForUpload: any = {
               fieldname: fileToUpload.fieldname || field,
               originalname: fileToUpload.originalname,
               encoding: fileToUpload.encoding,
