@@ -1,4 +1,3 @@
-import { NextFunction } from 'express';
 import jwt, {
   JwtPayload,
   TokenExpiredError,
@@ -6,7 +5,7 @@ import jwt, {
 } from 'jsonwebtoken';
 import User from '../models/UserSchema';
 import { ResponseHelper } from '../utils/responseHelper';
-import { AuthRequest, Response } from '../types/express';
+import { AuthRequest, Response, NextFunction } from '../types/express';
 
 export const protect = async (
   req: AuthRequest,

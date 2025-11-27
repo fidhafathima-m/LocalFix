@@ -290,7 +290,7 @@ export class TechnicianManagementRepository
       .limit(limit)
       .lean();
 
-    return technicians as ITechnician[];
+    return technicians as unknown as ITechnician[];
   }
 
   async countTechnicians(filter: Record<string, unknown>): Promise<number> {
@@ -302,7 +302,7 @@ export class TechnicianManagementRepository
       .populate('userId', 'email phone fullName createdAt')
       .lean();
 
-    return technician as ITechnician | null;
+    return technician as unknown as ITechnician | null;
   }
 
   async updateTechnicianStatus(
@@ -327,7 +327,7 @@ export class TechnicianManagementRepository
         return null;
       }
 
-      return technician as ITechnician;
+      return technician as unknown as ITechnician;
     } catch (error) {
       console.error('Repository: Error updating technician status:', error);
       throw error;
@@ -349,7 +349,7 @@ export class TechnicianManagementRepository
       { new: true }
     );
 
-    return technician as ITechnician | null;
+    return technician as unknown as ITechnician | null;
   }
 
   async findTechnicianByUserId(userId: string): Promise<ITechnician | null> {
@@ -357,7 +357,7 @@ export class TechnicianManagementRepository
       const technician = await Technician.findOne({
         userId: new Types.ObjectId(userId),
       });
-      return technician as ITechnician | null;
+      return technician as unknown as ITechnician | null;
     } catch (error) {
       console.error('Error finding technician by userId:', error);
       return null;
@@ -494,7 +494,7 @@ export class TechnicianManagementRepository
       { new: true }
     );
 
-    return user as IUser | null;
+    return user as unknown as IUser | null;
   }
 
   async findUserAddress(userId: Types.ObjectId): Promise<IUserAddress | null> {
@@ -629,7 +629,7 @@ export class TechnicianManagementRepository
         throw new Error('Technician could not be found or created');
       }
 
-      return technician as ITechnician;
+      return technician as unknown as ITechnician;
     } catch (error) {
       console.error('Find or create technician error:', error);
       throw error;
@@ -646,7 +646,7 @@ export class TechnicianManagementRepository
       userId: application.technicianId,
     }).populate('userId', 'email phone fullName');
 
-    return technician as ITechnician | null;
+    return technician as unknown as ITechnician | null;
   }
 
   async findUserById(userId: Types.ObjectId): Promise<IUser | null> {
@@ -655,7 +655,7 @@ export class TechnicianManagementRepository
         .select('email phone fullName createdAt')
         .lean();
 
-      return user as IUser | null;
+      return user as unknown as IUser | null;
     } catch (error) {
       console.error('Error finding user by ID:', error);
       return null;
@@ -854,7 +854,7 @@ export class TechnicianManagementRepository
         .sort({ createdAt: -1 })
         .lean();
 
-      return technicians as ITechnician[];
+      return technicians as unknown as ITechnician[];
     } catch (error) {
       console.error('Repository: Error finding technicians:', error);
       throw error;
@@ -1042,7 +1042,7 @@ export class TechnicianManagementRepository
         .populate('userId', 'email phone fullName')
         .lean();
 
-      return technician as ITechnician | null;
+      return technician as unknown as ITechnician | null;
     } catch (error) {
       console.error('Repository: Error finding technician by ID:', error);
       throw error;
