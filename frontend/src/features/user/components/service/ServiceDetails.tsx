@@ -1319,20 +1319,14 @@ const ServiceDetails: React.FC = () => {
         )}
 
         {/* Location Setup Section */}
-        {/* Location Setup Section */}
         {showLocationSetup && (
           <div className="bg-white border-t border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
               <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4 lg:mb-6">
                 Set Your Location
               </h2>
-              <p className="text-gray-600 text-sm lg:text-base mb-6 lg:mb-8">
-                Set your location to find nearby technicians and get accurate
-                service estimates.
-              </p>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-                {/* Map Location Picker - Now properly sized */}
                 <div className="lg:order-2">
                   <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">
                     Select on Map
