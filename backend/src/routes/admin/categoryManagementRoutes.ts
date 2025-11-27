@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import { categoryManagementController } from '../../config/container';
 
 const router = Router();
