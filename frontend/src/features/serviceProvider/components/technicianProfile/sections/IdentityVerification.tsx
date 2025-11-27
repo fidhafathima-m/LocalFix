@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import AccordionSection from "./AccordianSections";
-import {
-  LocationOn,
-} from "@mui/icons-material";
+import { LocationOn } from "@mui/icons-material";
 import { TechnicianService } from "../../../../../services/technician/technicianService";
 import { OSMLocationPicker } from "../../../../../components/common/OSMLocationPicker";
 import toast from "react-hot-toast";
@@ -250,7 +248,6 @@ const IdentityVerification = () => {
       }));
     }
   };
-  
 
   const maskIdNumber = (idNumber?: string) => {
     if (!idNumber) return "XXXX-XXXX-XXXX";
@@ -274,7 +271,6 @@ const IdentityVerification = () => {
   return (
     <AccordionSection title="Identity & Verification" number={2}>
       <div className="space-y-6">
-
         {/* Government ID Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -323,7 +319,7 @@ const IdentityVerification = () => {
 
           <OSMLocationPicker
             onLocationSelect={handleLocationSelect}
-            initialLocation={
+            initialPosition={
               formData.location?.coordinates?.[1] &&
               formData.location?.coordinates?.[0]
                 ? {

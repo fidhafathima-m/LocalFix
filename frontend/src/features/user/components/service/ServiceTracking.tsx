@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -23,7 +22,6 @@ import type { ServiceTracking } from "../../../../interface/user/ITracking";
 import { useTechnicianLocation } from "../../../../hooks/useTechnicianLocation";
 import LiveMap from "../../../../components/common/LiveMap";
 import { useGeocodedAddress } from "../../../../hooks/useGeocodedAddress";
-import { useSocket } from "../../../../context/SocketContext";
 import type { SparePartsRequest } from "../../../../interface/user/ISpareParts";
 import { UserSparePartsService } from "../../../../services/user/sparePartsService";
 import SparePartsSection from "./SparePartsSection";
@@ -36,7 +34,6 @@ const ServiceTrackingComponent: React.FC = () => {
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { socket } = useSocket();
   const [orderId, setOrderId] = useState<string | undefined>();
 
   const [spareParts, setSpareParts] = useState<SparePartsRequest[]>([]);
@@ -71,13 +68,8 @@ const ServiceTrackingComponent: React.FC = () => {
     }
   };
 
-  const {
-    technicianLocation,
-    isTracking,
-    locationHistory,
-    isConnected,
-    error,
-  } = useTechnicianLocation(orderId, trackingData?.technicianId?._id);
+  const { technicianLocation, isTracking, locationHistory, error } =
+    useTechnicianLocation(orderId, trackingData?.technicianId?._id);
 
   const { coordinates: serviceCoordinates } = useGeocodedAddress(
     trackingData?.address || null

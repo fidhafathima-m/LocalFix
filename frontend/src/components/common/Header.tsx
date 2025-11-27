@@ -116,17 +116,6 @@ const Header: React.FC<HeaderProps> = ({
       closeMobileMenu();
     }
   };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleNotificationClick = () => {
-    if (userType === "serviceProvider") {
-      navigate("/technician/dashboard?tab=notifications");
-    } else {
-      navigate("/my-profile#notifications");
-    }
-    closeMobileMenu();
-  };
-
   const handleLogout = async () => {
     const result = await Swal.fire({
       title: "Are you sure?",

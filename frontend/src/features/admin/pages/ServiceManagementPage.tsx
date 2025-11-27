@@ -1,10 +1,7 @@
-import React from 'react'
-import ServiceManagement from '../components/serviceManagement/ServiceManagement'
+import ServiceManagement from "../components/serviceManagement/ServiceManagement";
 
 const ServiceManagementPage = () => {
-  return (
-    <ServiceManagement/>
-  )
-}
+  return <ServiceManagement />;
+};
 
-export default ServiceManagementPage
+export default ServiceManagementPage;

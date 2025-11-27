@@ -16,8 +16,6 @@ const AnalyticsSection = ({
   title,
   data,
   showStars = false,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  type,
 }: AnalyticsSectionProps) => {
   const [sectionData, setSectionData] = useState(data || []);
   const [loading, setLoading] = useState(!data);

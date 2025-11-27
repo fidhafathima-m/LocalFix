@@ -82,6 +82,7 @@ const TechSignupOTP: React.FC = () => {
         roles: userData.roles || [],
         isVerified: userData.isVerified || false,
         applicationStatus: getSafeApplicationStatus(userData.applicationStatus),
+        profilePictureUrl: userData.profilePictureUrl || "",
       };
 
       dispatch(
@@ -107,7 +108,6 @@ const TechSignupOTP: React.FC = () => {
         }
       }
 
-
       localStorage.removeItem("signupData");
 
       return {
@@ -122,7 +122,8 @@ const TechSignupOTP: React.FC = () => {
       console.error("OTP verification error:", error);
       return {
         success: false,
-        message:  error instanceof Error ? error.message : "OTP verification failed",
+        message:
+          error instanceof Error ? error.message : "OTP verification failed",
       };
     } finally {
       setLoading(false);
@@ -146,7 +147,8 @@ const TechSignupOTP: React.FC = () => {
     } catch (error: unknown) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : "Failed to resend OTP",
+        message:
+          error instanceof Error ? error.message : "Failed to resend OTP",
       };
     } finally {
       setLoading(false);

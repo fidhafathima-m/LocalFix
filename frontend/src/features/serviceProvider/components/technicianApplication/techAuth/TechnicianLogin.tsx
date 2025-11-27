@@ -48,6 +48,7 @@ const TechnicianLogin: React.FC = () => {
             userDataFromResponse.applicationStatus
           ),
           isVerified: userDataFromResponse.isVerified || false,
+          profilePictureUrl: userDataFromResponse.profilePictureUrl || "",
         };
 
         dispatch(
@@ -81,7 +82,8 @@ const TechnicianLogin: React.FC = () => {
         return { success: false, message: res.message };
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Login failed";
+      const errorMessage =
+        error instanceof Error ? error.message : "Login failed";
       dispatch(loginFailure(errorMessage));
       return { success: false, message: errorMessage };
     }

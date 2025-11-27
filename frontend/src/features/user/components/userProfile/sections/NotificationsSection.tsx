@@ -168,8 +168,7 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getActionButtonText = (type: string, data: any) => {
+  const getActionButtonText = (type: string) => {
     switch (type) {
       case "spare_parts_request":
         return "Review & Approve";
@@ -280,7 +279,7 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
                     onClick={() => handleNotificationClick(notification)}
                     className="mt-2 flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
                   >
-                    {getActionButtonText(notification.type, notification.data)}
+                    {getActionButtonText(notification.type)}
                     <ArrowForwardOutlined className="w-4 h-4" />
                   </button>
 

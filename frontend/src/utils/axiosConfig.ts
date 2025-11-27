@@ -108,8 +108,7 @@ api.interceptors.response.use(
       if (isTokenExpired) {
         if (isRefreshing) {
           // Wait for the current refresh to complete
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          return new Promise((resolve, reject) => {
+          return new Promise((resolve) => {
             subscribeTokenRefresh((token: string) => {
               originalRequest.headers.Authorization = `Bearer ${token}`;
               resolve(api(originalRequest));

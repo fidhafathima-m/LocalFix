@@ -595,9 +595,6 @@ const AvailabilityPreferences = () => {
           });
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const action = newAvailability ? "available" : "unavailable";
-
         // Show appropriate message based on action
         if (!newAvailability) {
           toast.success(

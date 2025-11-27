@@ -164,7 +164,6 @@ const AdminDashboard: React.FC = () => {
       // Generate recent activity from various sources
       const activity = generateRecentActivity(
         usersData,
-        techniciansData,
         ordersData,
         applicationsData
       );
@@ -293,7 +292,6 @@ const AdminDashboard: React.FC = () => {
 
   const generateRecentActivity = (
     users: any[],
-    technicians: any[],
     orders: Order[],
     applications: TechnicianApplication[]
   ): RecentActivity[] => {

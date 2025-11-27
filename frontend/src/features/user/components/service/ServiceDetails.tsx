@@ -429,7 +429,7 @@ const ServiceDetails: React.FC = () => {
         }
       } else {
         // For other sorting options, fetch with new sort
-        await fetchTechniciansForService(service?.name || "", 1, true);
+        await fetchTechniciansForService(service?.name || "", 1);
 
         if (newSort === "default") {
           toast.success("Sorting cleared to default order");
@@ -801,9 +801,7 @@ const ServiceDetails: React.FC = () => {
 
   const fetchTechniciansForService = async (
     serviceName: string,
-    page: number = 1,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    forceRefresh: boolean = false
+    page: number = 1
   ): Promise<void> => {
     try {
       setTechniciansLoading(true);

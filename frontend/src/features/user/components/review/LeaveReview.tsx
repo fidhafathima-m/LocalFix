@@ -15,8 +15,6 @@ import { orderService } from "../../../../services/user/orderService";
 import { reviewService } from "../../../../services/user/reviewService";
 import { type OrderResponse } from "../../../../services/user/orderService";
 import { type ReviewResponse } from "../../../../services/user/reviewService";
-import { useAppSelector } from "../../../../hooks/redux";
-import { selectUser } from "../../../../store/slices/authSlice";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 
@@ -29,8 +27,6 @@ const LeaveReview: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const user = useAppSelector(selectUser);
 
   const [rating, setRating] = useState(3);
   const [hoveredRating, setHoveredRating] = useState(0);

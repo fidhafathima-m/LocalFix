@@ -43,15 +43,19 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
         setError(null);
 
         // Fetch all orders for this technician
-       const response = await OrderManagementService.getOrdersByTechnician(technician._id, 1, 100);
+        const response = await OrderManagementService.getOrdersByTechnician(
+          technician._id,
+          1,
+          100
+        );
         const orders = response.orders || [];
 
         // Calculate earnings data from orders
         const calculatedData = calculateEarningsData(orders);
         setEarningsData(calculatedData);
       } catch (err) {
-        console.error('Error fetching earnings data:', err);
-        setError('Failed to load earnings data');
+        console.error("Error fetching earnings data:", err);
+        setError("Failed to load earnings data");
       } finally {
         setLoading(false);
       }
@@ -69,12 +73,8 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
     const currentYear = now.getFullYear();
 
     // Filter completed orders
-    const completedOrders = orders.filter((order) => order.status === "completed");
-    
-    // Filter pending/accepted orders (active jobs)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const activeOrders = orders.filter((order) => 
-      ["pending", "accepted", "in_progress", "on_the_way"].includes(order.status)
+    const completedOrders = orders.filter(
+      (order) => order.status === "completed"
     );
 
     // Calculate monthly earnings
@@ -133,13 +133,13 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
           new Date(a.updatedAt || a.createdAt).getTime()
       )
       .slice(0, 5)
-      .map(order => ({
+      .map((order) => ({
         _id: order._id,
         serviceName: order.serviceName,
         totalAmount: order.totalAmount || 0,
         createdAt: order.updatedAt || order.createdAt,
         orderCode: order.orderCode,
-        status: order.status
+        status: order.status,
       }));
 
     return {
@@ -148,9 +148,10 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
       completedJobs: completedOrders.length,
       monthlyEarnings,
       weeklyEarnings,
-      averageEarningPerJob: completedOrders.length > 0 ? totalEarnings / completedOrders.length : 0,
+      averageEarningPerJob:
+        completedOrders.length > 0 ? totalEarnings / completedOrders.length : 0,
       earningsByService,
-      recentEarnings
+      recentEarnings,
     };
   };
 
@@ -188,11 +189,12 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
       {isSuspended && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-700 text-sm">
-            <strong>Note:</strong> No new earnings while technician is suspended.
+            <strong>Note:</strong> No new earnings while technician is
+            suspended.
           </p>
         </div>
       )}
-      
+
       <h2 className="text-lg font-medium mb-6">Earnings & Jobs</h2>
 
       {/* Main Stats Cards */}
@@ -239,9 +241,12 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
         </div>
         <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
           <p className="text-lg font-bold text-gray-800">
-            {earningsData?.totalJobs && earningsData.completedJobs > 0 
-              ? Math.round((earningsData.completedJobs / earningsData.totalJobs) * 100) 
-              : 0}%
+            {earningsData?.totalJobs && earningsData.completedJobs > 0
+              ? Math.round(
+                  (earningsData.completedJobs / earningsData.totalJobs) * 100
+                )
+              : 0}
+            %
           </p>
           <p className="text-gray-600 text-xs">Completion Rate</p>
         </div>
@@ -251,7 +256,8 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
         {/* Recent Earnings */}
         <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
           <h3 className="font-medium text-gray-900 mb-4">Recent Earnings</h3>
-          {earningsData?.recentEarnings && earningsData.recentEarnings.length > 0 ? (
+          {earningsData?.recentEarnings &&
+          earningsData.recentEarnings.length > 0 ? (
             <div className="space-y-3">
               {earningsData.recentEarnings.map((earning) => (
                 <div
@@ -284,8 +290,11 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
 
         {/* Earnings by Service */}
         <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-4">Earnings by Service</h3>
-          {earningsData?.earningsByService && Object.keys(earningsData.earningsByService).length > 0 ? (
+          <h3 className="font-medium text-gray-900 mb-4">
+            Earnings by Service
+          </h3>
+          {earningsData?.earningsByService &&
+          Object.keys(earningsData.earningsByService).length > 0 ? (
             <div className="space-y-2">
               {Object.entries(earningsData.earningsByService)
                 .sort(([, a], [, b]) => b - a)
@@ -316,12 +325,16 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
         <h3 className="font-medium text-gray-900 mb-4">Job Status Breakdown</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-3 bg-white rounded border border-gray-200">
-            <p className="text-lg font-bold text-blue-600">{earningsData?.completedJobs || 0}</p>
+            <p className="text-lg font-bold text-blue-600">
+              {earningsData?.completedJobs || 0}
+            </p>
             <p className="text-xs text-gray-600">Completed</p>
           </div>
           <div className="text-center p-3 bg-white rounded border border-gray-200">
             <p className="text-lg font-bold text-yellow-600">
-              {earningsData ? earningsData.totalJobs - earningsData.completedJobs : 0}
+              {earningsData
+                ? earningsData.totalJobs - earningsData.completedJobs
+                : 0}
             </p>
             <p className="text-xs text-gray-600">Active/Pending</p>
           </div>
@@ -333,9 +346,12 @@ const EarningsJobsTab: React.FC<EarningsJobsTabProps> = ({
           </div>
           <div className="text-center p-3 bg-white rounded border border-gray-200">
             <p className="text-lg font-bold text-purple-600">
-              {earningsData?.totalJobs && earningsData.completedJobs > 0 
-                ? Math.round((earningsData.completedJobs / earningsData.totalJobs) * 100) 
-                : 0}%
+              {earningsData?.totalJobs && earningsData.completedJobs > 0
+                ? Math.round(
+                    (earningsData.completedJobs / earningsData.totalJobs) * 100
+                  )
+                : 0}
+              %
             </p>
             <p className="text-xs text-gray-600">Success Rate</p>
           </div>

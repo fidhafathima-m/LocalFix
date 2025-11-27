@@ -52,8 +52,7 @@ const PaymentSuccess: React.FC = () => {
     window.history.replaceState(null, "", window.location.href);
 
     // Handle browser back button
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const handlePopState = (event: PopStateEvent) => {
+    const handlePopState = () => {
       navigate("/orders", { replace: true });
     };
 

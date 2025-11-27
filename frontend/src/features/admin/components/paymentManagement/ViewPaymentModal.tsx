@@ -57,12 +57,6 @@ export const ViewPaymentModal: React.FC<ViewPaymentModalProps> = ({
       ? payment.serviceName
       : "Service Information";
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const orderId =
-    payment.orderId && payment.orderId !== "Unknown Order"
-      ? payment.orderId
-      : "Order Information";
-
   const formatAddress = () => {
     if (!payment.address) {
       return "Address information not available";

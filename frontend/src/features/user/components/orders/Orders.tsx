@@ -294,7 +294,7 @@ const MyOrders: React.FC = () => {
     }
   };
 
-  const handleBookAgain = (technicianId: string, serviceName: string) => {
+  const handleBookAgain = (serviceName: string) => {
     toast.success(`Redirecting to book ${serviceName} again`);
   };
 
@@ -697,9 +697,7 @@ const MyOrders: React.FC = () => {
                   getStatusConfig={getStatusConfig}
                   onDownloadInvoice={() => handleOpenInvoiceModal(order)}
                   onLeaveReview={() => handleLeaveReview(order._id)}
-                  onBookAgain={() =>
-                    handleBookAgain(order.technicianId._id, order.serviceName)
-                  }
+                  onBookAgain={() => handleBookAgain(order.serviceName)}
                   isHistory={true}
                 />
               ))

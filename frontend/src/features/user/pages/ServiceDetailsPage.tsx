@@ -1,10 +1,7 @@
-import ServiceDetails from "../components/service/serviceDetails"
-
+import ServiceDetails from "../components/service/ServiceDetails";
 
 const ServiceDetailsPage = () => {
-  return (
-    <ServiceDetails/>
-  )
-}
+  return <ServiceDetails />;
+};
 
-export default ServiceDetailsPage
+export default ServiceDetailsPage;

@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { CalendarTodayOutlined } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import type { TabProps } from "../types";
@@ -216,7 +215,7 @@ const OrdersTab: React.FC<TabProps> = ({
         try {
           // If status is "on_the_way", ask for location sharing
           if (newStatus === "on_the_way") {
-            await handleOnTheWayStatus(orderId, orderCode, serviceName);
+            await handleOnTheWayStatus(orderId);
           } else {
             await onUpdateOrderStatus(orderId, newStatus);
             toast.success(
@@ -234,11 +233,7 @@ const OrdersTab: React.FC<TabProps> = ({
     }
   };
 
-  const handleOnTheWayStatus = async (
-    orderId: string,
-    orderCode: string,
-    serviceName: string
-  ) => {
+  const handleOnTheWayStatus = async (orderId: string) => {
     // Ask if technician wants to share location
     const locationResult = await Swal.fire({
       title: "Share Location?",
@@ -422,10 +417,6 @@ const OrdersTab: React.FC<TabProps> = ({
   };
 
   const handleRestartLocationSharing = async (orderId: string) => {
-    const order = orders.find((o) => o._id === orderId);
-    const orderCode = order?.orderCode || orderId;
-    const serviceName = order?.serviceName || "Service";
-
     const result = await Swal.fire({
       title: "Restart Location Sharing?",
       html: `
@@ -506,42 +497,6 @@ const OrdersTab: React.FC<TabProps> = ({
         bookingId: orderId,
       });
     }
-  };
-
-  const testLocationAPI = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation API not available");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        console.log("✅ Location test SUCCESS:", {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          altitude: position.coords.altitude,
-          altitudeAccuracy: position.coords.altitudeAccuracy,
-          heading: position.coords.heading,
-          speed: position.coords.speed,
-        });
-        toast.success(
-          `Location test successful! Lat: ${position.coords.latitude}, Lng: ${position.coords.longitude}`
-        );
-      },
-      (error) => {
-        console.error("Location test FAILED:", {
-          code: error.code,
-          message: error.message,
-        });
-        toast.error(`Location test failed: ${error.message}`);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
   };
 
   if (ordersLoading) {

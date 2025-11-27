@@ -264,8 +264,6 @@ export const ApplicationForm: React.FC = () => {
 
     // Store original functions
     const originalFetch = window.fetch;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const originalXMLHttpRequest = window.XMLHttpRequest;
 
     window.fetch = function (...args) {
       const url = args[0];

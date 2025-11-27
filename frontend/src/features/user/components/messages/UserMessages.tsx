@@ -320,8 +320,7 @@ export function UserMessages() {
     };
   }, [socket, selectedConv, conversations]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const refreshConversationStatus = async (orderId: string) => {
+  const refreshConversationStatus = async () => {
     try {
       await loadConversations();
     } catch (error) {
@@ -332,7 +331,7 @@ export function UserMessages() {
   // Call this when chat reopens or on focus
   useEffect(() => {
     if (selectedConv && !loading) {
-      refreshConversationStatus(selectedConv.orderId);
+      refreshConversationStatus();
     }
   }, [selectedConversation]);
 

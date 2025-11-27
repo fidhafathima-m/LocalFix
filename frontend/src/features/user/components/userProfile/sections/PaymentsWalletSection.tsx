@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import {
@@ -133,7 +132,7 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
     setShowAllWalletTransactions(false);
   };
 
-  const getTransactionStatus = (status: string, type: string) => {
+  const getTransactionStatus = (status: string) => {
     const statusMap: any = {
       success: { text: "Paid", class: "bg-green-100 text-green-700" },
       failed: { text: "Failed", class: "bg-red-100 text-red-700" },
@@ -176,8 +175,7 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
     showAll: boolean,
     onShowMore: () => void,
     onShowLess: () => void,
-    totalCount: number,
-    displayedCount: number
+    totalCount: number
   ) => {
     if (totalCount <= INITIAL_TRANSACTIONS_COUNT) return null;
 
@@ -203,12 +201,6 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
       </div>
     );
   };
-
-  const hasMorePaymentHistory =
-    allTransactions.length > INITIAL_TRANSACTIONS_COUNT;
-  const hasMoreWalletTransactions =
-    allWalletTransactions.length > INITIAL_TRANSACTIONS_COUNT;
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
       <div className="flex justify-between items-center mb-4">
@@ -280,10 +272,7 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
           displayedTransactions.length > 0 ? (
             <div className="space-y-3">
               {displayedTransactions.map((transaction) => {
-                const statusConfig = getTransactionStatus(
-                  transaction.status,
-                  transaction.type
-                );
+                const statusConfig = getTransactionStatus(transaction.status);
                 return (
                   <div
                     key={transaction._id}
@@ -329,8 +318,7 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
                 showAllTransactions,
                 handleShowMoreTransactions,
                 handleShowLessTransactions,
-                allTransactions.length,
-                displayedTransactions.length
+                allTransactions.length
               )}
             </div>
           ) : (
@@ -393,8 +381,7 @@ export const PaymentsWalletSection: React.FC<PaymentsWalletSectionProps> = ({
               showAllWalletTransactions,
               handleShowMoreWalletTransactions,
               handleShowLessWalletTransactions,
-              allWalletTransactions.length,
-              displayedWalletTransactions.length
+              allWalletTransactions.length
             )}
           </div>
         ) : (

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { CheckCircleOutlineOutlined, CloseOutlined } from "@mui/icons-material";
 import { PDFGenerator } from "./PDFGenerator";
 import { UserSparePartsService } from "../../../../services/user/sparePartsService";

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { StarBorderOutlined, Person2Outlined } from '@mui/icons-material';
-import type { TabProps } from '../types';
-import { formatDate } from '../utils/helpers';
-import { reviewService } from '../../../../../../services/user/reviewService';
+import React, { useState, useEffect } from "react";
+import { StarBorderOutlined, Person2Outlined } from "@mui/icons-material";
+import type { TabProps } from "../types";
+import { formatDate } from "../utils/helpers";
+import { reviewService } from "../../../../../../services/user/reviewService";
 
 interface Review {
   _id: string;
@@ -46,54 +46,62 @@ const RatingsTab: React.FC<TabProps> = ({ dashboardData, isSuspended }) => {
         setError(null);
 
         // Fetch review stats
-        const statsResponse = await reviewService.getTechnicianReviewStats(dashboardData.profile._id);
+        const statsResponse = await reviewService.getTechnicianReviewStats(
+          dashboardData.profile._id
+        );
         if (statsResponse.success && statsResponse.data) {
           setReviewStats(statsResponse.data);
         }
 
         // Fetch reviews
-        const reviewsResponse = await reviewService.getTechnicianReviews(dashboardData.profile._id, 1, 10);
+        const reviewsResponse = await reviewService.getTechnicianReviews(
+          dashboardData.profile._id,
+          1,
+          10
+        );
         if (reviewsResponse.success && reviewsResponse.data) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const transformedReviews: Review[] = reviewsResponse.data.reviews.map((review: any) => {
-            // Extract user information from the review data
-            let userName = "Anonymous User";
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const userData = null;
+          const transformedReviews: Review[] = reviewsResponse.data.reviews.map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (review: any) => {
+              // Extract user information from the review data
+              let userName = "Anonymous User";
 
-            if (review.userId && typeof review.userId === 'string') {
-              const fullNameMatch = review.userId.match(/fullName:\s*'([^']+)'/);
-              if (fullNameMatch && fullNameMatch[1]) {
-                userName = fullNameMatch[1];
+              if (review.userId && typeof review.userId === "string") {
+                const fullNameMatch = review.userId.match(
+                  /fullName:\s*'([^']+)'/
+                );
+                if (fullNameMatch && fullNameMatch[1]) {
+                  userName = fullNameMatch[1];
+                } else if (review.user && review.user.fullName) {
+                  userName = review.user.fullName;
+                } else {
+                  // Fallback: extract email and use username part
+                  const emailMatch = review.userId.match(/email:\s*'([^']+)'/);
+                  if (emailMatch && emailMatch[1]) {
+                    userName = emailMatch[1].split("@")[0];
+                  }
+                }
               } else if (review.user && review.user.fullName) {
                 userName = review.user.fullName;
-              } else {
-                // Fallback: extract email and use username part
-                const emailMatch = review.userId.match(/email:\s*'([^']+)'/);
-                if (emailMatch && emailMatch[1]) {
-                  userName = emailMatch[1].split('@')[0];
-                }
               }
-            } else if (review.user && review.user.fullName) {
-              userName = review.user.fullName;
-            }
 
-            return {
-              _id: review.id || review._id,
-              userId: review.userId,
-              technicianId: review.technicianId,
-              rating: review.rating,
-              comment: review.comment,
-              userName: userName,
-              createdAt: review.createdAt,
-              user: review.user
-            };
-          });
+              return {
+                _id: review.id || review._id,
+                userId: review.userId,
+                technicianId: review.technicianId,
+                rating: review.rating,
+                comment: review.comment,
+                userName: userName,
+                createdAt: review.createdAt,
+                user: review.user,
+              };
+            }
+          );
           setReviews(transformedReviews);
         }
       } catch (err) {
-        console.error('Error fetching reviews:', err);
-        setError('Failed to load reviews');
+        console.error("Error fetching reviews:", err);
+        setError("Failed to load reviews");
       } finally {
         setLoading(false);
       }
@@ -110,16 +118,23 @@ const RatingsTab: React.FC<TabProps> = ({ dashboardData, isSuspended }) => {
 
     const { ratingDistribution, totalReviews } = reviewStats;
 
-    return [5, 4, 3, 2, 1].map(stars => ({
+    return [5, 4, 3, 2, 1].map((stars) => ({
       stars,
-      percentage: totalReviews > 0 ? Math.round((ratingDistribution[stars as keyof typeof ratingDistribution] / totalReviews) * 100) : 0,
-      count: ratingDistribution[stars as keyof typeof ratingDistribution]
+      percentage:
+        totalReviews > 0
+          ? Math.round(
+              (ratingDistribution[stars as keyof typeof ratingDistribution] /
+                totalReviews) *
+                100
+            )
+          : 0,
+      count: ratingDistribution[stars as keyof typeof ratingDistribution],
     }));
   };
 
-  const renderStars = (rating: number, size: 'small' | 'medium' = 'medium') => {
-    const starSize = size === 'small' ? 'w-4 h-4' : 'w-5 h-5';
-    
+  const renderStars = (rating: number, size: "small" | "medium" = "medium") => {
+    const starSize = size === "small" ? "w-4 h-4" : "w-5 h-5";
+
     return (
       <div className="flex">
         {[1, 2, 3, 4, 5].map((star) => (
@@ -127,8 +142,8 @@ const RatingsTab: React.FC<TabProps> = ({ dashboardData, isSuspended }) => {
             key={star}
             className={`${starSize} ${
               star <= rating
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'text-gray-300'
+                ? "fill-yellow-400 text-yellow-400"
+                : "text-gray-300"
             }`}
           />
         ))}
@@ -164,22 +179,28 @@ const RatingsTab: React.FC<TabProps> = ({ dashboardData, isSuspended }) => {
   }
 
   const ratingDistribution = calculateRatingDistribution();
-  const averageRating = reviewStats?.averageRating || dashboardData?.profile.averageRating || 0;
-  const totalReviews = reviewStats?.totalReviews || dashboardData?.profile.ratingCount || 0;
+  const averageRating =
+    reviewStats?.averageRating || dashboardData?.profile.averageRating || 0;
+  const totalReviews =
+    reviewStats?.totalReviews || dashboardData?.profile.ratingCount || 0;
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-xl font-bold mb-6">Ratings & Reviews</h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 pb-8 border-b">
         <div className="text-center">
-          <div className="text-5xl font-bold mb-2">{averageRating.toFixed(1)}</div>
+          <div className="text-5xl font-bold mb-2">
+            {averageRating.toFixed(1)}
+          </div>
           <div className="flex justify-center mb-2">
             {renderStars(Math.round(averageRating))}
           </div>
-          <p className="text-sm text-gray-600">Based on {totalReviews} reviews</p>
+          <p className="text-sm text-gray-600">
+            Based on {totalReviews} reviews
+          </p>
         </div>
-        
+
         <div className="md:col-span-2">
           <div className="space-y-2">
             {ratingDistribution.map((rating) => (
@@ -207,7 +228,7 @@ const RatingsTab: React.FC<TabProps> = ({ dashboardData, isSuspended }) => {
 
       <div>
         <h3 className="font-semibold mb-6">Customer Reviews</h3>
-        
+
         {reviews.length === 0 ? (
           <div className="text-center py-8">
             <Person2Outlined className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -219,7 +240,10 @@ const RatingsTab: React.FC<TabProps> = ({ dashboardData, isSuspended }) => {
         ) : (
           <div className="space-y-6">
             {reviews.map((review) => (
-              <div key={review._id} className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
+              <div
+                key={review._id}
+                className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0"
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3">
                     <div className="bg-gray-100 rounded-full p-3">
@@ -233,12 +257,12 @@ const RatingsTab: React.FC<TabProps> = ({ dashboardData, isSuspended }) => {
                     </div>
                   </div>
                   <div className="flex">
-                    {renderStars(review.rating, 'small')}
+                    {renderStars(review.rating, "small")}
                   </div>
                 </div>
-                
+
                 <p className="text-gray-700 mb-3">{review.comment}</p>
-                
+
                 {/* Example response section - you can implement actual response functionality later */}
                 {/* <div className="bg-gray-50 rounded-lg p-4 ml-12">
                   <div className="flex items-center space-x-2 mb-2">
@@ -249,7 +273,7 @@ const RatingsTab: React.FC<TabProps> = ({ dashboardData, isSuspended }) => {
                     Thank you for your feedback! We're glad to hear about your positive experience.
                   </p>
                 </div> */}
-                
+
                 {/* Uncomment to add reply functionality later */}
                 {/* <button className="text-blue-600 text-sm ml-12 hover:text-blue-700">
                   Reply to review

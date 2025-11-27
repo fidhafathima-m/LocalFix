@@ -85,11 +85,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     }
   }, [order._id, order.status]);
 
-  const handleStatusUpdate = async (
-    newStatus: string,
-    orderCode?: string,
-    serviceName?: string
-  ) => {
+  const handleStatusUpdate = async (newStatus: string) => {
     try {
       await onUpdateOrderStatus(newStatus);
       toast.success(`Order status updated to ${newStatus.replace("_", " ")}.`);
@@ -243,16 +239,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         if (newStatus === "on_the_way") {
           await handleOnTheWayStatus();
         } else {
-          await handleStatusUpdate(
-            newStatus,
-            order.orderCode,
-            order.serviceName
-          );
+          await handleStatusUpdate(newStatus);
         }
       }
     } else {
       // Direct status update without confirmation for other statuses
-      await handleStatusUpdate(newStatus, order.orderCode, order.serviceName);
+      await handleStatusUpdate(newStatus);
     }
   };
 
@@ -283,11 +275,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
     try {
       // Update status to "on_the_way" regardless of location sharing choice
-      await handleStatusUpdate(
-        "on_the_way",
-        order.orderCode,
-        order.serviceName
-      );
+      await handleStatusUpdate("on_the_way");
 
       if (locationResult.isConfirmed) {
         // Start location sharing

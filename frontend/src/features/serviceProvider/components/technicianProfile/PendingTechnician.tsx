@@ -1320,65 +1320,6 @@ const ApplicationDetailsDisplay: React.FC<{
   application: ApplicationData;
   onEditStep?: (stepName: string) => void;
 }> = ({ application, onEditStep }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const steps = [
-    {
-      name: "Personal Information",
-      fields: ["fullName", "phoneNumber", "email", "dateOfBirth", "gender"],
-      data: application.personal,
-    },
-    {
-      name: "Identity & Verification",
-      fields: ["idType", "idNumber", "address", "location"],
-      data: application.identity,
-    },
-    {
-      name: "Skills & Services",
-      fields: ["services", "yearsOfExperience", "languages", "bio"],
-      data: application.skills,
-    },
-    {
-      name: "Availability & Work Preferences",
-      fields: ["serviceAreas", "workRadius", "availability"],
-      data: application.availability,
-    },
-    {
-      name: "Banking Details",
-      fields: [
-        "accountHolderName",
-        "accountNumber",
-        "ifscCode",
-        "upiId",
-        "bankName",
-      ],
-      data: application.bank,
-    },
-    {
-      name: "Documents",
-      fields: ["documents"],
-      data: application.documents,
-    },
-    {
-      name: "Agreement & Consent",
-      fields: ["agreement"],
-      data: { agreement: application.agreement },
-    },
-  ];
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getStepNumber = (stepName: string): number => {
-    const stepNames = [
-      "Personal Information",
-      "Identity & Verification",
-      "Skills & Services",
-      "Availability & Work Preferences",
-      "Banking Details",
-      "Documents",
-      "Agreement & Consent",
-    ];
-    return stepNames.indexOf(stepName) + 1;
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
       <h2 className="text-xl font-semibold border-b pb-3">

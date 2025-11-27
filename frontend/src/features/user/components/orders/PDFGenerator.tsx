@@ -247,20 +247,4 @@ export class PDFGenerator {
     });
     processElement(element);
   }
-
-  private static applyLayoutStyles(element: HTMLElement): void {
-    // Ensure proper layout for PDF
-    element.style.width = "794px";
-    element.style.maxWidth = "794px";
-    element.style.margin = "0 auto";
-    element.style.boxSizing = "border-box";
-
-    // Apply to all children
-    const allElements = element.querySelectorAll("*");
-    allElements.forEach((child) => {
-      if (child instanceof HTMLElement) {
-        child.style.boxSizing = "border-box";
-      }
-    });
-  }
 }
