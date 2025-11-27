@@ -1,5 +1,13 @@
 import { JwtPayload } from 'jsonwebtoken';
+import {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+  NextFunction as ExpressNextFunction,
+  Application as ExpressApplication,
+  Router as ExpressRouter,
+} from 'express';
 
+// Extend Express types
 declare global {
   namespace Express {
     interface Request {
@@ -9,7 +17,6 @@ declare global {
         email?: string;
         currentRole?: string;
       };
-      // Add all the standard Express request properties
       body: any;
       params: any;
       query: any;
@@ -17,19 +24,19 @@ declare global {
       method: string;
       url: string;
       ip: string;
-      file?: any;
-      files?: any;
+      file?: Express.Multer.File;
+      files?:
+        | Express.Multer.File[]
+        | { [fieldname: string]: Express.Multer.File[] };
     }
 
     interface Response {
-      // Add standard response methods you use
       status(code: number): Response;
       json(body: any): Response;
       send(body: any): Response;
     }
 
     interface Application {
-      // Add application methods you use
       use(middleware: any): Application;
       listen(port: number, callback?: () => void): any;
     }
@@ -38,23 +45,9 @@ declare global {
       (err?: any): void;
     }
   }
-
-  namespace Express.Multer {
-    interface File {
-      fieldname: string;
-      originalname: string;
-      encoding: string;
-      mimetype: string;
-      size: number;
-      destination: string;
-      filename: string;
-      path: string;
-      buffer: Buffer;
-    }
-  }
 }
 
-// Export the types
+// Export the custom AuthRequest type
 export interface AuthRequest extends Express.Request {
   user?: {
     id: string;
@@ -65,4 +58,10 @@ export interface AuthRequest extends Express.Request {
 }
 
 // Re-export Express types
-export { Request, Response, NextFunction, Application, Router } from 'express';
+export {
+  ExpressRequest as Request,
+  ExpressResponse as Response,
+  ExpressNextFunction as NextFunction,
+  ExpressApplication as Application,
+  ExpressRouter as Router,
+};

@@ -26,13 +26,25 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  const allowed = /jpeg|jpg|png|pdf/;
-  const ext = path.extname(file.originalname).toLowerCase();
-  if (allowed.test(ext)) {
+  const allowedMimes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'application/pdf',
+  ];
+  if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only images and PDF allowed!'));
+    cb(
+      new Error('Invalid file type. Only JPEG, PNG, and PDF files are allowed.')
+    );
   }
 };
 
-export const upload = multer({ storage, fileFilter });
+export const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
