@@ -14,8 +14,7 @@ const UserSignUp: React.FC = () => {
 
   const handleSignUp = async (data: {
     fullName: string;
-    email?: string;
-    phone?: string;
+    email: string;
     password: string;
     userType: "user" | "serviceProvider";
   }) => {
@@ -37,7 +36,6 @@ const UserSignUp: React.FC = () => {
           state: {
             fullName: data.fullName,
             email: data.email,
-            phone: data.phone,
             userType: "user",
           },
           replace: true,
@@ -54,7 +52,9 @@ const UserSignUp: React.FC = () => {
     } catch (error: unknown) {
       console.error("Signup error details:", error);
       const errorMessage =
-        error instanceof Error ? error?.message : "Sign up failed - Unexpected error";
+        error instanceof Error
+          ? error?.message
+          : "Sign up failed - Unexpected error";
       return { success: false, message: errorMessage, error };
     } finally {
       setLoading(false);
@@ -71,7 +71,6 @@ const UserSignUp: React.FC = () => {
     const errors: SignUpErrors = {
       fullName: validation.errors?.fullName,
       email: validation.errors?.email,
-      phone: validation.errors?.phone,
       password: validation.errors?.password,
       confirmPassword: validation.errors?.confirmPassword,
     };

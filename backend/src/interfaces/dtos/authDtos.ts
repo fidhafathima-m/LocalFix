@@ -117,7 +117,6 @@ export interface TokenRefreshResponseDto extends BaseResponseDto {
 // Internal Service DTOs (for service layer)
 export interface SignupDataDto {
   email?: string;
-  phone?: string;
   userType: string;
 }
 

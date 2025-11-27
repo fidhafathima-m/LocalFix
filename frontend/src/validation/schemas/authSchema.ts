@@ -18,14 +18,10 @@ export const confirmPasswordSchema = z.string();
 export const signupSchema = z
   .object({
     fullName: z.string().min(1, "Full name is required"),
-    email: emailSchema,
+    email: z.string().email("Enter valid email").min(1, "Email is required"),
     password: passwordSchema,
     confirmPassword: confirmPasswordSchema,
     userType: z.enum(["user", "serviceProvider"]).default("user"),
-  })
-  .refine((data) => data.email, {
-    message: "Enter phone or email",
-    path: ["email", "phone"],
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",

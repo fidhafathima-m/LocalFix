@@ -62,52 +62,34 @@ export class AuthService implements IAuthService {
       operation: 'signup',
       data: {
         email: signupData.email,
-        phone: signupData.phone,
         userType: signupData.userType,
       },
     };
+
     try {
       this._logger.info('Starting user signup process', context);
 
-      const { email, phone, userType } = signupData;
+      const { email, userType } = signupData;
 
-      // Validation
-      if (!email && !phone) {
-        return ResponseHelper.badRequest(AUTH_MESSAGES.EMAIL_OR_PHONE_REQUIRED);
+      if (!email) {
+        return ResponseHelper.badRequest('Email is required');
       }
 
-      // Check uniqueness - ONLY if same email/phone AND same role
-      if (email) {
-        const existingUser = await this._userRepository.findByEmail(email);
-        // Only conflict if user exists AND already has this role
-        if (existingUser && existingUser.roles.includes(userType)) {
-          this._logger.warn('Email already in use for this role', {
-            ...context,
-            existingUser: {
-              id: existingUser._id,
-              roles: existingUser.roles,
-            },
-          });
-          return ResponseHelper.conflict(
-            'Email already registered for this role. Please use a different email or try logging in.'
-          );
-        }
-      }
+      // Check uniqueness - ONLY if same email AND same role
+      const existingUser = await this._userRepository.findByEmail(email);
 
-      if (phone) {
-        const existingUser = await this._userRepository.findByPhone(phone);
-        if (existingUser && existingUser.roles.includes(userType)) {
-          this._logger.warn('Phone already in use for this role', {
-            ...context,
-            existingUser: {
-              id: existingUser._id,
-              roles: existingUser.roles,
-            },
-          });
-          return ResponseHelper.conflict(
-            'Phone number already registered for this role. Please use a different phone number or try logging in.'
-          );
-        }
+      // Only conflict if user exists AND already has this role
+      if (existingUser && existingUser.roles.includes(userType)) {
+        this._logger.warn('Email already in use for this role', {
+          ...context,
+          existingUser: {
+            id: existingUser._id,
+            roles: existingUser.roles,
+          },
+        });
+        return ResponseHelper.conflict(
+          'Email already registered for this role. Please use a different email or try logging in.'
+        );
       }
 
       // Generate and send OTP
@@ -118,9 +100,8 @@ export class AuthService implements IAuthService {
         otpHash,
         purpose: OTPPurpose.SIGNUP,
         expiresAt: new Date(Date.now() + OTP_CONFIG.EXPIRY_MS),
+        email: email,
       };
-      if (phone) otpData.phone = phone;
-      if (email) otpData.email = email;
 
       await this._otpRepository.create(otpData);
       this._logger.info('OTP record created successfully', {
@@ -128,34 +109,22 @@ export class AuthService implements IAuthService {
         otpPurpose: OTPPurpose.SIGNUP,
       });
 
-      // Send OTP
-      const sentChannels: string[] = [];
-      if (phone) {
-        await sendPhoneOTP(phone, otp);
-        sentChannels.push(`phone: ${phone}`);
-        this._logger.info('SMS OTP sent successfully', {
-          ...context,
-          channel: 'sms',
-          phone: phone,
-        });
-      }
-      if (email) {
-        await sendEmailOTP(email, otp);
-        sentChannels.push(`email: ${email}`);
-        this._logger.info('Email OTP sent successfully', {
-          ...context,
-          channel: 'email',
-          email: email,
-        });
-      }
+      // Send OTP via email only
+      await sendEmailOTP(email, otp);
+
+      this._logger.info('Email OTP sent successfully', {
+        ...context,
+        channel: 'email',
+        email: email,
+      });
 
       this._logger.info('Signup OTP process completed successfully', {
         ...context,
-        channels: sentChannels,
+        channel: 'email',
       });
 
       return ResponseHelper.success(
-        `OTP sent to ${sentChannels.join(', ')}. Verify to complete signup.`
+        `OTP sent to your email. Verify to complete signup.`
       );
     } catch (error: unknown) {
       const errorMessage =

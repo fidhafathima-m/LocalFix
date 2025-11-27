@@ -23,7 +23,7 @@ interface BaseSignUpProps {
   userType?: "user" | "serviceProvider";
   onSubmit: (data: {
     fullName: string;
-    email?: string;
+    email: string;
     password: string;
     userType: "user" | "serviceProvider";
   }) => Promise<{ success: boolean; message?: string; error?: unknown }>;
@@ -74,7 +74,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
       isValid = false;
     }
 
-    // Check if at least one of email or phone is provided
+    // Check if at least one of email is provided
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
       isValid = false;
@@ -125,7 +125,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
       // Only send the fields that have values
       const submitData = {
         fullName: formData.fullName,
-        email: formData.email.trim() || undefined,
+        email: formData.email.trim(),
         password: formData.password,
         userType: userType,
       };
