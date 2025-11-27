@@ -1,10 +1,9 @@
-import { Response } from 'express';
 import { IOrderService } from '../../interfaces/services/admin/IOrderManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ORDER_MESSAGES } from '../../constants';
 import { UpdateOrderStatusDto } from '../../interfaces/dtos/orderDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class OrderManagementController {
   private _orderService: IOrderService;

@@ -1,6 +1,5 @@
-import { Response } from 'express-serve-static-core';
 import { ResponseHelper } from '../../utils/responseHelper';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 import { IPaymentService } from '../../interfaces/services/user/IPaymentService';
 import { ILogger } from '@/interfaces/utils/ILogger';

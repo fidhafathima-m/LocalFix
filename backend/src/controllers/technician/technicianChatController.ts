@@ -1,7 +1,6 @@
-import { Response } from 'express-serve-static-core';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 import { ITechnicianChatService } from '../../interfaces/services/technician/ITechnicianChatService';
 

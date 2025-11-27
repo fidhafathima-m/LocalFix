@@ -1,9 +1,8 @@
-import { Response } from 'express-serve-static-core';
 import { IBookingService } from '../../interfaces/services/user/IBookingService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
 import { CreateBookingRequestDto } from '../../interfaces/dtos/bookingDtos';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 import { ILogger } from '@/interfaces/utils/ILogger';
 

@@ -1,8 +1,6 @@
-import { Response } from 'express-serve-static-core';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
-import { AuthRequest } from '../../types/express';
-
+import { AuthRequest, Response } from '../../types/express';
 import { IOrderService } from '@/interfaces/services/user/IOrderService';
 import { ILogger } from '@/interfaces/utils/ILogger';
 

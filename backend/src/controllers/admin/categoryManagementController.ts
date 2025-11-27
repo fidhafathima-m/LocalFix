@@ -1,4 +1,3 @@
-import { Response } from 'express-serve-static-core';
 import { ICategoryService } from '../../interfaces/services/admin/ICategoryManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { CATEGORY_MESSAGES } from '../../constants';
@@ -7,7 +6,7 @@ import {
   UpdateCategoryDto,
 } from '../../interfaces/dtos/categoryDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class CategoryManagementController {
   private _categoryService: ICategoryService;

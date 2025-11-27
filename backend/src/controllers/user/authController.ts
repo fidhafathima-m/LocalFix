@@ -1,8 +1,7 @@
-import { Response } from 'express-serve-static-core';
 import { IAuthService } from '../../interfaces/services/user/IAuthService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 // Import DTOs
 import {

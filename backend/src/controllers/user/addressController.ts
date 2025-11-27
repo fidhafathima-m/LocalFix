@@ -1,4 +1,3 @@
-import { Response } from 'express-serve-static-core';
 import { IAddressService } from '../../interfaces/services/user/IAddressService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
@@ -9,7 +8,7 @@ import {
   UpdateAddressRequestDto,
 } from '../../interfaces/dtos/addressDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class AddressController {
   private _addressService: IAddressService;

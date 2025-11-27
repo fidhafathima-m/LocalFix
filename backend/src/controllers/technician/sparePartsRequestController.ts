@@ -1,8 +1,7 @@
-import { Response } from 'express-serve-static-core';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { ISparePartRequestService } from '../../interfaces/services/technician/ISparePartsRequestService';
 import { ResponseHelper } from '../../utils/responseHelper';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class SparePartsRequestController {
   private _service: ISparePartRequestService;

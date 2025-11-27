@@ -1,7 +1,6 @@
-import { Response } from 'express-serve-static-core';
 import { IUserLocationService } from '@/interfaces/services/user/IUserLocationService';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class UserLocationController {
   private _userLocationService: IUserLocationService;

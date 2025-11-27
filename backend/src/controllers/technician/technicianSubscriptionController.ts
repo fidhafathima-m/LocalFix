@@ -1,10 +1,9 @@
-import { Response } from 'express-serve-static-core';
 import { ISubscriptionService } from '../../interfaces/services/admin/ISubscriptionManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { SUBSCRIPTION_MESSAGES } from '../../constants';
 import { LoggerService } from '../../services/LoggerService';
 import { ITechnicianSubscriptionService } from '../../interfaces/services/technician/ITechnicianSubscriptionService';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class TechnicianSubscriptionController {
   private subscriptionService: ISubscriptionService;

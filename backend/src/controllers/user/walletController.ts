@@ -1,8 +1,7 @@
-import { Response } from 'express-serve-static-core';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { IWalletService } from '../../interfaces/services/user/IWalletService';
 import { ILogger } from '../../interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class WalletController {
   private _walletService: IWalletService;

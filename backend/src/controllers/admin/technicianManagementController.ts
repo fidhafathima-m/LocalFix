@@ -1,5 +1,4 @@
-import { Response } from 'express-serve-static-core';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 import { ITechnicianManagementService } from '../../interfaces/services/admin/ITechnicianManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';

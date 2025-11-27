@@ -1,4 +1,3 @@
-import { Response } from 'express-serve-static-core';
 import {
   IReviewService,
   ReportReviewRequest,
@@ -9,7 +8,7 @@ import {
   CreateReviewRequestDto,
   UpdateReviewRequestDto,
 } from '../../interfaces/dtos/reviewDtos';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 import { IReviewRepository } from '../../interfaces/repository/user/IReviewRepository';
 import { ILogger } from '@/interfaces/utils/ILogger';

@@ -1,9 +1,8 @@
-import { Response } from 'express-serve-static-core';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { REVIEW_MESSAGES } from '../../constants';
 import { IAdminReviewService } from '@/interfaces/services/admin/IReviewManagementService';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class ReviewManagementController {
   private _reviewService: IAdminReviewService;

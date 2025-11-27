@@ -1,4 +1,3 @@
-import { Response } from 'express-serve-static-core';
 import { IServiceService } from '../../interfaces/services/admin/IServiceManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { SERVICE_MESSAGES } from '../../constants';
@@ -7,7 +6,7 @@ import {
   UpdateServiceDto,
 } from '../../interfaces/dtos/serviceDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class ServiceManagementController {
   private _serviceService: IServiceService;

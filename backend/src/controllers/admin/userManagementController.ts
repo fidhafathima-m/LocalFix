@@ -1,4 +1,3 @@
-import { Response } from 'express-serve-static-core';
 import { IUserManagementService } from '../../interfaces/services/admin/IUserManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
@@ -10,7 +9,7 @@ import {
   EditUserRequestDto,
 } from '../../interfaces/dtos/userDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class UserManagementController {
   private _userManagementService: IUserManagementService;

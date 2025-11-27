@@ -1,9 +1,8 @@
-import { Response } from 'express-serve-static-core';
 import { UpdateUserProfileData } from '../../services/UserProfileService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { IUserProfileService } from '@/interfaces/services/user/IUserProfileService';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class UserProfileController {
   private _userProfileService: IUserProfileService;

@@ -1,6 +1,5 @@
-import { Response } from 'express-serve-static-core';
 import { ITechnicianProfileService } from '../../interfaces/services/technician/ITechnicianProfileService';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';

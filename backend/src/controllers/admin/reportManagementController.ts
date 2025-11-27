@@ -1,8 +1,7 @@
-import { Response } from 'express-serve-static-core';
 import { IReportService } from '../../interfaces/services/admin/IReportService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class ReportController {
   private _reportService: IReportService;

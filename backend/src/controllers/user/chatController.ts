@@ -1,8 +1,7 @@
-import { Response } from 'express-serve-static-core';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { IChatService } from '../../interfaces/services/user/IChatService';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class ChatController {
   private _chatService: IChatService;

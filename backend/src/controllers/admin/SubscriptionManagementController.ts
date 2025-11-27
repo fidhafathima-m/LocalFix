@@ -1,4 +1,3 @@
-import { Response } from 'express-serve-static-core';
 import { ISubscriptionService } from '../../interfaces/services/admin/ISubscriptionManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import {
@@ -7,7 +6,7 @@ import {
 } from '../../interfaces/dtos/subscriptionDtos';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { SUBSCRIPTION_MESSAGES } from '../../constants';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class SubscriptionManagementController {
   private _subscriptionService: ISubscriptionService;

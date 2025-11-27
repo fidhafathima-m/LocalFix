@@ -1,8 +1,7 @@
-import { Response } from 'express-serve-static-core';
 import { UserManagementService } from '../../services/UserManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../types/express';
+import { AuthRequest, Response } from '../../types/express';
 
 export class PublicUserManagementController {
   private _userService: UserManagementService;
