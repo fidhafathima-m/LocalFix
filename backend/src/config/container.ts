@@ -97,7 +97,7 @@ import { MessageController } from '../controllers/user/messageController';
 import { TechnicianManagementSubscriptionRepository } from '../repositories/admin/TechnicianManagementSubscriptionRepository';
 import { TechnicianManagementSubscriptionService } from '../services/TechnicianManagementSubscriptionService';
 import { TechnicianManagementSubscriptionController } from '../controllers/admin/technicianManagementSubscriptionController';
-import { PaymentManagementService } from '../services/paymentManagementService';
+import { PaymentManagementService } from '../services/PaymentManagementService';
 
 const loggerService = new LoggerService();
 

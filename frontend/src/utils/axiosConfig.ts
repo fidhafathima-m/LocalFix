@@ -4,7 +4,7 @@ import { authAPI } from "../services/common/authApi";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL || "http://localhost:5000/api",
-  timeout: 30000,
+  timeout: 60000,
 });
 
 let isRefreshing = false;
