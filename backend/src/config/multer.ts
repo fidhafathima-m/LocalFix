@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
 
 const fileFilter = (
   req: any, // Use any temporarily to avoid type issues
-  file: Express.Multer.File,
+  file: any,
   cb: multer.FileFilterCallback
 ) => {
   const allowedMimes = [
