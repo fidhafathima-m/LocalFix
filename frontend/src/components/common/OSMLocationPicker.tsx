@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
-
-const mapContainerStyle = {
-  width: "100%",
-  height: "400px",
-};
 
 const defaultCenter: [number, number] = [10.8505, 76.2711]; // Kerala center
 
@@ -70,7 +75,11 @@ interface OSMLocationPickerProps {
 }
 
 // Component to handle map clicks
-function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+function MapClickHandler({
+  onMapClick,
+}: {
+  onMapClick: (lat: number, lng: number) => void;
+}) {
   useMapEvents({
     click: (e) => {
       const { lat, lng } = e.latlng;
@@ -81,7 +90,11 @@ function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number
 }
 
 // Component to handle initial position
-function MapInitializer({ initialPosition }: { initialPosition?: { lat: number; lng: number } }) {
+function MapInitializer({
+  initialPosition,
+}: {
+  initialPosition?: { lat: number; lng: number };
+}) {
   const map = useMap();
 
   useEffect(() => {
@@ -103,21 +116,27 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
   );
   const [address, setAddress] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [clickedPosition, setClickedPosition] = useState<[number, number] | null>(null);
-  const [hasInitialPosition, setHasInitialPosition] = useState(!!initialPosition);
+  const [clickedPosition, setClickedPosition] = useState<
+    [number, number] | null
+  >(null);
+  const [hasInitialPosition, setHasInitialPosition] = useState(
+    !!initialPosition
+  );
 
   // Effect to handle initial position when component mounts or initialPosition changes
   useEffect(() => {
     if (initialPosition && !marker) {
       setMarker([initialPosition.lat, initialPosition.lng]);
       setHasInitialPosition(true);
-      
+
       // Automatically reverse geocode the initial position
       handleReverseGeocode(initialPosition.lat, initialPosition.lng);
     }
   }, [initialPosition]);
 
-  const extractAddressComponents = (data: OSMAddressData): AddressComponents => {
+  const extractAddressComponents = (
+    data: OSMAddressData
+  ): AddressComponents => {
     const addressComponents: AddressComponents = {
       street: "",
       city: "",
@@ -235,7 +254,9 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
       });
     } catch (error) {
       console.error("Error reverse geocoding:", error);
-      const fallbackAddress = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      const fallbackAddress = `Location at ${lat.toFixed(6)}, ${lng.toFixed(
+        6
+      )}`;
       setAddress(fallbackAddress);
 
       onLocationSelect({
@@ -273,7 +294,9 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
       });
     } catch (error) {
       console.error("Error reverse geocoding:", error);
-      const fallbackAddress = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      const fallbackAddress = `Location at ${lat.toFixed(6)}, ${lng.toFixed(
+        6
+      )}`;
       setAddress(fallbackAddress);
 
       onLocationSelect({
@@ -305,14 +328,13 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
   return (
     <div className={className}>
       <div className="mb-4">
-        <label className="block mb-2 font-medium text-gray-700">
+        <label className="block mb-2 font-medium text-gray-700 text-sm lg:text-base">
           Select Your Location on Map <span className="text-red-500">*</span>
         </label>
-        <p className="text-sm text-gray-600 mb-2">
-          {hasInitialPosition 
+        <p className="text-xs lg:text-sm text-gray-600 mb-2">
+          {hasInitialPosition
             ? "Current address location is shown. Click anywhere on the map to change location."
-            : "Click on the map to mark your exact location. Address fields will be automatically filled using OpenStreetMap."
-          }
+            : "Click on the map to mark your exact location. Address fields will be automatically filled using OpenStreetMap."}
         </p>
         <p className="text-xs text-gray-500">
           💡 <strong>Tip:</strong> If the auto-filled address isn't perfect, you
@@ -324,8 +346,7 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
         <MapContainer
           center={getInitialCenter()}
           zoom={hasInitialPosition ? 16 : 13}
-          style={mapContainerStyle}
-          className="rounded-lg border border-gray-300"
+          className="w-full h-64 lg:h-96 rounded-lg border border-gray-300"
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -333,7 +354,7 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
           />
           <MapClickHandler onMapClick={handleMapClick} />
           <MapInitializer initialPosition={initialPosition} />
-          
+
           {/* Temporary loading marker */}
           {clickedPosition && isLoading && (
             <Marker position={clickedPosition}>
@@ -346,19 +367,26 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
               </Popup>
             </Marker>
           )}
-          
+
           {/* Permanent marker after loading completes or initial position */}
           {marker && !isLoading && (
             <Marker position={marker}>
               <Popup>
-                {hasInitialPosition ? "Current Location" : "Selected Location"} <br />
-                Lat: {marker[0].toFixed(6)}, Lng: {marker[1].toFixed(6)}
-                {address && (
-                  <>
-                    <br />
-                    <span className="text-xs text-gray-600">{address.split(',')[0]}</span>
-                  </>
-                )}
+                <div className="text-xs lg:text-sm">
+                  {hasInitialPosition
+                    ? "Current Location"
+                    : "Selected Location"}{" "}
+                  <br />
+                  Lat: {marker[0].toFixed(6)}, Lng: {marker[1].toFixed(6)}
+                  {address && (
+                    <>
+                      <br />
+                      <span className="text-xs text-gray-600">
+                        {address.split(",")[0]}
+                      </span>
+                    </>
+                  )}
+                </div>
               </Popup>
             </Marker>
           )}
@@ -367,9 +395,9 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
         {/* Enhanced loading overlay */}
         {isLoading && (
           <div className="absolute inset-0 bg-black bg-opacity-10 flex items-center justify-center rounded-lg z-[999]">
-            <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center space-y-3 max-w-xs text-center">
+            <div className="bg-white p-4 lg:p-6 rounded-lg shadow-xl flex flex-col items-center space-y-3 max-w-xs text-center">
               <div className="relative">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-10 w-10 lg:h-12 lg:w-12 border-b-2 border-blue-600"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-2 h-2 bg-blue-600 rounded-full animate-ping"></div>
                 </div>
@@ -392,11 +420,11 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
 
       {/* Address result with loading state */}
       {isLoading ? (
-        <div className="mt-4 p-4 bg-blue-50 rounded-md border border-blue-200">
+        <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200">
           <div className="flex items-center space-x-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-4 w-4 lg:h-5 lg:w-5 border-b-2 border-blue-600"></div>
             <div>
-              <p className="text-sm font-medium text-blue-800">
+              <p className="text-xs lg:text-sm font-medium text-blue-800">
                 Processing your location...
               </p>
               <p className="text-xs text-blue-700">
@@ -409,16 +437,18 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
         <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-green-800 flex items-center">
+              <p className="text-xs lg:text-sm font-medium text-green-800 flex items-center">
                 <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                {hasInitialPosition ? "Current Address" : "Address Found"} via OpenStreetMap
+                {hasInitialPosition ? "Current Address" : "Address Found"} via
+                OpenStreetMap
               </p>
-              <p className="text-sm text-green-700 mt-1">{address}</p>
+              <p className="text-xs lg:text-sm text-green-700 mt-1">
+                {address}
+              </p>
               <p className="text-xs text-green-600 mt-2">
-                {hasInitialPosition 
+                {hasInitialPosition
                   ? "✓ Address fields below show your current address. Click on the map to change location."
-                  : "✓ Address fields below have been auto-filled. You can edit them if needed."
-                }
+                  : "✓ Address fields below have been auto-filled. You can edit them if needed."}
               </p>
             </div>
             <div className="bg-green-100 px-2 py-1 rounded text-xs text-green-800 font-medium">
@@ -428,7 +458,7 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
         </div>
       ) : (
         <div className="mt-4 p-3 bg-yellow-50 rounded-md border border-yellow-200">
-          <p className="text-sm text-yellow-700 flex items-center">
+          <p className="text-xs lg:text-sm text-yellow-700 flex items-center">
             <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
             Please click on the map to select your location and auto-fill
             address fields
