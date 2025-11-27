@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from "react";
 import type { TechnicianOrder } from "../../../../../../interface/technician/IOrderService";
 import { SparePartsModal } from "./SparePartsModal";
@@ -454,9 +453,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       };
 
       // Call the service
-      const response = await SparePartsService.createSparePartsRequest(
-        createDto
-      );
+      await SparePartsService.createSparePartsRequest(createDto);
 
       toast.success("Spare parts request submitted successfully!");
       setShowSparePartsModal(false);
