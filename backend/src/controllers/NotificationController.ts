@@ -1,8 +1,7 @@
-import type { Response } from 'express';
 import { INotificationService } from '../interfaces/services/INotificationService';
 import { ResponseHelper } from '../utils/responseHelper';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../types/express';
+import { AuthRequest, Response } from '../types/express';
 
 export class NotificationController {
   private _notificationService: INotificationService;

@@ -32,3 +32,4 @@ export interface AuthRequest extends Request {
   files?: any;
   [key: string]: any;
 }
+export { Response } from 'express';
