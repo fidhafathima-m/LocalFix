@@ -13,7 +13,6 @@ import { validateSchema, loginSchema } from "../../../../validation";
 import { AdminAuthService } from "../../../../services/admin/AdminAuthService";
 import type { LoginCredentials } from "../../../../interface/user/IAuth";
 
-
 interface LoginResponse {
   success: boolean;
   message?: string;
@@ -67,6 +66,7 @@ const AdminLogin: React.FC = () => {
             userDataFromResponse.applicationStatus
           ),
           isVerified: userDataFromResponse.isVerified || false,
+          profilePictureUrl: userDataFromResponse.profilePicture || "",
         };
 
         dispatch(
@@ -99,7 +99,8 @@ const AdminLogin: React.FC = () => {
       }
     } catch (error: unknown) {
       console.error("AdminLogin - Error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Login failed";
+      const errorMessage =
+        error instanceof Error ? error.message : "Login failed";
       dispatch(loginFailure(errorMessage));
       return {
         success: false,
@@ -108,7 +109,10 @@ const AdminLogin: React.FC = () => {
     }
   };
 
-  const customValidation = (data: { identifier: string; password: string }): ValidationResult => {
+  const customValidation = (data: {
+    identifier: string;
+    password: string;
+  }): ValidationResult => {
     const validation = validateSchema(loginSchema, {
       ...data,
       userType: "admin",
