@@ -109,13 +109,12 @@ export class AuthService implements IAuthService {
         otpPurpose: OTPPurpose.SIGNUP,
       });
 
-      // Send OTP via email only
-      await sendEmailOTP(email, otp);
-
-      this._logger.info('Email OTP sent successfully', {
-        ...context,
-        channel: 'email',
-        email: email,
+      // Don't wait for email to send - this is causing the timeout
+      this.sendEmailOTPAsync(email, otp).catch(error => {
+        this._logger.error('Failed to send OTP email', {
+          email,
+          error: error.message,
+        });
       });
 
       this._logger.info('Signup OTP process completed successfully', {
@@ -135,6 +134,21 @@ export class AuthService implements IAuthService {
         stack: error instanceof Error ? error.stack : undefined,
       });
       return ResponseHelper.error(errorMessage);
+    }
+  }
+  private async sendEmailOTPAsync(email: string, otp: string): Promise<void> {
+    try {
+      await sendEmailOTP(email, otp);
+      this._logger.info('Email OTP sent successfully', {
+        email,
+        channel: 'email',
+      });
+    } catch (error) {
+      this._logger.error('Email OTP sending failed', {
+        email,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // Don't throw - we don't want email failures to block signup
     }
   }
 
