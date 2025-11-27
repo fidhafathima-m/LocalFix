@@ -1,52 +1,77 @@
-import { Resend } from 'resend';
+import sgMail from '@sendgrid/mail';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize SendGrid with your API key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export const sendEmailOTP = async (email: string, otp: string) => {
   console.log(`🔧 Attempting to send OTP to: ${email}, OTP: ${otp}`);
-  console.log(`🔧 Resend API Key present: ${!!process.env.RESEND_API_KEY}`);
+  console.log(`🔧 SendGrid API Key present: ${!!process.env.SENDGRID_API_KEY}`);
+
+  const msg = {
+    to: email,
+    from: {
+      email: 'localfix.business@gmail.com',
+      name: 'LocalFix',
+    },
+    subject: 'Your OTP Code - LocalFix',
+    text: `Your OTP Code is ${otp}. It will expire in 5 minutes.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <div style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; color: white;">
+          <h1 style="margin: 0; font-size: 28px;">LocalFix</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">Your Verification Code</p>
+        </div>
+        <div style="padding: 30px; text-align: center;">
+          <h2 style="color: #333; margin-bottom: 20px;">Email Verification</h2>
+          <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Use the following OTP code to verify your email address:</p>
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; display: inline-block; margin: 20px 0;">
+            <div style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+              ${otp}
+            </div>
+          </div>
+          <p style="color: #888; font-size: 14px; margin-top: 30px;">
+            This code will expire in 5 minutes.<br>
+            If you didn't request this code, please ignore this email.
+          </p>
+        </div>
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; border-top: 1px solid #e0e0e0;">
+          <p style="margin: 0; color: #666; font-size: 12px;">
+            © 2024 LocalFix. All rights reserved.<br>
+            Al Safa, Kannur, 00000 IND
+          </p>
+        </div>
+      </div>
+    `,
+  };
 
   try {
-    console.log(`📧 Sending email via Resend to: ${email}`);
+    console.log(`📧 Sending email via SendGrid to: ${email}`);
 
-    const result = await resend.emails.send({
-      from: 'LocalFix <onboarding@resend.dev>',
-      to: email,
-      subject: 'Your OTP Code - LocalFix',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
-          <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px;">
-            <h2 style="color: #333; text-align: center;">Your LocalFix OTP Code</h2>
-            <p style="font-size: 16px; color: #555;">Use the following OTP code to verify your account:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <span style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 5px;">${otp}</span>
-            </div>
-            <p style="font-size: 14px; color: #888;">This OTP will expire in 5 minutes.</p>
-            <p style="font-size: 12px; color: #999; text-align: center;">If you didn't request this, please ignore this email.</p>
-          </div>
-        </div>
-      `,
-      text: `Your OTP Code is ${otp}. It will expire in 5 minutes.`,
-    });
+    const result = await sgMail.send(msg);
 
-    console.log(`✅ Resend API Response:`, JSON.stringify(result, null, 2));
+    console.log(`✅ SendGrid email sent successfully to: ${email}`);
+    console.log(`✅ SendGrid Response:`, JSON.stringify(result, null, 2));
 
-    if (result.error) {
-      console.log(`❌ Resend Error:`, result.error);
-      throw new Error(`Resend error: ${JSON.stringify(result.error)}`);
-    }
-
-    console.log(`✅ Email sent successfully to: ${email}`);
     return result;
   } catch (error) {
-    console.error(`❌ Resend email failed for ${email}:`, error);
-    // Log the specific error details
+    console.error(`❌ SendGrid email failed for ${email}:`, error);
+
+    // Log detailed error information
     if (error instanceof Error) {
-      console.error(`❌ Error details:`, {
+      console.error(`❌ SendGrid Error Details:`, {
         message: error.message,
-        stack: error.stack,
+        code: (error as any).code,
+        response: (error as any).response
+          ? {
+              body: (error as any).response.body,
+              headers: (error as any).response.headers,
+              statusCode: (error as any).response.statusCode,
+            }
+          : 'No response',
       });
     }
-    throw error;
+
+    // Don't throw error - let signup process continue
+    return null;
   }
 };
