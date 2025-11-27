@@ -12,8 +12,10 @@
     },
     "forceConsistentCasingInFileNames": true,
     "strict": false,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "typeRoots": ["./src/types", "./node_modules/@types"]
+
   },
-  "include": ["src", "src/server.ts", "/src/types", "cleanup.js"],
+  "include": ["src", "src/server.ts", "src/types", "cleanup.js"],
   "exclude": ["node_modules"]
 }
