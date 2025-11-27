@@ -48,7 +48,6 @@ import { ReviewManagementRepository } from '../repositories/admin/ReviewManageme
 import { ReviewManagementService } from '../services/ReviewMangementService';
 import { ReviewManagementController } from '../controllers/admin/reviewManagementController';
 import { PaymentManagementRepository } from '../repositories/admin/PaymentManagementRepository';
-import { PaymentManagementService } from '../services/PaymentManagementService';
 import { PaymentManagementController } from '../controllers/admin/paymentManagementController';
 import { TechnicianManagementRepository } from '../repositories/admin/TechnicianManagemnetRepository';
 import { TechnicianManagementService } from '../services/TechnicianManagementService';
@@ -98,6 +97,7 @@ import { MessageController } from '../controllers/user/messageController';
 import { TechnicianManagementSubscriptionRepository } from '../repositories/admin/TechnicianManagementSubscriptionRepository';
 import { TechnicianManagementSubscriptionService } from '../services/TechnicianManagementSubscriptionService';
 import { TechnicianManagementSubscriptionController } from '../controllers/admin/technicianManagementSubscriptionController';
+import { PaymentManagementService } from '../services/paymentManagementService';
 
 const loggerService = new LoggerService();
 
