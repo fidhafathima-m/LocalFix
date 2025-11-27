@@ -1206,48 +1206,53 @@ const ServiceDetails: React.FC = () => {
           </div>
         </div>
 
-        {/* Service Header */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div>
+        {/* Service Header - IMPROVED MOBILE LAYOUT */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+            {/* Content Section */}
+            <div className="order-2 lg:order-1">
               <div className="flex items-start gap-4 mb-6">
-                <div className="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
                   {service.iconUrl ? (
                     <img
                       src={service.iconUrl}
                       alt={service.name}
-                      className="w-8 h-8 object-contain"
+                      className="w-6 h-6 lg:w-8 lg:h-8 object-contain"
                     />
                   ) : (
-                    <BuildOutlined className="w-8 h-8 text-blue-600" />
+                    <BuildOutlined className="w-6 h-6 lg:w-8 lg:h-8 text-blue-600" />
                   )}
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
                     {service.name}
                   </h1>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <div className="flex items-center gap-1">
-                      <StarBorderOutlined className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                      <span className="text-lg font-semibold text-gray-900">
+                      <StarBorderOutlined className="w-4 h-4 lg:w-5 lg:h-5 fill-yellow-400 text-yellow-400" />
+                      <span className="text-base lg:text-lg font-semibold text-gray-900">
                         {service.rating || 4.5}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-gray-600">
-                      <AccessTimeOutlined className="w-5 h-5" />
-                      <span>
+                      <AccessTimeOutlined className="w-4 h-4 lg:w-5 lg:h-5" />
+                      <span className="text-sm lg:text-base">
                         {service.estimatedDuration || "2-4 hours"} service time
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
-              <p className="text-gray-600 mb-6">{service.description}</p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-[105px]">
-                <div className="flex items-start justify-between">
-                  <div>
+              <p className="text-gray-600 text-sm lg:text-base mb-6 leading-relaxed">
+                {service.description}
+              </p>
+
+              {/* Price Card - Better Mobile Layout */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 lg:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex-1">
                     <p className="text-sm text-gray-600 mb-1">Base Price</p>
-                    <p className="text-3xl font-bold text-blue-600">
+                    <p className="text-2xl lg:text-3xl font-bold text-blue-600">
                       ₹{service.avgBasePrice || 299}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
@@ -1255,10 +1260,22 @@ const ServiceDetails: React.FC = () => {
                       on service type and appliance brand.
                     </p>
                   </div>
+                  <button
+                    onClick={() =>
+                      document
+                        .getElementById("technicians-section")
+                        ?.scrollIntoView({ behavior: "smooth" })
+                    }
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm lg:text-base"
+                  >
+                    Find Technicians
+                  </button>
                 </div>
               </div>
             </div>
-            <div className="relative ps-5 items-center">
+
+            {/* Image Section - Hidden on Mobile */}
+            <div className="order-1 lg:order-2 hidden lg:block relative ps-5 items-center">
               <img
                 src={serviceHero}
                 alt={service.name}
@@ -1271,19 +1288,19 @@ const ServiceDetails: React.FC = () => {
         {/* Services We Provide */}
         {service.features && service.features.length > 0 && (
           <div className="bg-white border-t border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-6 lg:mb-8">
                 Services We Provide
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
                 {service.features.map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <CheckCircleOutlineOutlined className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-1">
+                      <h3 className="font-semibold text-gray-900 text-sm lg:text-base mb-1">
                         {feature}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs lg:text-sm text-gray-600">
                         Professional service for {feature.toLowerCase()}
                       </p>
                     </div>
@@ -1292,7 +1309,7 @@ const ServiceDetails: React.FC = () => {
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
                 <InfoOutlined className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-gray-700">
+                <p className="text-xs lg:text-sm text-gray-700">
                   All services include a 30-day guarantee. Our technicians use
                   genuine parts and follow industry best practices.
                 </p>
@@ -1304,35 +1321,35 @@ const ServiceDetails: React.FC = () => {
         {/* Location Setup Section */}
         {showLocationSetup && (
           <div className="bg-white border-t border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4 lg:mb-6">
                 Set Your Location
               </h2>
-              <p className="text-gray-600 mb-8">
+              <p className="text-gray-600 text-sm lg:text-base mb-6 lg:mb-8">
                 Set your location to find nearby technicians and get accurate
                 service estimates.
               </p>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                 {/* Map Location Picker */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">
                     Select on Map
                   </h3>
                   <OSMLocationPicker
                     onLocationSelect={handleMapLocationSelect}
-                    className="w-full"
+                    className="w-full h-64 lg:h-96"
                   />
                 </div>
 
                 {/* Manual Address Form */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">
                     Or Enter Address Manually
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3 lg:space-y-4">
                     <div>
-                      <label className="block mb-1 font-medium text-gray-700">
+                      <label className="block mb-1 font-medium text-gray-700 text-sm lg:text-base">
                         Street Address <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1341,14 +1358,14 @@ const ServiceDetails: React.FC = () => {
                         value={addressForm.street}
                         onChange={handleAddressInputChange}
                         placeholder="House no, street, area"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 text-sm lg:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                       <div>
-                        <label className="block mb-1 font-medium text-gray-700">
+                        <label className="block mb-1 font-medium text-gray-700 text-sm lg:text-base">
                           City <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -1357,13 +1374,13 @@ const ServiceDetails: React.FC = () => {
                           value={addressForm.city}
                           onChange={handleAddressInputChange}
                           placeholder="City"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 text-sm lg:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block mb-1 font-medium text-gray-700">
+                        <label className="block mb-1 font-medium text-gray-700 text-sm lg:text-base">
                           State <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -1372,15 +1389,15 @@ const ServiceDetails: React.FC = () => {
                           value={addressForm.state}
                           onChange={handleAddressInputChange}
                           placeholder="State"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 text-sm lg:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                       <div>
-                        <label className="block mb-1 font-medium text-gray-700">
+                        <label className="block mb-1 font-medium text-gray-700 text-sm lg:text-base">
                           PIN Code <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -1389,13 +1406,13 @@ const ServiceDetails: React.FC = () => {
                           value={addressForm.pincode}
                           onChange={handleAddressInputChange}
                           placeholder="PIN Code"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 text-sm lg:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block mb-1 font-medium text-gray-700">
+                        <label className="block mb-1 font-medium text-gray-700 text-sm lg:text-base">
                           Landmark (Optional)
                         </label>
                         <input
@@ -1404,16 +1421,16 @@ const ServiceDetails: React.FC = () => {
                           value={addressForm.landmark}
                           onChange={handleAddressInputChange}
                           placeholder="Nearby landmark"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 text-sm lg:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <button
                         onClick={handleUseManualAddress}
                         disabled={locationLoading}
-                        className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 py-2 lg:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm lg:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {locationLoading
                           ? "Setting Location..."
@@ -1422,7 +1439,7 @@ const ServiceDetails: React.FC = () => {
                       <button
                         onClick={handleAllowLocation}
                         disabled={locationLoading}
-                        className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 lg:py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm lg:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {locationLoading ? "Detecting..." : "Auto Detect"}
                       </button>
@@ -1439,24 +1456,24 @@ const ServiceDetails: React.FC = () => {
           className="bg-gray-50 border-t border-gray-200"
           id="technicians-section"
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
             {showLocationCTA && !showLocationSetup && (
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <MyLocationOutlined className="text-blue-600" />
+                    <MyLocationOutlined className="text-blue-600 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-blue-900">
+                      <p className="font-medium text-blue-900 text-sm lg:text-base">
                         Find technicians near you
                       </p>
-                      <p className="text-sm text-blue-700">
+                      <p className="text-xs lg:text-sm text-blue-700">
                         Set your location to see closest available technicians
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={promptForLocation}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base"
                   >
                     Set Location
                   </button>
@@ -1464,38 +1481,37 @@ const ServiceDetails: React.FC = () => {
               </div>
             )}
 
-            {/* Summary and Controls - MOVED TO TOP */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            {/* Summary and Controls */}
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6 lg:mb-8">
               {/* LEFT: Heading and Location */}
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold text-gray-900">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
                   Expert Technicians
-                  {userLocation && (
-                    <span className="text-blue-600 text-lg ml-2">
+                </h2>
+                {userLocation && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-600 text-sm lg:text-base">
                       • Near {getLocationDisplay(userLocation)}
                     </span>
-                  )}
-                </h2>
-
-                {userLocation && (
-                  <button
-                    onClick={handleChangeLocation}
-                    className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
-                    title="Change location"
-                  >
-                    <MyLocationOutlined className="w-4 h-4" />
-                    <span>Change</span>
-                  </button>
+                    <button
+                      onClick={handleChangeLocation}
+                      className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs lg:text-sm font-medium cursor-pointer"
+                      title="Change location"
+                    >
+                      <MyLocationOutlined className="w-3 h-3 lg:w-4 lg:h-4" />
+                      <span>Change</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
               {/* RIGHT: Sorting Controls */}
-              <div className="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full sm:w-auto">
                 <div className="flex items-center gap-2">
                   <select
                     value={sortBy}
                     onChange={(e) => handleSortChange(e.target.value as any)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 sm:flex-none px-3 py-2 text-sm lg:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="default">Default Order</option>
                     <option value="rating">Sort by Rating</option>
@@ -1506,11 +1522,11 @@ const ServiceDetails: React.FC = () => {
                   {sortBy !== "default" && (
                     <button
                       onClick={handleClearSorting}
-                      className="flex items-center gap-1 px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-1 px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                       title="Clear sorting"
                     >
                       <ClearOutlined className="w-4 h-4" />
-                      <span className="text-sm">Clear</span>
+                      <span className="hidden sm:inline">Clear</span>
                     </button>
                   )}
                 </div>
@@ -1518,7 +1534,7 @@ const ServiceDetails: React.FC = () => {
                 {allTechnicians.length > 6 && !showAllTechnicians && (
                   <button
                     onClick={() => setShowAllTechnicians(true)}
-                    className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium cursor-pointer"
+                    className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm lg:text-base cursor-pointer"
                   >
                     View All ({allTechnicians.length})
                   </button>
@@ -1529,31 +1545,31 @@ const ServiceDetails: React.FC = () => {
             {/* Location Search Bar */}
             <div className="mb-6 max-w-md">
               <div className="relative">
-                <SearchOutlined className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <SearchOutlined className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 lg:w-5 lg:h-5" />
                 <input
                   type="text"
                   placeholder="Search by location, city, or pincode..."
                   value={locationSearch}
                   onChange={(e) => setLocationSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 lg:py-3 text-sm lg:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 {/* Show loading indicator when searching */}
                 {locationSearch !== debouncedLocationSearch && (
                   <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-3 w-3 lg:h-4 lg:w-4 border-b-2 border-blue-600"></div>
                   </div>
                 )}
                 {locationSearch && (
                   <button
                     onClick={() => setLocationSearch("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
                   >
                     ✕
                   </button>
                 )}
               </div>
               {locationSearch && (
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-xs lg:text-sm text-gray-500 mt-2">
                   {locationSearch !== debouncedLocationSearch ? (
                     "Searching..."
                   ) : (
@@ -1569,13 +1585,13 @@ const ServiceDetails: React.FC = () => {
             {techniciansLoading ? (
               <div className="flex justify-center items-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-3 text-gray-600">
+                <span className="ml-3 text-gray-600 text-sm lg:text-base">
                   Loading technicians...
                 </span>
               </div>
             ) : filteredTechnicians.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                   {filteredTechnicians.map((tech) => {
                     if (!tech || !tech._id) {
                       console.warn("Invalid technician data:", tech);
@@ -1585,30 +1601,29 @@ const ServiceDetails: React.FC = () => {
                     return (
                       <div
                         key={tech._id}
-                        className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                        className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 hover:shadow-md transition-shadow"
                       >
-                        {/* ... rest of technician card JSX remains the same ... */}
                         <div className="flex items-center gap-3 mb-4">
-                          <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                             {displayData.profilePhoto ? (
                               <img
                                 src={displayData.profilePhoto}
                                 alt={displayData.name}
-                                className="w-12 h-12 rounded-full object-cover"
+                                className="w-10 h-10 lg:w-12 lg:h-12 rounded-full object-cover"
                               />
                             ) : (
-                              <span className="text-xl font-semibold text-gray-600">
+                              <span className="text-lg lg:text-xl font-semibold text-gray-600">
                                 {displayData.name.charAt(0)}
                               </span>
                             )}
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900">
+                            <h3 className="font-semibold text-gray-900 text-sm lg:text-base">
                               {displayData.name}
                             </h3>
                             {tech.distance && (
-                              <div className="flex items-center gap-2 text-sm text-green-600">
-                                <GpsFixedOutlined className="w-4 h-4" />
+                              <div className="flex items-center gap-2 text-xs lg:text-sm text-green-600">
+                                <GpsFixedOutlined className="w-3 h-3 lg:w-4 lg:h-4" />
                                 <span className="font-medium">
                                   {tech.distance < 1000
                                     ? `${Math.round(tech.distance)}m away`
@@ -1619,45 +1634,45 @@ const ServiceDetails: React.FC = () => {
                               </div>
                             )}
                             {tech.isNearby && !tech.distance && (
-                              <div className="flex items-center gap-2 text-sm text-green-600">
-                                <GpsFixedOutlined className="w-4 h-4" />
+                              <div className="flex items-center gap-2 text-xs lg:text-sm text-green-600">
+                                <GpsFixedOutlined className="w-3 h-3 lg:w-4 lg:h-4" />
                                 <span className="font-medium">
                                   Nearby Technician
                                 </span>
                               </div>
                             )}
                             <div className="flex items-center gap-1">
-                              <StarBorderOutlined className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                              <span className="text-sm font-medium text-gray-900">
+                              <StarBorderOutlined className="w-3 h-3 lg:w-4 lg:h-4 fill-yellow-400 text-yellow-400" />
+                              <span className="text-xs lg:text-sm font-medium text-gray-900">
                                 {displayData.rating.toFixed(1)}
                               </span>
-                              <span className="text-sm text-gray-500">
+                              <span className="text-xs lg:text-sm text-gray-500">
                                 ({displayData.ratingCount} reviews)
                               </span>
                             </div>
                           </div>
                         </div>
                         <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <LocationOnOutlined className="w-4 h-4 text-blue-600" />
+                          <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-600">
+                            <LocationOnOutlined className="w-3 h-3 lg:w-4 lg:h-4 text-blue-600" />
                             <span className="font-medium">
                               {displayData.shortAddress}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <EmojiEventsOutlined className="w-4 h-4 text-blue-600" />
+                          <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-600">
+                            <EmojiEventsOutlined className="w-3 h-3 lg:w-4 lg:h-4 text-blue-600" />
                             <span>Experience: {displayData.experience}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <BuildOutlined className="w-4 h-4 text-blue-600" />
+                          <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-600">
+                            <BuildOutlined className="w-3 h-3 lg:w-4 lg:h-4 text-blue-600" />
                             <span>
                               Specialization: {displayData.specialization}
                             </span>
                           </div>
                           {tech.workAreas && tech.workAreas.length > 0 && (
-                            <div className="flex items-start gap-2 text-sm text-gray-600">
+                            <div className="flex items-start gap-2 text-xs lg:text-sm text-gray-600">
                               <span className="mt-0.5">
-                                <MiscellaneousServicesOutlined className="w-4 h-4 text-blue-600" />
+                                <MiscellaneousServicesOutlined className="w-3 h-3 lg:w-4 lg:h-4 text-blue-600" />
                               </span>
                               <span>
                                 Areas: {tech.workAreas.slice(0, 3).join(", ")}
@@ -1670,7 +1685,7 @@ const ServiceDetails: React.FC = () => {
                           onClick={() =>
                             handleViewTechnicianProfile(tech._id, service.name)
                           }
-                          className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer"
+                          className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm lg:text-base cursor-pointer"
                         >
                           View Profile
                         </button>
@@ -1684,13 +1699,13 @@ const ServiceDetails: React.FC = () => {
               </>
             ) : (
               <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
-                <BuildOutlined className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <BuildOutlined className="w-10 h-10 lg:w-12 lg:h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-2">
                   {locationSearch
                     ? "No Technicians Found"
                     : "No Technicians Available"}
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600 text-sm lg:text-base mb-4">
                   {locationSearch
                     ? `No technicians found matching "${locationSearch}". Try a different location.`
                     : `Currently, there are no verified technicians for ${service.name}.`}
@@ -1698,14 +1713,14 @@ const ServiceDetails: React.FC = () => {
                 {locationSearch && (
                   <button
                     onClick={() => setLocationSearch("")}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mr-2"
+                    className="px-4 lg:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mr-2 text-sm lg:text-base"
                   >
                     Clear Search
                   </button>
                 )}
                 <button
                   onClick={() => navigate("/services")}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 lg:px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm lg:text-base"
                 >
                   Browse Other Services
                 </button>
@@ -1720,7 +1735,7 @@ const ServiceDetails: React.FC = () => {
                     setShowAllTechnicians(false);
                     setLocationSearch("");
                   }}
-                  className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm lg:text-base"
                 >
                   Show Less
                 </button>
@@ -1734,25 +1749,27 @@ const ServiceDetails: React.FC = () => {
       {showMapPicker && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
+            <div className="p-4 lg:p-6 border-b">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold">Select Your Location</h3>
+                <h3 className="text-lg lg:text-xl font-semibold">
+                  Select Your Location
+                </h3>
                 <button
                   onClick={() => setShowMapPicker(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 text-lg"
                 >
                   ✕
                 </button>
               </div>
-              <p className="text-gray-600 mt-2">
+              <p className="text-gray-600 text-sm lg:text-base mt-2">
                 Click on the map to select your exact location and find nearby
                 technicians
               </p>
             </div>
-            <div className="p-6">
+            <div className="p-4 lg:p-6">
               <OSMLocationPicker
                 onLocationSelect={handleMapLocationSelect}
-                className="w-full"
+                className="w-full h-64 lg:h-96"
               />
             </div>
           </div>
