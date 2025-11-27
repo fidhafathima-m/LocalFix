@@ -1,11 +1,6 @@
 import { z } from "zod";
 
 // Common schemas
-export const phoneSchema = z
-  .string()
-  .regex(/^\d{10}$/, "Enter valid phone number")
-  .optional()
-  .or(z.literal(""));
 
 export const emailSchema = z
   .string()
@@ -23,13 +18,12 @@ export const confirmPasswordSchema = z.string();
 export const signupSchema = z
   .object({
     fullName: z.string().min(1, "Full name is required"),
-    phone: phoneSchema,
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: confirmPasswordSchema,
     userType: z.enum(["user", "serviceProvider"]).default("user"),
   })
-  .refine((data) => data.phone || data.email, {
+  .refine((data) => data.email, {
     message: "Enter phone or email",
     path: ["email", "phone"],
   })
@@ -46,19 +40,18 @@ export const loginSchema = z.object({
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const phoneRegex = /^\d{10}$/;
       return emailRegex.test(val) || phoneRegex.test(val);
-    }, "Enter valid email or phone"),
+    }, "Enter valid email"),
   password: passwordSchema,
   userType: z.enum(["user", "serviceProvider", "admin"]),
 });
 
 export const forgotPasswordSchema = z
   .object({
-    phone: phoneSchema,
     email: emailSchema,
     userType: z.enum(["user", "serviceProvider", "admin"]),
   })
-  .refine((data) => data.phone || data.email, {
-    message: "Please enter either phone number or email",
+  .refine((data) => data.email, {
+    message: "Please enter email",
     path: ["_errors"],
   });
 
@@ -66,7 +59,6 @@ export const otpSchema = z.object({
   otp: z.string().length(6, "Please enter a valid 6-digit OTP"),
   userType: z.enum(["user", "serviceProvider", "admin"]),
   context: z.enum(["signup", "forgot"]),
-  phone: phoneSchema,
   email: emailSchema,
 });
 

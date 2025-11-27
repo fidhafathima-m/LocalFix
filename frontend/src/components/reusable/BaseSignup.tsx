@@ -7,7 +7,6 @@ import { VisibilityOutlined, VisibilityOffOutlined } from "@mui/icons-material";
 export interface SignUpFormData {
   fullName: string;
   email: string;
-  phone: string;
   password: string;
   confirmPassword: string;
 }
@@ -15,7 +14,6 @@ export interface SignUpFormData {
 export interface SignUpErrors {
   fullName?: string;
   email?: string;
-  phone?: string;
   password?: string;
   confirmPassword?: string;
   [key: string]: string | undefined;
@@ -26,7 +24,6 @@ interface BaseSignUpProps {
   onSubmit: (data: {
     fullName: string;
     email?: string;
-    phone?: string;
     password: string;
     userType: "user" | "serviceProvider";
   }) => Promise<{ success: boolean; message?: string; error?: unknown }>;
@@ -60,7 +57,6 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
   const [formData, setFormData] = useState<SignUpFormData>({
     fullName: "",
     email: "",
-    phone: "",
     password: "",
     confirmPassword: "",
   });
@@ -69,7 +65,6 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // UPDATED VALIDATION - Make email and phone optional (at least one required)
   const defaultValidateForm = (): boolean => {
     const newErrors: SignUpErrors = {};
     let isValid = true;
@@ -80,21 +75,14 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
     }
 
     // Check if at least one of email or phone is provided
-    if (!formData.email.trim() && !formData.phone.trim()) {
-      newErrors.email = "Email or phone number is required";
-      newErrors.phone = "Email or phone number is required";
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
       isValid = false;
     }
 
     // Validate email format only if email is provided
     if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Please enter a valid email";
-      isValid = false;
-    }
-
-    // Validate phone format only if phone is provided
-    if (formData.phone.trim() && !/^\d{10}$/.test(formData.phone)) {
-      newErrors.phone = "Please enter a valid 10-digit phone number";
       isValid = false;
     }
 
@@ -137,8 +125,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
       // Only send the fields that have values
       const submitData = {
         fullName: formData.fullName,
-        email: formData.email.trim() || undefined, // Send undefined if empty
-        phone: formData.phone.trim() || undefined, // Send undefined if empty
+        email: formData.email.trim() || undefined,
         password: formData.password,
         userType: userType,
       };
@@ -226,25 +213,6 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
           {errors.email && (
             <p className="text-sm text-red-500 mt-1">{errors.email}</p>
           )}
-        </div>
-
-        <div>
-          <label className="block text-sm mb-1">Phone Number</label>
-          <input
-            type="text"
-            name="phone"
-            placeholder="Eg: 9876543210"
-            className="w-full border p-2 rounded"
-            value={formData.phone}
-            onChange={handleChange}
-          />
-          {errors.phone && (
-            <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
-          )}
-        </div>
-
-        <div className="text-xs text-gray-500 -mt-2">
-          * Provide at least one of email or phone number
         </div>
 
         <div>
