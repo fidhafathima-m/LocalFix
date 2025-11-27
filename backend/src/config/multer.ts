@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (
-  req: Express.Request,
+  req: any, // Use any temporarily to avoid type issues
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {

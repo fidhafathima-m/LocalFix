@@ -1,4 +1,3 @@
-// src/types/express.d.ts
 import { Request } from 'express';
 
 declare global {
@@ -14,8 +13,8 @@ declare global {
   }
 }
 
-// Manual extension to ensure all properties are included
-export interface AuthRequest {
+// Complete AuthRequest with all properties
+export interface AuthRequest extends Request {
   user?: {
     id: string;
     roles: string[];
