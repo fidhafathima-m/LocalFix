@@ -88,7 +88,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
         "ratings",
         "notifications",
         "messages",
-        "settings",
       ].includes(tabParam)
     ) {
       setActiveTab(tabParam);
@@ -664,7 +663,6 @@ const ApprovedTechnicianDashboard: React.FC = () => {
                 { id: "earnings", label: "Earnings" },
                 { id: "profile", label: "Profile" },
                 { id: "ratings", label: "Ratings" },
-                { id: "settings", label: "Settings" },
                 {
                   id: "messages",
                   label: "Messages",
