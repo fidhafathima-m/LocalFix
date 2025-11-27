@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import heroImage from "../../../../assets/images/hero.jpg"
+import heroImage from "../../../../assets/images/hero.jpg";
 
 const PublicBanner = () => {
   return (
@@ -34,7 +34,7 @@ const PublicBanner = () => {
               </Link>
             </div>
           </div>
-          <div className="flex-1 p-20 ">
+          <div className="flex-1 p-20 hidden sm:flex">
             <img
               src={heroImage}
               alt="hero"
@@ -64,4 +64,4 @@ const PublicBanner = () => {
   );
 };
 
-export default PublicBanner
+export default PublicBanner;
