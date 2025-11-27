@@ -1,7 +1,6 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { Request } from 'express';
 
 const uploadDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -22,7 +21,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (
-  req: Request,
+  req: Express.Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
