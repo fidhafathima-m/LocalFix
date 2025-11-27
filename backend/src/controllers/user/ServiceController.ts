@@ -1,7 +1,7 @@
 import { IUserServiceService } from '../../interfaces/services/user/IServiceService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { SERVICE_MESSAGES } from '../../constants';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 

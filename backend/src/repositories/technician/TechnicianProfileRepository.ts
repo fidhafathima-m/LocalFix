@@ -4,19 +4,19 @@ import {
   DocumentsInfo,
   ITechnician,
   PersonalInfo,
-} from "../../interfaces/technician/ITechnician";
-import { Technician } from "../../models/technician/TechnicianSchema";
-import { Types } from "mongoose";
+} from '../../interfaces/technician/ITechnician';
+import { Technician } from '../../models/technician/TechnicianSchema';
+import { Types } from 'mongoose';
 import {
   DocumentUpdateData,
   ITechnicianProfileRepository,
   ProfileData,
   VerificationData,
-} from "../../interfaces/repository/technician/ITechnicianProfileRepository";
-import { IUser, IUserUpdate } from "../../interfaces/user/IUser";
-import UserSchema from "../../models/UserSchema";
-import bcrypt from "bcrypt";
-import { FilterQuery } from "@/interfaces/repository/admin/ITechnicianManagementRepository";
+} from '../../interfaces/repository/technician/ITechnicianProfileRepository';
+import { IUser, IUserUpdate } from '../../interfaces/user/IUser';
+import UserSchema from '../../models/UserSchema';
+import bcrypt from 'bcrypt';
+import { FilterQuery } from '../../interfaces/repository/admin/ITechnicianManagementRepository';
 
 export class TechnicianProfileRepository
   implements ITechnicianProfileRepository
@@ -46,7 +46,7 @@ export class TechnicianProfileRepository
 
       return result;
     } catch (error) {
-      console.error("REPOSITORY - Error updating technician:", error);
+      console.error('REPOSITORY - Error updating technician:', error);
       throw error;
     }
   }
@@ -77,13 +77,13 @@ export class TechnicianProfileRepository
     return await Technician.findOneAndUpdate(
       {
         _id: new Types.ObjectId(technicianId),
-        "documents._id": new Types.ObjectId(documentId),
+        'documents._id': new Types.ObjectId(documentId),
       },
       {
         $set: {
-          "documents.$.verified": updateData.verified,
-          "documents.$.status": updateData.status,
-          "documents.$.verifiedAt": updateData.verifiedAt,
+          'documents.$.verified': updateData.verified,
+          'documents.$.status': updateData.status,
+          'documents.$.verifiedAt': updateData.verifiedAt,
         },
       },
       { new: true }
@@ -158,9 +158,9 @@ export class TechnicianProfileRepository
         technicianId,
         {
           $set: {
-            "paymentDetails.bankAccount": paymentDetails.bankAccount,
-            "paymentDetails.upiId": paymentDetails.upiId,
-            "paymentDetails.withdrawalPreference":
+            'paymentDetails.bankAccount': paymentDetails.bankAccount,
+            'paymentDetails.upiId': paymentDetails.upiId,
+            'paymentDetails.withdrawalPreference':
               paymentDetails.withdrawalPreference,
           },
         },
@@ -169,7 +169,7 @@ export class TechnicianProfileRepository
 
       return !!result;
     } catch (error) {
-      console.error("Error updating payment details:", error);
+      console.error('Error updating payment details:', error);
       return false;
     }
   }
@@ -191,21 +191,21 @@ export class TechnicianProfileRepository
   async findByService(service: string): Promise<ITechnician[]> {
     return await Technician.find({
       services: service,
-      status: "approved",
+      status: 'approved',
     });
   }
 
   async findByLocation(location: string): Promise<ITechnician[]> {
     return await Technician.find({
-      workAreas: { $regex: location, $options: "i" },
-      status: "approved",
+      workAreas: { $regex: location, $options: 'i' },
+      status: 'approved',
     });
   }
 
   async findAvailableTechnicians(): Promise<ITechnician[]> {
     return await Technician.find({
-      status: "approved",
-      "availability.isAvailable": true,
+      status: 'approved',
+      'availability.isAvailable': true,
     });
   }
 
@@ -258,14 +258,14 @@ export class TechnicianProfileRepository
 
       return result;
     } catch (error) {
-      console.error("TECH PROFILE REPO - Error updating password:", error);
+      console.error('TECH PROFILE REPO - Error updating password:', error);
       throw error;
     }
   }
 
   async verifyPassword(userId: string, password: string): Promise<boolean> {
     try {
-      const user = await UserSchema.findById(userId).select("+passwordHash");
+      const user = await UserSchema.findById(userId).select('+passwordHash');
 
       if (!user || !user.passwordHash) {
         return false;
@@ -275,7 +275,7 @@ export class TechnicianProfileRepository
 
       return isValid;
     } catch (error) {
-      console.error("TECH PROFILE REPO - Error verifying password:", error);
+      console.error('TECH PROFILE REPO - Error verifying password:', error);
       return false;
     }
   }

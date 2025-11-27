@@ -6,7 +6,7 @@ import {
 } from '../interfaces/dtos/serviceDtos';
 import { SERVICE_MESSAGES } from '../constants';
 import { Types } from 'mongoose';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   toServiceListResponseDto,
   toServiceResponseDto,

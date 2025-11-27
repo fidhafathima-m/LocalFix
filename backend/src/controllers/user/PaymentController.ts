@@ -3,7 +3,7 @@ import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 
 import { IPaymentService } from '../../interfaces/services/user/IPaymentService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 
 export class PaymentController {
   private _paymentService: IPaymentService;

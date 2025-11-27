@@ -1,21 +1,21 @@
-import { Types } from "mongoose";
+import { Types } from 'mongoose';
 import {
   UserListDto,
   UserDetailDto,
   AddressDto,
   UserStatsDto,
-} from "../interfaces/dtos/userDtos";
-import { IUser, IUserWithAddress } from "../interfaces/admin/IUserManagements";
-import { IUserAddress } from "@/models/UserAddressSchema";
+} from '../interfaces/dtos/userDtos';
+import { IUser, IUserWithAddress } from '../interfaces/admin/IUserManagements';
+import { IUserAddress } from '../models/UserAddressSchema';
 
 export const toUserListDto = (user: IUserWithAddress): UserListDto => {
   return {
     _id: user._id.toString(),
-    fullName: user.fullName || "",
-    email: user.email || "",
+    fullName: user.fullName || '',
+    email: user.email || '',
     phone: user.phone,
-    status: user.status || "Active",
-    roles: Array.isArray(user.roles) ? user.roles : ["user"],
+    status: user.status || 'Active',
+    roles: Array.isArray(user.roles) ? user.roles : ['user'],
     isEmailVerified: user.isVerified || false,
     createdAt: user.createdAt || new Date(),
     updatedAt: user.updatedAt || new Date(),
@@ -34,15 +34,14 @@ export const toUserDetailDto = (
   user: IUser,
   addresses: IUserAddress[] = []
 ): UserDetailDto => {
-  const defaultAddress =
-    addresses.find((addr) => addr.isDefault) || addresses[0];
+  const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0];
   const baseDto: UserListDto = {
     _id: user._id.toString(),
-    fullName: user.fullName || "",
-    email: user.email || "",
+    fullName: user.fullName || '',
+    email: user.email || '',
     phone: user.phone,
-    status: user.status || "Active",
-    roles: Array.isArray(user.roles) ? user.roles : ["user"],
+    status: user.status || 'Active',
+    roles: Array.isArray(user.roles) ? user.roles : ['user'],
     isEmailVerified: user.isVerified || false,
     createdAt: user.createdAt || new Date(),
     updatedAt: user.updatedAt || new Date(),
@@ -61,9 +60,9 @@ export const toUserDetailDto = (
           formattedAddress: defaultAddress.formattedAddress,
         }
       : undefined,
-    addresses: addresses.map((addr) => ({
+    addresses: addresses.map(addr => ({
       id: addr._id.toString(),
-      label: addr.label || "Home",
+      label: addr.label || 'Home',
       street: addr.street,
       city: addr.city,
       state: addr.state,

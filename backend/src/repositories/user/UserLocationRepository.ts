@@ -1,7 +1,7 @@
-import UserLocation, { IUserLocation } from "../../models/UserLocationSchema";
-import { Technician } from "../../models/technician/TechnicianSchema";
-import { LocationUpdateData } from "../../interfaces/user/IUserLocation";
-import { IUserLocationRepository } from "@/interfaces/repository/user/IUserLocationRepository";
+import UserLocation, { IUserLocation } from '../../models/UserLocationSchema';
+import { Technician } from '../../models/technician/TechnicianSchema';
+import { LocationUpdateData } from '../../interfaces/user/IUserLocation';
+import { IUserLocationRepository } from '../../interfaces/repository/user/IUserLocationRepository';
 
 export class UserLocationRepository implements IUserLocationRepository {
   async findOneByUserId(userId: string): Promise<IUserLocation | null> {
@@ -16,7 +16,7 @@ export class UserLocationRepository implements IUserLocationRepository {
       { userId },
       {
         location: {
-          type: "Point",
+          type: 'Point',
           coordinates: locationData.coordinates,
         },
         address: locationData.address,
@@ -43,8 +43,8 @@ export class UserLocationRepository implements IUserLocationRepository {
 
     try {
       const query: any = {
-        status: "approved",
-        "currentLocation.coordinates": {
+        status: 'approved',
+        'currentLocation.coordinates': {
           $exists: true,
           $ne: null,
         },
@@ -56,13 +56,13 @@ export class UserLocationRepository implements IUserLocationRepository {
 
       const technicians = await Technician.find(query)
         .select(
-          "_id userId displayName services experienceYears averageRating ratingCount profilePictureUrl workAreas personalInfo currentLocation"
+          '_id userId displayName services experienceYears averageRating ratingCount profilePictureUrl workAreas personalInfo currentLocation'
         )
         .limit(50)
         .lean();
 
       // Filter out invalid coordinates
-      const validTechnicians = technicians.filter((tech) => {
+      const validTechnicians = technicians.filter(tech => {
         const coords = tech.currentLocation?.coordinates;
         return (
           coords &&
@@ -76,7 +76,7 @@ export class UserLocationRepository implements IUserLocationRepository {
       });
 
       // Calculate distances using JavaScript
-      const techniciansWithDistance = validTechnicians.map((tech) => {
+      const techniciansWithDistance = validTechnicians.map(tech => {
         const [techLng, techLat] = tech.currentLocation?.coordinates ?? [0, 0];
         const distance = this.calculateHaversineDistance(
           userLatitude,
@@ -108,11 +108,11 @@ export class UserLocationRepository implements IUserLocationRepository {
         return (b.averageRating || 0) - (a.averageRating || 0);
       });
 
-      const nearbyCount = sorted.filter((t) => t.isNearby).length;
+      const nearbyCount = sorted.filter(t => t.isNearby).length;
 
       return sorted;
     } catch (error) {
-      console.error("Error in findNearbyTechnicians:", error);
+      console.error('Error in findNearbyTechnicians:', error);
       return [];
     }
   }

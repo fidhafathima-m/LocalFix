@@ -1,5 +1,5 @@
-import { IUser } from '@/interfaces/admin/IUserManagements';
-import { UpdateUserProfileData } from '@/services/UserProfileService';
+import { IUser } from '../../admin/IUserManagements';
+import { UpdateUserProfileData } from '../../../services/UserProfileService';
 
 export interface UserProfileResponse {
   success: boolean;

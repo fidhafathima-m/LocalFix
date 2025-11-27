@@ -5,7 +5,7 @@ import {
   IdentityInfo,
   PersonalInfo,
   SkillsInfo,
-} from '@/interfaces/technician/ITechnician';
+} from '../../interfaces/technician/ITechnician';
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface ITechnicianApplication extends Document {

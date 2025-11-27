@@ -10,8 +10,8 @@ import { Types } from 'mongoose';
 import {
   CreatePaymentRequest,
   PaymentResponseDto,
-} from '@/interfaces/user/IPayment';
-import { ILogger } from '@/interfaces/utils/ILogger';
+} from '../interfaces/user/IPayment';
+import { ILogger } from '../interfaces/utils/ILogger';
 import { IWalletRepository } from '../interfaces/repository/user/IWalletRepository';
 import { IBookingRepository } from '../interfaces/repository/user/IBookingRepository';
 import { ISparePartsRequestRepository } from '../interfaces/repository/technician/ISparePartsRequestRepository';

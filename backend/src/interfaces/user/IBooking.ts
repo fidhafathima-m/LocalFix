@@ -1,7 +1,6 @@
-// interfaces/bookingInterfaces.ts
 import { Types } from 'mongoose';
-import { ITechnician } from '@/interfaces/technician/ITechnician';
-import { IBooking } from '@/models/BookingSchema';
+import { ITechnician } from '../technician/ITechnician';
+import { IBooking } from '../../models/BookingSchema';
 
 export interface BookingHistoryItem {
   status: string;

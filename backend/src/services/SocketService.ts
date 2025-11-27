@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { LocationTrackingService } from './LocationTrackingService';
-import { ITechnicianLocationShare } from '@/interfaces/common/ILocationTracking';
+import { ITechnicianLocationShare } from '../interfaces/common/ILocationTracking';
 import { NotificationService } from './NotificationService';
 import { notificationRepository } from '../config/container';
 import { LoggerService } from './LoggerService';

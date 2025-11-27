@@ -48,7 +48,7 @@ import { ReviewManagementRepository } from '../repositories/admin/ReviewManageme
 import { ReviewManagementService } from '../services/ReviewMangementService';
 import { ReviewManagementController } from '../controllers/admin/reviewManagementController';
 import { PaymentManagementRepository } from '../repositories/admin/PaymentManagementRepository';
-import { PaymentManagementService } from '../services/paymentManagementService';
+import { PaymentManagementService } from '../services/PaymentManagementService';
 import { PaymentManagementController } from '../controllers/admin/paymentManagementController';
 import { TechnicianManagementRepository } from '../repositories/admin/TechnicianManagemnetRepository';
 import { TechnicianManagementService } from '../services/TechnicianManagementService';

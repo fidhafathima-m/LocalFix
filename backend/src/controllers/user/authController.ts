@@ -19,7 +19,7 @@ import {
   LogoutRequestDto,
   AuthResponseDto,
 } from '../../interfaces/dtos/authDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 
 export class AuthController {
   private _authService: IAuthService;

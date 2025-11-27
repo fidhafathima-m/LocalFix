@@ -19,7 +19,7 @@ import {
   UserStatus,
   UserRoles,
 } from '../constants';
-import { IUser } from '@/interfaces/user/IUser';
+import { IUser } from '../interfaces/user/IUser';
 
 import {
   SignupDataDto,
@@ -35,7 +35,7 @@ import {
   UserResponseDto,
   AuthTokensDto,
 } from '../interfaces/dtos/authDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 
 export class AuthService implements IAuthService {
   private _userRepository: IUserRepository;

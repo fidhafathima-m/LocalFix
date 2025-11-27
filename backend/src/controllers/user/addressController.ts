@@ -7,7 +7,7 @@ import {
   CreateAddressRequestDto,
   UpdateAddressRequestDto,
 } from '../../interfaces/dtos/addressDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 

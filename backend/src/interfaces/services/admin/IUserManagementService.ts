@@ -3,13 +3,7 @@ import {
   UpdateUserStatusRequestDto,
   UserManagementResponseDto,
   UsersListResponseDto,
-} from '@/interfaces/dtos/userDtos';
-import { ApiResponse } from '../../../utils/responseHelper';
-import {
-  IUserWithAddress,
-  UpdateUserStatusRequest,
-  EditUserRequest,
-} from '../../admin/IUserManagements';
+} from '../../dtos/userDtos';
 
 export interface IUserManagementService {
   getUsers(search?: string, status?: string): Promise<UsersListResponseDto>;

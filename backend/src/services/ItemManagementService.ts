@@ -9,7 +9,7 @@ import {
 import { ITEM_MESSAGES } from '../constants';
 import { Types } from 'mongoose';
 import { LoggerService } from '../services/LoggerService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   toItemListResponseDto,
   toItemResponseDto,

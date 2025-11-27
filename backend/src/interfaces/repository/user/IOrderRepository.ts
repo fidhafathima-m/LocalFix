@@ -1,4 +1,4 @@
-import { IOrder, IOrderPopulated } from '@/interfaces/user/IOrder';
+import { IOrder, IOrderPopulated } from '../../user/IOrder';
 
 export interface IOrderRepository {
   createFromBooking(

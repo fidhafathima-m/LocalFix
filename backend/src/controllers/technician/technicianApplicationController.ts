@@ -15,7 +15,7 @@ import {
   ExpressFile,
   ExpressFiles,
 } from '../../interfaces/dtos/technicianApplicationDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 
 export class TechnicianApplicationController {
   private _applicationService: ITechnicianApplicationService;

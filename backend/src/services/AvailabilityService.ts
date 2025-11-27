@@ -5,8 +5,8 @@ import SlotRule, {
   ITimeSlot,
 } from '../models/technician/SlotRuleSchema';
 import TechnicianAvailability from '../models/technician/TechnicianAvailabilitySchema';
-import { ITechnicianAvailabilityService } from '@/interfaces/services/technician/ITechnicianAvailabilityService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ITechnicianAvailabilityService } from '../interfaces/services/technician/ITechnicianAvailabilityService';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   ApplicationAvailability,
   AvailabilityConfig,

@@ -1,4 +1,4 @@
-import { ITimeSlot } from "@/models/technician/SlotRuleSchema";
+import { ITimeSlot } from '../../../models/technician/SlotRuleSchema';
 
 export interface SetAvailabilityRequest {
   days: string[]; // ['monday', 'tuesday', ...]

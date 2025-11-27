@@ -6,8 +6,8 @@ import {
   ApplicationFilters,
 } from '../../admin/ITechnicianManagement';
 import { Types } from 'mongoose';
-import { IUser } from '@/interfaces/admin/IUserManagements';
-import { IUserAddress } from '@/models/UserAddressSchema';
+import { IUser } from '../../admin/IUserManagements';
+import { IUserAddress } from '../../../models/UserAddressSchema';
 
 export type FilterQuery = Record<string, unknown>;
 

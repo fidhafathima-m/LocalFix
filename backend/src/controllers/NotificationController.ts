@@ -1,6 +1,6 @@
 import { INotificationService } from '../interfaces/services/INotificationService';
 import { ResponseHelper } from '../utils/responseHelper';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { Response } from 'express';
 

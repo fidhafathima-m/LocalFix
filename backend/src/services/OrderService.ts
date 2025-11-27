@@ -4,11 +4,11 @@ import {
   IOrder,
   OrderListResponseDto,
   OrderResponseDto,
-} from '@/interfaces/user/IOrder';
-import { IOrderService } from '@/interfaces/services/user/IOrderService';
-import { ITechnicianRepository } from '@/interfaces/repository/technician/ITechnicianRepository';
-import { INotificationService } from '@/interfaces/services/INotificationService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+} from '../interfaces/user/IOrder';
+import { IOrderService } from '../interfaces/services/user/IOrderService';
+import { ITechnicianRepository } from '../interfaces/repository/technician/ITechnicianRepository';
+import { INotificationService } from '../interfaces/services/INotificationService';
+import { ILogger } from '../interfaces/utils/ILogger';
 import { SocketService } from './SocketService';
 import { loggers } from 'winston';
 import { IMessageService } from '../interfaces/services/user/IMessageService';

@@ -2,7 +2,7 @@ import { IOrderService } from '../../interfaces/services/admin/IOrderManagementS
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ORDER_MESSAGES } from '../../constants';
 import { UpdateOrderStatusDto } from '../../interfaces/dtos/orderDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 

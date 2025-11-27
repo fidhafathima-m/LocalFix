@@ -1,9 +1,9 @@
-import { ITechnician } from "@/interfaces/technician/ITechnician";
-import mongoose, { Schema, Document } from "mongoose";
+import { ITechnician } from '../../interfaces/technician/ITechnician';
+import mongoose, { Schema, Document } from 'mongoose';
 
 const TechnicianSchema = new Schema<ITechnician>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     phone: { type: String },
     displayName: { type: String, required: true },
     bio: { type: String },
@@ -28,7 +28,7 @@ const TechnicianSchema = new Schema<ITechnician>(
     identityVerification: {
       idType: {
         type: String,
-        enum: ["passport", "driving_license", "national_id", "aadhaar"],
+        enum: ['passport', 'driving_license', 'national_id', 'aadhaar'],
         required: false,
       },
       idNumber: { type: String, required: false },
@@ -36,8 +36,8 @@ const TechnicianSchema = new Schema<ITechnician>(
       verified: { type: Boolean, default: false },
       verificationStatus: {
         type: String,
-        enum: ["pending", "approved", "rejected"],
-        default: "pending",
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending',
       },
       verifiedAt: { type: Date },
     },
@@ -48,12 +48,12 @@ const TechnicianSchema = new Schema<ITechnician>(
         type: {
           type: String,
           enum: [
-            "idProof",
-            "addressProof",
-            "policeVerification",
-            "passportPhoto",
-            "profilePhoto",
-            "tradeLicense",
+            'idProof',
+            'addressProof',
+            'policeVerification',
+            'passportPhoto',
+            'profilePhoto',
+            'tradeLicense',
           ],
           required: true,
         },
@@ -63,8 +63,8 @@ const TechnicianSchema = new Schema<ITechnician>(
         verified: { type: Boolean, default: false },
         status: {
           type: String,
-          enum: ["pending", "approved", "rejected"],
-          default: "pending",
+          enum: ['pending', 'approved', 'rejected'],
+          default: 'pending',
         },
         verifiedAt: { type: Date },
       },
@@ -80,20 +80,20 @@ const TechnicianSchema = new Schema<ITechnician>(
       upiId: { type: String },
       withdrawalPreference: {
         type: String,
-        enum: ["auto", "manual"],
-        default: "auto",
+        enum: ['auto', 'manual'],
+        default: 'auto',
       },
     },
 
     currentLocation: {
       type: {
         type: String,
-        enum: ["Point"],
-        default: "Point",
+        enum: ['Point'],
+        default: 'Point',
       },
       coordinates: {
         type: [Number], // [lng, lat]
-        index: "2dsphere",
+        index: '2dsphere',
         default: undefined,
       },
     },
@@ -104,15 +104,15 @@ const TechnicianSchema = new Schema<ITechnician>(
     status: {
       type: String,
       enum: [
-        "not-applied",
-        "draft",
-        "submitted",
-        "under_review",
-        "approved",
-        "rejected",
-        "suspended",
+        'not-applied',
+        'draft',
+        'submitted',
+        'under_review',
+        'approved',
+        'rejected',
+        'suspended',
       ],
-      default: "not-applied",
+      default: 'not-applied',
     },
     suspensionReason: {
       type: String,
@@ -128,7 +128,7 @@ const TechnicianSchema = new Schema<ITechnician>(
     profilePictureUrl: { type: String },
     previousApplicationId: {
       type: Schema.Types.ObjectId,
-      ref: "TechnicianApplication",
+      ref: 'TechnicianApplication',
     },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
@@ -138,9 +138,9 @@ const TechnicianSchema = new Schema<ITechnician>(
   }
 );
 
-TechnicianSchema.index({ currentLocation: "2dsphere" });
+TechnicianSchema.index({ currentLocation: '2dsphere' });
 
 export const Technician = mongoose.model<ITechnician>(
-  "Technician",
+  'Technician',
   TechnicianSchema
 );

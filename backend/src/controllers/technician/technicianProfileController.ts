@@ -4,8 +4,8 @@ import { Response } from 'express';
 
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
-import { TechnicianProfileResponseDto } from '@/interfaces/dtos/technicianProfileDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { TechnicianProfileResponseDto } from '../../interfaces/dtos/technicianProfileDtos';
+import { ILogger } from '../../interfaces/utils/ILogger';
 import { toStaticDataDto } from '../../mappers/technicianProfileMappers';
 
 export class TechnicianProfileController {

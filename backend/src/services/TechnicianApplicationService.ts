@@ -18,7 +18,7 @@ import {
   APPLICATION_STATUS,
   UserRoles,
 } from '../constants';
-import { ITechnicianApplication } from '@/models/technician/TechnicianApplicationSchema';
+import { ITechnicianApplication } from '../models/technician/TechnicianApplicationSchema';
 import {
   DocumentsInfo,
   IdentityInfo,
@@ -26,7 +26,7 @@ import {
   SkillsInfo,
   AvailabilityInfo,
   BankInfo,
-} from '@/interfaces/technician/ITechnician';
+} from '../interfaces/technician/ITechnician';
 import {
   ApplicationListResponseDto,
   ApplicationResponseDto,
@@ -34,9 +34,9 @@ import {
   SaveStepRequestDto,
   StartApplicationRequestDto,
   UploadedFileDto,
-} from '@/interfaces/dtos/technicianApplicationDtos';
+} from '../interfaces/dtos/technicianApplicationDtos';
 import { TechnicianAvailabilityService } from './AvailabilityService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   toApplicationDataDto,
   toApplicationListDto,

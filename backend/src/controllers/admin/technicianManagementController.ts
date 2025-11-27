@@ -15,7 +15,7 @@ import {
   TechnicianFiltersDto,
   ApplicationFiltersDto,
 } from '../../interfaces/dtos/technicianDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 
 export class TechnicianManagementController {
   private _technicianService: ITechnicianManagementService;

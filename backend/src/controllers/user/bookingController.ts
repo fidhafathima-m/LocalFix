@@ -5,7 +5,7 @@ import { CreateBookingRequestDto } from '../../interfaces/dtos/bookingDtos';
 import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 
 export class BookingController {
   private _bookingService: IBookingService;

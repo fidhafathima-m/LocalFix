@@ -4,7 +4,7 @@ import {
   ReportResponse,
 } from '../interfaces/services/admin/IReportService';
 import { IReportRepository } from '../interfaces/repository/admin/IReportRepository';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 
 export class ReportService implements IReportService {
   private _reportRepository: IReportRepository;

@@ -8,7 +8,7 @@ import {
 } from '../interfaces/dtos/orderDtos';
 import { ORDER_MESSAGES } from '../constants';
 import { FilterQuery, Types } from 'mongoose';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   toOrderListResponseDto,
   toOrderResponseDto,

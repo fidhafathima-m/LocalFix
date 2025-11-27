@@ -1,5 +1,5 @@
-import { IUserLocationService } from '@/interfaces/services/user/IUserLocationService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { IUserLocationService } from '../../interfaces/services/user/IUserLocationService';
+import { ILogger } from '../../interfaces/utils/ILogger';
 import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 

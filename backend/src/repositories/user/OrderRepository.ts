@@ -2,8 +2,8 @@ import { IOrderRepository } from '../../interfaces/repository/user/IOrderReposit
 import Order from '../../models/OrderSchema';
 import Booking, { isAddressPopulated } from '../../models/BookingSchema';
 import { Types } from 'mongoose';
-import { IOrder, IOrderPopulated } from '@/interfaces/user/IOrder';
-import UserAddressSchema from '@/models/UserAddressSchema';
+import { IOrder, IOrderPopulated } from '../../interfaces/user/IOrder';
+import UserAddressSchema from '../../models/UserAddressSchema';
 import { ITechnician } from '../../interfaces/technician/ITechnician';
 import { IUser } from '../../interfaces/user/IUser';
 

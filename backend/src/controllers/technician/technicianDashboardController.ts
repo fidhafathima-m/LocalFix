@@ -8,7 +8,7 @@ import {
   DashboardOverviewResponseDto,
   TechnicianProfileResponseDto,
 } from '../../interfaces/dtos/technicianDashboardDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 
 export class TechnicianDashboardController {
   private _dashboardService: ITechnicianDashboardService;

@@ -1,4 +1,4 @@
-import { IOrder, IOrderItem } from '@/interfaces/user/IOrder';
+import { IOrder, IOrderItem } from '../interfaces/user/IOrder';
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 const orderItemSchema = new Schema<IOrderItem>(

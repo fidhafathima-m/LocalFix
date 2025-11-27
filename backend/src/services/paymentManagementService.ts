@@ -3,12 +3,12 @@ import {
   PaymentResponseDto,
   PaymentStatsDto,
   RefundRequestDto,
-} from '@/interfaces/dtos/paymentDtos';
+} from '../interfaces/dtos/paymentDtos';
 import { IPaymentRepository } from '../interfaces/repository/admin/IPaymentRepository';
 import { Types } from 'mongoose';
 import { PAYMENT_MESSAGES } from '../constants';
 import { IPaymentService } from '../interfaces/services/admin/IPaymentManagementService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   toPaymentListResponseDto,
   toPaymentResponseDto,

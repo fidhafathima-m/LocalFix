@@ -24,8 +24,8 @@ import {
   IdentityInfo,
   WeeklyPattern,
 } from '../../interfaces/technician/ITechnician';
-import { IUser } from '@/interfaces/admin/IUserManagements';
-import { IUserAddress } from '@/models/UserAddressSchema';
+import { IUser } from '../../interfaces/admin/IUserManagements';
+import { IUserAddress } from '../../models/UserAddressSchema';
 import SlotRuleSchema from '../../models/technician/SlotRuleSchema';
 import TechnicianAvailabilitySchema from '../../models/technician/TechnicianAvailabilitySchema';
 

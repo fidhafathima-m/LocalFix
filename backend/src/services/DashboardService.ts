@@ -9,7 +9,7 @@ import {
   GrowthMetricsDto,
   DashboardResponseDto,
 } from '../interfaces/dtos/dashboardDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 
 export class DashboardService implements IDashboardService {
   private _dashboardRepository: IDashboardRepository;

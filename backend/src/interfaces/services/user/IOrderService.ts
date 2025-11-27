@@ -1,8 +1,5 @@
-import {
-  OrderListResponseDto,
-  OrderResponseDto,
-} from "@/interfaces/user/IOrder";
-import { ApiResponse } from "@/utils/responseHelper";
+import { OrderListResponseDto, OrderResponseDto } from '../../user/IOrder';
+import { ApiResponse } from '../../../utils/responseHelper';
 
 export interface IOrderService {
   getUserOrders(
@@ -17,9 +14,9 @@ export interface IOrderService {
   createOrderFromBooking(
     bookingId: string,
     paymentData: {
-      method: "online" | "cod";
+      method: 'online' | 'cod';
       amount: number;
-      status: "pending" | "paid" | "failed";
+      status: 'pending' | 'paid' | 'failed';
       transactionId?: string;
       paidAt?: Date;
     }
@@ -32,9 +29,9 @@ export interface IOrderService {
   createOrderFromBooking(
     bookingId: string,
     paymentData: {
-      method: "online" | "cod";
+      method: 'online' | 'cod';
       amount: number;
-      status: "pending" | "paid" | "failed";
+      status: 'pending' | 'paid' | 'failed';
       transactionId?: string;
       paidAt?: Date;
     }
@@ -76,9 +73,9 @@ export interface IOrderService {
   updateOrderPayment(
     orderId: string,
     paymentData: {
-      method: "online" | "cod";
+      method: 'online' | 'cod';
       amount: number;
-      status: "pending" | "paid" | "failed";
+      status: 'pending' | 'paid' | 'failed';
       transactionId?: string;
       paidAt?: Date;
     }

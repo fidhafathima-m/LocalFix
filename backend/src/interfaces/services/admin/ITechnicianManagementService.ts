@@ -8,7 +8,7 @@ import {
   TechnicianListResponseDto,
   TechnicianStatsResponseDto,
   UpdateStatusRequestDto,
-} from '@/interfaces/dtos/technicianDtos';
+} from '../../dtos/technicianDtos';
 
 export interface ITechnicianManagementService {
   // Technician methods

@@ -5,7 +5,7 @@ import {
   NotificationResponseDto,
   NotificationListResponseDto,
 } from '../interfaces/dtos/notificationDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   toNotificationListResponseDto,
   toNotificationResponseDto,

@@ -1,8 +1,5 @@
-import {
-  CreatePaymentRequest,
-  PaymentResponseDto,
-} from '@/interfaces/user/IPayment';
-import { ApiResponse } from '@/utils/responseHelper';
+import { CreatePaymentRequest, PaymentResponseDto } from '../../user/IPayment';
+import { ApiResponse } from '../../../utils/responseHelper';
 
 export interface IPaymentService {
   createPaymentOrder(

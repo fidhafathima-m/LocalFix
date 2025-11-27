@@ -2,7 +2,7 @@ import { IItemService } from '../../interfaces/services/admin/IItemManagementSer
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ITEM_MESSAGES } from '../../constants';
 import { CreateItemDto, UpdateItemDto } from '../../interfaces/dtos/itemDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 

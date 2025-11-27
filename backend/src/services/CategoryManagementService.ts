@@ -8,7 +8,7 @@ import {
 } from '../interfaces/dtos/categoryDtos';
 import { CATEGORY_MESSAGES } from '../constants';
 import { Service } from '../models/category/serviceSchema';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   toCategoryListResponseDto,
   toCategoryResponseDto,

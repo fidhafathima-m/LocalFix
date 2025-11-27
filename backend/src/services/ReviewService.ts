@@ -13,7 +13,7 @@ import {
 } from '../interfaces/dtos/reviewDtos';
 import { ApiResponse } from '../utils/responseHelper';
 import { INotificationService } from '../interfaces/services/INotificationService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   toReviewCreateModel,
   toReviewDto,

@@ -4,7 +4,7 @@ import { GeneralMessages } from '../../constants';
 import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 
 class TechnicianOrderController {
   private _orderService: IOrderService;

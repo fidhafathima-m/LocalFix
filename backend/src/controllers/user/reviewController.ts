@@ -12,7 +12,7 @@ import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 
 import { IReviewRepository } from '../../interfaces/repository/user/IReviewRepository';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 import { toReviewDto } from '../../mappers/reviewMapper';
 
 export class ReviewController {

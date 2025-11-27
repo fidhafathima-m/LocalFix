@@ -14,7 +14,7 @@ import {
   AVAILABILITY_DEFAULTS,
   PAYMENT_DEFAULTS,
 } from '../constants';
-import { ITechnician } from '@/interfaces/technician/ITechnician';
+import { ITechnician } from '../interfaces/technician/ITechnician';
 
 // Import DTOs and Mapper
 import {
@@ -32,10 +32,10 @@ import {
 } from '../interfaces/dtos/technicianProfileDtos';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { RRule } from 'rrule';
-import { IOrderService } from '@/interfaces/services/user/IOrderService';
-import { IEmailService } from '@/interfaces/services/IEmailService';
-import { INotificationService } from '@/interfaces/services/INotificationService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { IOrderService } from '../interfaces/services/user/IOrderService';
+import { IEmailService } from '../interfaces/services/IEmailService';
+import { INotificationService } from '../interfaces/services/INotificationService';
+import { ILogger } from '../interfaces/utils/ILogger';
 import {
   toStaticDataDto,
   toTechnicianProfileDto,

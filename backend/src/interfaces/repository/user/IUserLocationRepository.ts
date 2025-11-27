@@ -1,5 +1,5 @@
-import { LocationUpdateData } from "@/interfaces/user/IUserLocation";
-import { IUserLocation } from "@/models/UserLocationSchema";
+import { LocationUpdateData } from '../../user/IUserLocation';
+import { IUserLocation } from '../../../models/UserLocationSchema';
 
 export interface IUserLocationRepository {
   findOneByUserId(userId: string): Promise<IUserLocation | null>;
@@ -11,6 +11,6 @@ export interface IUserLocationRepository {
   findNearbyTechnicians(
     userCoordinates: [number, number],
     radiusInMeters: number,
-    serviceName?: string,
+    serviceName?: string
   ): Promise<any[]>;
 }

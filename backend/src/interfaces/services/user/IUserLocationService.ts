@@ -1,9 +1,9 @@
-import { ServiceListResponseDto } from "@/interfaces/dtos/serviceDtos";
+import { ServiceListResponseDto } from '../../dtos/serviceDtos';
 import {
   LocationUpdateData,
   TechnicianWithDistance,
-} from "@/interfaces/user/IUserLocation";
-import { IUserLocation } from "@/models/UserLocationSchema";
+} from '../../user/IUserLocation';
+import { IUserLocation } from '../../../models/UserLocationSchema';
 
 export interface ServiceResponse<T> {
   success: boolean;

@@ -2,7 +2,7 @@ import { IUserManagementRepository } from '../interfaces/repository/admin/IUserM
 import { ResponseHelper } from '../utils/responseHelper';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { IAddressRepository } from '../interfaces/repository/user/IAddressRepository';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../interfaces/utils/ILogger';
 import { toAddressDtoList } from '../mappers/addressMapper';
 import { IUserProfileService } from '../interfaces/services/user/IUserProfileService';
 import { Types } from 'mongoose';

@@ -9,10 +9,10 @@ import {
   TrackingDetailsDto,
 } from '../interfaces/dtos/bookingDtos';
 import mongoose, { Types } from 'mongoose';
-import { IOrderRepository } from '@/interfaces/repository/user/IOrderRepository';
-import { ITechnician } from '@/interfaces/technician/ITechnician';
-import { IBooking } from '@/models/BookingSchema';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { IOrderRepository } from '../interfaces/repository/user/IOrderRepository';
+import { ITechnician } from '../interfaces/technician/ITechnician';
+import { IBooking } from '../models/BookingSchema';
+import { ILogger } from '../interfaces/utils/ILogger';
 import { IOrderPopulated } from '../interfaces/user/IOrder';
 import {
   BookingModel,

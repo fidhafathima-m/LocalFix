@@ -8,7 +8,7 @@ import {
   UpdateUserStatusRequestDto,
   EditUserRequestDto,
 } from '../../interfaces/dtos/userDtos';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { ILogger } from '../../interfaces/utils/ILogger';
 import { AuthRequest } from '../../middleware/authMiddleware';
 import { Response } from 'express';
 

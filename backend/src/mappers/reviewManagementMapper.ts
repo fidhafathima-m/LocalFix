@@ -1,5 +1,5 @@
-import { ReviewResponseDto } from "@/interfaces/services/admin/IReviewManagementService";
-import { ReviewWithDetails } from "../interfaces/repository/admin/IReviewRepository";
+import { ReviewResponseDto } from '../interfaces/services/admin/IReviewManagementService';
+import { ReviewWithDetails } from '../interfaces/repository/admin/IReviewRepository';
 
 export const toAdminReviewResponseDto = (
   review: ReviewWithDetails
@@ -11,13 +11,13 @@ export const toAdminReviewResponseDto = (
     technicianId: review.technicianId.toString(),
     rating: review.rating,
     comment: review.comment,
-    status: review.status as "published" | "flagged" | "pending",
+    status: review.status as 'published' | 'flagged' | 'pending',
     createdAt: review.createdAt.toISOString(),
     updatedAt: review.updatedAt.toISOString(),
     customerName: review.customerName,
     customerEmail: review.customerEmail,
     customerPhone: review.customerPhone,
     service: review.service,
-    technicianName: review.technicianName || "Unknown Technician",
+    technicianName: review.technicianName || 'Unknown Technician',
   };
 };

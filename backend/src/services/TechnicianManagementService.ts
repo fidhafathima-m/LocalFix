@@ -36,9 +36,9 @@ import {
   TechnicianStatus,
   APPLICATION_STATUS,
 } from '../constants';
-import { IUser } from '@/interfaces/user/IUser';
-import { IAddress } from '@/interfaces/user/IAddress';
-import { IUserAddress } from '@/models/UserAddressSchema';
+import { IUser } from '../interfaces/user/IUser';
+import { IAddress } from '../interfaces/user/IAddress';
+import { IUserAddress } from '../models/UserAddressSchema';
 import {
   ApplicationFiltersDto,
   ApplicationListDto,
@@ -49,11 +49,11 @@ import {
   TechnicianListDto,
   TechnicianListResponseDto,
   UpdateStatusRequestDto,
-} from '@/interfaces/dtos/technicianDtos';
+} from '../interfaces/dtos/technicianDtos';
 import { TechnicianAvailabilityService } from './AvailabilityService';
 import { RRule } from 'rrule';
-import { INotificationService } from '@/interfaces/services/INotificationService';
-import { ILogger } from '@/interfaces/utils/ILogger';
+import { INotificationService } from '../interfaces/services/INotificationService';
+import { ILogger } from '../interfaces/utils/ILogger';
 import { toTechnicianDetailDto } from '../mappers/technicianMappers';
 import {
   toApplicationDetailDto,
