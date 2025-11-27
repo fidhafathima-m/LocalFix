@@ -301,8 +301,7 @@ const Services: React.FC = () => {
               Our Services
             </h1>
             <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
-              Professional appliance repair services in Kannur with verified
-              technicians
+              Professional appliance repair services with verified technicians
             </p>
             <div className="max-w-md mx-auto">
               <div className="relative">
@@ -328,152 +327,170 @@ const Services: React.FC = () => {
         {/* Categories & Filter Bar */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-            {/* Categories */}
-            <div className="flex gap-3 overflow-x-auto pb-2 flex-1">
-              {categories.map((category) => {
-                const categoryIconUrl = getCategoryIconUrl(category);
-                return (
-                  <button
-                    key={category.id}
-                    onClick={() => {
-                      setSelectedCategory(category.id);
-                      setCurrentPage(1);
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                      selectedCategory === category.id
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                    }`}
-                  >
-                    {categoryIconUrl && (
-                      <img
-                        src={categoryIconUrl}
-                        alt={category.name}
-                        className="w-5 h-5 object-contain"
-                      />
-                    )}
-                    {category.name}
-                    {category.serviceCount && category.id !== "all" && (
-                      <span
-                        className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          selectedCategory === category.id
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-200 text-gray-600"
-                        }`}
-                      >
-                        {category.serviceCount}
+            {/* Categories - Mobile optimized */}
+            <div className="w-full lg:flex-1">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+                {categories.map((category) => {
+                  const categoryIconUrl = getCategoryIconUrl(category);
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => {
+                        setSelectedCategory(category.id);
+                        setCurrentPage(1);
+                      }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap transition-colors flex-shrink-0 ${
+                        selectedCategory === category.id
+                          ? "bg-blue-600 text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                      }`}
+                    >
+                      {categoryIconUrl && (
+                        <img
+                          src={categoryIconUrl}
+                          alt={category.name}
+                          className="w-4 h-4 object-contain flex-shrink-0"
+                        />
+                      )}
+                      <span className="text-sm font-medium">
+                        {category.name}
                       </span>
-                    )}
-                  </button>
-                );
-              })}
+                      {category.serviceCount && category.id !== "all" && (
+                        <span
+                          className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                            selectedCategory === category.id
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-200 text-gray-600"
+                          }`}
+                        >
+                          {category.serviceCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Filter & Sort Controls */}
-            <div className="flex gap-3 items-center">
-              {/* Page Size Selector */}
-              <select
-                value={pageSize}
-                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value={5}>5 per page</option>
-                <option value={10}>10 per page</option>
-                <option value={20}>20 per page</option>
-                <option value={50}>50 per page</option>
-              </select>
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value);
-                  setCurrentPage(1); // Reset to page 1 when sorting
-                }}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="name">Sort by Name</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
-              </select>
-              {/* Filter Toggle Button */}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                  showFilters || isAnyFilterActive
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                <FilterListOutlined className="w-5 h-5" />
-                Filters
-                {isAnyFilterActive && (
-                  <span className="w-2 h-2 bg-red-400 rounded-full"></span>
-                )}
-              </button>
-              {/* Reset Filters Button */}
-              {isAnyFilterActive && (
-                <button
-                  onClick={resetFilters}
-                  className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+            {/* Filter & Sort Controls - Mobile optimized */}
+            <div className="flex flex-wrap gap-2 w-full lg:w-auto justify-between lg:justify-end">
+              {/* Mobile: Stack controls vertically on small screens */}
+              <div className="flex gap-2 flex-1 lg:flex-none">
+                {/* Page Size Selector - Hidden on mobile, shown on desktop */}
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="hidden sm:block px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 >
-                  <CloseOutlined className="w-4 h-4" />
-                  Reset
+                  <option value={5}>5 per page</option>
+                  <option value={10}>10 per page</option>
+                  <option value={20}>20 per page</option>
+                  <option value={50}>50 per page</option>
+                </select>
+
+                {/* Sort By - Full width on mobile, auto on desktop */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-w-[140px]"
+                >
+                  <option value="name">Sort by Name</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="rating">Highest Rated</option>
+                </select>
+              </div>
+
+              {/* Filter and Reset Buttons */}
+              <div className="flex gap-2 flex-1 lg:flex-none justify-end">
+                {/* Filter Toggle Button */}
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors flex-1 lg:flex-none justify-center ${
+                    showFilters || isAnyFilterActive
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <FilterListOutlined className="w-4 h-4" />
+                  <span className="text-sm font-medium">Filters</span>
+                  {isAnyFilterActive && (
+                    <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+                  )}
                 </button>
-              )}
+
+                {/* Reset Filters Button */}
+                {isAnyFilterActive && (
+                  <button
+                    onClick={resetFilters}
+                    className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors border border-gray-300 rounded-lg bg-white hover:bg-gray-50"
+                  >
+                    <CloseOutlined className="w-4 h-4" />
+                    <span className="hidden sm:inline">Reset</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Filter Panel */}
+          {/* Filter Panel - Mobile optimized */}
           {showFilters && (
-            <div className="mt-4 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="mt-4 p-4 sm:p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="grid grid-cols-1 gap-6">
                 {/* Price Range Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
                     Price Range: ₹{priceRange[0]} - ₹{priceRange[1]}
                   </label>
-                  <div className="space-y-2">
-                    <input
-                      type="range"
-                      min={minPrice}
-                      max={maxPrice}
-                      value={priceRange[0]}
-                      onChange={(e) => {
-                        setPriceRange([
-                          parseInt(e.target.value),
-                          priceRange[1],
-                        ]);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <input
-                      type="range"
-                      min={minPrice}
-                      max={maxPrice}
-                      value={priceRange[1]}
-                      onChange={(e) => {
-                        setPriceRange([
-                          priceRange[0],
-                          parseInt(e.target.value),
-                        ]);
-                        setCurrentPage(1);
-                      }}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <input
+                        type="range"
+                        min={minPrice}
+                        max={maxPrice}
+                        value={priceRange[0]}
+                        onChange={(e) => {
+                          setPriceRange([
+                            parseInt(e.target.value),
+                            priceRange[1],
+                          ]);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+                      />
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="range"
+                        min={minPrice}
+                        max={maxPrice}
+                        value={priceRange[1]}
+                        onChange={(e) => {
+                          setPriceRange([
+                            priceRange[0],
+                            parseInt(e.target.value),
+                          ]);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <div className="flex justify-between text-xs text-gray-500">
                     <span>₹{minPrice}</span>
                     <span>₹{maxPrice}</span>
                   </div>
                 </div>
 
                 {/* Rating Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
                     Minimum Rating
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {[4, 3, 2, 1].map((stars) => (
                       <button
                         key={stars}
@@ -483,14 +500,14 @@ const Services: React.FC = () => {
                           );
                           setCurrentPage(1);
                         }}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors ${
+                        className={`flex items-center gap-1 px-3 py-2 rounded-lg border transition-colors flex-1 min-w-[60px] justify-center ${
                           ratingFilter === stars
                             ? "bg-blue-600 text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                         }`}
                       >
                         <StarBorderOutlined className="w-4 h-4" />
-                        {stars}+
+                        <span className="text-sm font-medium">{stars}+</span>
                       </button>
                     ))}
                   </div>
@@ -651,7 +668,7 @@ const Services: React.FC = () => {
                       }`}
                     >
                       <ChevronLeftOutlined className="w-4 h-4" />
-                      Previous
+                      <span className="hidden sm:inline">Previous</span>
                     </button>
 
                     {/* Page Numbers */}
@@ -660,7 +677,7 @@ const Services: React.FC = () => {
                         <button
                           key={page}
                           onClick={() => handlePageChange(page)}
-                          className={`w-10 h-10 rounded-lg border transition-colors ${
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg border transition-colors text-sm sm:text-base ${
                             currentPage === page
                               ? "bg-blue-600 text-white border-blue-600"
                               : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
@@ -681,7 +698,7 @@ const Services: React.FC = () => {
                           : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300 cursor-pointer"
                       }`}
                     >
-                      Next
+                      <span className="hidden sm:inline">Next</span>
                       <ChevronRightOutlined className="w-4 h-4" />
                     </button>
                   </div>
