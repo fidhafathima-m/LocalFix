@@ -1319,6 +1319,7 @@ const ServiceDetails: React.FC = () => {
         )}
 
         {/* Location Setup Section */}
+        {/* Location Setup Section */}
         {showLocationSetup && (
           <div className="bg-white border-t border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
@@ -1331,23 +1332,28 @@ const ServiceDetails: React.FC = () => {
               </p>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-                {/* Map Location Picker */}
-                <div>
+                {/* Map Location Picker - Now properly sized */}
+                <div className="lg:order-2">
                   <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">
                     Select on Map
                   </h3>
-                  <OSMLocationPicker
-                    onLocationSelect={handleMapLocationSelect}
-                    className="w-full h-64 lg:h-96"
-                  />
+                  <div className="lg:h-[400px]">
+                    {" "}
+                    {/* Reduced height for desktop */}
+                    <OSMLocationPicker
+                      onLocationSelect={handleMapLocationSelect}
+                      className="w-full h-full"
+                    />
+                  </div>
                 </div>
 
-                {/* Manual Address Form */}
-                <div>
+                {/* Manual Address Form - Full form always visible */}
+                <div className="lg:order-1">
                   <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">
-                    Or Enter Address Manually
+                    Enter Your Address
                   </h3>
                   <div className="space-y-3 lg:space-y-4">
+                    {/* Street Address - Now properly positioned */}
                     <div>
                       <label className="block mb-1 font-medium text-gray-700 text-sm lg:text-base">
                         Street Address <span className="text-red-500">*</span>
@@ -1426,7 +1432,7 @@ const ServiceDetails: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
                       <button
                         onClick={handleUseManualAddress}
                         disabled={locationLoading}

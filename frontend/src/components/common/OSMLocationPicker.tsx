@@ -326,7 +326,7 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
   };
 
   return (
-    <div className={className}>
+    <div className={`${className} h-full`}>
       <div className="mb-4">
         <label className="block mb-2 font-medium text-gray-700 text-sm lg:text-base">
           Select Your Location on Map <span className="text-red-500">*</span>
@@ -342,11 +342,11 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
         </p>
       </div>
 
-      <div className="relative">
+      <div className="relative h-full">
         <MapContainer
           center={getInitialCenter()}
           zoom={hasInitialPosition ? 16 : 13}
-          className="w-full h-64 lg:h-96 rounded-lg border border-gray-300"
+          className="w-full h-full min-h-[300px] lg:min-h-[350px] rounded-lg border border-gray-300"
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
