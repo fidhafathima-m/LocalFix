@@ -327,21 +327,6 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
 
   return (
     <div className={`${className} h-full`}>
-      <div className="mb-4">
-        <label className="block mb-2 font-medium text-gray-700 text-sm lg:text-base">
-          Select Your Location on Map <span className="text-red-500">*</span>
-        </label>
-        <p className="text-xs lg:text-sm text-gray-600 mb-2">
-          {hasInitialPosition
-            ? "Current address location is shown. Click anywhere on the map to change location."
-            : "Click on the map to mark your exact location. Address fields will be automatically filled using OpenStreetMap."}
-        </p>
-        <p className="text-xs text-gray-500">
-          💡 <strong>Tip:</strong> If the auto-filled address isn't perfect, you
-          can manually edit the fields below.
-        </p>
-      </div>
-
       <div className="relative h-full">
         <MapContainer
           center={getInitialCenter()}
