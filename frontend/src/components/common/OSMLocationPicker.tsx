@@ -418,37 +418,31 @@ export const OSMLocationPicker: React.FC<OSMLocationPickerProps> = ({
             </div>
           </div>
         </div>
-      ) : address ? (
-        <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-xs lg:text-sm font-medium text-green-800 flex items-center">
-                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                {hasInitialPosition ? "Current Address" : "Address Found"} via
-                OpenStreetMap
-              </p>
-              <p className="text-xs lg:text-sm text-green-700 mt-1">
-                {address}
-              </p>
-              <p className="text-xs text-green-600 mt-2">
-                {hasInitialPosition
-                  ? "✓ Address fields below show your current address. Click on the map to change location."
-                  : "✓ Address fields below have been auto-filled. You can edit them if needed."}
-              </p>
-            </div>
-            <div className="bg-green-100 px-2 py-1 rounded text-xs text-green-800 font-medium">
-              OSM
+      ) : (
+        address && (
+          <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs lg:text-sm font-medium text-green-800 flex items-center">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  {hasInitialPosition ? "Current Address" : "Address Found"} via
+                  OpenStreetMap
+                </p>
+                <p className="text-xs lg:text-sm text-green-700 mt-1">
+                  {address}
+                </p>
+                <p className="text-xs text-green-600 mt-2">
+                  {hasInitialPosition
+                    ? "✓ Address fields below show your current address. Click on the map to change location."
+                    : "✓ Address fields below have been auto-filled. You can edit them if needed."}
+                </p>
+              </div>
+              <div className="bg-green-100 px-2 py-1 rounded text-xs text-green-800 font-medium">
+                OSM
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="mt-4 p-3 bg-yellow-50 rounded-md border border-yellow-200">
-          <p className="text-xs lg:text-sm text-yellow-700 flex items-center">
-            <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-            Please click on the map to select your location and auto-fill
-            address fields
-          </p>
-        </div>
+        )
       )}
     </div>
   );
