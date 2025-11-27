@@ -138,15 +138,23 @@ export class AuthService implements IAuthService {
   }
   private async sendEmailOTPAsync(email: string, otp: string): Promise<void> {
     try {
+      // 🔥 TEMPORARY: Always log OTP for testing
+      console.log(`🚨 OTP FOR TESTING - ${email}: ${otp}`);
+
       await sendEmailOTP(email, otp);
+
       this._logger.info('Email OTP sent successfully', {
         email,
         channel: 'email',
       });
     } catch (error) {
+      // 🔥 Log the OTP even if email fails
+      console.log(`🚨 OTP FOR MANUAL VERIFICATION - ${email}: ${otp}`);
+
       this._logger.error('Email OTP sending failed', {
         email,
         error: error instanceof Error ? error.message : 'Unknown error',
+        otp: otp, // Log OTP for manual testing
       });
       // Don't throw - we don't want email failures to block signup
     }
