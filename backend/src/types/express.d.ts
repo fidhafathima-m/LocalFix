@@ -1,7 +1,5 @@
-// src/types/express.d.ts
-import { Request, Response, NextFunction, Application, Router } from 'express';
+import { Request } from 'express';
 
-// Extend Express types globally
 declare global {
   namespace Express {
     interface Request {
@@ -15,7 +13,7 @@ declare global {
   }
 }
 
-// Export AuthRequest that properly extends Request
+// Complete AuthRequest with all properties
 export interface AuthRequest extends Request {
   user?: {
     id: string;
@@ -23,7 +21,14 @@ export interface AuthRequest extends Request {
     email?: string;
     currentRole?: string;
   };
+  body: any;
+  params: any;
+  query: any;
+  headers: any;
+  method: string;
+  url: string;
+  ip: string;
+  file?: any;
+  files?: any;
+  [key: string]: any;
 }
-
-// Re-export all Express types so they can be imported from this file
-export { Request, Response, NextFunction, Application, Router };
