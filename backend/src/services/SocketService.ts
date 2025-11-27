@@ -21,7 +21,8 @@ export class SocketService {
   ) {
     this._io = new Server(server, {
       cors: {
-        origin: process.env.FRONTEND_URL,
+        origin: process.env.CLIENT_URL,
+        credentials: true,
         methods: ['GET', 'POST'],
       },
     });
