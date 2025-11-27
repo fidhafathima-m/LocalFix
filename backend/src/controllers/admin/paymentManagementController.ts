@@ -3,7 +3,7 @@ import { ResponseHelper } from '../../utils/responseHelper';
 import { PAYMENT_MESSAGES } from '../../constants';
 import { IPaymentService } from '@/interfaces/services/admin/IPaymentManagementService';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class PaymentManagementController {
   private _paymentService: IPaymentService;

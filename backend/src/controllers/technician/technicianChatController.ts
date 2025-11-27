@@ -1,7 +1,8 @@
 import { Response } from 'express';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '../../interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
+
 import { ITechnicianChatService } from '../../interfaces/services/technician/ITechnicianChatService';
 
 export class TechnicianChatController {

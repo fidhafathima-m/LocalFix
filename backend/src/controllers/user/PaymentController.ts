@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { ResponseHelper } from '../../utils/responseHelper';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
+
 import { IPaymentService } from '../../interfaces/services/user/IPaymentService';
 import { ILogger } from '@/interfaces/utils/ILogger';
 

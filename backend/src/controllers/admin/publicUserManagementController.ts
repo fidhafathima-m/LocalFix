@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { UserManagementService } from '../../services/UserManagementService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class PublicUserManagementController {
   private _userService: UserManagementService;

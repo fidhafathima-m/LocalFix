@@ -2,7 +2,8 @@ import { Response } from 'express';
 import { IMessageService } from '../../interfaces/services/user/IMessageService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
+
 import { ILogger } from '../../interfaces/utils/ILogger';
 
 export class MessageController {

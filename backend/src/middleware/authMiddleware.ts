@@ -7,15 +7,7 @@ import jwt, {
 import User from '../models/UserSchema';
 import { Types } from 'mongoose';
 import { ResponseHelper } from '../utils/responseHelper';
-
-export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    roles: string[];
-    email?: string;
-    currentRole?: string;
-  };
-}
+import { AuthRequest } from '../types/express';
 
 export const protect = async (
   req: AuthRequest,

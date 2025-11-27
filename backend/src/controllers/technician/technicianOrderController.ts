@@ -2,7 +2,8 @@ import { Response } from 'express';
 import { IOrderService } from '../../interfaces/services/user/IOrderService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
+
 import { ILogger } from '@/interfaces/utils/ILogger';
 
 class TechnicianOrderController {

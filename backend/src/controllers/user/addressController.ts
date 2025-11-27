@@ -8,8 +8,8 @@ import {
   CreateAddressRequestDto,
   UpdateAddressRequestDto,
 } from '../../interfaces/dtos/addressDtos';
-import { AuthRequest } from '@/middleware/authMiddleware';
 import { ILogger } from '@/interfaces/utils/ILogger';
+import { AuthRequest } from '../../types/express';
 
 export class AddressController {
   private _addressService: IAddressService;

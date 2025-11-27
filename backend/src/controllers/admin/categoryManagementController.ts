@@ -7,7 +7,7 @@ import {
   UpdateCategoryDto,
 } from '../../interfaces/dtos/categoryDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class CategoryManagementController {
   private _categoryService: ICategoryService;

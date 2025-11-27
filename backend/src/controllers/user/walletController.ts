@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { IWalletService } from '../../interfaces/services/user/IWalletService';
 import { ILogger } from '../../interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class WalletController {
   private _walletService: IWalletService;

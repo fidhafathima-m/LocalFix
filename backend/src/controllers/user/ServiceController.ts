@@ -3,7 +3,7 @@ import { IUserServiceService } from '../../interfaces/services/user/IServiceServ
 import { ResponseHelper } from '../../utils/responseHelper';
 import { SERVICE_MESSAGES } from '../../constants';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class UserServiceController {
   private _userServiceService: IUserServiceService;

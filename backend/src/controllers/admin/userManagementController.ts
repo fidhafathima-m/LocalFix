@@ -10,7 +10,7 @@ import {
   EditUserRequestDto,
 } from '../../interfaces/dtos/userDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class UserManagementController {
   private _userManagementService: IUserManagementService;

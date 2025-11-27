@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { ISparePartRequestService } from '../../interfaces/services/technician/ISparePartsRequestService';
 import { ResponseHelper } from '../../utils/responseHelper';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class SparePartsRequestController {
   private _service: ISparePartRequestService;

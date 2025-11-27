@@ -9,7 +9,8 @@ import {
   CreateReviewRequestDto,
   UpdateReviewRequestDto,
 } from '../../interfaces/dtos/reviewDtos';
-import { AuthRequest } from '@/middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
+
 import { IReviewRepository } from '../../interfaces/repository/user/IReviewRepository';
 import { ILogger } from '@/interfaces/utils/ILogger';
 import { toReviewDto } from '../../mappers/reviewMapper';

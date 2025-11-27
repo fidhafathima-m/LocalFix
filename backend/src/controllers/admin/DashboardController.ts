@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { IDashboardService } from '../../interfaces/services/admin/IDashboardService';
 import { ResponseHelper } from '../../utils/responseHelper';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class DashboardController {
   private _dashboardService: IDashboardService;

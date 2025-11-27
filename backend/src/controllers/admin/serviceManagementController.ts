@@ -7,7 +7,7 @@ import {
   UpdateServiceDto,
 } from '../../interfaces/dtos/serviceDtos';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class ServiceManagementController {
   private _serviceService: IServiceService;

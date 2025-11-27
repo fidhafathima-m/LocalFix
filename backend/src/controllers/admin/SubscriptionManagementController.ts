@@ -7,7 +7,7 @@ import {
 } from '../../interfaces/dtos/subscriptionDtos';
 import { ILogger } from '../../interfaces/utils/ILogger';
 import { SUBSCRIPTION_MESSAGES } from '../../constants';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class SubscriptionManagementController {
   private _subscriptionService: ISubscriptionService;

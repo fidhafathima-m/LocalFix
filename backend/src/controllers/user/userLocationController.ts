@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { IUserLocationService } from '@/interfaces/services/user/IUserLocationService';
 import { ILogger } from '@/interfaces/utils/ILogger';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
 
 export class UserLocationController {
   private _userLocationService: IUserLocationService;

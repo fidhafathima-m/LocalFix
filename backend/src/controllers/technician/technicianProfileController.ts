@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { ITechnicianProfileService } from '../../interfaces/services/technician/ITechnicianProfileService';
-import { AuthRequest } from '../../middleware/authMiddleware';
+import { AuthRequest } from '../../types/express';
+
 import { ResponseHelper } from '../../utils/responseHelper';
 import { GeneralMessages } from '../../constants';
 import { TechnicianProfileResponseDto } from '@/interfaces/dtos/technicianProfileDtos';
