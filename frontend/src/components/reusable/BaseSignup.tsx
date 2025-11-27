@@ -18,7 +18,7 @@ export interface SignUpErrors {
   phone?: string;
   password?: string;
   confirmPassword?: string;
-  [key: string]: string | undefined; // Index signature for flexibility
+  [key: string]: string | undefined;
 }
 
 interface BaseSignUpProps {
@@ -28,7 +28,7 @@ interface BaseSignUpProps {
     email?: string;
     phone?: string;
     password: string;
-    userType: "user" | "serviceProvider"; // Keep as string for backend
+    userType: "user" | "serviceProvider";
   }) => Promise<{ success: boolean; message?: string; error?: unknown }>;
   onSuccess?: (data: SignUpFormData) => void;
   onFailure?: (error: string) => void;
@@ -66,11 +66,10 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
   });
 
   const [errors, setErrors] = useState<SignUpErrors>({});
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Default validation
+  // UPDATED VALIDATION - Make email and phone optional (at least one required)
   const defaultValidateForm = (): boolean => {
     const newErrors: SignUpErrors = {};
     let isValid = true;
@@ -80,12 +79,22 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
       isValid = false;
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
+    // Check if at least one of email or phone is provided
+    if (!formData.email.trim() && !formData.phone.trim()) {
+      newErrors.email = "Email or phone number is required";
+      newErrors.phone = "Email or phone number is required";
       isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      // Only check email format if email is not empty
+    }
+
+    // Validate email format only if email is provided
+    if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Please enter a valid email";
+      isValid = false;
+    }
+
+    // Validate phone format only if phone is provided
+    if (formData.phone.trim() && !/^\d{10}$/.test(formData.phone)) {
+      newErrors.phone = "Please enter a valid 10-digit phone number";
       isValid = false;
     }
 
@@ -125,13 +134,16 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
     if (!validateForm()) return;
 
     try {
-      const result = await onSubmit({
+      // Only send the fields that have values
+      const submitData = {
         fullName: formData.fullName,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
+        email: formData.email.trim() || undefined, // Send undefined if empty
+        phone: formData.phone.trim() || undefined, // Send undefined if empty
         password: formData.password,
         userType: userType,
-      });
+      };
+
+      const result = await onSubmit(submitData);
 
       if (result.success) {
         toast.success(result.message || "Sign up successful!");
@@ -187,7 +199,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
       {/* Form */}
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm mb-1">Full Name</label>
+          <label className="block text-sm mb-1">Full Name *</label>
           <input
             type="text"
             name="fullName"
@@ -217,7 +229,26 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm mb-1">Password</label>
+          <label className="block text-sm mb-1">Phone Number</label>
+          <input
+            type="text"
+            name="phone"
+            placeholder="Eg: 9876543210"
+            className="w-full border p-2 rounded"
+            value={formData.phone}
+            onChange={handleChange}
+          />
+          {errors.phone && (
+            <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
+          )}
+        </div>
+
+        <div className="text-xs text-gray-500 -mt-2">
+          * Provide at least one of email or phone number
+        </div>
+
+        <div>
+          <label className="block text-sm mb-1">Password *</label>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -245,7 +276,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm mb-1">Confirm Password</label>
+          <label className="block text-sm mb-1">Confirm Password *</label>
           <div className="relative">
             <input
               type={showConfirmPassword ? "text" : "password"}

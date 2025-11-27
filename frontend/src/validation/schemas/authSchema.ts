@@ -31,7 +31,7 @@ export const signupSchema = z
   })
   .refine((data) => data.phone || data.email, {
     message: "Enter phone or email",
-    path: ["phone"],
+    path: ["email", "phone"],
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
