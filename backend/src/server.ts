@@ -95,7 +95,17 @@ app.use(
   cors({
     origin: [process.env.CLIENT_URL, 'http://localhost:5173'],
     methods: ['GET', 'POST', 'OPTIONS', 'PATCH', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Idempotency-Key',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'Access-Control-Allow-Headers',
+      'Access-Control-Request-Headers',
+    ],
+    exposedHeaders: ['Idempotency-Key'],
     credentials: true,
   })
 );
