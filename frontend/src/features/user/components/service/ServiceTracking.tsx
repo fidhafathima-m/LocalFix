@@ -42,7 +42,6 @@ const ServiceTrackingComponent: React.FC = () => {
   useEffect(() => {
     if (trackingData?._id) {
       setOrderId(trackingData._id);
-      console.log("🔑 Using orderId for tracking:", trackingData._id);
     }
   }, [trackingData]);
 
@@ -116,14 +115,11 @@ const ServiceTrackingComponent: React.FC = () => {
       setLoading(true);
       const response = await trackingService.getTrackingDetails(bookingId!);
 
-      console.log("Response: ", response);
-
       if (response.success && response.data) {
         setTrackingData(response.data);
         // Set orderId immediately when data is received
         if (response.data._id) {
           setOrderId(response.data._id);
-          console.log("🎯 OrderId set from tracking data:", response.data._id);
         }
         await fetchSparePartsData();
       } else {
