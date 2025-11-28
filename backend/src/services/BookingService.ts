@@ -23,33 +23,91 @@ import {
   isTechnicianPopulated,
   isBooking,
 } from '../interfaces/user/IBooking';
+import { IRedis } from '../interfaces/config/IRedis';
 
 export class BookingService implements IBookingService {
   private _logger: ILogger;
   private _bookingRepository: IBookingRepository;
   private _orderRepository: IOrderRepository;
+  private _redisClient: IRedis;
 
   constructor(
     bookingRepository: IBookingRepository,
     orderRepository: IOrderRepository,
-    logger: ILogger
+    logger: ILogger,
+    redisClient: IRedis
   ) {
     this._logger = logger;
     this._bookingRepository = bookingRepository;
     this._orderRepository = orderRepository;
+    this._redisClient = redisClient;
+  }
+
+  private async checkBookingIdempotency(
+    key: string
+  ): Promise<{ exists: boolean; response?: any }> {
+    // Similar implementation as payment service
+    try {
+      const cachedResponse = await this._redisClient.get(
+        `booking_idempotency:${key}`
+      );
+      if (cachedResponse) {
+        return { exists: true, response: JSON.parse(cachedResponse) };
+      }
+      return { exists: false };
+    } catch (error) {
+      this._logger.error('Error checking booking idempotency key', {
+        key,
+        error,
+      });
+      return { exists: false };
+    }
+  }
+
+  private async storeBookingIdempotency(
+    key: string,
+    response: any,
+    statusCode: number
+  ): Promise<void> {
+    try {
+      await this._redisClient.setex(
+        `booking_idempotency:${key}`,
+        24 * 60 * 60,
+        JSON.stringify({ response, statusCode, timestamp: new Date() })
+      );
+    } catch (error) {
+      this._logger.error('Error storing booking idempotency key', {
+        key,
+        error,
+      });
+    }
   }
 
   async createBooking(
     userId: string,
-    bookingData: CreateBookingRequestDto
+    bookingData: CreateBookingRequestDto,
+    idempotencyKey?: string
   ): Promise<ApiResponse<BookingResponseDto>> {
     const context = {
       operation: 'createBooking',
-      data: { userId, ...bookingData },
+      data: { userId, ...bookingData, idempotencyKey },
     };
 
     try {
       this._logger.info('Creating new booking', context);
+
+      // Check idempotency key if provided
+      if (idempotencyKey) {
+        const idempotencyCheck =
+          await this.checkBookingIdempotency(idempotencyKey);
+        if (idempotencyCheck.exists) {
+          this._logger.info('Returning cached booking response', {
+            ...context,
+            idempotencyKey,
+          });
+          return idempotencyCheck.response;
+        }
+      }
 
       // Validate required fields
       if (
@@ -134,7 +192,17 @@ export class BookingService implements IBookingService {
       });
 
       const bookingDto = this.mapToDto(newBooking);
-      return ResponseHelper.created('Booking created successfully', bookingDto);
+      const response = ResponseHelper.created(
+        'Booking created successfully',
+        bookingDto
+      );
+
+      // Store the response for idempotency
+      if (idempotencyKey) {
+        await this.storeBookingIdempotency(idempotencyKey, response, 201);
+      }
+
+      return response;
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';

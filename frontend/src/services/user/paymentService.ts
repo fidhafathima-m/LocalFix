@@ -8,6 +8,7 @@ export interface CreatePaymentRequest {
   currency?: string;
   type: "service" | "subscription" | "spare_part";
   sparePartId?: string;
+  idempotencyKey?: string;
 }
 
 export interface PaymentResponse {
@@ -31,6 +32,7 @@ export interface PaymentResponse {
 export interface WalletPaymentRequest {
   bookingId: string;
   amount: number;
+  idempotencyKey?: string;
 }
 
 export interface WalletPaymentResponse {
@@ -55,9 +57,17 @@ export const paymentService = {
   async createPaymentOrder(
     data: CreatePaymentRequest
   ): Promise<ApiResponse<PaymentResponse>> {
+    const headers: Record<string, string> = {};
+
+    // Add idempotency key header if provided
+    if (data.idempotencyKey) {
+      headers["Idempotency-Key"] = data.idempotencyKey;
+    }
+
     const response = await api.post<ApiResponse<PaymentResponse>>(
       "/payments/create-order",
-      data
+      data,
+      { headers }
     );
     return response.data;
   },
@@ -79,7 +89,15 @@ export const paymentService = {
     paymentData: WalletPaymentRequest
   ): Promise<WalletPaymentResponse> {
     try {
-      const response = await api.post("/payments/wallet/pay", paymentData);
+      const headers: Record<string, string> = {};
+
+      if (paymentData.idempotencyKey) {
+        headers["Idempotency-Key"] = paymentData.idempotencyKey;
+      }
+
+      const response = await api.post("/payments/wallet/pay", paymentData, {
+        headers,
+      });
       return response.data;
     } catch (error: any) {
       console.error("Wallet payment error:", error);

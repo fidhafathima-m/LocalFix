@@ -16,6 +16,7 @@ import { IWalletRepository } from '../interfaces/repository/user/IWalletReposito
 import { IBookingRepository } from '../interfaces/repository/user/IBookingRepository';
 import { ISparePartsRequestRepository } from '../interfaces/repository/technician/ISparePartsRequestRepository';
 import { IOrderRepository } from '../interfaces/repository/user/IOrderRepository';
+import { IRedis } from '../interfaces/config/IRedis';
 
 export class PaymentService {
   private _logger: ILogger;
@@ -24,6 +25,7 @@ export class PaymentService {
   private _bookingRepository: IBookingRepository;
   private _sparePartsRequestRepository: ISparePartsRequestRepository;
   private _orderRepository: IOrderRepository;
+  private _redisClient: IRedis;
 
   constructor(
     paymentRepository: IPaymentRepository,
@@ -31,7 +33,8 @@ export class PaymentService {
     walletRepository: IWalletRepository,
     bookingRepository: IBookingRepository,
     sparePartRequestRepository: ISparePartsRequestRepository,
-    orderRepository: IOrderRepository
+    orderRepository: IOrderRepository,
+    redisClient: IRedis
   ) {
     this._logger = logger;
     this._paymentRepository = paymentRepository;
@@ -39,18 +42,65 @@ export class PaymentService {
     this._bookingRepository = bookingRepository;
     this._sparePartsRequestRepository = sparePartRequestRepository;
     this._orderRepository = orderRepository;
+    this._redisClient = redisClient;
+  }
+
+  private async checkIdempotency(
+    key: string
+  ): Promise<{ exists: boolean; response?: any }> {
+    // Use Redis for fast idempotency key checking
+    // You'll need to inject a Redis client or use your existing cache
+    try {
+      const cachedResponse = await this._redisClient.get(`idempotency:${key}`);
+      if (cachedResponse) {
+        return { exists: true, response: JSON.parse(cachedResponse) };
+      }
+      return { exists: false };
+    } catch (error) {
+      this._logger.error('Error checking idempotency key', { key, error });
+      return { exists: false };
+    }
+  }
+
+  private async storeIdempotency(
+    key: string,
+    response: any,
+    statusCode: number
+  ): Promise<void> {
+    try {
+      // Store for 24 hours
+      await this._redisClient.setex(
+        `idempotency:${key}`,
+        24 * 60 * 60, // 24 hours
+        JSON.stringify({ response, statusCode, timestamp: new Date() })
+      );
+    } catch (error) {
+      this._logger.error('Error storing idempotency key', { key, error });
+    }
   }
 
   async createPaymentOrder(
-    paymentData: CreatePaymentRequest
+    paymentData: CreatePaymentRequest,
+    idempotencyKey?: string
   ): Promise<ApiResponse<PaymentResponseDto>> {
     const context = {
       operation: 'createPaymentOrder',
-      data: paymentData,
+      data: { ...paymentData, idempotencyKey },
     };
 
     try {
       this._logger.info('Creating payment order', context);
+
+      if (idempotencyKey) {
+        const idempotencyCheck = await this.checkIdempotency(idempotencyKey);
+        if (idempotencyCheck.exists) {
+          this._logger.info('Returning cached response for idempotency key', {
+            ...context,
+            idempotencyKey,
+          });
+          return idempotencyCheck.response;
+        }
+      }
 
       // Create Razorpay order
       const razorpayOrder = await razorpay.orders.create({
@@ -98,10 +148,17 @@ export class PaymentService {
       });
 
       const paymentDto = this.mapToDto(newPayment, razorpayOrder);
-      return ResponseHelper.success(
+      const response = ResponseHelper.success(
         'Payment order created successfully',
         paymentDto
       );
+
+      // Store the response for idempotency
+      if (idempotencyKey) {
+        await this.storeIdempotency(idempotencyKey, response, 200);
+      }
+
+      return response;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
@@ -213,18 +270,32 @@ export class PaymentService {
   async processWalletPayment(
     userId: string,
     bookingId: string,
-    amount: number
+    amount: number,
+    idempotencyKey?: string
   ) {
     const context = {
       operation: 'processWalletPayment',
       userId,
       bookingId,
       amount,
+      idempotencyKey,
       timestamp: new Date().toISOString(),
     };
 
     try {
       this._logger.info('Processing wallet payment', context);
+
+      // Check idempotency key if provided
+      if (idempotencyKey) {
+        const idempotencyCheck = await this.checkIdempotency(idempotencyKey);
+        if (idempotencyCheck.exists) {
+          this._logger.info('Returning cached wallet payment response', {
+            ...context,
+            idempotencyKey,
+          });
+          return idempotencyCheck.response;
+        }
+      }
 
       // Get booking details to access bookingCode
       const booking = await this._bookingRepository.findById(bookingId);
@@ -267,12 +338,22 @@ export class PaymentService {
         newBalance,
       });
 
-      return ResponseHelper.success('Wallet payment processed successfully', {
-        amount,
-        newBalance,
-        bookingId,
-        bookingCode: booking.bookingCode,
-      });
+      const response = ResponseHelper.success(
+        'Wallet payment processed successfully',
+        {
+          amount,
+          newBalance,
+          bookingId,
+          bookingCode: booking.bookingCode,
+        }
+      );
+
+      // Store the response for idempotency
+      if (idempotencyKey) {
+        await this.storeIdempotency(idempotencyKey, response, 200);
+      }
+
+      return response;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';

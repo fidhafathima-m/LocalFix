@@ -20,6 +20,7 @@ import { orderService } from "../../../../services/user/orderService";
 import { paymentService } from "../../../../services/user/paymentService";
 import { walletService } from "../../../../services/user/walletService";
 import { serviceService } from "../../../../services/user/serviceService";
+import { generateIdempotencyKey } from "../../../../utils/idempotencyKey";
 
 // Declare Razorpay types
 declare global {
@@ -77,9 +78,17 @@ const Checkout: React.FC = () => {
   });
   const [processingPayment, setProcessingPayment] = useState(false);
 
+  const [idempotencyKey, setIdempotencyKey] = useState<string>("");
+
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAppSelector(selectUser);
+
+  useEffect(() => {
+    if (bookingData) {
+      setIdempotencyKey(generateIdempotencyKey());
+    }
+  }, [bookingData]);
 
   useEffect(() => {
     // Prevent access to checkout if coming from payment success
@@ -152,6 +161,7 @@ const Checkout: React.FC = () => {
       const paymentResponse = await paymentService.processWalletPayment({
         bookingId,
         amount: pricing.total,
+        idempotencyKey,
       });
 
       if (paymentResponse.success && paymentResponse.data) {
@@ -206,6 +216,7 @@ const Checkout: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Wallet payment error:", error);
+      setIdempotencyKey(generateIdempotencyKey());
       // Update booking status to cancelled
       if (bookingId) {
         await bookingService.updateBookingStatus(
@@ -405,6 +416,7 @@ const Checkout: React.FC = () => {
         amount: pricing.total,
         currency: "INR",
         type: "service",
+        idempotencyKey,
       });
 
       if (!paymentOrderResponse.success || !paymentOrderResponse.data) {
@@ -492,6 +504,7 @@ const Checkout: React.FC = () => {
             }
           } catch (error: any) {
             console.error("Payment verification error:", error);
+            setIdempotencyKey(generateIdempotencyKey());
             // In your frontend error handling
             if (error.code === "SERVER_ERROR" && error.source === "internal") {
               toast.error(
@@ -641,6 +654,7 @@ const Checkout: React.FC = () => {
         },
       });
     } catch (error: any) {
+      setIdempotencyKey(generateIdempotencyKey());
       console.error("COD booking error:", error);
       toast.error(error.message || "Failed to create booking");
       setProcessingPayment(false);

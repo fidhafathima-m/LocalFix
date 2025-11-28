@@ -98,6 +98,7 @@ import { TechnicianManagementSubscriptionRepository } from '../repositories/admi
 import { TechnicianManagementSubscriptionService } from '../services/TechnicianManagementSubscriptionService';
 import { TechnicianManagementSubscriptionController } from '../controllers/admin/technicianManagementSubscriptionController';
 import { PaymentManagementService } from '../services/PaymentMgmtService';
+import { RedisService } from './redis';
 
 const loggerService = new LoggerService();
 
@@ -233,6 +234,8 @@ const userLocationController = new UserLocationController(
 
 const bookingRepository = new BookingRepository();
 
+const redisService = new RedisService();
+
 const sparePartsRequestRepositry = new SparePartsRequestRepository();
 const orderRepository = new OrderRepository();
 // Payment dependencies
@@ -243,7 +246,8 @@ const paymentService = new PaymentService(
   walletRepository,
   bookingRepository,
   sparePartsRequestRepositry,
-  orderRepository
+  orderRepository,
+  redisService
 );
 const paymentController = new PaymentController(paymentService, loggerService);
 
@@ -423,7 +427,8 @@ export const createSocketDependentServices = (server: any) => {
   const bookingService = new BookingService(
     bookingRepository,
     orderRepository,
-    loggerService
+    loggerService,
+    redisService
   );
   const bookingController = new BookingController(
     bookingService,

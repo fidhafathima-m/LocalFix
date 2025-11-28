@@ -24,3 +24,10 @@ export interface PaymentResponseDto {
     key: string;
   };
 }
+
+export interface IdempotencyRecord {
+  key: string;
+  response: any;
+  statusCode: number;
+  createdAt: Date;
+}

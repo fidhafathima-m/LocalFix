@@ -61,6 +61,14 @@ const clearTokens = (): void => {
   localStorage.removeItem("token");
 };
 
+// Generate idempotency key for frontend
+const generateIdempotencyKey = (): string => {
+  return `idemp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Store to track idempotency keys per request type
+const idempotencyKeyStore = new Map();
+
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
@@ -68,6 +76,25 @@ api.interceptors.request.use(
 
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    // Add idempotency key for POST, PUT, PATCH requests to payment/booking endpoints
+    if (
+      (["post", "put", "patch"].includes(config.method || "") &&
+        config.url?.includes("/payments/")) ||
+      config.url?.includes("/bookings/")
+    ) {
+      // Generate a unique key for this specific request
+      const requestKey = `${config.method}:${config.url}:${JSON.stringify(
+        config.data || {}
+      )}`;
+
+      if (!idempotencyKeyStore.has(requestKey)) {
+        idempotencyKeyStore.set(requestKey, generateIdempotencyKey());
+      }
+
+      const idempotencyKey = idempotencyKeyStore.get(requestKey);
+      config.headers["Idempotency-Key"] = idempotencyKey;
     }
 
     return config;
@@ -92,10 +119,18 @@ const onTokenRefreshed = (token: string) => {
 // Response interceptor with token refresh
 api.interceptors.response.use(
   (response) => {
+    // Clear idempotency key for successful requests
+    const requestKey = `${response.config.method}:${
+      response.config.url
+    }:${JSON.stringify(response.config.data || {})}`;
+    idempotencyKeyStore.delete(requestKey);
+
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
+
+    // On error, keep the idempotency key for retries
 
     // Handle token expiration
     if (error.response?.status === 401 && !originalRequest?._retry) {
@@ -129,7 +164,7 @@ api.interceptors.response.use(
         }
 
         try {
-          console.log("🔄 Attempting token refresh...");
+          console.log("Attempting token refresh...");
           const refreshResponse = await authAPI.refreshToken(refreshToken);
 
           const responseData = refreshResponse.data || refreshResponse;
@@ -139,7 +174,7 @@ api.interceptors.response.use(
             responseData.data?.refreshToken || responseData.refreshToken;
 
           if (newAccessToken && newRefreshToken) {
-            console.log("✅ Tokens refreshed successfully");
+            console.log("Tokens refreshed successfully");
             setTokens(newAccessToken, newRefreshToken);
 
             // Update default headers
@@ -155,7 +190,7 @@ api.interceptors.response.use(
             throw new Error("Invalid token response format");
           }
         } catch (refreshError) {
-          console.error("❌ Token refresh failed:", refreshError);
+          console.error("Token refresh failed:", refreshError);
 
           // Clear all subscribers
           refreshSubscribers = [];
