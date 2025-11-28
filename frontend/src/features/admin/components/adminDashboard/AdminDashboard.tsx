@@ -100,15 +100,6 @@ const AdminDashboard: React.FC = () => {
         adminAPI.getPaymentStats(),
       ]);
 
-      console.log("📊 Dashboard API Responses:", {
-        users: usersResponse.data,
-        technicians: techniciansResponse.data,
-        applications: applicationsResponse.data,
-        orders: ordersResponse.data,
-        payments: paymentsResponse.data,
-        paymentStats: paymentStatsResponse.data,
-      });
-
       // Process stats with proper data extraction
       const usersData = extractDataFromResponse(usersResponse, "users");
       const techniciansData = extractDataFromResponse(
@@ -122,15 +113,12 @@ const AdminDashboard: React.FC = () => {
 
       // Extract orders data - handle nested structure
       const ordersData = extractOrdersData(ordersResponse);
-      console.log("📦 Extracted orders data:", ordersData);
 
       // Extract payments data - handle nested structure
       const paymentsData = extractPaymentsData(paymentsResponse);
-      console.log("💳 Extracted payments data:", paymentsData);
 
       // Extract payment stats
       const paymentStats = extractPaymentStats(paymentStatsResponse);
-      console.log("💰 Payment stats:", paymentStats);
 
       // Calculate active orders (pending, confirmed, in_progress)
       const activeOrders = Array.isArray(ordersData)
@@ -138,8 +126,6 @@ const AdminDashboard: React.FC = () => {
             ["pending", "confirmed", "in_progress"].includes(order.status)
           ).length
         : 0;
-
-      console.log("🔄 Active orders count:", activeOrders);
 
       // Get revenue from payment stats or calculate from completed payments
       let monthlyRevenue = 0;
@@ -149,8 +135,6 @@ const AdminDashboard: React.FC = () => {
         // Fallback: calculate from completed payments
         monthlyRevenue = calculateMonthlyRevenueFromPayments(paymentsData);
       }
-
-      console.log("💵 Monthly revenue:", monthlyRevenue);
 
       setStats({
         totalUsers: usersData.length,
@@ -254,8 +238,6 @@ const AdminDashboard: React.FC = () => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    console.log("📈 Calculating revenue from payments:", payments.length);
-
     const monthlyRevenue = payments
       .filter((payment) => {
         if (!payment.createdAt || payment.status !== "success") {
@@ -282,11 +264,8 @@ const AdminDashboard: React.FC = () => {
       })
       .reduce((total, payment) => {
         const amount = Number(payment.amount) || 0;
-        console.log(`💰 Payment amount: ${amount}`);
         return total + amount;
       }, 0);
-
-    console.log("🎯 Final monthly revenue:", monthlyRevenue);
     return monthlyRevenue;
   };
 

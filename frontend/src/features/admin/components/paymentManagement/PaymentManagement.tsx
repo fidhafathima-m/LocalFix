@@ -59,17 +59,6 @@ const PaymentManagement: React.FC = () => {
         status
       );
 
-      console.log("Raw API Response:", response);
-
-      if (response.payments && response.payments.length > 0) {
-        console.log("First payment object:", response.payments[0]);
-        console.log("User data in first payment:", response.payments[0].userId);
-        console.log(
-          "Booking data in first payment:",
-          response.payments[0].bookingId
-        );
-      }
-
       if (response) {
         setPayments(response.payments || []);
         setTotalCount(response.total || 0);
@@ -89,7 +78,6 @@ const PaymentManagement: React.FC = () => {
   const loadStats = async () => {
     try {
       const statsData = await PaymentManagementService.getPaymentStats();
-      console.log("📊 Stats data from backend:", statsData);
       setStats(statsData);
     } catch (error: any) {
       console.error("Error loading payment stats:", error);
