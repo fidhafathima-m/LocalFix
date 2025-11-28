@@ -45,6 +45,7 @@ import {
   userLocationController,
 } from './config/container';
 import createSparePartsRequestRoutes from './routes/technician/sparePartsRoutes';
+import { RedisService } from './config/redis';
 
 connectDB();
 
@@ -129,6 +130,31 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/messages', messageRoutes);
+
+// Add this to your app.ts or a test route
+app.get('/test-redis', async (req, res) => {
+  try {
+    const redisService = new RedisService();
+    await redisService.connect();
+
+    // Test set
+    await redisService.setex('test-key', 60, 'Hello from Redis!');
+
+    // Test get
+    const value = await redisService.get('test-key');
+
+    res.json({
+      success: true,
+      message: 'Redis is working!',
+      value: value,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
 
 app.get('/', (req: express.Request, res: express.Response) => {
   res.send('Localfix API running...');
