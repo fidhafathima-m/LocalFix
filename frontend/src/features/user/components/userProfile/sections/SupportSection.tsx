@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   HelpOutlineOutlined,
   MessageOutlined,
@@ -8,6 +9,7 @@ import {
 export const SupportSection: React.FC = () => {
   const [showChatSupport, setShowChatSupport] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   const faqs = [
     {
@@ -101,7 +103,10 @@ export const SupportSection: React.FC = () => {
               Our support team is here to help you
             </p>
           </div>
-          <button className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">
+          <button
+            onClick={() => navigate("/chatbot")}
+            className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+          >
             Start Chat
           </button>
           <div className="mt-4 p-4 bg-blue-50 rounded-lg">
