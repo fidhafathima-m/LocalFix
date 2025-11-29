@@ -4,6 +4,9 @@ Welcome to **LocalFix**, an on-demand home services platform that connects custo
 
 ---
 
+### **Live Link**
+[**LocalFix**](https://localfix-services.vercel.app/)
+
 ## **Features**
 
 **For Customers**
@@ -68,6 +71,14 @@ The project is divided into two main folders:
 
 1. **Frontend**: Contains the React.js application.
 2. **Backend**: Contains the Node.js and Express.js server.
+
+[**Project overview**](https://nasal-raja-dfa.notion.site/LocalFix-Home-Service-Platform-2ba6183df10580daa519d7fd9b71db0a)
+
+[**API Documentation**](https://documenter.getpostman.com/view/40363601/2sB3dLUC23)
+
+[**DB Design**](https://app.eraser.io/workspace/dOyxlXu4HKbhnxPfnlm6?origin=share&elements=Dkhw3lJZTSVOKPr8Q-ILFQ)
+
+[**Figma Design**](https://www.figma.com/design/GAqT6yf2JkGHa0WO56fHdI/LocalFix?node-id=0-1&t=vGDBX1xSeYf20Yp9-1)
 
 ---
 
