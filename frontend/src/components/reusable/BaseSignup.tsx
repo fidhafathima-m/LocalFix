@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import GoogleAuth from "../../features/user/components/userAuth/GoogleAuth";
 import { VisibilityOutlined, VisibilityOffOutlined } from "@mui/icons-material";
+import { checkPasswordStrength, validateSignupForm } from "../../validation";
 
 export interface SignUpFormData {
   fullName: string;
@@ -64,41 +65,10 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
   const [errors, setErrors] = useState<SignUpErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const defaultValidateForm = (): boolean => {
-    const newErrors: SignUpErrors = {};
-    let isValid = true;
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
-      isValid = false;
-    }
-
-    // Check if at least one of email is provided
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-      isValid = false;
-    }
-
-    // Validate email format only if email is provided
-    if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email";
-      isValid = false;
-    }
-
-    if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-      isValid = false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
-  };
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: number;
+    strength: string;
+  } | null>(null);
 
   const validateForm = (): boolean => {
     if (customValidation) {
@@ -106,14 +76,30 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
       setErrors(validation.errors);
       return validation.isValid;
     }
-    return defaultValidateForm();
+
+    // Use Zod validation
+    const validation = validateSignupForm({
+      ...formData,
+      userType,
+    });
+
+    setErrors(validation.errors);
+    return validation.isValid;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+
+    // Check password strength in real-time
+    if (name === "password") {
+      const strength = checkPasswordStrength(value);
+      setPasswordStrength(strength);
     }
   };
 
@@ -122,10 +108,9 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
     if (!validateForm()) return;
 
     try {
-      // Only send the fields that have values
       const submitData = {
-        fullName: formData.fullName,
-        email: formData.email.trim(),
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         userType: userType,
       };
@@ -201,9 +186,9 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm mb-1">Email</label>
+          <label className="block text-sm mb-1">Email *</label>
           <input
-            type="text"
+            type="email"
             name="email"
             placeholder="Eg: jondoe@gmail.com"
             className="w-full border p-2 rounded"
@@ -221,7 +206,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="******"
+              placeholder="At least 8 characters with uppercase, lowercase, number, and special character"
               className="w-full border p-2 rounded pr-10"
               value={formData.password}
               onChange={handleChange}
@@ -238,6 +223,39 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
               )}
             </button>
           </div>
+          {passwordStrength && formData.password.length > 0 && (
+            <div className="mt-1">
+              <div className="flex items-center gap-2">
+                <div className="text-xs text-gray-600">
+                  Strength:{" "}
+                  <span className="font-medium">
+                    {passwordStrength.strength}
+                  </span>
+                </div>
+                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      passwordStrength.score === 0
+                        ? "bg-red-500 w-1/5"
+                        : passwordStrength.score === 1
+                        ? "bg-red-400 w-2/5"
+                        : passwordStrength.score === 2
+                        ? "bg-yellow-500 w-3/5"
+                        : passwordStrength.score === 3
+                        ? "bg-green-400 w-4/5"
+                        : "bg-green-600 w-full"
+                    }`}
+                  />
+                </div>
+              </div>
+              <ul className="text-xs text-gray-500 mt-1 ml-2 list-disc list-inside">
+                <li>At least 8 characters</li>
+                <li>Uppercase & lowercase letters</li>
+                <li>At least one number</li>
+                <li>At least one special character</li>
+              </ul>
+            </div>
+          )}
           {errors.password && (
             <p className="text-sm text-red-500 mt-1">{errors.password}</p>
           )}
@@ -249,7 +267,7 @@ const BaseSignUp: React.FC<BaseSignUpProps> = ({
             <input
               type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
-              placeholder="******"
+              placeholder="Re-enter your password"
               className="w-full border p-2 rounded pr-10"
               value={formData.confirmPassword}
               onChange={handleChange}
