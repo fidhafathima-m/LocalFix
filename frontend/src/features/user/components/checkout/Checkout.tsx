@@ -626,33 +626,50 @@ const Checkout: React.FC = () => {
   };
 
   // Handle Cash on Delivery
+  // In handleCashOnDelivery function in Checkout.tsx
   const handleCashOnDelivery = async () => {
     try {
       setProcessingPayment(true);
       const bookingId = await createBookingRecord();
 
-      // For COD, mark as pending and proceed
-      await bookingService.updateBookingStatus(
+      // Create order for COD booking
+      const orderResponse = await orderService.createOrderFromBooking({
         bookingId,
-        "pending",
-        "user",
-        "Cash on Delivery selected"
-      );
-
-      toast.success("Booking confirmed! Pay when service is complete.");
-      navigate("/payment-success", {
-        replace: true,
-        state: {
-          bookingId,
-          technician: bookingData!.technician,
-          service: bookingData!.service,
-          date: bookingData!.date,
-          time: bookingData!.time,
+        paymentData: {
+          method: "cod",
           amount: pricing.total,
-          paymentMethod: "cod",
-          status: "pending",
+          status: "pending", // COD payment is pending until service completion
+          transactionId: `cod_${Date.now()}`,
+          paidAt: undefined, // No payment timestamp for COD
         },
       });
+
+      if (orderResponse.success) {
+        await bookingService.updateBookingStatus(
+          bookingId,
+          "pending",
+          "user",
+          "Cash on Delivery selected"
+        );
+
+        toast.success("Booking confirmed! Pay when service is complete.");
+        navigate("/payment-success", {
+          replace: true,
+          state: {
+            bookingId,
+            orderId: orderResponse.data?._id, // Include order ID
+            technician: bookingData!.technician,
+            service: bookingData!.service,
+            date: bookingData!.date,
+            time: bookingData!.time,
+            amount: pricing.total,
+            paymentMethod: "cod",
+            status: "pending",
+          },
+        });
+      } else {
+        throw new Error("Failed to create order for COD");
+      }
     } catch (error: any) {
       setIdempotencyKey(generateIdempotencyKey());
       console.error("COD booking error:", error);

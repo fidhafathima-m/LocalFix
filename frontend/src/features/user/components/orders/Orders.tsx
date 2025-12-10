@@ -812,9 +812,14 @@ const OrderCard: React.FC<OrderCardProps> = ({
               <span>Payment</span>
               <span className="ml-auto">
                 ₹{order.totalAmount} •{" "}
-                {order.payment.method === "online"
+                {order.payment.method === "cod"
+                  ? "Cash on Delivery (Pay when service is complete)"
+                  : order.payment.method === "online"
                   ? "Online Payment"
-                  : "Cash on Delivery"}
+                  : "Wallet Payment"}
+                {order.payment.method === "cod" &&
+                  order.payment.status === "pending" &&
+                  " ⏳"}
                 {order.status === "cancelled" &&
                   order.payment.method === "online" &&
                   " (Refunded)"}
