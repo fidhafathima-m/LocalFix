@@ -32,12 +32,76 @@ export const fullNameSchema = z
     }
   );
 
+export const phoneNumberSchema = z
+  .string()
+  .min(1, "Phone number is required")
+  .regex(/^\d{10}$/, "Please enter a valid 10-digit phone number")
+  .transform((phone) => phone.replace(/\D/g, ""));
+
 // Email validation
 export const emailSchema = z
   .string()
   .min(1, "Email is required")
   .email("Please enter a valid email address")
   .transform((email) => email.toLowerCase().trim());
+
+export const dateOfBirthSchema = z
+  .string()
+  .optional()
+  .refine((dob) => {
+    if (!dob || dob === "Not set") return true;
+    const date = new Date(dob);
+    return !isNaN(date.getTime());
+  }, "Please enter a valid date")
+  .refine(
+    (dob) => {
+      if (!dob || dob === "Not set") return true;
+      const date = new Date(dob);
+      const today = new Date();
+      const minDate = new Date(
+        today.getFullYear() - 100,
+        today.getMonth(),
+        today.getDate()
+      );
+      const maxDate = new Date(
+        today.getFullYear() - 15,
+        today.getMonth(),
+        today.getDate()
+      );
+      return date >= minDate && date <= maxDate;
+    },
+    {
+      message: "You must be between 15 and 100 years old",
+    }
+  );
+
+export const genderSchema = z
+  .string()
+  .optional()
+  .refine(
+    (gender) =>
+      !gender ||
+      [
+        "Male",
+        "Female",
+        "Other",
+        "Prefer not to say",
+        "Not specified",
+      ].includes(gender),
+    "Please select a valid gender option"
+  )
+  .default("Not specified");
+
+// Personal Info Update Schema
+export const personalInfoUpdateSchema = z.object({
+  fullName: fullNameSchema,
+  phoneNumber: phoneNumberSchema,
+  email: emailSchema,
+  dateOfBirth: dateOfBirthSchema,
+  gender: genderSchema,
+});
+
+export type PersonalInfoUpdateData = z.infer<typeof personalInfoUpdateSchema>;
 
 // Enhanced password validation
 export const passwordSchema = z
@@ -54,17 +118,6 @@ export const passwordSchema = z
   .refine(
     (password) => !/(.)\1\1/.test(password),
     "Password cannot contain 3 or more consecutive identical characters"
-  )
-  .refine(
-    (password) => !/(012|123|234|345|456|567|678|789|890)/.test(password),
-    "Password cannot contain simple number sequences"
-  )
-  .refine(
-    (password) =>
-      !/(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(
-        password
-      ),
-    "Password cannot contain simple alphabetical sequences"
   );
 
 export const confirmPasswordSchema = z.string();
@@ -81,30 +134,12 @@ export const signupSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
-  })
-  .refine(
-    (data) => {
-      // Check if password doesn't contain personal info
-      const nameParts = data.fullName.toLowerCase().split(/\s+/);
-      const emailLocalPart = data.email.split("@")[0].toLowerCase();
-
-      return (
-        !nameParts.some(
-          (part) =>
-            part.length > 2 && data.password.toLowerCase().includes(part)
-        ) && !data.password.toLowerCase().includes(emailLocalPart)
-      );
-    },
-    {
-      message: "Password should not contain your name or email",
-      path: ["password"],
-    }
-  );
+  });
 
 export const loginSchema = z.object({
   identifier: z
     .string()
-    .min(1, "Enter email or phone")
+    .min(1, "Enter email")
     .refine((val) => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const phoneRegex = /^\d{10}$/;
@@ -141,6 +176,40 @@ export const newPasswordSchema = z
     message: "Passwords do not match",
   });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: passwordSchema,
+    confirmPassword: z.string().min(1, "Please confirm your new password"),
+  })
+  .refine((data) => data.newPassword !== data.currentPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "New passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine(
+    (data) => {
+      // Check for common password patterns
+      const commonPasswords = [
+        "password",
+        "12345678",
+        "qwerty123",
+        "admin123",
+        "letmein",
+      ];
+      return !commonPasswords.includes(data.newPassword.toLowerCase());
+    },
+    {
+      message: "Password is too common, please choose a stronger password",
+      path: ["newPassword"],
+    }
+  );
+
+export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
+
 // Export types
 export type SignupFormData = z.infer<typeof signupSchema>;
 export type LoginFormData = z.infer<typeof loginSchema>;
@@ -176,6 +245,28 @@ export const validateSignupForm = (data: any) => {
   }
 };
 
+export const validatePersonalInfo = (data: any) => {
+  try {
+    const validatedData = personalInfoUpdateSchema.parse(data);
+    return { isValid: true, data: validatedData, errors: {} };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors: Record<string, string> = {};
+      error.issues.forEach((err) => {
+        if (err.path.length > 0) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      return { isValid: false, data: null, errors };
+    }
+    return {
+      isValid: false,
+      data: null,
+      errors: { _error: "Validation failed" },
+    };
+  }
+};
+
 // Password strength checker (optional)
 export const checkPasswordStrength = (
   password: string
@@ -197,8 +288,6 @@ export const checkPasswordStrength = (
 
   // Penalties for weak patterns
   if (/(.)\1\1/.test(password)) score -= 1;
-  if (/012|123|234|345|456|567|678|789|890/.test(password)) score -= 1;
-  if (/password|123456|qwerty|admin/i.test(password)) score -= 2;
 
   score = Math.max(0, Math.min(5, score));
 
@@ -212,4 +301,22 @@ export const checkPasswordStrength = (
       | "Strong"
       | "Very Strong",
   };
+};
+
+export const validateChangePassword = (data: any) => {
+  try {
+    changePasswordSchema.parse(data);
+    return { isValid: true, errors: {} };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors: Record<string, string> = {};
+      error.issues.forEach((err) => {
+        if (err.path.length > 0) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      return { isValid: false, errors };
+    }
+    return { isValid: false, errors: { _error: "Validation failed" } };
+  }
 };

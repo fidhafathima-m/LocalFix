@@ -6,6 +6,7 @@ import { ILogger } from '../interfaces/utils/ILogger';
 import { toAddressDtoList } from '../mappers/addressMapper';
 import { IUserProfileService } from '../interfaces/services/user/IUserProfileService';
 import { Types } from 'mongoose';
+import { Validators } from '../utils/validators';
 
 export interface UpdateUserProfileData {
   fullName?: string;
@@ -120,6 +121,18 @@ export class UserProfileService implements IUserProfileService {
     try {
       this._logger.info('Updating user profile', context);
 
+      const validation = Validators.validateUserProfile(updateData);
+      if (!validation.isValid) {
+        this._logger.warn('Validation failed for profile update', {
+          ...context,
+          validationErrors: validation.errors,
+        });
+        return ResponseHelper.badRequest(`Invalid data ${validation.errors}`);
+      }
+
+      // Sanitize input data
+      const sanitizedData = Validators.sanitizeProfileData(updateData);
+
       const user = await this._userManagementRepository.findById(userId);
 
       if (!user) {
@@ -133,37 +146,41 @@ export class UserProfileService implements IUserProfileService {
       }
 
       // Build update payload with proper field mapping
+      // Build update payload
       const updatePayload: any = {};
       const updatedFields: string[] = [];
 
-      if (updateData.fullName !== undefined) {
-        updatePayload.fullName = updateData.fullName;
+      if (sanitizedData.fullName !== undefined) {
+        updatePayload.fullName = sanitizedData.fullName;
         updatedFields.push('fullName');
         this._logger.debug('Updating full name', {
           ...context,
-          newFullName: updateData.fullName,
+          newFullName: sanitizedData.fullName,
         });
       }
 
-      if (updateData.phone !== undefined) {
-        updatePayload.phone = updateData.phone;
+      if (sanitizedData.phone !== undefined) {
+        updatePayload.phone = sanitizedData.phone;
         updatedFields.push('phone');
         this._logger.debug('Updating phone number', {
           ...context,
-          newPhone: updateData.phone,
+          newPhone: sanitizedData.phone,
         });
       }
 
-      if (updateData.email !== undefined && updateData.email !== user.email) {
+      if (
+        sanitizedData.email !== undefined &&
+        sanitizedData.email !== user.email
+      ) {
         this._logger.debug('Checking email availability', {
           ...context,
-          newEmail: updateData.email,
+          newEmail: sanitizedData.email,
           currentEmail: user.email,
         });
 
-        // Check if email already exists
+        // Check if email already exists (case-insensitive)
         const existingUser = await this._userManagementRepository.findByEmail(
-          updateData.email
+          sanitizedData.email
         );
         if (existingUser && existingUser._id.toString() !== userId) {
           this._logger.warn('Email already exists', {
@@ -172,27 +189,28 @@ export class UserProfileService implements IUserProfileService {
           });
           return ResponseHelper.error('Email already exists');
         }
-        updatePayload.email = updateData.email;
+        updatePayload.email = sanitizedData.email;
         updatedFields.push('email');
       }
 
-      if (updateData.dateOfBirth !== undefined) {
-        updatePayload.dateOfBirth = updateData.dateOfBirth;
+      if (sanitizedData.dateOfBirth !== undefined) {
+        updatePayload.dateOfBirth = sanitizedData.dateOfBirth;
         updatedFields.push('dateOfBirth');
         this._logger.debug('Updating date of birth', context);
       }
 
-      if (updateData.gender !== undefined) {
-        if (updateData.gender.trim() !== '') {
-          updatePayload.gender = updateData.gender;
+      if (sanitizedData.gender !== undefined) {
+        // If gender is explicitly set to undefined (empty string), remove it
+        if (sanitizedData.gender === undefined) {
+          updatePayload.gender = undefined;
+          this._logger.debug('Removing gender field', context);
+        } else {
+          updatePayload.gender = sanitizedData.gender;
           updatedFields.push('gender');
           this._logger.debug('Updating gender', {
             ...context,
-            newGender: updateData.gender,
+            newGender: sanitizedData.gender,
           });
-        } else {
-          updatePayload.gender = undefined;
-          this._logger.debug('Removing gender field', context);
         }
       }
 
@@ -341,6 +359,21 @@ export class UserProfileService implements IUserProfileService {
     try {
       this._logger.info('Changing user password', context);
 
+      // Validate input data using custom validators
+      const validation = Validators.validateChangePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+
+      if (!validation.isValid) {
+        this._logger.warn('Password change validation failed', {
+          ...context,
+          validationErrors: validation.errors,
+        });
+        return ResponseHelper.badRequest(`Invalid data ${validation.errors}`);
+      }
+
       const user = await this._userManagementRepository.findById(userId);
 
       if (!user) {
@@ -354,23 +387,6 @@ export class UserProfileService implements IUserProfileService {
           context
         );
         return ResponseHelper.forbidden('Account has been deleted');
-      }
-
-      // Validate that new password and confirm password match
-      if (newPassword !== confirmPassword) {
-        this._logger.warn('Password confirmation mismatch', context);
-        return ResponseHelper.badRequest('New passwords do not match');
-      }
-
-      // Validate password strength
-      if (newPassword.length < 6) {
-        this._logger.warn('Password too short', {
-          ...context,
-          passwordLength: newPassword.length,
-        });
-        return ResponseHelper.badRequest(
-          'Password must be at least 6 characters long'
-        );
       }
 
       this._logger.debug('Verifying current password', context);
