@@ -515,17 +515,6 @@ export class AuthService implements IAuthService {
 
       const { identifier, password, role } = credentials;
 
-      let normalizedIdentifier = identifier;
-
-      if (identifier.includes('@')) {
-        normalizedIdentifier = identifier.toLowerCase();
-        this._logger.debug('Normalized email identifier to lowercase', {
-          ...context,
-          original: identifier,
-          normalized: normalizedIdentifier,
-        });
-      }
-
       let user: IUser | null;
 
       if (role) {
@@ -534,10 +523,7 @@ export class AuthService implements IAuthService {
           role: role,
         });
 
-        user = await this._userRepository.findByIdentifier(
-          normalizedIdentifier,
-          role
-        );
+        user = await this._userRepository.findByIdentifier(identifier, role);
 
         if (!user) {
           this._logger.info(
@@ -548,8 +534,7 @@ export class AuthService implements IAuthService {
             }
           );
 
-          user =
-            await this._userRepository.findByIdentifier(normalizedIdentifier);
+          user = await this._userRepository.findByIdentifier(identifier);
 
           if (user && !user.roles.includes(role)) {
             this._logger.warn('User found but does not have required role', {
@@ -565,8 +550,7 @@ export class AuthService implements IAuthService {
         }
       } else {
         this._logger.debug('Searching user without role filter', context);
-        user =
-          await this._userRepository.findByIdentifier(normalizedIdentifier);
+        user = await this._userRepository.findByIdentifier(identifier);
       }
 
       if (!user) {
