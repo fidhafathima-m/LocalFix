@@ -93,7 +93,11 @@ app.use(requestLogger);
 app.use(express.json());
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL, 'http://localhost:5173'],
+    origin: [
+      process.env.CLIENT_URL,
+      'https://localfix.store',
+      'https://www.localfix.store',
+    ],
     methods: ['GET', 'POST', 'OPTIONS', 'PATCH', 'PUT', 'DELETE'],
     allowedHeaders: [
       'Content-Type',
