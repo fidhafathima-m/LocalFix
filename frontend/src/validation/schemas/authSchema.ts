@@ -145,7 +145,7 @@ export const loginSchema = z.object({
       const phoneRegex = /^\d{10}$/;
       return emailRegex.test(val) || phoneRegex.test(val);
     }, "Enter valid email"),
-  password: passwordSchema,
+  password: z.string().min(1, "Password is required"),
   userType: z.enum(["user", "serviceProvider", "admin"]),
 });
 
