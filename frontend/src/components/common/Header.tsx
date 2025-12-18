@@ -298,7 +298,7 @@ const Header: React.FC<HeaderProps> = ({
               key="profile"
               onClick={handleProfileClick}
               className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors cursor-pointer ml-2"
-              title="Profile"
+              title={user?.fullName}
             >
               {getUserAvatar() ? (
                 <img

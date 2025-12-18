@@ -4,6 +4,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpileOnly src/server.ts",
+    "dev2": "npx ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev3": "node -r ts-node/register src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "cleanup-logs": "node scripts/logCleanup.ts",

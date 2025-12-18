@@ -463,6 +463,45 @@ const ServiceDetails: React.FC = () => {
       setLocationLoading(true);
       const toastId = toast.loading("Detecting your location...");
 
+      // Detect Brave browser
+      const isBraveBrowser =
+        (navigator as any).brave && (await (navigator as any).brave.isBrave());
+
+      if (isBraveBrowser) {
+        toast(
+          (t) => (
+            <div className="text-center">
+              <p className="font-medium mb-2">Brave Browser Detected</p>
+              <p className="text-sm text-gray-600 mb-3">
+                Brave blocks location by default. Please: 1. Click the{" "}
+                <b>Brave Shield icon</b> (🦁) in address bar 2. Allow location
+                for this site 3. Refresh and try again
+              </p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => {
+                    setShowMapPicker(true);
+                    toast.dismiss(t.id);
+                  }}
+                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                >
+                  Use Map Instead
+                </button>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="px-3 py-1 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ),
+          { id: toastId, duration: 10000 }
+        );
+        setLocationLoading(false);
+        return;
+      }
+
       // 1. First check if the Geolocation API is even available
       if (!navigator.geolocation) {
         toast.error("Geolocation is not supported by your browser.", {
@@ -474,8 +513,7 @@ const ServiceDetails: React.FC = () => {
         return;
       }
 
-      // 2. (Optional) Check permission state first for better UX
-      // This is particularly useful in Brave/Edge
+      // 2.Check permission state first for better UX
       if (navigator.permissions && navigator.permissions.query) {
         try {
           const permissionStatus = await navigator.permissions.query({
@@ -520,9 +558,9 @@ const ServiceDetails: React.FC = () => {
       const position = await new Promise<GeolocationPosition>(
         (resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, // Try to get best accuracy
-            timeout: 10000, // Wait up to 10 seconds
-            maximumAge: 0, // Don't use cached position
+            enableHighAccuracy: false,
+            timeout: 7000,
+            maximumAge: 30000, // Accept a location cached in the last 30 seconds
           });
         }
       );

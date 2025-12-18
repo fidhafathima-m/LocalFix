@@ -23,6 +23,7 @@ export class SocketService {
       cors: {
         origin: [
           process.env.CLIENT_URL,
+          'http://localhost:5173',
           'https://localfix.store',
           'https://www.localfix.store',
         ],
