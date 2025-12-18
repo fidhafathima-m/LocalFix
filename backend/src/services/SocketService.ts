@@ -28,10 +28,22 @@ export class SocketService {
           'https://www.localfix.store',
           'https://localfix.store',
           'https://www.localfix.store',
+          /\.localfix\.store$/,
         ],
         credentials: true,
         methods: ['GET', 'POST'],
       },
+      path: '/socket.io/',
+      pingTimeout: 60000,
+      pingInterval: 25000,
+      cookie: {
+        name: 'io',
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+      },
+      allowEIO3: true,
     });
 
     this._notificationService = notificationService;
