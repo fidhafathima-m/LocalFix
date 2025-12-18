@@ -26,6 +26,8 @@ export class SocketService {
           'http://localhost:5173',
           'https://localfix.store',
           'https://www.localfix.store',
+          'https://localfix.store',
+          'https://www.localfix.store',
         ],
         credentials: true,
         methods: ['GET', 'POST'],

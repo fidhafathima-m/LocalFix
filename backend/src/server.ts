@@ -98,6 +98,8 @@ app.use(
       'http://localhost:5173',
       'https://localfix.store',
       'https://www.localfix.store',
+      'https://localfix.store',
+      'https://www.localfix.store',
     ],
     methods: ['GET', 'POST', 'OPTIONS', 'PATCH', 'PUT', 'DELETE'],
     allowedHeaders: [
