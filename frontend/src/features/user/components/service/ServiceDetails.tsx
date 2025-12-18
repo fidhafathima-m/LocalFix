@@ -463,7 +463,70 @@ const ServiceDetails: React.FC = () => {
       setLocationLoading(true);
       const toastId = toast.loading("Detecting your location...");
 
-      const position = await LocationService.getCurrentPosition();
+      // 1. First check if the Geolocation API is even available
+      if (!navigator.geolocation) {
+        toast.error("Geolocation is not supported by your browser.", {
+          id: toastId,
+        });
+        setLocationLoading(false);
+        // Fallback to manual entry
+        setTimeout(() => setShowMapPicker(true), 1000);
+        return;
+      }
+
+      // 2. (Optional) Check permission state first for better UX
+      // This is particularly useful in Brave/Edge
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permissionStatus = await navigator.permissions.query({
+            name: "geolocation" as PermissionName,
+          });
+          console.log("Geolocation permission state:", permissionStatus.state);
+
+          if (permissionStatus.state === "denied") {
+            toast.error(
+              () => (
+                <div className="text-center">
+                  <p className="font-medium mb-2">Location Permission Denied</p>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Please enable location permissions in your browser settings
+                    to use auto-detection.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowMapPicker(true);
+                      toast.dismiss();
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    Select Location Manually
+                  </button>
+                </div>
+              ),
+              { id: toastId, duration: 8000 }
+            );
+            setLocationLoading(false);
+            return;
+          }
+        } catch (permError) {
+          console.log(
+            "Permission API not fully supported, continuing...",
+            permError
+          );
+        }
+      }
+
+      // 3. Call getCurrentPosition with explicit options
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true, // Try to get best accuracy
+            timeout: 10000, // Wait up to 10 seconds
+            maximumAge: 0, // Don't use cached position
+          });
+        }
+      );
+
       const { latitude, longitude } = position.coords;
 
       const geocodeResult: GeocodeResult = await LocationService.reverseGeocode(
@@ -516,55 +579,76 @@ const ServiceDetails: React.FC = () => {
         id: toastId,
       });
     } catch (error: any) {
-      console.error("Error getting location:", error);
-      toast.dismiss();
+      console.error("Geolocation error details:", {
+        name: error.name,
+        code: error.code,
+        message: error.message,
+      });
 
       let errorMessage = "Failed to get your location";
+      let showManualOption = true;
+
       if (error instanceof GeolocationPositionError) {
         switch (error.code) {
           case error.PERMISSION_DENIED:
             errorMessage =
-              "Location access was denied. Please enable location permissions.";
+              "Location access was denied. Please enable location permissions in your browser settings.";
             break;
           case error.POSITION_UNAVAILABLE:
             errorMessage =
-              "Location information is unavailable. Please try manual location entry.";
+              "Location information is currently unavailable. This could be due to network or GPS issues.";
             break;
           case error.TIMEOUT:
-            errorMessage = "Location request timed out. Please try again.";
+            errorMessage =
+              "Location request timed out. Please check your connection and try again.";
             break;
         }
       }
 
-      toast.error(errorMessage);
+      // Check for specific browser issues
+      if (
+        error.message?.includes("secure context") ||
+        error.message?.includes("HTTPS")
+      ) {
+        errorMessage =
+          "Location access requires a secure connection (HTTPS). Please try from a secure site.";
+        showManualOption = true;
+      }
 
-      setTimeout(() => {
-        toast(
-          (t) => (
-            <div className="text-center">
-              <p className="text-sm mb-2">Try manual location entry?</p>
-              <div className="flex gap-2 justify-center">
-                <button
-                  onClick={() => {
-                    setShowMapPicker(true);
-                    toast.dismiss(t.id);
-                  }}
-                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  Select on Map
-                </button>
-                <button
-                  onClick={() => toast.dismiss(t.id)}
-                  className="px-3 py-1 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
+      toast.error(errorMessage, { duration: 5000 });
+
+      // Always show manual fallback option
+      if (showManualOption) {
+        setTimeout(() => {
+          toast(
+            (t) => (
+              <div className="text-center">
+                <p className="text-sm mb-2">
+                  Try selecting your location manually?
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => {
+                      setShowMapPicker(true);
+                      toast.dismiss(t.id);
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    Select on Map
+                  </button>
+                  <button
+                    onClick={() => toast.dismiss(t.id)}
+                    className="px-3 py-1 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
-          ),
-          { duration: 5000 }
-        );
-      }, 1000);
+            ),
+            { duration: 8000 }
+          );
+        }, 500);
+      }
     } finally {
       setLocationLoading(false);
     }
