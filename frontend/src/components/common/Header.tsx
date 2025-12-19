@@ -20,10 +20,7 @@ interface HeaderProps {
   userType?: "user" | "serviceProvider" | "admin";
 }
 
-const Header: React.FC<HeaderProps> = ({
-  userType: propUserType,
-  isApproved,
-}) => {
+const Header = ({ userType: propUserType, isApproved }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -192,7 +189,7 @@ const Header: React.FC<HeaderProps> = ({
     return "U";
   };
 
-  const links = () => {
+  const links = (): React.ReactNode[] => {
     if (!isClient) {
       return [<div key="placeholder" className="h-6"></div>];
     }
@@ -455,17 +452,14 @@ const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const mobileLinks = () => {
+  const mobileLinks = (): React.ReactNode[] => {
     const desktopLinks = links();
 
     return React.Children.toArray(desktopLinks).map((child) => {
       if (!React.isValidElement(child)) return child;
 
-      const element = child as React.ReactElement<{
-        className?: string;
-        onClick?: () => void;
-        href?: string;
-      }>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const element = child as React.ReactElement<any>;
 
       // Handle signup buttons
       if (element.props.className?.includes(signUpButtonStyles)) {
