@@ -61,7 +61,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       }
 
       const newSocket = io(socketUrl, {
+        path: "/socket.io/",
         transports: ["websocket", "polling"],
+        secure: true,
         timeout: 10000,
         autoConnect: true,
         forceNew: false,
