@@ -33,6 +33,10 @@ export class SocketService {
         credentials: true,
         methods: ['GET', 'POST'],
       },
+      connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+        skipMiddlewares: true,
+      },
       path: '/socket.io/',
       pingTimeout: 60000,
       pingInterval: 25000,
