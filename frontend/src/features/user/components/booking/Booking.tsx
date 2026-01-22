@@ -801,21 +801,21 @@ const BookingPage: React.FC = () => {
             // Optional: Refresh user data in Redux store if needed
             // dispatch(refreshUserProfile());
           } else {
-            toast.error(
-              "Failed to update phone number, but continuing with booking",
-              {
-                id: "phone-update",
-              }
-            );
+            // toast.error(
+            //   "Failed to update phone number, but continuing with booking",
+            //   {
+            //     id: "phone-update",
+            //   }
+            // );
             console.warn("Phone update failed:", updateResponse.message);
           }
         } catch (updateError) {
-          toast.error(
-            "Failed to update phone number, but continuing with booking",
-            {
-              id: "phone-update",
-            }
-          );
+          // toast.error(
+          //   "Failed to update phone number, but continuing with booking",
+          //   {
+          //     id: "phone-update",
+          //   }
+          // );
           console.error("Phone update error:", updateError);
         }
       }
