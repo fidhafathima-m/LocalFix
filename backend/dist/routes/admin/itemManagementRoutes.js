@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const container_1 = require("../../config/container");
+const router = (0, express_1.Router)();
+router.post("/", container_1.itemManagementController.createItem);
+router.get("/", container_1.itemManagementController.getAllItems);
+router.get("/search", container_1.itemManagementController.searchItems);
+router.get("/service/:serviceId", container_1.itemManagementController.getItemsByServiceId);
+router.get("/:id", container_1.itemManagementController.getItemById);
+router.put("/:id", container_1.itemManagementController.updateItem);
+router.delete("/:id", container_1.itemManagementController.deleteItem);
+exports.default = router;

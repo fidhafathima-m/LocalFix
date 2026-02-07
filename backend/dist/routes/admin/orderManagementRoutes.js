@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const container_1 = require("../../config/container");
+const router = (0, express_1.Router)();
+router.get("/", container_1.orderManagementController.getOrders);
+router.get("/stats", container_1.orderManagementController.getOrderStats);
+router.get("/:orderId", container_1.orderManagementController.getOrderById);
+router.patch("/:orderId/status", container_1.orderManagementController.updateOrderStatus);
+router.get("/technician/:technicianId", container_1.orderManagementController.getOrdersByTechnician);
+exports.default = router;

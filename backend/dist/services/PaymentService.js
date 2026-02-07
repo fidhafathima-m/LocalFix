@@ -1,0 +1,497 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PaymentService = void 0;
+const razorpay_1 = require("../config/razorpay");
+const responseHelper_1 = require("../utils/responseHelper");
+const mongoose_1 = require("mongoose");
+class PaymentService {
+    constructor(paymentRepository, logger, walletRepository, bookingRepository, sparePartRequestRepository, orderRepository, redisClient) {
+        this._logger = logger;
+        this._paymentRepository = paymentRepository;
+        this._walletRepository = walletRepository;
+        this._bookingRepository = bookingRepository;
+        this._sparePartsRequestRepository = sparePartRequestRepository;
+        this._orderRepository = orderRepository;
+        this._redisClient = redisClient;
+    }
+    async checkIdempotency(key) {
+        // Use Redis for fast idempotency key checking
+        // You'll need to inject a Redis client or use your existing cache
+        try {
+            const cachedResponse = await this._redisClient.get(`idempotency:${key}`);
+            if (cachedResponse) {
+                return { exists: true, response: JSON.parse(cachedResponse) };
+            }
+            return { exists: false };
+        }
+        catch (error) {
+            this._logger.error('Error checking idempotency key', { key, error });
+            return { exists: false };
+        }
+    }
+    async storeIdempotency(key, response, statusCode) {
+        try {
+            // Store for 24 hours
+            await this._redisClient.setex(`idempotency:${key}`, 24 * 60 * 60, // 24 hours
+            JSON.stringify({ response, statusCode, timestamp: new Date() }));
+        }
+        catch (error) {
+            this._logger.error('Error storing idempotency key', { key, error });
+        }
+    }
+    async createPaymentOrder(paymentData, idempotencyKey) {
+        const context = {
+            operation: 'createPaymentOrder',
+            data: { ...paymentData, idempotencyKey },
+        };
+        try {
+            this._logger.info('Creating payment order', context);
+            if (idempotencyKey) {
+                const idempotencyCheck = await this.checkIdempotency(idempotencyKey);
+                if (idempotencyCheck.exists) {
+                    this._logger.info('Returning cached response for idempotency key', {
+                        ...context,
+                        idempotencyKey,
+                    });
+                    return idempotencyCheck.response;
+                }
+            }
+            // Create Razorpay order
+            const razorpayOrder = await razorpay_1.razorpay.orders.create({
+                amount: paymentData.amount * 100, // Convert to paise
+                currency: paymentData.currency || 'INR',
+                receipt: `booking_${paymentData.bookingId}`,
+                notes: {
+                    bookingId: paymentData.bookingId,
+                    userId: paymentData.userId,
+                    type: paymentData.type,
+                },
+            });
+            this._logger.debug('Razorpay order created', {
+                ...context,
+                razorpayOrderId: razorpayOrder.id,
+            });
+            // Create payment record with proper typing
+            const paymentModel = {
+                bookingId: new mongoose_1.Types.ObjectId(paymentData.bookingId),
+                userId: new mongoose_1.Types.ObjectId(paymentData.userId),
+                paymentProvider: 'razorpay',
+                providerOrderId: razorpayOrder.id,
+                amount: paymentData.amount,
+                currency: paymentData.currency || 'INR',
+                type: paymentData.type,
+                sparePartId: paymentData.sparePartId
+                    ? new mongoose_1.Types.ObjectId(paymentData.sparePartId)
+                    : undefined,
+                status: 'initiated',
+                rawResponse: razorpayOrder,
+            };
+            const newPayment = await this._paymentRepository.create(paymentModel);
+            if (!newPayment) {
+                this._logger.error('Failed to create payment record', context);
+                return responseHelper_1.ResponseHelper.error('Failed to create payment record');
+            }
+            this._logger.info('Payment order created successfully', {
+                ...context,
+                paymentId: newPayment._id?.toString(),
+            });
+            const paymentDto = this.mapToDto(newPayment, razorpayOrder);
+            const response = responseHelper_1.ResponseHelper.success('Payment order created successfully', paymentDto);
+            // Store the response for idempotency
+            if (idempotencyKey) {
+                await this.storeIdempotency(idempotencyKey, response, 200);
+            }
+            return response;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            this._logger.error('Error creating payment order', {
+                ...context,
+                error: errorMessage,
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+            return responseHelper_1.ResponseHelper.error('Failed to create payment order');
+        }
+    }
+    async verifyPayment(razorpayPaymentId, razorpayOrderId, razorpaySignature) {
+        const context = {
+            operation: 'verifyPayment',
+            data: { razorpayPaymentId, razorpayOrderId },
+        };
+        try {
+            this._logger.info('Verifying payment', context);
+            // Find payment record
+            const payment = await this._paymentRepository.findByOrderId(razorpayOrderId);
+            if (!payment) {
+                this._logger.warn('Payment record not found', context);
+                return responseHelper_1.ResponseHelper.notFound('Payment record not found');
+            }
+            // Verify signature
+            const crypto = require('crypto');
+            const expectedSignature = crypto
+                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                .update(razorpayOrderId + '|' + razorpayPaymentId)
+                .digest('hex');
+            if (expectedSignature !== razorpaySignature) {
+                this._logger.warn('Invalid payment signature', context);
+                return responseHelper_1.ResponseHelper.badRequest('Invalid payment signature');
+            }
+            // Fetch payment details from Razorpay
+            const razorpayPayment = await razorpay_1.razorpay.payments.fetch(razorpayPaymentId);
+            // Update payment record
+            const updatedPayment = await this._paymentRepository.update(payment.id.toString(), {
+                providerPaymentId: razorpayPaymentId,
+                status: razorpayPayment.status === 'captured' ? 'success' : 'failed',
+                confirmedAt: new Date(),
+                rawResponse: razorpayPayment,
+            });
+            if (!updatedPayment) {
+                this._logger.error('Failed to update payment record', context);
+                return responseHelper_1.ResponseHelper.error('Failed to update payment record');
+            }
+            this._logger.info('Payment verified successfully', {
+                ...context,
+                status: updatedPayment.status,
+            });
+            return responseHelper_1.ResponseHelper.success('Payment verified successfully', {
+                payment: this.mapToDto(updatedPayment),
+                bookingId: payment.bookingId,
+            });
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            this._logger.error('Error verifying payment', {
+                ...context,
+                error: errorMessage,
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+            return responseHelper_1.ResponseHelper.error('Failed to verify payment');
+        }
+    }
+    mapToDto(payment, razorpayOrder) {
+        return {
+            _id: payment.id.toString(),
+            bookingId: payment.bookingId.toString(),
+            userId: payment.userId.toString(),
+            paymentProvider: payment.paymentProvider,
+            providerOrderId: payment.providerOrderId,
+            amount: payment.amount,
+            currency: payment.currency,
+            type: payment.type,
+            status: payment.status,
+            razorpayOrder: razorpayOrder
+                ? {
+                    id: razorpayOrder.id,
+                    amount: razorpayOrder.amount,
+                    currency: razorpayOrder.currency,
+                    key: process.env.RAZORPAY_KEY_ID,
+                }
+                : undefined,
+        };
+    }
+    async processWalletPayment(userId, bookingId, amount, idempotencyKey) {
+        const context = {
+            operation: 'processWalletPayment',
+            userId,
+            bookingId,
+            amount,
+            idempotencyKey,
+            timestamp: new Date().toISOString(),
+        };
+        try {
+            this._logger.info('Processing wallet payment', context);
+            // Check idempotency key if provided
+            if (idempotencyKey) {
+                const idempotencyCheck = await this.checkIdempotency(idempotencyKey);
+                if (idempotencyCheck.exists) {
+                    this._logger.info('Returning cached wallet payment response', {
+                        ...context,
+                        idempotencyKey,
+                    });
+                    return idempotencyCheck.response;
+                }
+            }
+            // Get booking details to access bookingCode
+            const booking = await this._bookingRepository.findById(bookingId);
+            if (!booking) {
+                return responseHelper_1.ResponseHelper.notFound('Booking not found');
+            }
+            // Get user's wallet balance
+            const walletBalance = await this._walletRepository.getWalletBalance(userId);
+            if (walletBalance < amount) {
+                return responseHelper_1.ResponseHelper.badRequest('Insufficient wallet balance');
+            }
+            // Deduct amount from wallet
+            const newBalance = walletBalance - amount;
+            await this._walletRepository.updateWalletBalance(userId, newBalance);
+            // Add wallet transaction with bookingCode in description
+            await this._walletRepository.addWalletTransaction(userId, {
+                txId: `wallet_pay_${Date.now()}`,
+                type: 'debit',
+                amount: amount,
+                balanceAfter: newBalance,
+                description: `Payment for booking ${booking.bookingCode} - ${booking.serviceName}`,
+                status: 'completed',
+                metadata: {
+                    bookingId: bookingId,
+                    bookingCode: booking.bookingCode,
+                    serviceName: booking.serviceName,
+                    paymentType: 'service_booking',
+                },
+            });
+            this._logger.info('Wallet payment processed successfully', {
+                ...context,
+                bookingCode: booking.bookingCode,
+                newBalance,
+            });
+            const response = responseHelper_1.ResponseHelper.success('Wallet payment processed successfully', {
+                amount,
+                newBalance,
+                bookingId,
+                bookingCode: booking.bookingCode,
+            });
+            // Store the response for idempotency
+            if (idempotencyKey) {
+                await this.storeIdempotency(idempotencyKey, response, 200);
+            }
+            return response;
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            this._logger.error('Failed to process wallet payment', {
+                ...context,
+                error: errorMessage,
+            });
+            return responseHelper_1.ResponseHelper.error('Failed to process wallet payment');
+        }
+    }
+    async refundToWallet(userId, bookingId, amount, reason) {
+        const context = {
+            operation: 'refundToWallet',
+            userId,
+            bookingId,
+            amount,
+            reason,
+            timestamp: new Date().toISOString(),
+        };
+        try {
+            this._logger.info('Processing wallet refund', context);
+            // Get current balance
+            const currentBalance = await this._walletRepository.getWalletBalance(userId);
+            const newBalance = currentBalance + amount;
+            // Update wallet balance
+            await this._walletRepository.updateWalletBalance(userId, newBalance);
+            // Add refund transaction
+            await this._walletRepository.addWalletTransaction(userId, {
+                txId: `refund_${Date.now()}`,
+                type: 'credit',
+                amount: amount,
+                balanceAfter: newBalance,
+                description: `Refund for booking ${bookingId} - ${reason}`,
+                status: 'completed',
+                metadata: {
+                    bookingId: bookingId,
+                    refundReason: reason,
+                    type: 'refund',
+                },
+            });
+            this._logger.info('Wallet refund processed successfully', {
+                ...context,
+                newBalance,
+            });
+            return responseHelper_1.ResponseHelper.success('Refund processed successfully', {
+                amount,
+                newBalance,
+                bookingId,
+            });
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            this._logger.error('Failed to process wallet refund', {
+                ...context,
+                error: errorMessage,
+            });
+            return responseHelper_1.ResponseHelper.error('Failed to process wallet refund');
+        }
+    }
+    async processSparePartsWalletPayment(userId, orderId, requestId, amount) {
+        const context = {
+            operation: 'processSparePartsWalletPayment',
+            userId,
+            orderId,
+            requestId,
+            amount,
+            timestamp: new Date().toISOString(),
+        };
+        try {
+            this._logger.info('Processing spare parts wallet payment', context);
+            // Validate spare parts request exists and belongs to user
+            const sparePartsRequest = await this._sparePartsRequestRepository.findById(requestId);
+            if (!sparePartsRequest) {
+                this._logger.warn('Spare parts request not found', context);
+                return responseHelper_1.ResponseHelper.notFound('Spare parts request not found');
+            }
+            // Safe order ID extraction from spare parts request
+            let requestOrderId;
+            if (sparePartsRequest.orderId &&
+                typeof sparePartsRequest.orderId === 'object') {
+                // If orderId is a populated object, get the _id from it
+                const orderObj = sparePartsRequest.orderId;
+                requestOrderId = orderObj._id?.toString() || orderObj.id?.toString();
+            }
+            else if (sparePartsRequest.orderId) {
+                // If orderId is already a string, ObjectId, or other primitive
+                requestOrderId = String(sparePartsRequest.orderId);
+            }
+            else {
+                this._logger.warn('No orderId found in spare parts request', context);
+                return responseHelper_1.ResponseHelper.badRequest('Invalid order data in spare parts request');
+            }
+            // Verify the order belongs to the user
+            const order = await this._orderRepository.findById(orderId);
+            if (!order) {
+                this._logger.warn('Order not found', context);
+                return responseHelper_1.ResponseHelper.notFound('Order not found');
+            }
+            // Safe user ID extraction from order
+            let orderUserId;
+            if (order.userId && typeof order.userId === 'object') {
+                // If userId is a populated object, get the _id from it
+                const userObj = order.userId;
+                orderUserId = userObj._id?.toString() || userObj.id?.toString();
+            }
+            else if (order.userId) {
+                // If userId is already a string, ObjectId, or other primitive
+                orderUserId = String(order.userId);
+            }
+            else {
+                this._logger.warn('No userId found in order', context);
+                return responseHelper_1.ResponseHelper.badRequest('Invalid order user data');
+            }
+            // Validate we got valid IDs
+            if (!orderUserId) {
+                this._logger.warn('Could not extract valid user ID from order', {
+                    ...context,
+                    extractedUserId: orderUserId,
+                });
+                return responseHelper_1.ResponseHelper.badRequest('Invalid user data in order');
+            }
+            if (!requestOrderId) {
+                this._logger.warn('Could not extract valid order ID from spare parts request', {
+                    ...context,
+                    extractedOrderId: requestOrderId,
+                });
+                return responseHelper_1.ResponseHelper.badRequest('Invalid order data in spare parts request');
+            }
+            // Check if order belongs to the user
+            if (orderUserId !== userId) {
+                this._logger.warn('User not authorized for this order', {
+                    ...context,
+                    orderUserId,
+                    currentUserId: userId,
+                });
+                return responseHelper_1.ResponseHelper.unauthorized('Not authorized for this order');
+            }
+            // Check if spare parts request belongs to the order
+            if (requestOrderId !== orderId) {
+                this._logger.warn('Spare parts request does not belong to order', {
+                    ...context,
+                    requestOrderId,
+                    expectedOrderId: orderId,
+                });
+                return responseHelper_1.ResponseHelper.badRequest('Invalid spare parts request for this order');
+            }
+            // Check if request is still pending
+            if (sparePartsRequest.status !== 'pending') {
+                this._logger.warn('Spare parts request already processed', {
+                    ...context,
+                    currentStatus: sparePartsRequest.status,
+                });
+                return responseHelper_1.ResponseHelper.badRequest('Spare parts request already processed');
+            }
+            // Verify amount matches
+            if (sparePartsRequest.totalAmount !== amount) {
+                this._logger.warn('Amount mismatch', {
+                    ...context,
+                    expectedAmount: sparePartsRequest.totalAmount,
+                    providedAmount: amount,
+                });
+                return responseHelper_1.ResponseHelper.badRequest('Amount does not match spare parts request');
+            }
+            // Get user's wallet balance
+            const walletBalance = await this._walletRepository.getWalletBalance(userId);
+            if (walletBalance < amount) {
+                this._logger.warn('Insufficient wallet balance', {
+                    ...context,
+                    walletBalance,
+                    requiredAmount: amount,
+                });
+                return responseHelper_1.ResponseHelper.badRequest('Insufficient wallet balance');
+            }
+            // Deduct amount from wallet
+            const newBalance = walletBalance - amount;
+            await this._walletRepository.updateWalletBalance(userId, newBalance);
+            // Add wallet transaction for spare parts payment
+            await this._walletRepository.addWalletTransaction(userId, {
+                txId: `spare_parts_${Date.now()}`,
+                type: 'debit',
+                amount: amount,
+                balanceAfter: newBalance,
+                description: `Payment for spare parts - Order ${order.orderCode}`,
+                status: 'completed',
+                metadata: {
+                    orderId: orderId,
+                    requestId: requestId,
+                    orderCode: order.orderCode,
+                    serviceName: order.serviceName,
+                    paymentType: 'spare_parts',
+                    itemsCount: sparePartsRequest.items.length,
+                    totalAmount: amount,
+                },
+            });
+            // Create payment record for spare parts
+            const paymentModel = {
+                orderId: new mongoose_1.Types.ObjectId(orderId),
+                userId: new mongoose_1.Types.ObjectId(userId),
+                paymentProvider: 'wallet',
+                providerOrderId: `spare_parts_${requestId}_${Date.now()}`,
+                amount: amount,
+                currency: 'INR',
+                type: 'spare_part',
+                sparePartId: new mongoose_1.Types.ObjectId(requestId),
+                status: 'success',
+                confirmedAt: new Date(),
+                rawResponse: {
+                    paymentType: 'wallet',
+                    sparePartsRequestId: requestId,
+                    items: sparePartsRequest.items,
+                },
+            };
+            await this._paymentRepository.create(paymentModel);
+            // Update spare parts request status to approved
+            await this._sparePartsRequestRepository.updateStatus(requestId, 'approved', 'Wallet payment completed successfully');
+            this._logger.info('Spare parts wallet payment processed successfully', {
+                ...context,
+                newBalance,
+                itemsCount: sparePartsRequest.items.length,
+            });
+            return responseHelper_1.ResponseHelper.success('Spare parts payment processed successfully', {
+                amount,
+                newBalance,
+                orderId,
+                requestId,
+                orderCode: order.orderCode,
+                itemsCount: sparePartsRequest.items.length,
+            });
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            this._logger.error('Failed to process spare parts wallet payment', {
+                ...context,
+                error: errorMessage,
+            });
+            return responseHelper_1.ResponseHelper.error('Failed to process spare parts wallet payment');
+        }
+    }
+}
+exports.PaymentService = PaymentService;
