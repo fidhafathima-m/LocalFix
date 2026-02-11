@@ -16,6 +16,263 @@ export class BookingController {
     this._logger = logger;
   }
 
+  // Add this method to the BookingController class, before the last closing brace
+  checkTechnicianAvailability = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
+    const userId = req.user?.id;
+    const { technicianId, scheduledAt, timeSlot } = req.body;
+
+    const context = {
+      operation: 'checkTechnicianAvailability',
+      userId,
+      technicianId,
+      scheduledAt,
+      timeSlot,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info('Checking technician availability', context);
+
+      if (!userId) {
+        this._logger.warn(
+          'Check availability failed - authentication required',
+          context
+        );
+        const errorResponse = ResponseHelper.unauthorized(
+          'Authentication required'
+        );
+        res.status(errorResponse.statusCode).json(errorResponse);
+        return;
+      }
+
+      // Validate required fields
+      if (!technicianId || !scheduledAt || !timeSlot) {
+        this._logger.warn(
+          'Check availability failed - missing required fields',
+          context
+        );
+        const badRequestResponse = ResponseHelper.badRequest(
+          'technicianId, scheduledAt, and timeSlot are required'
+        );
+        res.status(badRequestResponse.statusCode).json(badRequestResponse);
+        return;
+      }
+
+      // Validate date format
+      const scheduledDate = new Date(scheduledAt);
+      if (isNaN(scheduledDate.getTime())) {
+        this._logger.warn('Check availability failed - invalid date format', {
+          ...context,
+          scheduledAt,
+        });
+        const badRequestResponse = ResponseHelper.badRequest(
+          'Invalid scheduledAt date format'
+        );
+        res.status(badRequestResponse.statusCode).json(badRequestResponse);
+        return;
+      }
+
+      // Check if date is in the past
+      const now = new Date();
+      if (
+        scheduledDate <
+        new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      ) {
+        this._logger.warn('Check availability failed - past date', {
+          ...context,
+          scheduledAt,
+        });
+        const badRequestResponse = ResponseHelper.badRequest(
+          'Cannot book for past dates'
+        );
+        res.status(badRequestResponse.statusCode).json(badRequestResponse);
+        return;
+      }
+
+      this._logger.debug('Checking availability for', {
+        ...context,
+        scheduledDate: scheduledDate.toISOString(),
+      });
+
+      const result = await this._bookingService.checkTechnicianAvailability(
+        technicianId,
+        scheduledDate,
+        timeSlot
+      );
+
+      this._logger.info('Technician availability checked', {
+        ...context,
+        available: result.data?.available,
+      });
+
+      res.status(result.statusCode).json(result);
+    } catch (error: unknown) {
+      this._logger.error('Check technician availability controller error', {
+        ...context,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  };
+
+  // Also, add a public endpoint that doesn't require authentication for initial checks
+  checkTechnicianAvailabilityPublic = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
+    const { technicianId, scheduledAt, timeSlot } = req.body;
+
+    const context = {
+      operation: 'checkTechnicianAvailabilityPublic',
+      technicianId,
+      scheduledAt,
+      timeSlot,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info('Checking technician availability (public)', context);
+
+      // Validate required fields
+      if (!technicianId || !scheduledAt || !timeSlot) {
+        this._logger.warn(
+          'Check availability failed - missing required fields',
+          context
+        );
+        const badRequestResponse = ResponseHelper.badRequest(
+          'technicianId, scheduledAt, and timeSlot are required'
+        );
+        res.status(badRequestResponse.statusCode).json(badRequestResponse);
+        return;
+      }
+
+      // Validate date format
+      const scheduledDate = new Date(scheduledAt);
+      if (isNaN(scheduledDate.getTime())) {
+        this._logger.warn('Check availability failed - invalid date format', {
+          ...context,
+          scheduledAt,
+        });
+        const badRequestResponse = ResponseHelper.badRequest(
+          'Invalid scheduledAt date format'
+        );
+        res.status(badRequestResponse.statusCode).json(badRequestResponse);
+        return;
+      }
+
+      // Check if date is in the past
+      const now = new Date();
+      if (
+        scheduledDate <
+        new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      ) {
+        this._logger.warn('Check availability failed - past date', {
+          ...context,
+          scheduledAt,
+        });
+        const badRequestResponse = ResponseHelper.badRequest(
+          'Cannot book for past dates'
+        );
+        res.status(badRequestResponse.statusCode).json(badRequestResponse);
+        return;
+      }
+
+      this._logger.debug('Checking availability for (public)', {
+        ...context,
+        scheduledDate: scheduledDate.toISOString(),
+      });
+
+      const result = await this._bookingService.checkTechnicianAvailability(
+        technicianId,
+        scheduledDate,
+        timeSlot
+      );
+
+      this._logger.info('Technician availability checked (public)', {
+        ...context,
+        available: result.data?.available,
+      });
+
+      res.status(result.statusCode).json(result);
+    } catch (error: unknown) {
+      this._logger.error(
+        'Check technician availability controller error (public)',
+        {
+          ...context,
+          error: error instanceof Error ? error.message : undefined,
+          stack: error instanceof Error ? error.stack : undefined,
+        }
+      );
+
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  };
+
+  getTechnicianBookingsForDate = async (
+    req: AuthRequest,
+    res: Response
+  ): Promise<void> => {
+    const userId = req.user?.id;
+    const { technicianId, date } = req.params;
+
+    const context = {
+      operation: 'getTechnicianBookingsForDate',
+      userId,
+      technicianId,
+      date,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      this._logger.info('Fetching technician bookings for date', context);
+
+      if (!userId) {
+        this._logger.warn(
+          'Get technician bookings failed - authentication required',
+          context
+        );
+        const errorResponse = ResponseHelper.unauthorized(
+          'Authentication required'
+        );
+        res.status(errorResponse.statusCode).json(errorResponse);
+        return;
+      }
+
+      // Validate date
+      const parsedDate = new Date(date);
+      if (isNaN(parsedDate.getTime())) {
+        this._logger.warn('Invalid date format', context);
+        const errorResponse = ResponseHelper.badRequest('Invalid date format');
+        res.status(errorResponse.statusCode).json(errorResponse);
+        return;
+      }
+
+      // Use the new method
+      const result = await this._bookingService.getTechnicianBookingsForDate(
+        technicianId,
+        parsedDate
+      );
+
+      res.status(result.statusCode).json(result);
+    } catch (error: unknown) {
+      this._logger.error('Get technician bookings for date controller error', {
+        ...context,
+        error: error instanceof Error ? error.message : undefined,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      const errorResponse = ResponseHelper.error(GeneralMessages.SERVER_ERROR);
+      res.status(errorResponse.statusCode).json(errorResponse);
+    }
+  };
+
   createBooking = async (req: AuthRequest, res: Response): Promise<void> => {
     const userId = req.user?.id;
     const bookingData: CreateBookingRequestDto = req.body;

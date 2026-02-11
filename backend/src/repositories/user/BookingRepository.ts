@@ -1,20 +1,23 @@
-import TechnicianAvailabilitySchema from "../../models/technician/TechnicianAvailabilitySchema";
-import { IBookingRepository } from "../../interfaces/repository/user/IBookingRepository";
-import Booking, { IBooking } from "../../models/BookingSchema";
-import mongoose, { Types } from "mongoose";
+import TechnicianAvailabilitySchema, {
+  ITechnicianAvailability,
+} from '../../models/technician/TechnicianAvailabilitySchema';
+import { IBookingRepository } from '../../interfaces/repository/user/IBookingRepository';
+import Booking, { IBooking } from '../../models/BookingSchema';
+import mongoose, { Types } from 'mongoose';
+import { TimeSlotHelper } from '../../utils/timeSlotHelper';
 
 export class BookingRepository implements IBookingRepository {
   async create(bookingData: Partial<IBooking>): Promise<IBooking> {
     const booking = new Booking(bookingData);
-    
+
     return await booking.save();
   }
 
   async findById(bookingId: string): Promise<IBooking | null> {
     return await Booking.findById(bookingId)
-      .populate("userId", "fullName email phone")
-      .populate("technicianId", "displayName profilePictureUrl services")
-      .populate("addressId")
+      .populate('userId', 'fullName email phone')
+      .populate('technicianId', 'displayName profilePictureUrl services')
+      .populate('addressId')
       .exec();
   }
 
@@ -30,7 +33,7 @@ export class BookingRepository implements IBookingRepository {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("technicianId", "displayName profilePictureUrl")
+        .populate('technicianId', 'displayName profilePictureUrl')
         .exec(),
       Booking.countDocuments({ userId: new Types.ObjectId(userId) }),
     ]);
@@ -50,7 +53,7 @@ export class BookingRepository implements IBookingRepository {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("userId", "fullName email phone")
+        .populate('userId', 'fullName email phone')
         .exec(),
       Booking.countDocuments({
         technicianId: new Types.ObjectId(technicianId),
@@ -94,9 +97,9 @@ export class BookingRepository implements IBookingRepository {
 
   async findByBookingCode(bookingCode: string): Promise<IBooking | null> {
     return await Booking.findOne({ bookingCode })
-      .populate("userId", "fullName email phone")
-      .populate("technicianId", "displayName profilePictureUrl services")
-      .populate("addressId")
+      .populate('userId', 'fullName email phone')
+      .populate('technicianId', 'displayName profilePictureUrl services')
+      .populate('addressId')
       .exec();
   }
 
@@ -111,7 +114,7 @@ export class BookingRepository implements IBookingRepository {
         this.parseTimeSlot(timeSlot);
 
       if (!requestedStartTime || !requestedEndTime) {
-        console.error("Invalid time slot format:", timeSlot);
+        console.error('Invalid time slot format:', timeSlot);
         return false;
       }
 
@@ -129,7 +132,7 @@ export class BookingRepository implements IBookingRepository {
       }
 
       // Check if the requested time slot is available
-      const isSlotAvailable = availability.timeSlots.some((slot) => {
+      const isSlotAvailable = availability.timeSlots.some(slot => {
         // Handle both Date objects and string formats
         let slotStart: number;
         let slotEnd: number;
@@ -151,7 +154,7 @@ export class BookingRepository implements IBookingRepository {
         }
 
         return (
-          slot.status === "available" &&
+          slot.status === 'available' &&
           requestedStartTime >= slotStart &&
           requestedEndTime <= slotEnd
         );
@@ -169,12 +172,12 @@ export class BookingRepository implements IBookingRepository {
           $lte: new Date(date.setHours(23, 59, 59, 999)),
         },
         timeSlot: timeSlot,
-        status: { $in: ["pending", "accepted", "in_progress", "on_the_way"] },
+        status: { $in: ['pending', 'accepted', 'in_progress', 'on_the_way'] },
       }).exec();
 
       return !existingBooking;
     } catch (error) {
-      console.error("Error checking technician availability:", error);
+      console.error('Error checking technician availability:', error);
       return false;
     }
   }
@@ -182,14 +185,14 @@ export class BookingRepository implements IBookingRepository {
   // Helper method to parse time slot string (e.g., "9:00 AM - 6:00 PM")
   private parseTimeSlot(timeSlot: string): [number, number] | [null, null] {
     try {
-      const [startPart, endPart] = timeSlot.split(" - ");
+      const [startPart, endPart] = timeSlot.split(' - ');
 
       const startMinutes = this.parseTimeStringToMinutes(startPart.trim());
       const endMinutes = this.parseTimeStringToMinutes(endPart.trim());
 
       return [startMinutes, endMinutes];
     } catch (error) {
-      console.error("Error parsing time slot:", error);
+      console.error('Error parsing time slot:', error);
       return [null, null];
     }
   }
@@ -208,9 +211,9 @@ export class BookingRepository implements IBookingRepository {
     const minuteNum = parseInt(minutes);
 
     // Convert to 24-hour format
-    if (period.toUpperCase() === "PM" && hourNum !== 12) {
+    if (period.toUpperCase() === 'PM' && hourNum !== 12) {
       hourNum += 12;
-    } else if (period.toUpperCase() === "AM" && hourNum === 12) {
+    } else if (period.toUpperCase() === 'AM' && hourNum === 12) {
       hourNum = 0;
     }
 
@@ -219,7 +222,7 @@ export class BookingRepository implements IBookingRepository {
 
   // Helper method for simple time format (HH:MM)
   private parseTimeToMinutes(timeStr: string): number {
-    const [hours, minutes] = timeStr.split(":").map(Number);
+    const [hours, minutes] = timeStr.split(':').map(Number);
     return hours * 60 + minutes;
   }
 
@@ -227,16 +230,16 @@ export class BookingRepository implements IBookingRepository {
     return await Booking.countDocuments();
   }
   async getTechnicianDetails(technicianId: string): Promise<any> {
-    const Technician = mongoose.model("Technician");
+    const Technician = mongoose.model('Technician');
     return await Technician.findById(technicianId)
       .select(
-        "displayName profilePictureUrl averageRating ratingCount services phone"
+        'displayName profilePictureUrl averageRating ratingCount services phone'
       )
       .exec();
   }
 
   async getAddressDetails(addressId: string): Promise<any> {
-    const UserAddress = mongoose.model("UserAddress");
+    const UserAddress = mongoose.model('UserAddress');
     return await UserAddress.findById(addressId).exec();
   }
 
@@ -259,8 +262,128 @@ export class BookingRepository implements IBookingRepository {
 
       return null;
     } catch (error) {
-      console.error("Error fetching technician location:", error);
+      console.error('Error fetching technician location:', error);
       return null;
+    }
+  }
+
+  // In your actual repository implementation (e.g., BookingRepository.ts)
+  async findByTechnicianAndTimeSlot(
+    technicianId: string,
+    date: Date,
+    timeSlot: string
+  ): Promise<IBooking[]> {
+    try {
+      // Parse the time slot to get start and end times
+      const parsedSlot = TimeSlotHelper.parseTimeSlot(timeSlot);
+      if (!parsedSlot) {
+        return [];
+      }
+
+      // Get the start of day and end of day
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Find bookings for this technician on the same day with overlapping time slots
+      const bookings = await Booking.find({
+        technicianId: new Types.ObjectId(technicianId),
+        scheduledAt: { $gte: startOfDay, $lte: endOfDay },
+        status: { $nin: ['cancelled', 'completed', 'refunded'] },
+      });
+
+      // Filter bookings that overlap with the requested time slot
+      const overlappingBookings = bookings.filter(booking => {
+        const bookingParsedSlot = TimeSlotHelper.parseTimeSlot(
+          booking.timeSlot
+        );
+        if (!bookingParsedSlot) return false;
+
+        const bookingStart = new Date(booking.scheduledAt);
+        bookingStart.setHours(
+          bookingParsedSlot.start.getHours(),
+          bookingParsedSlot.start.getMinutes(),
+          0,
+          0
+        );
+
+        const bookingEnd = new Date(booking.scheduledAt);
+        bookingEnd.setHours(
+          bookingParsedSlot.end.getHours(),
+          bookingParsedSlot.end.getMinutes(),
+          0,
+          0
+        );
+
+        const requestedStart = new Date(date);
+        requestedStart.setHours(
+          parsedSlot.start.getHours(),
+          parsedSlot.start.getMinutes(),
+          0,
+          0
+        );
+
+        const requestedEnd = new Date(date);
+        requestedEnd.setHours(
+          parsedSlot.end.getHours(),
+          parsedSlot.end.getMinutes(),
+          0,
+          0
+        );
+
+        return TimeSlotHelper.doSlotsOverlap(
+          bookingStart,
+          bookingEnd,
+          requestedStart,
+          requestedEnd
+        );
+      });
+
+      return overlappingBookings;
+    } catch (error) {
+      console.error('Error finding bookings by technician and time slot');
+      throw error;
+    }
+  }
+
+  async getTechnicianAvailability(
+    technicianId: string,
+    date: Date
+  ): Promise<ITechnicianAvailability | null> {
+    try {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      return await TechnicianAvailabilitySchema.findOne({
+        technicianId: new Types.ObjectId(technicianId),
+        date: startOfDay,
+      });
+    } catch (error) {
+      console.error('Error getting technician availability');
+      throw error;
+    }
+  }
+
+  async findByTechnicianAndDate(
+    technicianId: string,
+    date: Date
+  ): Promise<IBooking[]> {
+    try {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      return await Booking.find({
+        technicianId: new Types.ObjectId(technicianId),
+        scheduledAt: { $gte: startOfDay, $lte: endOfDay },
+      });
+    } catch (error) {
+      console.error('Error finding bookings by technician and date');
+      throw error;
     }
   }
 }

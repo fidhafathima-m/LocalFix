@@ -99,7 +99,7 @@ export const userService = {
   },
 
   createAddress: async (
-    addressData: AddressFormData
+    addressData: AddressFormData,
   ): Promise<{
     success: boolean;
     data?: { address: Address };
@@ -116,7 +116,7 @@ export const userService = {
 
   updateAddress: async (
     addressId: string,
-    addressData: Partial<AddressFormData>
+    addressData: Partial<AddressFormData>,
   ): Promise<{
     success: boolean;
     data?: { address: Address };
@@ -125,7 +125,7 @@ export const userService = {
     try {
       const response = await userProfileApi.updateAddress(
         addressId,
-        addressData
+        addressData,
       );
       return response.data;
     } catch (error) {
@@ -135,7 +135,7 @@ export const userService = {
   },
 
   deleteAddress: async (
-    addressId: string
+    addressId: string,
   ): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await userProfileApi.deleteAddress(addressId);
@@ -147,7 +147,7 @@ export const userService = {
   },
 
   setDefaultAddress: async (
-    addressId: string
+    addressId: string,
   ): Promise<{
     success: boolean;
     data?: { address: Address };
@@ -158,6 +158,30 @@ export const userService = {
       return response.data;
     } catch (error) {
       console.error("Error setting default address:", error);
+      throw error;
+    }
+  },
+  checkTechnicianAvailability: async (
+    technicianId: string,
+    scheduledAt: string,
+    timeSlot: string,
+  ): Promise<{
+    success: boolean;
+    data?: {
+      available: boolean;
+      message?: string;
+    };
+    message?: string;
+  }> => {
+    try {
+      const response = await userProfileApi.checkTechnicianAvailability({
+        technicianId,
+        scheduledAt,
+        timeSlot,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error checking technician availability:", error);
       throw error;
     }
   },

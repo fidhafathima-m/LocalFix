@@ -32,6 +32,7 @@ import {
   validateBookingStep,
   validatePhoneNumber,
 } from "../../../../validation/utils/bookingValidationUtils";
+import { bookingService } from "../../../../services/user/bookingService";
 
 interface Technician {
   _id: string;
@@ -81,6 +82,11 @@ interface DailyAvailability {
     end: string;
   }>;
   isToday: boolean;
+}
+
+interface TimeSlotWithStatus {
+  time: string;
+  isBooked: boolean;
 }
 
 const BookingPage: React.FC = () => {
@@ -145,7 +151,7 @@ const BookingPage: React.FC = () => {
 
     return availableServices.some(
       (availableService) =>
-        availableService.toLowerCase().trim() === normalizedInput
+        availableService.toLowerCase().trim() === normalizedInput,
     );
   };
 
@@ -188,7 +194,7 @@ const BookingPage: React.FC = () => {
 
     const matchedService = availableServices.find(
       (availableService) =>
-        availableService.toLowerCase().trim() === normalizedInput
+        availableService.toLowerCase().trim() === normalizedInput,
     );
 
     return matchedService || null;
@@ -242,7 +248,7 @@ const BookingPage: React.FC = () => {
         // Fetch technician data
         const technicianResponse =
           await TechnicianMangementService.getPublicTechnicianById(
-            technicianId
+            technicianId,
           );
 
         let technicianData;
@@ -276,7 +282,7 @@ const BookingPage: React.FC = () => {
           try {
             const slotRulesResponse =
               await TechnicianMangementService.getTechnicianSlotRules(
-                technicianId
+                technicianId,
               );
 
             if (
@@ -294,7 +300,7 @@ const BookingPage: React.FC = () => {
 
                 // Set the first available time slot for that date
                 const selectedDay = availability.find(
-                  (day) => day.formattedDate === nextAvailableDate
+                  (day) => day.formattedDate === nextAvailableDate,
                 );
 
                 if (
@@ -303,12 +309,20 @@ const BookingPage: React.FC = () => {
                   !selectedTime
                 ) {
                   // If it's today, filter out past time slots
-                  const availableSlots = selectedDay.isToday
-                    ? getAvailableTimeSlotsForDate(selectedDay.formattedDate)
-                    : selectedDay.slots.map((slot) => formatTimeRange(slot));
-
-                  if (availableSlots.length > 0) {
-                    setSelectedTime(availableSlots[0]);
+                  if (selectedDay.isToday) {
+                    const availableSlots = getAvailableTimeSlotsForDate(
+                      selectedDay.formattedDate,
+                    );
+                    if (availableSlots.length > 0) {
+                      // Extract the time string from the object
+                      setSelectedTime(availableSlots[0].time);
+                    }
+                  } else {
+                    // For future dates, use all slots
+                    const firstSlot = selectedDay.slots[0];
+                    if (firstSlot) {
+                      setSelectedTime(formatTimeRange(firstSlot));
+                    }
                   }
                 }
               }
@@ -338,9 +352,9 @@ const BookingPage: React.FC = () => {
     }
   }, [technicianId, isLoggedIn, serviceName]);
 
-  const getAvailableTimeSlotsForDate = (date: string): string[] => {
+  const getAvailableTimeSlotsForDate = (date: string): TimeSlotWithStatus[] => {
     const dayForDate = weeklyAvailability.find(
-      (day) => day.formattedDate === date
+      (day) => day.formattedDate === date,
     );
 
     if (!dayForDate) return [];
@@ -348,45 +362,77 @@ const BookingPage: React.FC = () => {
     const now = new Date();
     const isToday = date === now.toISOString().split("T")[0];
 
-    if (!isToday) {
-      // For future dates, return all slots
-      return dayForDate.slots.map((slot) => formatTimeRange(slot));
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const isSlotBooked = (slot: { start: string; end: string }): boolean => {
+      return false;
+    };
 
-    // For today, filter out past time slots
-    const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
-
-    return dayForDate.slots
-      .filter((slot) => {
+    const slots = dayForDate.slots.filter((slot) => {
+      if (isToday) {
+        const currentTime = now.getHours() * 60 + now.getMinutes();
         const [slotHour, slotMinute] = slot.start.split(":").map(Number);
         const slotTime = slotHour * 60 + slotMinute;
         return slotTime > currentTime;
-      })
-      .map((slot) => formatTimeRange(slot));
+      }
+      return true;
+    });
+
+    return slots.map((slot) => ({
+      time: formatTimeRange(slot),
+      isBooked: isSlotBooked(slot),
+    }));
   };
 
   // Generate weekly availability from slot rules - extend to 30 days
-  const generateWeeklyAvailability = (rules: any[]): DailyAvailability[] => {
+  // Update the function signature
+  const generateWeeklyAvailability = (
+    rules: any[],
+    existingBookings: any[] = [],
+  ): DailyAvailability[] => {
     const days: DailyAvailability[] = [];
     const today = new Date();
 
-    // Get next 30 days to match the date picker range
     for (let i = 0; i < 30; i++) {
       const date = new Date();
       date.setDate(today.getDate() + i);
+      const dateString = date.toISOString().split("T")[0];
 
       const dayName = date
         .toLocaleDateString("en-US", { weekday: "long" })
         .toLowerCase();
 
-      // Find slots for this day from active rules
+      // Get slots for this day
       const daySlots = getSlotsForDate(rules, date);
+
+      // Filter out booked slots
+      const availableSlots = daySlots.filter((slot) => {
+        const slotStartTime = `${slot.start}`;
+        const slotEndTime = `${slot.end}`;
+
+        // Check if any existing booking overlaps with this slot
+        const isBooked = existingBookings.some((booking) => {
+          if (booking.scheduledAt.split("T")[0] !== dateString) return false;
+
+          // Parse booking time slot
+          const [bookingStart, bookingEnd] = booking.timeSlot.split(" - ");
+
+          // Check for overlap
+          return doTimeSlotsOverlap(
+            slotStartTime,
+            slotEndTime,
+            bookingStart,
+            bookingEnd,
+          );
+        });
+
+        return !isBooked;
+      });
 
       days.push({
         date,
-        formattedDate: date.toISOString().split("T")[0],
+        formattedDate: dateString,
         dayName,
-        slots: daySlots,
+        slots: availableSlots,
         isToday: i === 0,
       });
     }
@@ -394,10 +440,37 @@ const BookingPage: React.FC = () => {
     return days;
   };
 
+  // Helper function to check time slot overlap
+  const doTimeSlotsOverlap = (
+    slot1Start: string,
+    slot1End: string,
+    slot2Start: string,
+    slot2End: string,
+  ): boolean => {
+    const parseTime = (timeStr: string): number => {
+      const [time, period] = timeStr.split(" ");
+      const [hours, minutes] = time.split(":").map(Number);
+      let totalMinutes = hours * 60 + minutes;
+
+      if (period === "PM" && hours !== 12) totalMinutes += 12 * 60;
+      if (period === "AM" && hours === 12) totalMinutes = minutes;
+
+      return totalMinutes;
+    };
+
+    const start1 = parseTime(slot1Start);
+    const end1 = parseTime(slot1End);
+    const start2 = parseTime(slot2Start);
+    const end2 = parseTime(slot2End);
+
+    return start1 < end2 && start2 < end1;
+  };
+
+  // Get slots for a specific date from slot rules
   // Get slots for a specific date from slot rules
   const getSlotsForDate = (
     rules: any[],
-    date: Date
+    date: Date,
   ): Array<{ start: string; end: string }> => {
     const slots: Array<{ start: string; end: string }> = [];
     const activeRules = rules.filter((rule) => rule.isActive);
@@ -409,7 +482,7 @@ const BookingPage: React.FC = () => {
         const occurrences = rrule.between(
           new Date(date.getFullYear(), date.getMonth(), date.getDate()),
           new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
-          true
+          true,
         );
 
         // If this rule applies to the current date, generate slots
@@ -417,7 +490,7 @@ const BookingPage: React.FC = () => {
           const daySlots = generateTimeSlots(
             rule.startTime,
             rule.endTime,
-            rule.slotDurationMinutes
+            rule.slotDurationMinutes,
           );
           slots.push(...daySlots);
         }
@@ -426,89 +499,58 @@ const BookingPage: React.FC = () => {
       }
     });
 
-    return mergeConsecutiveSlots(slots);
+    // Remove duplicates using a Map
+    const uniqueSlotsMap = new Map<string, { start: string; end: string }>();
+
+    slots.forEach((slot) => {
+      const key = `${slot.start}-${slot.end}`;
+      if (!uniqueSlotsMap.has(key)) {
+        uniqueSlotsMap.set(key, slot);
+      }
+    });
+
+    // Convert back to array and sort
+    const uniqueSlots = Array.from(uniqueSlotsMap.values());
+    return uniqueSlots.sort((a, b) => a.start.localeCompare(b.start));
   };
 
   // Generate time slots from start to end time
   const generateTimeSlots = (
     startTime: string,
     endTime: string,
-    durationMinutes: number
+    durationMinutes: number,
   ): Array<{ start: string; end: string }> => {
     const slots: Array<{ start: string; end: string }> = [];
 
     const [startHour, startMinute] = startTime.split(":").map(Number);
     const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    let currentHour = startHour;
-    let currentMinute = startMinute;
+    // Convert start and end times to total minutes
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const endTotalMinutes = endHour * 60 + endMinute;
 
-    while (
-      currentHour < endHour ||
-      (currentHour === endHour && currentMinute < endMinute)
-    ) {
-      const slotStart = `${currentHour
-        .toString()
-        .padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`;
+    let currentTime = startTotalMinutes;
+
+    // Generate slots until we reach or exceed the end time
+    while (currentTime + durationMinutes <= endTotalMinutes) {
+      // Calculate start time
+      const slotStartHour = Math.floor(currentTime / 60);
+      const slotStartMinute = currentTime % 60;
+      const slotStart = `${slotStartHour.toString().padStart(2, "0")}:${slotStartMinute.toString().padStart(2, "0")}`;
 
       // Calculate end time
-      let slotEndHour = currentHour;
-      let slotEndMinute = currentMinute + durationMinutes;
+      const slotEndTime = currentTime + durationMinutes;
+      const slotEndHour = Math.floor(slotEndTime / 60);
+      const slotEndMinute = slotEndTime % 60;
+      const slotEnd = `${slotEndHour.toString().padStart(2, "0")}:${slotEndMinute.toString().padStart(2, "0")}`;
 
-      while (slotEndMinute >= 60) {
-        slotEndHour++;
-        slotEndMinute -= 60;
-      }
+      slots.push({ start: slotStart, end: slotEnd });
 
-      const slotEnd = `${slotEndHour
-        .toString()
-        .padStart(2, "0")}:${slotEndMinute.toString().padStart(2, "0")}`;
-
-      // Check if slot ends before or at the end time
-      if (
-        slotEndHour < endHour ||
-        (slotEndHour === endHour && slotEndMinute <= endMinute)
-      ) {
-        slots.push({ start: slotStart, end: slotEnd });
-      }
-
-      // Move to next slot
-      currentMinute += durationMinutes;
-      while (currentMinute >= 60) {
-        currentHour++;
-        currentMinute -= 60;
-      }
+      // Move to next slot (increment by duration)
+      currentTime = slotEndTime;
     }
 
     return slots;
-  };
-
-  // Merge consecutive slots
-  const mergeConsecutiveSlots = (
-    slots: Array<{ start: string; end: string }>
-  ): Array<{ start: string; end: string }> => {
-    if (slots.length === 0) return [];
-
-    const sortedSlots = [...slots].sort((a, b) =>
-      a.start.localeCompare(b.start)
-    );
-    const merged: Array<{ start: string; end: string }> = [];
-
-    let currentRange = { ...sortedSlots[0] };
-
-    for (let i = 1; i < sortedSlots.length; i++) {
-      const slot = sortedSlots[i];
-
-      if (slot.start === currentRange.end) {
-        currentRange.end = slot.end;
-      } else {
-        merged.push(currentRange);
-        currentRange = { ...slot };
-      }
-    }
-
-    merged.push(currentRange);
-    return merged;
   };
 
   // Format time to 12-hour format
@@ -522,12 +564,12 @@ const BookingPage: React.FC = () => {
   // Format time range for display
   const formatTimeRange = (range: { start: string; end: string }): string => {
     return `${formatTimeTo12Hour(range.start)} - ${formatTimeTo12Hour(
-      range.end
+      range.end,
     )}`;
   };
 
   // Get available time slots for selected date
-  const getAvailableTimeSlotsForSelectedDate = (): string[] => {
+  const getAvailableTimeSlotsForSelectedDate = (): TimeSlotWithStatus[] => {
     if (!selectedDate) return [];
     return getAvailableTimeSlotsForDate(selectedDate);
   };
@@ -539,7 +581,7 @@ const BookingPage: React.FC = () => {
 
     // Check if the selected date is available
     const selectedDay = weeklyAvailability.find(
-      (day) => day.formattedDate === date
+      (day) => day.formattedDate === date,
     );
 
     // Only show error if the day is NOT available (no slots)
@@ -557,14 +599,14 @@ const BookingPage: React.FC = () => {
       // Auto-select the first available time slot
       const availableSlots = getAvailableTimeSlotsForDate(date);
       if (availableSlots.length > 0) {
-        setSelectedTime(availableSlots[0]);
+        setSelectedTime(availableSlots[0].time);
       }
     }
   };
   // Get technician's available days summary
   const getAvailableDaysSummary = () => {
     const availableDays = weeklyAvailability.filter(
-      (day) => day.slots.length > 0
+      (day) => day.slots.length > 0,
     );
     if (availableDays.length === 0) return "No available days";
 
@@ -573,7 +615,7 @@ const BookingPage: React.FC = () => {
 
     // Capitalize the first letter of each day name for display
     const capitalizedDays = uniqueDays.map(
-      (day) => day.charAt(0).toUpperCase() + day.slice(1)
+      (day) => day.charAt(0).toUpperCase() + day.slice(1),
     );
 
     return `Available on ${capitalizedDays.join(", ")}`;
@@ -631,7 +673,7 @@ const BookingPage: React.FC = () => {
 
           // Prefill default address if available
           const defaultAddress = response.data.addresses?.find(
-            (addr) => addr.isDefault
+            (addr) => addr.isDefault,
           );
           if (defaultAddress) {
             setSelectedAddress(defaultAddress.id);
@@ -819,6 +861,44 @@ const BookingPage: React.FC = () => {
           console.error("Phone update error:", updateError);
         }
       }
+      try {
+        // Check availability before proceeding
+        toast.loading("Checking technician availability...", {
+          id: "availability-check",
+        });
+
+        const availabilityResponse =
+          await userService.checkTechnicianAvailability(
+            technicianId!,
+            selectedDate,
+            selectedTime,
+          );
+
+        if (
+          !availabilityResponse.success ||
+          !availabilityResponse.data?.available
+        ) {
+          toast.dismiss("availability-check");
+          toast.error(
+            availabilityResponse.data?.message ||
+              availabilityResponse.message ||
+              "This time slot is no longer available. Please select another time.",
+          );
+
+          // Refresh availability slots
+          if (technicianId) {
+            refreshAvailability(technicianId, selectedDate);
+          }
+          return;
+        }
+
+        toast.dismiss("availability-check");
+        toast.success("Time slot confirmed! Proceeding to checkout...");
+      } catch (error) {
+        toast.dismiss("availability-check");
+        console.error("Error checking availability:", error);
+        toast.error("Unable to check availability. Please try again.");
+      }
 
       navigate("/checkout", {
         state: {
@@ -841,6 +921,34 @@ const BookingPage: React.FC = () => {
       toast.error("An error occurred while processing your booking");
     }
   };
+
+  const refreshAvailability = async (technicianId: string, date: string) => {
+    try {
+      // Fetch updated slot rules
+      const slotRulesResponse =
+        await TechnicianMangementService.getTechnicianSlotRules(technicianId);
+
+      if (slotRulesResponse.data?.success) {
+        const slotRules = slotRulesResponse.data.data?.slotRules || [];
+
+        // Get existing bookings for the date to mark booked slots
+        const bookingsResponse =
+          await bookingService.getTechnicianBookingsForDate(technicianId, date);
+
+        const existingBookings = bookingsResponse.data?.bookings || [];
+
+        // Generate availability with booked slots marked
+        const availability = generateWeeklyAvailability(
+          slotRules,
+          existingBookings,
+        );
+        setWeeklyAvailability(availability);
+      }
+    } catch (error) {
+      console.error("Error refreshing availability:", error);
+    }
+  };
+
   // Safe function to get rating with fallback
   const getSafeRating = () => {
     if (!technician?.averageRating && technician?.averageRating !== 0) {
@@ -1002,7 +1110,7 @@ const BookingPage: React.FC = () => {
 
   const availableDates = getAvailableDates();
   const hasAvailability = weeklyAvailability.some(
-    (day) => day.slots.length > 0
+    (day) => day.slots.length > 0,
   );
 
   // Main booking form (only shown when logged in and technician data is loaded)
@@ -1352,14 +1460,19 @@ const BookingPage: React.FC = () => {
                     {dateError
                       ? "Select an available date first"
                       : !selectedDate
-                      ? "Select date first"
-                      : getAvailableTimeSlotsForSelectedDate().length === 0
-                      ? "No available time slots"
-                      : "Select time slot"}
+                        ? "Select date first"
+                        : getAvailableTimeSlotsForSelectedDate().length === 0
+                          ? "No available time slots"
+                          : "Select time slot"}
                   </option>
                   {getAvailableTimeSlotsForSelectedDate().map((slot, index) => (
-                    <option key={index} value={slot}>
-                      {slot}
+                    <option
+                      key={index}
+                      value={slot.time}
+                      disabled={slot.isBooked}
+                      className={slot.isBooked ? "text-gray-400" : ""}
+                    >
+                      {slot.time} {slot.isBooked ? "(Booked)" : ""}
                     </option>
                   ))}
                 </select>
