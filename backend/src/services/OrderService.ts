@@ -518,7 +518,6 @@ export class OrderService implements IOrderService {
     }
   }
 
-  // In your backend OrderService.ts - update the updateOrderStatus method
   async updateOrderStatus(
     orderId: string,
     status: string,
@@ -533,6 +532,60 @@ export class OrderService implements IOrderService {
     try {
       this._logger.info('=== UPDATE ORDER STATUS START ===', context);
 
+      // First get the order
+      const order = await this._orderRepository.findById(orderId);
+
+      if (!order) {
+        this._logger.warn('Order not found for status update', context);
+        return ResponseHelper.notFound('Order not found');
+      }
+
+      // CHECK FOR EXPIRED ORDER
+      const now = new Date();
+      const scheduledAt = new Date(order.scheduledAt);
+      const oneHourAfterScheduled = new Date(
+        scheduledAt.getTime() + 60 * 60 * 1000
+      );
+
+      // If order is expired, prevent any status changes except admin override
+      if (now > oneHourAfterScheduled && updatedBy !== 'admin') {
+        this._logger.warn('Attempted to update expired order', {
+          ...context,
+          scheduledAt,
+          now,
+          oneHourAfterScheduled,
+        });
+        return ResponseHelper.badRequest(
+          'This order has expired and can no longer be modified. Please contact support if you need assistance.'
+        );
+      }
+
+      // Validate if technician can update status
+      if (updatedBy === 'technician') {
+        // For acceptance, check additional validations
+        if (status === 'accepted') {
+          const canAccept = await this.canTechnicianAcceptOrder(
+            order,
+            order.technicianId.toString()
+          );
+
+          if (!canAccept.canAccept) {
+            return ResponseHelper.badRequest(
+              canAccept.reason || 'Cannot accept this order at this time'
+            );
+          }
+        } else {
+          // For other status updates, check if allowed
+          const canUpdate = await this.canTechnicianUpdateStatus(order, status);
+
+          if (!canUpdate.canUpdate) {
+            return ResponseHelper.badRequest(
+              canUpdate.reason || 'Cannot update to this status at this time'
+            );
+          }
+        }
+      }
+
       const updatedOrder = await this._orderRepository.updateStatus(
         orderId,
         status,
@@ -541,13 +594,12 @@ export class OrderService implements IOrderService {
       );
 
       if (!updatedOrder) {
-        this._logger.warn('Order not found for status update', context);
-        return ResponseHelper.notFound('Order not found');
+        this._logger.error('Failed to update order status', context);
+        return ResponseHelper.error('Failed to update order status');
       }
 
       // ✅ CRITICAL: Update the chat room with new order status
       try {
-        // Import your message service in the OrderService
         await this._messageService.syncOrderStatusWithRoom(orderId);
         this._logger.info('Chat room status synced successfully');
       } catch (syncError) {
@@ -1194,6 +1246,203 @@ export class OrderService implements IOrderService {
         stack: error instanceof Error ? error.stack : undefined,
       });
       return [];
+    }
+  }
+  // Add these private methods to your OrderService class
+  private async canTechnicianAcceptOrder(
+    order: any,
+    technicianId: string
+  ): Promise<{ canAccept: boolean; reason?: string }> {
+    try {
+      const now = new Date();
+      const scheduledAt = new Date(order.scheduledAt);
+
+      // 1. Check if scheduled time has passed
+      if (scheduledAt < now) {
+        return {
+          canAccept: false,
+          reason:
+            'Cannot accept an order after the scheduled date/time has passed',
+        };
+      }
+
+      // 2. Check for overlapping jobs
+      const overlappingOrders =
+        await this._orderRepository.findOverlappingOrders(
+          technicianId,
+          order.scheduledAt,
+          order.timeSlot,
+          order._id.toString()
+        );
+
+      if (overlappingOrders.length > 0) {
+        const conflictingOrder = overlappingOrders[0];
+        return {
+          canAccept: false,
+          reason: `You already have a ${conflictingOrder.serviceName} job scheduled at ${conflictingOrder.timeSlot} on ${new Date(conflictingOrder.scheduledAt).toLocaleDateString()}`,
+        };
+      }
+
+      // 3. Check if technician is currently in another job
+      const currentActiveOrder =
+        await this._orderRepository.findActiveOrderByTechnician(technicianId);
+      if (
+        currentActiveOrder &&
+        currentActiveOrder._id.toString() !== order._id.toString()
+      ) {
+        return {
+          canAccept: false,
+          reason: `You need to complete your current ${currentActiveOrder.serviceName} job before accepting new orders`,
+        };
+      }
+
+      return { canAccept: true };
+    } catch (error) {
+      this._logger.error('Error checking technician acceptance capability', {
+        technicianId,
+        orderId: order._id.toString(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return { canAccept: false, reason: 'System error checking availability' };
+    }
+  }
+
+  private async canTechnicianUpdateStatus(
+    order: any,
+    newStatus: string
+  ): Promise<{ canUpdate: boolean; reason?: string }> {
+    try {
+      const now = new Date();
+
+      // 1. Check if order is expired for certain status transitions
+      const scheduledAt = new Date(order.scheduledAt);
+
+      // For acceptance/confirmation, check if scheduled time has passed
+      if (['accepted', 'confirmed'].includes(newStatus)) {
+        if (scheduledAt < now) {
+          return {
+            canUpdate: false,
+            reason:
+              'Cannot accept/confirm an order after the scheduled date/time has passed',
+          };
+        }
+      }
+
+      // 2. For "in_progress" -> "completed", check minimum 30 minutes
+      if (newStatus === 'completed' && order.status === 'in_progress') {
+        const inProgressHistory = order.history.find(
+          (h: any) => h.status === 'in_progress'
+        );
+        if (inProgressHistory) {
+          const inProgressTime = new Date(inProgressHistory.timestamp);
+          const timeSinceStart = now.getTime() - inProgressTime.getTime();
+          const thirtyMinutes = 30 * 60 * 1000;
+
+          if (timeSinceStart < thirtyMinutes) {
+            const remainingMinutes = Math.ceil(
+              (thirtyMinutes - timeSinceStart) / (60 * 1000)
+            );
+            return {
+              canUpdate: false,
+              reason: `Cannot mark as complete yet. Please wait ${remainingMinutes} more minutes (minimum 30 minutes required from start)`,
+            };
+          }
+        }
+      }
+
+      // 3. Check for overlapping jobs when starting a new one
+      if (newStatus === 'in_progress') {
+        const activeOrder =
+          await this._orderRepository.findActiveOrderByTechnician(
+            order.technicianId.toString()
+          );
+
+        if (
+          activeOrder &&
+          activeOrder._id.toString() !== order._id.toString()
+        ) {
+          return {
+            canUpdate: false,
+            reason: `You need to complete your current ${activeOrder.serviceName} job before starting another one`,
+          };
+        }
+      }
+
+      return { canUpdate: true };
+    } catch (error) {
+      this._logger.error('Error checking status update capability', {
+        orderId: order._id.toString(),
+        newStatus,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return {
+        canUpdate: false,
+        reason: 'System error checking update capability',
+      };
+    }
+  }
+  // Add this method to OrderService.ts
+  async autoCancelExpiredOrders(): Promise<void> {
+    const context = { operation: 'autoCancelExpiredOrders' };
+
+    try {
+      this._logger.info('Running auto-cancel for expired orders', context);
+
+      const now = new Date();
+
+      // Find all pending/accepted/confirmed orders where scheduled time is more than 1 hour ago
+      const expiredOrders = await this._orderRepository.findExpiredOrders(now, [
+        'pending',
+        'accepted',
+        'confirmed',
+      ]);
+
+      this._logger.info(
+        `Found ${expiredOrders.length} expired orders to cancel`,
+        {
+          ...context,
+          count: expiredOrders.length,
+        }
+      );
+
+      for (const order of expiredOrders) {
+        try {
+          // Auto-cancel the order
+          const updatedOrder = await this._orderRepository.updateStatus(
+            order._id.toString(),
+            'cancelled',
+            'system',
+            'Order automatically cancelled - scheduled time has passed'
+          );
+
+          // Notify customer
+          await this.notifyUserAboutOrderStatusChange(
+            updatedOrder,
+            'cancelled'
+          );
+
+          // Notify technician
+          await this.notifyTechnicianAboutOrderStatusChange(
+            updatedOrder,
+            'cancelled'
+          );
+
+          this._logger.info('Auto-cancelled expired order', {
+            orderId: order._id.toString(),
+            scheduledAt: order.scheduledAt,
+          });
+        } catch (error) {
+          this._logger.error('Failed to auto-cancel expired order', {
+            orderId: order._id.toString(),
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+    } catch (error) {
+      this._logger.error('Error in auto-cancel expired orders', {
+        ...context,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }
 }

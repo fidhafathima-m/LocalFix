@@ -8,6 +8,7 @@ import { stream } from './utils/logger';
 import { requestLogger } from './middleware/requestLoger';
 import { errorHandler } from './middleware/errorHandler';
 import http from 'http';
+import cron from 'node-cron';
 
 // Import route creators
 import userAuth from './routes/userRoutes';
@@ -61,7 +62,12 @@ const {
   technicianProfileController,
   paymentManagementController,
   sparePartsRequestController,
+  cronService,
 } = createSocketDependentServices(server);
+
+cron.schedule('*/15 * * * *', async () => {
+  await cronService.autoCancelExpiredOrders();
+});
 
 const adminTechnicianRoutes = createTechnicianRoutes(
   technicianManagementController

@@ -41,7 +41,66 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   const currentTechnicianId =
     technicianId || technicianProfile?._id || authUser?._id;
 
-  // Check if spare parts request already exists
+  // Add helper function to check if order is expired
+  const isOrderExpired = (scheduledAt: string): boolean => {
+    if (!scheduledAt) return false;
+
+    const scheduledDate = new Date(scheduledAt);
+    const now = new Date();
+
+    // Consider order expired if scheduled time has passed by more than 1 hour
+    const oneHourAfterScheduled = new Date(
+      scheduledDate.getTime() + 60 * 60 * 1000,
+    );
+
+    return now > oneHourAfterScheduled;
+  };
+
+  // Add helper to check if order can be modified
+  const canModifyOrder = (): { allowed: boolean; reason: string } => {
+    const scheduledAt = order.scheduledAt;
+
+    // Don't allow modifications on completed or cancelled orders
+    if (["completed", "cancelled"].includes(order.status)) {
+      return {
+        allowed: false,
+        reason: `This order is already ${order.status} and cannot be modified.`,
+      };
+    }
+
+    // Check if order is expired
+    if (isOrderExpired(scheduledAt)) {
+      return {
+        allowed: false,
+        reason:
+          "This order's scheduled date/time has passed and can no longer be modified.",
+      };
+    }
+
+    return { allowed: true, reason: "" };
+  };
+
+  // Add helper to get button status
+  const getButtonStatus = (
+    defaultText: string,
+  ): { text: string; disabled: boolean; reason: string } => {
+    const modification = canModifyOrder();
+
+    if (!modification.allowed) {
+      return {
+        text: modification.reason.includes("expired") ? "Expired" : defaultText,
+        disabled: true,
+        reason: modification.reason,
+      };
+    }
+
+    return {
+      text: defaultText,
+      disabled: false,
+      reason: "",
+    };
+  };
+
   // Check if spare parts request already exists
   useEffect(() => {
     const checkExistingRequest = async () => {
@@ -50,15 +109,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       try {
         setLoading(true);
         const response = await SparePartsService.getSparePartsRequestsByOrder(
-          order._id
+          order._id,
         );
 
         // Handle different response structures
         if (response && Array.isArray(response)) {
-          // If it returns an array, check if there's at least one request
           setHasExistingRequest(response.length > 0);
         } else if (response && typeof response === "object") {
-          // If it returns an object with data array
           const requests = response.data || response.requests || response;
           if (Array.isArray(requests)) {
             setHasExistingRequest(requests.length > 0);
@@ -79,12 +136,18 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     if (order.status === "in_progress" || order.status === "on_the_way") {
       checkExistingRequest();
     } else {
-      // Reset for other statuses
       setHasExistingRequest(false);
     }
   }, [order._id, order.status]);
 
   const handleStatusUpdate = async (newStatus: string) => {
+    const modification = canModifyOrder();
+
+    if (!modification.allowed) {
+      toast.error(modification.reason);
+      return;
+    }
+
     try {
       await onUpdateOrderStatus(newStatus);
       toast.success(`Order status updated to ${newStatus.replace("_", " ")}.`);
@@ -95,6 +158,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   };
 
   const handleCancelOrder = async () => {
+    const modification = canModifyOrder();
+
+    if (!modification.allowed) {
+      toast.error(modification.reason);
+      return;
+    }
+
     const result = await Swal.fire({
       title: "Are you sure?",
       html: `
@@ -151,6 +221,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   };
 
   const handleDeclineOrder = async () => {
+    const modification = canModifyOrder();
+
+    if (!modification.allowed) {
+      toast.error(modification.reason);
+      return;
+    }
+
     const result = await Swal.fire({
       title: "Decline Order?",
       html: `
@@ -184,6 +261,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   };
 
   const handleStatusUpdateWithConfirmation = async (newStatus: string) => {
+    const modification = canModifyOrder();
+
+    if (!modification.allowed) {
+      toast.error(modification.reason);
+      return;
+    }
+
     const statusMessages: {
       [key: string]: {
         title: string;
@@ -234,7 +318,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       });
 
       if (result.isConfirmed) {
-        // If status is "on_the_way", ask for location sharing
         if (newStatus === "on_the_way") {
           await handleOnTheWayStatus();
         } else {
@@ -242,13 +325,18 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         }
       }
     } else {
-      // Direct status update without confirmation for other statuses
       await handleStatusUpdate(newStatus);
     }
   };
 
   const handleOnTheWayStatus = async () => {
-    // Ask if technician wants to share location
+    const modification = canModifyOrder();
+
+    if (!modification.allowed) {
+      toast.error(modification.reason);
+      return;
+    }
+
     const locationResult = await Swal.fire({
       title: "Share Location?",
       html: `
@@ -273,11 +361,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     });
 
     try {
-      // Update status to "on_the_way" regardless of location sharing choice
       await handleStatusUpdate("on_the_way");
 
       if (locationResult.isConfirmed) {
-        // Start location sharing
         await startLocationSharing();
       }
     } catch (error) {
@@ -292,7 +378,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       return;
     }
 
-    // Get current position first with better error handling
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const locationData = {
@@ -304,14 +389,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           timestamp: new Date(),
         };
 
-        // Send to backend via socket
         socket?.emit("technician-location-share", {
           technicianId: currentTechnicianId,
           orderId: order._id,
           location: locationData,
         });
 
-        // Start watching position for continuous updates
         const watchId = navigator.geolocation.watchPosition(
           (updatedPosition) => {
             const updatedLocation = {
@@ -323,7 +406,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
               timestamp: new Date(),
             };
 
-            // Send update to backend
             socket?.emit("technician-location-update", {
               technicianId: currentTechnicianId,
               orderId: order._id,
@@ -339,10 +421,9 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             enableHighAccuracy: true,
             timeout: 15000,
             maximumAge: 30000,
-          }
+          },
         );
 
-        // Store watchId to stop later
         setLocationWatchId(watchId);
         setIsSharingLocation(true);
 
@@ -373,7 +454,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         enableHighAccuracy: true,
         timeout: 15000,
         maximumAge: 60000,
-      }
+      },
     );
   };
 
@@ -394,6 +475,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   };
 
   const handleRestartLocationSharing = async () => {
+    const modification = canModifyOrder();
+
+    if (!modification.allowed) {
+      toast.error(modification.reason);
+      return;
+    }
+
     const result = await Swal.fire({
       title: "Restart Location Sharing?",
       html: `
@@ -421,7 +509,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       try {
         await startLocationSharing();
         toast.success(
-          "Location sharing restarted! Customer can now track you again."
+          "Location sharing restarted! Customer can now track you again.",
         );
       } catch (error) {
         toast.error("Failed to restart location sharing. Please try again.");
@@ -437,7 +525,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         return;
       }
 
-      // Transform parts to match backend DTO
       const requestItems = parts.map((part) => ({
         itemId: part.id,
         name: part.name,
@@ -452,7 +539,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         technicianNotes: `Spare parts requested for ${order.serviceName}`,
       };
 
-      // Call the service
       await SparePartsService.createSparePartsRequest(createDto);
 
       toast.success("Spare parts request submitted successfully!");
@@ -470,8 +556,13 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     }
   };
 
-  // Simple function to render spare parts button only if no existing request
   const renderSparePartsButton = () => {
+    const modification = canModifyOrder();
+
+    if (!modification.allowed) {
+      return null;
+    }
+
     if (loading) {
       return (
         <button
@@ -494,7 +585,6 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       );
     }
 
-    // Only show for specific statuses
     if (order.status !== "in_progress" && order.status !== "on_the_way") {
       return null;
     }
@@ -523,21 +613,67 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   };
 
   const renderButtons = () => {
+    const modification = canModifyOrder();
+    const isExpired = isOrderExpired(order.scheduledAt);
+    const buttonStatus = getButtonStatus("");
+
+    // If order is expired and not in terminal state, show expired message
+    if (isExpired && !["completed", "cancelled"].includes(order.status)) {
+      return (
+        <div className="space-y-3">
+          <div className="bg-gray-100 border border-gray-300 rounded-lg p-6 text-center">
+            <span className="text-gray-600 font-medium block mb-2">
+              ⏰ Order Expired
+            </span>
+            <p className="text-sm text-gray-500">
+              This order was scheduled for{" "}
+              {new Date(order.scheduledAt).toLocaleString()}
+              {` `}and can no longer be modified.
+            </p>
+          </div>
+          <button
+            onClick={handleCancelOrder}
+            disabled={!modification.allowed}
+            className={`w-full ${
+              modification.allowed
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-gray-400 cursor-not-allowed"
+            } text-white py-3 rounded-lg font-medium transition-colors`}
+            title={modification.reason}
+          >
+            {modification.allowed ? "Cancel Order" : "Expired"}
+          </button>
+        </div>
+      );
+    }
+
     switch (order.status) {
       case "pending":
         return (
           <div className="space-y-3">
             <button
               onClick={() => handleStatusUpdateWithConfirmation("accepted")}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-blue-600 hover:bg-blue-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Accept Order
+              {modification.allowed ? "Accept Order" : buttonStatus.text}
             </button>
             <button
               onClick={handleDeclineOrder}
-              className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Decline Order
+              {modification.allowed ? "Decline Order" : buttonStatus.text}
             </button>
           </div>
         );
@@ -547,21 +683,39 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           <div className="space-y-3">
             <button
               onClick={() => handleStatusUpdateWithConfirmation("confirmed")}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Confirm Service
+              {modification.allowed ? "Confirm Service" : buttonStatus.text}
             </button>
             <button
               onClick={() => handleStatusUpdateWithConfirmation("on_the_way")}
-              className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-orange-600 hover:bg-orange-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Start Journey
+              {modification.allowed ? "Start Journey" : buttonStatus.text}
             </button>
             <button
               onClick={handleCancelOrder}
-              className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Cancel Order
+              {modification.allowed ? "Cancel Order" : buttonStatus.text}
             </button>
           </div>
         );
@@ -571,15 +725,27 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           <div className="space-y-3">
             <button
               onClick={() => handleStatusUpdateWithConfirmation("on_the_way")}
-              className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-orange-600 hover:bg-orange-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Start Journey
+              {modification.allowed ? "Start Journey" : buttonStatus.text}
             </button>
             <button
               onClick={handleCancelOrder}
-              className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Cancel Order
+              {modification.allowed ? "Cancel Order" : buttonStatus.text}
             </button>
           </div>
         );
@@ -589,36 +755,56 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           <div className="space-y-3">
             <button
               onClick={() => handleStatusUpdateWithConfirmation("in_progress")}
-              className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-purple-600 hover:bg-purple-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Arrived at Location
+              {modification.allowed ? "Arrived at Location" : buttonStatus.text}
             </button>
 
             {/* Location Sharing Controls */}
-            <div className="flex gap-2">
-              {isSharingLocation ? (
-                <button
-                  onClick={stopLocationSharing}
-                  className="flex-1 bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors"
-                >
-                  Stop Sharing Location
-                </button>
-              ) : (
-                <button
-                  onClick={handleRestartLocationSharing}
-                  className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
-                >
-                  Share Location Again
-                </button>
-              )}
-            </div>
+            {modification.allowed && (
+              <div className="flex gap-2">
+                {isSharingLocation ? (
+                  <button
+                    onClick={stopLocationSharing}
+                    className="flex-1 bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors"
+                  >
+                    Stop Sharing Location
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleRestartLocationSharing}
+                    disabled={!modification.allowed}
+                    className={`flex-1 ${
+                      modification.allowed
+                        ? "bg-blue-500 hover:bg-blue-600"
+                        : "bg-gray-400 cursor-not-allowed"
+                    } text-white py-3 rounded-lg font-medium transition-colors`}
+                    title={modification.reason}
+                  >
+                    Share Location Again
+                  </button>
+                )}
+              </div>
+            )}
 
             {renderSparePartsButton()}
             <button
               onClick={handleCancelOrder}
-              className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Cancel Order
+              {modification.allowed ? "Cancel Order" : buttonStatus.text}
             </button>
           </div>
         );
@@ -628,16 +814,28 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           <div className="space-y-3">
             <button
               onClick={() => handleStatusUpdateWithConfirmation("completed")}
-              className="w-full bg-gray-800 text-white py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-gray-800 hover:bg-gray-900"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Mark Complete
+              {modification.allowed ? "Mark Complete" : buttonStatus.text}
             </button>
             {renderSparePartsButton()}
             <button
               onClick={handleCancelOrder}
-              className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+              disabled={!modification.allowed}
+              className={`w-full ${
+                modification.allowed
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-gray-400 cursor-not-allowed"
+              } text-white py-3 rounded-lg font-medium transition-colors`}
+              title={modification.reason}
             >
-              Cancel Order
+              {modification.allowed ? "Cancel Order" : buttonStatus.text}
             </button>
           </div>
         );
@@ -667,9 +865,15 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         return (
           <button
             onClick={handleCancelOrder}
-            className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+            disabled={!modification.allowed}
+            className={`w-full ${
+              modification.allowed
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-gray-400 cursor-not-allowed"
+            } text-white py-3 rounded-lg font-medium transition-colors`}
+            title={modification.reason}
           >
-            Cancel Order
+            {modification.allowed ? "Cancel Order" : buttonStatus.text}
           </button>
         );
     }

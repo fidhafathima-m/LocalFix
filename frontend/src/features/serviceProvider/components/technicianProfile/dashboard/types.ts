@@ -31,7 +31,11 @@ export interface TabProps {
   orders: TechnicianOrder[];
   ordersLoading: boolean;
   isSuspended: boolean;
-  onUpdateOrderStatus: (orderId: string, status: string, reason?: string) => Promise<void>;
+  onUpdateOrderStatus: (
+    orderId: string,
+    status: string,
+    reason?: string,
+  ) => Promise<{ success: boolean; message?: string } | void>;
   setActiveTab: (tab: string) => void;
 }
 
@@ -88,9 +92,9 @@ export interface OrderHistory {
 }
 
 export interface PaymentInfo {
-  method: 'online' | 'cod';
+  method: "online" | "cod";
   amount: number;
-  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  status: "pending" | "paid" | "failed" | "refunded";
   transactionId?: string;
   paidAt?: string;
 }
