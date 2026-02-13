@@ -600,4 +600,42 @@ export class OrderRepository implements IOrderRepository {
       return null;
     }
   }
+  async updatePaymentStatus(
+    orderId: string,
+    status: 'refunded' | 'paid' | 'failed' | 'pending',
+    transactionId?: string
+  ): Promise<IOrder | null> {
+    try {
+      const updateData: any = {
+        'payment.status': status,
+        updatedAt: new Date(),
+      };
+
+      if (status === 'refunded') {
+        updateData['payment.refundedAt'] = new Date();
+        updateData['payment.refundTransactionId'] = transactionId;
+      }
+
+      const historyEntry = {
+        status: 'cancelled',
+        description: `Payment status updated to ${status}${transactionId ? ` - Refund TxID: ${transactionId}` : ''}`,
+        updatedBy: 'system',
+        timestamp: new Date(),
+      };
+
+      const updatedOrder = await Order.findByIdAndUpdate(
+        new Types.ObjectId(orderId),
+        {
+          $set: updateData,
+          $push: { history: historyEntry },
+        },
+        { new: true }
+      ).exec();
+
+      return updatedOrder;
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      return null;
+    }
+  }
 }

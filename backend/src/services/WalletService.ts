@@ -525,6 +525,7 @@ export class WalletService implements IWalletService {
     }
   }
 
+  // In WalletService.ts - update refundToWallet method
   async refundToWallet(
     userId: string,
     bookingId: string,
@@ -547,48 +548,37 @@ export class WalletService implements IWalletService {
     try {
       this._logger.info('Processing wallet refund', context);
 
-      // Get booking details for description - handle both ObjectId strings and actual IDs
-      let bookingCode = 'Unknown';
-      let serviceName = 'Service';
-
-      try {
-        // Check if bookingId is a valid ObjectId
-        if (Types.ObjectId.isValid(bookingId)) {
-          const booking = await BookingSchema.findById(bookingId).select(
-            'bookingCode serviceName'
-          );
-          if (booking) {
-            bookingCode = booking.bookingCode;
-            serviceName = booking.serviceName;
-          } else {
-            this._logger.warn('Booking not found with ID', {
-              ...context,
-              bookingId,
-            });
-            bookingCode = `ID: ${bookingId}`;
-          }
+      // FIX: Extract userId if it's an object string
+      let actualUserId = userId;
+      if (userId.includes('ObjectId')) {
+        // Extract ObjectId from stringified object
+        const match = userId.match(/ObjectId\('([^']+)'\)/);
+        if (match && match[1]) {
+          actualUserId = match[1];
         } else {
-          // If bookingId is not a valid ObjectId, use it as the code
-          bookingCode = bookingId;
-          this._logger.info('Using provided booking ID as code', {
-            ...context,
-            bookingCode,
-          });
+          // Try to parse as JSON
+          try {
+            const parsed = JSON.parse(
+              userId.replace(/\n/g, ' ').replace(/\s+/g, ' ')
+            );
+            actualUserId = parsed._id?.toString() || parsed.toString();
+          } catch (e) {
+            // Ignore parsing error
+          }
         }
-      } catch (error) {
-        this._logger.warn('Could not fetch booking details for refund', {
-          ...context,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-        // Use fallback values
-        bookingCode = `ID: ${bookingId}`;
       }
 
+      this._logger.info('Extracted user ID for refund', {
+        original: userId,
+        extracted: actualUserId,
+      });
+
       // Validate user ID
-      if (!Types.ObjectId.isValid(userId)) {
+      if (!Types.ObjectId.isValid(actualUserId)) {
         this._logger.error('Invalid user ID for wallet refund', {
           ...context,
           userId,
+          actualUserId,
         });
         return {
           success: false,
@@ -596,19 +586,44 @@ export class WalletService implements IWalletService {
         };
       }
 
+      // Get booking details for description
+      let bookingCode = 'Unknown';
+      let serviceName = 'Service';
+
+      try {
+        if (Types.ObjectId.isValid(bookingId)) {
+          const booking = await BookingSchema.findById(bookingId).select(
+            'bookingCode serviceName'
+          );
+          if (booking) {
+            bookingCode = booking.bookingCode;
+            serviceName = booking.serviceName;
+          }
+        }
+      } catch (error) {
+        this._logger.warn('Could not fetch booking details for refund', {
+          ...context,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        bookingCode = `ID: ${bookingId}`;
+      }
+
       // Get current balance
       const currentBalance =
-        await this._walletRepository.getWalletBalance(userId);
+        await this._walletRepository.getWalletBalance(actualUserId);
       const newBalance = currentBalance + amount;
 
       // Update wallet balance
-      await this._walletRepository.updateWalletBalance(userId, newBalance);
+      await this._walletRepository.updateWalletBalance(
+        actualUserId,
+        newBalance
+      );
 
       // Generate transaction ID
-      const transactionId = `refund_${Date.now()}`;
+      const transactionId = `refund_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
       // Add refund transaction
-      await this._walletRepository.addWalletTransaction(userId, {
+      await this._walletRepository.addWalletTransaction(actualUserId, {
         txId: transactionId,
         type: 'credit',
         amount: amount,
@@ -621,12 +636,13 @@ export class WalletService implements IWalletService {
           serviceName: serviceName,
           refundReason: reason,
           type: 'refund',
-          source: 'admin_refund',
+          source: 'order_cancellation',
         },
       });
 
       this._logger.info('Wallet refund processed successfully', {
         ...context,
+        userId: actualUserId,
         bookingCode,
         newBalance,
         transactionId,

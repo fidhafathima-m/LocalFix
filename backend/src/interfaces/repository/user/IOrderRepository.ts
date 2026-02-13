@@ -71,4 +71,9 @@ export interface IOrderRepository {
     statuses: string[]
   ): Promise<IOrder[]>;
   findExpiredOrders(currentTime: Date, statuses: string[]): Promise<IOrder[]>;
+  updatePaymentStatus(
+    orderId: string,
+    status: 'refunded' | 'paid' | 'failed' | 'pending',
+    transactionId?: string
+  ): Promise<IOrder | null>;
 }

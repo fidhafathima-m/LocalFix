@@ -12,6 +12,7 @@ import { ILogger } from '../interfaces/utils/ILogger';
 import { SocketService } from './SocketService';
 import { loggers } from 'winston';
 import { IMessageService } from '../interfaces/services/user/IMessageService';
+import { IWalletService } from '../interfaces/services/user/IWalletService';
 
 export class OrderService implements IOrderService {
   private _logger: ILogger;
@@ -19,12 +20,14 @@ export class OrderService implements IOrderService {
   private _technicianRepository: ITechnicianRepository;
   private _socketService: SocketService;
   private _messageService: IMessageService;
+  private _walletService: IWalletService;
 
   constructor(
     orderRepository: IOrderRepository,
     technicianRepository: ITechnicianRepository,
     socketService: SocketService,
     messageService: IMessageService,
+    walletService: IWalletService,
     logger: ILogger
   ) {
     this._logger = logger;
@@ -32,6 +35,7 @@ export class OrderService implements IOrderService {
     this._technicianRepository = technicianRepository;
     this._socketService = socketService;
     this._messageService = messageService;
+    this._walletService = walletService;
   }
 
   async getUserOrders(
@@ -261,6 +265,121 @@ export class OrderService implements IOrderService {
     }
   }
 
+  async autoCancelExpiredOrders(): Promise<void> {
+    const context = { operation: 'autoCancelExpiredOrders' };
+
+    try {
+      this._logger.info('Running auto-cancel for expired orders', context);
+
+      const now = new Date();
+
+      // Find all pending/accepted/confirmed orders where scheduled time is more than 1 hour ago
+      const expiredOrders = await this._orderRepository.findExpiredOrders(now, [
+        'pending',
+        'accepted',
+        'confirmed',
+      ]);
+
+      this._logger.info(
+        `Found ${expiredOrders.length} expired orders to cancel`,
+        {
+          ...context,
+          count: expiredOrders.length,
+        }
+      );
+
+      for (const order of expiredOrders) {
+        try {
+          // Check if order was paid online
+          const isPaidOnline =
+            order.payment?.method === 'online' &&
+            order.payment?.status === 'paid';
+
+          let refundAmount = 0;
+          let refundTransactionId = null;
+
+          // Process refund for online payments
+          if (isPaidOnline && order.totalAmount > 0) {
+            refundAmount = order.totalAmount;
+
+            // Process refund to wallet - FIXED: Pass correct arguments
+            const walletResponse = await this._walletService.refundToWallet(
+              order.userId.toString(),
+              order.bookingId?.toString() || order._id.toString(), // bookingId
+              refundAmount,
+              `Refund for cancelled order #${order.orderCode} - Scheduled time passed` // reason
+            );
+
+            if (walletResponse.success) {
+              refundTransactionId = walletResponse.data?.transactionId;
+              this._logger.info('Refund processed successfully', {
+                orderId: order._id.toString(),
+                userId: order.userId.toString(),
+                amount: refundAmount,
+                transactionId: refundTransactionId,
+              });
+            }
+          }
+
+          // Auto-cancel the order with refund information
+          const updatedOrder = await this._orderRepository.updateStatus(
+            order._id.toString(),
+            'cancelled',
+            'system',
+            `Order automatically cancelled - scheduled time has passed${isPaidOnline ? ` - Refund of ₹${refundAmount} processed to wallet` : ''}`
+          );
+
+          if (updatedOrder) {
+            // Update payment status to refunded
+            if (isPaidOnline) {
+              await this._orderRepository.updatePaymentStatus(
+                order._id.toString(),
+                'refunded',
+                refundTransactionId
+              );
+            }
+
+            // Notify customer with refund information
+            await this.notifyUserAboutOrderCancellation(
+              updatedOrder,
+              'system',
+              isPaidOnline ? refundAmount : 0
+            );
+
+            // Notify technician
+            await this.notifyTechnicianAboutOrderStatusChange(
+              updatedOrder,
+              'cancelled'
+            );
+
+            // Notify via socket
+            await this._socketService.notifyOrderStatusChange(
+              order._id.toString(),
+              'cancelled'
+            );
+
+            this._logger.info('Auto-cancelled expired order with refund', {
+              orderId: order._id.toString(),
+              scheduledAt: order.scheduledAt,
+              refundAmount: refundAmount,
+              refundProcessed: isPaidOnline,
+            });
+          }
+        } catch (error) {
+          this._logger.error('Failed to auto-cancel expired order', {
+            orderId: order._id.toString(),
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+    } catch (error) {
+      this._logger.error('Error in auto-cancel expired orders', {
+        ...context,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
   async cancelOrder(
     userId: string,
     orderId: string,
@@ -301,11 +420,77 @@ export class OrderService implements IOrderService {
         );
       }
 
+      // Check if order was paid online
+      const isPaidOnline =
+        order.payment?.method === 'online' && order.payment?.status === 'paid';
+
+      this._logger.info('Payment check', {
+        orderId,
+        isPaidOnline,
+        paymentMethod: order.payment?.method,
+        paymentStatus: order.payment?.status,
+        totalAmount: order.totalAmount,
+      });
+
+      let refundAmount = 0;
+      let refundTransactionId = null;
+
+      // Process refund for online payments
+      if (isPaidOnline && order.totalAmount > 0) {
+        refundAmount = order.totalAmount;
+
+        // Determine refund percentage based on cancellation timing
+        const scheduledAt = new Date(order.scheduledAt);
+        const now = new Date();
+        const hoursUntilScheduled =
+          (scheduledAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+        let refundPercentage = 100;
+        let refundNote = '';
+
+        if (hoursUntilScheduled < 4) {
+          refundPercentage = 50; // 50% refund if cancelled within 4 hours
+          refundNote =
+            ' (50% refund applied - cancellation within 4 hours of scheduled time)';
+        } else {
+          refundNote = ' (Full refund)';
+        }
+
+        refundAmount = (order.totalAmount * refundPercentage) / 100;
+
+        this._logger.info('Processing refund', {
+          userId: order.userId.toString(),
+          bookingId: order.bookingId?.toString() || order._id.toString(),
+          refundAmount,
+          reason: `Refund for cancelled order #${order.orderCode}${refundNote}`,
+        });
+
+        const walletResponse = await this._walletService.refundToWallet(
+          order.userId.toString(),
+          order.bookingId?.toString() || order._id.toString(),
+          refundAmount,
+          `Refund for cancelled order #${order.orderCode}${refundNote}`
+        );
+
+        this._logger.info('Wallet response', walletResponse);
+
+        if (walletResponse.success) {
+          refundTransactionId = walletResponse.data?.transactionId;
+          this._logger.info('Refund successful', {
+            transactionId: refundTransactionId,
+          });
+        } else {
+          this._logger.error('Refund failed', {
+            message: walletResponse.message,
+          });
+        }
+      }
+
       const updatedOrder = await this._orderRepository.updateStatus(
         orderId,
         'cancelled',
         'user',
-        reason
+        `${reason}${isPaidOnline ? ` - Refund of ₹${refundAmount} processed` : ''}`
       );
 
       if (!updatedOrder) {
@@ -313,7 +498,21 @@ export class OrderService implements IOrderService {
         return ResponseHelper.error('Failed to cancel order');
       }
 
-      this._logger.info('Order cancelled successfully', context);
+      // Update payment status to refunded for online payments
+      if (isPaidOnline && refundAmount > 0 && refundTransactionId) {
+        await this._orderRepository.updatePaymentStatus(
+          orderId,
+          'refunded',
+          refundTransactionId
+        );
+      }
+
+      this._logger.info('Order cancelled successfully with refund', {
+        ...context,
+        refundAmount,
+        refundProcessed: isPaidOnline,
+        refundTransactionId,
+      });
 
       const orderDto = this.mapToDto(updatedOrder);
       return ResponseHelper.success('Order cancelled successfully', orderDto);
@@ -518,6 +717,7 @@ export class OrderService implements IOrderService {
     }
   }
 
+  // In updateOrderStatus method, fix how you extract userId
   async updateOrderStatus(
     orderId: string,
     status: string,
@@ -528,16 +728,24 @@ export class OrderService implements IOrderService {
       operation: 'updateOrderStatus',
       data: { orderId, status, updatedBy, reason },
     };
-
     try {
       this._logger.info('=== UPDATE ORDER STATUS START ===', context);
 
-      // First get the order
       const order = await this._orderRepository.findById(orderId);
 
       if (!order) {
         this._logger.warn('Order not found for status update', context);
         return ResponseHelper.notFound('Order not found');
+      }
+
+      // FIX: Extract userId properly
+      let userId: string;
+      if (typeof order.userId === 'object' && order.userId !== null) {
+        // If userId is populated
+        userId = order.userId._id?.toString() || order.userId.toString();
+      } else {
+        // If userId is just an ID
+        userId = order.userId?.toString() || '';
       }
 
       // CHECK FOR EXPIRED ORDER
@@ -586,6 +794,84 @@ export class OrderService implements IOrderService {
         }
       }
 
+      // Process refund for cancellations
+      let refundAmount = 0;
+      let refundTransactionId = null;
+
+      // Check if this is a cancellation by technician
+      if (status === 'cancelled' && updatedBy === 'technician') {
+        // Check if order was paid online
+        const isPaidOnline =
+          order.payment?.method === 'online' &&
+          order.payment?.status === 'paid';
+
+        this._logger.info(
+          'Processing technician cancellation with refund check',
+          {
+            orderId,
+            isPaidOnline,
+            paymentMethod: order.payment?.method,
+            paymentStatus: order.payment?.status,
+            totalAmount: order.totalAmount,
+            userId, // Log the extracted userId
+          }
+        );
+
+        // Process refund for online payments
+        if (isPaidOnline && order.totalAmount > 0) {
+          refundAmount = order.totalAmount;
+
+          // Determine refund percentage based on cancellation timing
+          const scheduledAt = new Date(order.scheduledAt);
+          const now = new Date();
+          const hoursUntilScheduled =
+            (scheduledAt.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+          let refundPercentage = 100;
+          let refundNote = '';
+
+          if (hoursUntilScheduled < 4) {
+            refundPercentage = 50; // 50% refund if cancelled within 4 hours
+            refundNote =
+              ' (50% refund applied - cancellation within 4 hours of scheduled time)';
+          } else {
+            refundNote = ' (Full refund)';
+          }
+
+          refundAmount = (order.totalAmount * refundPercentage) / 100;
+
+          this._logger.info('Processing refund for technician cancellation', {
+            userId, // Use the extracted userId
+            bookingId: order.bookingId?.toString() || order._id.toString(),
+            refundAmount,
+            reason: `Order cancelled by technician - ${reason || 'Technician unavailable'}`,
+          });
+
+          const walletResponse = await this._walletService.refundToWallet(
+            userId, // Use the extracted userId
+            order.bookingId?.toString() || order._id.toString(),
+            refundAmount,
+            `Order cancelled by technician - ${reason || 'Technician unavailable'}`
+          );
+
+          this._logger.info(
+            'Wallet response for technician cancellation',
+            walletResponse
+          );
+
+          if (walletResponse.success) {
+            refundTransactionId = walletResponse.data?.transactionId;
+            this._logger.info('Refund successful for technician cancellation', {
+              transactionId: refundTransactionId,
+            });
+          } else {
+            this._logger.error('Refund failed for technician cancellation', {
+              message: walletResponse.message,
+            });
+          }
+        }
+      }
+
       const updatedOrder = await this._orderRepository.updateStatus(
         orderId,
         status,
@@ -598,22 +884,44 @@ export class OrderService implements IOrderService {
         return ResponseHelper.error('Failed to update order status');
       }
 
-      // ✅ CRITICAL: Update the chat room with new order status
+      // Update payment status to refunded for online payments
+      if (status === 'cancelled' && refundAmount > 0 && refundTransactionId) {
+        await this._orderRepository.updatePaymentStatus(
+          orderId,
+          'refunded',
+          refundTransactionId
+        );
+        this._logger.info('Payment status updated to refunded', {
+          orderId,
+          refundTransactionId,
+        });
+      }
+
+      // Sync chat room
       try {
         await this._messageService.syncOrderStatusWithRoom(orderId);
         this._logger.info('Chat room status synced successfully');
       } catch (syncError) {
         this._logger.error('Failed to sync chat room status:', syncError);
-        // Don't fail the order update if room sync fails
       }
 
       this._logger.info(
         'Order updated successfully, now triggering notifications'
       );
 
-      // Notify via socket about order status change
+      // Notify via socket
       await this._socketService.notifyOrderStatusChange(orderId, status);
-      await this.notifyUserAboutOrderStatusChange(updatedOrder, status);
+
+      // Use the appropriate notification method
+      if (status === 'cancelled' && updatedBy === 'technician') {
+        await this.notifyUserAboutOrderCancellation(
+          updatedOrder,
+          'technician',
+          refundAmount
+        );
+      } else {
+        await this.notifyUserAboutOrderStatusChange(updatedOrder, status);
+      }
 
       if (updatedBy === 'technician') {
         await this.notifyTechnicianAboutOrderStatusChange(updatedOrder, status);
@@ -622,6 +930,8 @@ export class OrderService implements IOrderService {
       this._logger.info('=== UPDATE ORDER STATUS COMPLETE ===', {
         orderId,
         status,
+        refundProcessed: refundAmount > 0,
+        refundAmount,
         userNotified: true,
         technicianNotified: updatedBy === 'technician',
       });
@@ -1381,66 +1691,70 @@ export class OrderService implements IOrderService {
       };
     }
   }
-  // Add this method to OrderService.ts
-  async autoCancelExpiredOrders(): Promise<void> {
-    const context = { operation: 'autoCancelExpiredOrders' };
-
+  private async notifyUserAboutOrderCancellation(
+    order: any,
+    cancelledBy: 'user' | 'technician' | 'system',
+    refundAmount: number = 0
+  ): Promise<void> {
     try {
-      this._logger.info('Running auto-cancel for expired orders', context);
+      const context = {
+        operation: 'notifyUserAboutOrderCancellation',
+        orderId: order._id.toString(),
+        userId: order.userId.toString(),
+        cancelledBy,
+      };
 
-      const now = new Date();
+      this._logger.info('=== CANCELLATION NOTIFICATION START ===', context);
 
-      // Find all pending/accepted/confirmed orders where scheduled time is more than 1 hour ago
-      const expiredOrders = await this._orderRepository.findExpiredOrders(now, [
-        'pending',
-        'accepted',
-        'confirmed',
-      ]);
+      let notificationTitle = '';
+      let notificationMessage = '';
 
-      this._logger.info(
-        `Found ${expiredOrders.length} expired orders to cancel`,
-        {
-          ...context,
-          count: expiredOrders.length,
+      if (cancelledBy === 'system') {
+        notificationTitle = 'Order Auto-Cancelled';
+        notificationMessage = `Your ${order.serviceName} booking has been automatically cancelled as the technician did not respond within the scheduled time.`;
+        if (refundAmount > 0) {
+          notificationMessage += ` A refund of ₹${refundAmount} has been credited to your wallet.`;
         }
-      );
-
-      for (const order of expiredOrders) {
-        try {
-          // Auto-cancel the order
-          const updatedOrder = await this._orderRepository.updateStatus(
-            order._id.toString(),
-            'cancelled',
-            'system',
-            'Order automatically cancelled - scheduled time has passed'
-          );
-
-          // Notify customer
-          await this.notifyUserAboutOrderStatusChange(
-            updatedOrder,
-            'cancelled'
-          );
-
-          // Notify technician
-          await this.notifyTechnicianAboutOrderStatusChange(
-            updatedOrder,
-            'cancelled'
-          );
-
-          this._logger.info('Auto-cancelled expired order', {
-            orderId: order._id.toString(),
-            scheduledAt: order.scheduledAt,
-          });
-        } catch (error) {
-          this._logger.error('Failed to auto-cancel expired order', {
-            orderId: order._id.toString(),
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+      } else if (cancelledBy === 'user') {
+        notificationTitle = 'Order Cancelled';
+        notificationMessage = `You have cancelled your ${order.serviceName} booking.`;
+        if (refundAmount > 0) {
+          notificationMessage += ` A refund of ₹${refundAmount} has been credited to your wallet.`;
+        }
+      } else if (cancelledBy === 'technician') {
+        notificationTitle = 'Order Cancelled by Technician';
+        notificationMessage = `Your ${order.serviceName} booking has been cancelled by the technician.`;
+        if (refundAmount > 0) {
+          notificationMessage += ` A refund of ₹${refundAmount} has been credited to your wallet.`;
         }
       }
+
+      // FIX: Use correct enum values for notification
+      await this._socketService.sendLiveNotification(order.userId.toString(), {
+        userId: order.userId.toString(),
+        userType: 'customer', // Changed from 'user' to 'customer'
+        type: 'order_update', // Changed from 'order_cancelled' to 'order_update'
+        title: notificationTitle,
+        message: notificationMessage,
+        priority: 'high',
+        data: {
+          orderId: order._id.toString(),
+          orderCode: order.orderCode,
+          serviceName: order.serviceName,
+          cancelledBy,
+          refundAmount,
+          refundProcessed: refundAmount > 0,
+          status: 'cancelled',
+        },
+      });
+
+      this._logger.info(
+        '=== CANCELLATION NOTIFICATION CREATED SUCCESSFULLY ==='
+      );
     } catch (error) {
-      this._logger.error('Error in auto-cancel expired orders', {
-        ...context,
+      this._logger.error('=== CANCELLATION NOTIFICATION FAILED ===', {
+        orderId: order._id.toString(),
+        userId: order.userId.toString(),
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }

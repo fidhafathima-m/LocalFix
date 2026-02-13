@@ -157,6 +157,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     }
   };
 
+  // In ActionButtons.tsx
   const handleCancelOrder = async () => {
     const modification = canModifyOrder();
 
@@ -167,16 +168,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
     const result = await Swal.fire({
       title: "Are you sure?",
-      html: `
-        <div class="text-left">
-          <p>You are about to cancel the following order:</p>
-          <div class="mt-2 p-3 bg-red-50 rounded border border-red-200">
-            <p class="font-medium text-gray-900">${order.serviceName}</p>
-            <p class="text-sm text-gray-600">Order #: ${order.orderCode}</p>
-          </div>
-          <p class="mt-3 text-red-600 font-medium">This action cannot be undone!</p>
-        </div>
-      `,
+      html: `...`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",

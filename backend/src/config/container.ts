@@ -386,6 +386,7 @@ export const createSocketDependentServices = (server: any) => {
     technicianRepository,
     socketService,
     messageService,
+    walletService,
     loggerService
   );
   const orderController = new OrderController(orderService, loggerService);
