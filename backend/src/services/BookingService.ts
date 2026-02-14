@@ -24,6 +24,8 @@ import {
   isBooking,
 } from '../interfaces/user/IBooking';
 import { IRedis } from '../interfaces/config/IRedis';
+import { ISlotRule } from '../models/technician/SlotRuleSchema';
+import { TimeSlotHelper } from '../utils/timeSlotHelper';
 
 export class BookingService implements IBookingService {
   private _logger: ILogger;
@@ -83,6 +85,43 @@ export class BookingService implements IBookingService {
     }
   }
 
+  // In BookingService.ts, add this method
+  async checkTechnicianAvailability(
+    technicianId: string,
+    scheduledAt: Date,
+    timeSlot: string
+  ): Promise<ApiResponse<{ available: boolean; message?: string }>> {
+    const context = {
+      operation: 'checkTechnicianAvailability',
+      data: { technicianId, scheduledAt, timeSlot },
+    };
+
+    try {
+      this._logger.info('Checking technician availability', context);
+
+      // Use the same method we created earlier
+      const availabilityCheck = await this._checkTechnicianAvailability(
+        technicianId,
+        scheduledAt,
+        timeSlot
+      );
+      // Or just use the same logic here
+      return ResponseHelper.success('Availability checked successfully', {
+        available: availabilityCheck.available,
+        message: availabilityCheck.message,
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error checking technician availability', {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return ResponseHelper.error('Failed to check availability');
+    }
+  }
+
   async createBooking(
     userId: string,
     bookingData: CreateBookingRequestDto,
@@ -133,6 +172,25 @@ export class BookingService implements IBookingService {
         });
         return ResponseHelper.notFound(
           `Service '${bookingData.serviceName}' not found`
+        );
+      }
+
+      // Check technician availability
+      const availabilityCheck = await this._checkTechnicianAvailability(
+        bookingData.technicianId,
+        new Date(bookingData.scheduledAt),
+        bookingData.timeSlot
+      );
+
+      if (!availabilityCheck.available) {
+        this._logger.warn('Technician not available', {
+          ...context,
+          availabilityMessage: availabilityCheck.message,
+        });
+
+        return ResponseHelper.conflict(
+          availabilityCheck.message ||
+            'Technician is not available for the selected time slot'
         );
       }
 
@@ -862,5 +920,313 @@ export class BookingService implements IBookingService {
     };
 
     return descriptions[status] || `Status updated to ${status}`;
+  }
+
+  private async _checkTechnicianAvailability(
+    technicianId: string,
+    scheduledAt: Date,
+    timeSlot: string
+  ): Promise<{ available: boolean; message?: string }> {
+    const context = {
+      technicianId,
+      scheduledAt,
+      timeSlot,
+    };
+
+    try {
+      this._logger.info('Checking technician availability', context);
+
+      // 1. Parse the requested time slot
+      const parsedSlot = TimeSlotHelper.parseTimeSlot(timeSlot);
+      if (!parsedSlot) {
+        this._logger.warn('Invalid time slot format', context);
+        return {
+          available: false,
+          message: 'Invalid time slot format',
+        };
+      }
+
+      // Combine date with time
+      const requestedStart = new Date(scheduledAt);
+      requestedStart.setHours(
+        parsedSlot.start.getHours(),
+        parsedSlot.start.getMinutes(),
+        0,
+        0
+      );
+
+      const requestedEnd = new Date(scheduledAt);
+      requestedEnd.setHours(
+        parsedSlot.end.getHours(),
+        parsedSlot.end.getMinutes(),
+        0,
+        0
+      );
+
+      // 2. Check technician's availability schedule
+      const availability =
+        await this._bookingRepository.getTechnicianAvailability(
+          technicianId,
+          scheduledAt
+        );
+
+      if (!availability) {
+        // Check if there's a recurring slot rule
+        const slotRule = await this.getTechnicianSlotRule(
+          technicianId,
+          scheduledAt
+        );
+        if (!slotRule) {
+          this._logger.warn('Technician has no availability schedule', context);
+          return {
+            available: false,
+            message: 'Technician is not available on this date',
+          };
+        }
+
+        // Generate slots from the rule
+        const slots = slotRule.generateSlotsForDate(scheduledAt);
+        const isSlotAvailable = slots.some(slot => {
+          const slotStart = new Date(slot.start);
+          const slotEnd = new Date(slot.end);
+
+          return (
+            slot.status === 'available' &&
+            requestedStart.getTime() === slotStart.getTime() &&
+            requestedEnd.getTime() === slotEnd.getTime()
+          );
+        });
+
+        if (!isSlotAvailable) {
+          return {
+            available: false,
+            message: 'Time slot is not available in technician schedule',
+          };
+        }
+      } else {
+        // Check against specific availability slots
+        const isSlotAvailable = availability.timeSlots.some(slot => {
+          const slotStart = new Date(slot.start);
+          const slotEnd = new Date(slot.end);
+
+          return (
+            slot.status === 'available' &&
+            requestedStart.getTime() === slotStart.getTime() &&
+            requestedEnd.getTime() === slotEnd.getTime()
+          );
+        });
+
+        if (!isSlotAvailable) {
+          return {
+            available: false,
+            message: 'Time slot is not available in technician schedule',
+          };
+        }
+      }
+
+      // 3. Check for existing bookings that overlap
+      const existingBookings =
+        await this._bookingRepository.findByTechnicianAndTimeSlot(
+          technicianId,
+          scheduledAt,
+          timeSlot
+        );
+
+      // Filter only active bookings (not cancelled or completed)
+      const activeBookings = existingBookings.filter(
+        booking =>
+          !['cancelled', 'completed', 'refunded'].includes(booking.status)
+      );
+
+      if (activeBookings.length > 0) {
+        this._logger.warn('Technician already has booking for this time slot', {
+          ...context,
+          existingBookingIds: activeBookings.map(b => b._id),
+        });
+
+        return {
+          available: false,
+          message: 'Technician is already booked for this time slot',
+        };
+      }
+
+      // 4. Check if the slot has enough buffer time
+      const slotDuration = TimeSlotHelper.getSlotDuration(
+        requestedStart,
+        requestedEnd
+      );
+
+      // Check for bookings that might be too close (within buffer period)
+      const allBookings = await this._bookingRepository.findByTechnicianAndDate(
+        technicianId,
+        scheduledAt
+      );
+
+      const bookingsSameDay = allBookings.filter(booking => {
+        const bookingDate = new Date(booking.scheduledAt);
+        return bookingDate.toDateString() === scheduledAt.toDateString();
+      });
+
+      for (const booking of bookingsSameDay) {
+        if (['cancelled', 'completed', 'refunded'].includes(booking.status)) {
+          continue;
+        }
+
+        const bookingParsedSlot = TimeSlotHelper.parseTimeSlot(
+          booking.timeSlot
+        );
+        if (!bookingParsedSlot) continue;
+
+        const bookingStart = new Date(booking.scheduledAt);
+        bookingStart.setHours(
+          bookingParsedSlot.start.getHours(),
+          bookingParsedSlot.start.getMinutes(),
+          0,
+          0
+        );
+
+        const bookingEnd = new Date(booking.scheduledAt);
+        bookingEnd.setHours(
+          bookingParsedSlot.end.getHours(),
+          bookingParsedSlot.end.getMinutes(),
+          0,
+          0
+        );
+
+        // Check minimum buffer (e.g., 30 minutes between appointments)
+        const bufferMinutes = 30; // You can make this configurable
+        const timeBetween =
+          Math.abs(requestedStart.getTime() - bookingEnd.getTime()) /
+          (1000 * 60);
+
+        if (timeBetween < bufferMinutes) {
+          return {
+            available: false,
+            message: `Please allow at least ${bufferMinutes} minutes between appointments`,
+          };
+        }
+      }
+
+      this._logger.info(
+        'Technician is available for the requested slot',
+        context
+      );
+      return { available: true };
+    } catch (error) {
+      this._logger.error('Error checking technician availability', {
+        ...context,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return {
+        available: false,
+        message: 'Error checking availability',
+      };
+    }
+  }
+
+  private async getTechnicianSlotRule(
+    technicianId: string,
+    date: Date
+  ): Promise<ISlotRule | null> {
+    try {
+      const SlotRule = mongoose.model<ISlotRule>('SlotRule');
+
+      // Find active slot rules for this technician
+      const slotRules = await SlotRule.find({
+        technicianId: new Types.ObjectId(technicianId),
+        isActive: true,
+        effectiveFrom: { $lte: date },
+        $or: [
+          { effectiveTo: { $gte: date } },
+          { effectiveTo: { $exists: false } },
+        ],
+      });
+
+      if (slotRules.length === 0) {
+        // Check for global/default slot rules
+        const globalRules = await SlotRule.find({
+          technicianId: { $exists: false },
+          isActive: true,
+          effectiveFrom: { $lte: date },
+          $or: [
+            { effectiveTo: { $gte: date } },
+            { effectiveTo: { $exists: false } },
+          ],
+        });
+
+        return globalRules[0] || null;
+      }
+
+      return slotRules[0];
+    } catch (error) {
+      this._logger.error('Error getting technician slot rule', {
+        technicianId,
+        date,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return null;
+    }
+  }
+  async getTechnicianBookingsForDate(
+    technicianId: string,
+    date: Date
+  ): Promise<
+    ApiResponse<{
+      bookings: Array<{
+        _id: string;
+        scheduledAt: string;
+        timeSlot: string;
+        status: string;
+      }>;
+    }>
+  > {
+    const context = {
+      operation: 'getTechnicianBookingsForDate',
+      data: { technicianId, date },
+    };
+
+    try {
+      this._logger.info('Fetching technician bookings for date', context);
+
+      // Get all technician bookings
+      const technicianBookings = await this.getTechnicianBookings(
+        technicianId,
+        1,
+        100
+      );
+
+      if (!technicianBookings.success || !technicianBookings.data) {
+        return ResponseHelper.error('Failed to fetch technician bookings');
+      }
+
+      // Filter bookings for the specific date
+      const bookingsForDate = technicianBookings.data.bookings.filter(
+        (booking: any) => {
+          const bookingDate = new Date(booking.scheduledAt);
+          return bookingDate.toDateString() === date.toDateString();
+        }
+      );
+
+      const formattedBookings = bookingsForDate.map((booking: any) => ({
+        _id: booking._id || booking.id,
+        scheduledAt: booking.scheduledAt,
+        timeSlot: booking.timeSlot,
+        status: booking.status,
+      }));
+
+      return ResponseHelper.success(
+        'Technician bookings retrieved successfully',
+        { bookings: formattedBookings }
+      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      this._logger.error('Error fetching technician bookings for date', {
+        ...context,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      return ResponseHelper.error('Failed to fetch technician bookings');
+    }
   }
 }

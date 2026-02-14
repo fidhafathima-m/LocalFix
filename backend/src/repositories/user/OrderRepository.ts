@@ -495,4 +495,147 @@ export class OrderRepository implements IOrderRepository {
       return [];
     }
   }
+  async findExpiredOrders(
+    currentTime: Date,
+    statuses: string[]
+  ): Promise<IOrder[]> {
+    const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
+
+    return Order.find({
+      status: { $in: statuses },
+      scheduledAt: { $lt: oneHourAgo },
+      'payment.status': 'paid', // Only cancel paid orders
+    }).populate('userId technicianId');
+  }
+
+  async findOrdersByTechnicianAndStatus(
+    technicianId: string,
+    statuses: string[]
+  ): Promise<IOrder[]> {
+    try {
+      const orders = await Order.find({
+        technicianId: new Types.ObjectId(technicianId),
+        status: { $in: statuses },
+      })
+        .populate('userId', 'fullName email phone')
+        .populate(
+          'technicianId',
+          'displayName profilePictureUrl averageRating ratingCount services skills'
+        )
+        .sort({ scheduledAt: 1 })
+        .exec();
+
+      return orders;
+    } catch (error) {
+      console.error('Error finding orders by technician and status:', error);
+      return [];
+    }
+  }
+  async findOverlappingOrders(
+    technicianId: string,
+    scheduledAt: Date,
+    timeSlot: string,
+    excludeOrderId?: string
+  ): Promise<IOrder[]> {
+    try {
+      // Create date range for the entire day
+      const startOfDay = new Date(scheduledAt);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(scheduledAt);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Build query
+      const query: any = {
+        technicianId: new Types.ObjectId(technicianId),
+        scheduledAt: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+        timeSlot: timeSlot,
+        status: {
+          $in: [
+            'pending',
+            'confirmed',
+            'accepted',
+            'on_the_way',
+            'in_progress',
+          ],
+        },
+      };
+
+      // Exclude current order if provided
+      if (excludeOrderId) {
+        query._id = { $ne: new Types.ObjectId(excludeOrderId) };
+      }
+
+      const orders = await Order.find(query).exec();
+      return orders;
+    } catch (error) {
+      console.error('Error finding overlapping orders:', error);
+      return [];
+    }
+  }
+  async findActiveOrderByTechnician(
+    technicianId: string
+  ): Promise<IOrder | null> {
+    try {
+      const activeOrder = await Order.findOne({
+        technicianId: new Types.ObjectId(technicianId),
+        status: {
+          $in: ['accepted', 'confirmed', 'on_the_way', 'in_progress'],
+        },
+      })
+        .populate('userId', 'fullName email phone')
+        .populate(
+          'technicianId',
+          'displayName profilePictureUrl averageRating ratingCount services skills'
+        )
+        .sort({ scheduledAt: 1 })
+        .exec();
+
+      return activeOrder;
+    } catch (error) {
+      console.error('Error finding active order for technician:', error);
+      return null;
+    }
+  }
+  async updatePaymentStatus(
+    orderId: string,
+    status: 'refunded' | 'paid' | 'failed' | 'pending',
+    transactionId?: string
+  ): Promise<IOrder | null> {
+    try {
+      const updateData: any = {
+        'payment.status': status,
+        updatedAt: new Date(),
+      };
+
+      if (status === 'refunded') {
+        updateData['payment.refundedAt'] = new Date();
+        updateData['payment.refundTransactionId'] = transactionId;
+      }
+
+      const historyEntry = {
+        status: 'cancelled',
+        description: `Payment status updated to ${status}${transactionId ? ` - Refund TxID: ${transactionId}` : ''}`,
+        updatedBy: 'system',
+        timestamp: new Date(),
+      };
+
+      const updatedOrder = await Order.findByIdAndUpdate(
+        new Types.ObjectId(orderId),
+        {
+          $set: updateData,
+          $push: { history: historyEntry },
+        },
+        { new: true }
+      ).exec();
+
+      return updatedOrder;
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      return null;
+    }
+  }
 }

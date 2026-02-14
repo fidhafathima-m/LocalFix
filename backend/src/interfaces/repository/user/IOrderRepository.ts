@@ -57,4 +57,23 @@ export interface IOrderRepository {
     technicianId: string,
     date: Date
   ): Promise<IOrder[]>;
+  findOverlappingOrders(
+    technicianId: string,
+    scheduledAt: Date,
+    timeSlot: string,
+    excludeOrderId?: string
+  ): Promise<IOrder[]>;
+
+  findActiveOrderByTechnician(technicianId: string): Promise<IOrder | null>;
+
+  findOrdersByTechnicianAndStatus(
+    technicianId: string,
+    statuses: string[]
+  ): Promise<IOrder[]>;
+  findExpiredOrders(currentTime: Date, statuses: string[]): Promise<IOrder[]>;
+  updatePaymentStatus(
+    orderId: string,
+    status: 'refunded' | 'paid' | 'failed' | 'pending',
+    transactionId?: string
+  ): Promise<IOrder | null>;
 }

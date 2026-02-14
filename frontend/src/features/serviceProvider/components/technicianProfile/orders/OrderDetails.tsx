@@ -57,12 +57,12 @@ const OrderDetails: React.FC = () => {
         // Get all orders and find the specific one
         const response = await technicianOrderService.getTechnicianOrders(
           1,
-          100
+          100,
         );
 
         if (response.success && response.data.orders) {
           const foundOrder = response.data.orders.find(
-            (order: TechnicianOrder) => order._id === orderId
+            (order: TechnicianOrder) => order._id === orderId,
           );
 
           if (foundOrder) {
@@ -84,9 +84,10 @@ const OrderDetails: React.FC = () => {
     loadOrderDetails();
   }, [orderId]);
 
+  // In OrderDetails.tsx
   const handleUpdateOrderStatus = async (
     newStatus: string,
-    reason?: string
+    reason?: string,
   ) => {
     if (!orderId) return;
 
@@ -94,7 +95,7 @@ const OrderDetails: React.FC = () => {
       await technicianOrderService.updateOrderStatus(
         orderId,
         newStatus,
-        reason
+        reason,
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setOrder((prev) => (prev ? { ...prev, status: newStatus as any } : null));

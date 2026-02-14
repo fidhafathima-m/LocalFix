@@ -67,12 +67,12 @@ export interface UpdateBookingStatusRequest {
 class BookingService {
   // Create a new booking
   async createBooking(
-    bookingData: CreateBookingRequest
+    bookingData: CreateBookingRequest,
   ): Promise<BookingResponse> {
     try {
       const response = await apiClient.post<BookingResponse>(
         "/bookings",
-        bookingData
+        bookingData,
       );
 
       if (response.data.success) {
@@ -92,11 +92,11 @@ class BookingService {
   // Get user bookings
   async getUserBookings(
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<BookingListResponse> {
     try {
       const response = await apiClient.get<BookingListResponse>(
-        `/bookings/user?page=${page}&limit=${limit}`
+        `/bookings/user?page=${page}&limit=${limit}`,
       );
       return response.data;
     } catch (error: any) {
@@ -111,7 +111,7 @@ class BookingService {
   async getBookingById(bookingId: string): Promise<BookingResponse> {
     try {
       const response = await apiClient.get<BookingResponse>(
-        `/bookings/${bookingId}`
+        `/bookings/${bookingId}`,
       );
       return response.data;
     } catch (error: any) {
@@ -125,12 +125,12 @@ class BookingService {
   // Cancel booking
   async cancelBooking(
     bookingId: string,
-    reason: string
+    reason: string,
   ): Promise<BookingResponse> {
     try {
       const response = await apiClient.post<BookingResponse>(
         `/bookings/${bookingId}/cancel`,
-        { reason }
+        { reason },
       );
 
       if (response.data.success) {
@@ -152,7 +152,7 @@ class BookingService {
     bookingId: string,
     status: string,
     updatedBy: string,
-    reason?: string
+    reason?: string,
   ): Promise<BookingResponse> {
     try {
       const updateData: UpdateBookingStatusRequest = {
@@ -163,7 +163,7 @@ class BookingService {
 
       const response = await apiClient.patch<BookingResponse>(
         `/bookings/${bookingId}/status`,
-        updateData
+        updateData,
       );
 
       return response.data;
@@ -179,12 +179,12 @@ class BookingService {
   // bookingService.ts
   async updateBooking(
     bookingId: string,
-    updateData: Partial<Booking>
+    updateData: Partial<Booking>,
   ): Promise<BookingResponse> {
     try {
       const response = await apiClient.put<BookingResponse>(
         `/bookings/${bookingId}`,
-        updateData
+        updateData,
       );
 
       if (response.data.success) {
@@ -198,6 +198,32 @@ class BookingService {
         error.response?.data?.message || "Failed to update booking";
       toast.error(errorMessage);
       throw new Error(errorMessage);
+    }
+  }
+
+  async getTechnicianBookingsForDate(
+    technicianId: string,
+    date: string,
+  ): Promise<{
+    success: boolean;
+    data?: {
+      bookings: Array<{
+        _id: string;
+        scheduledAt: string;
+        timeSlot: string;
+        status: string;
+      }>;
+    };
+    message?: string;
+  }> {
+    try {
+      const response = await apiClient.get(
+        `/bookings/technician/${technicianId}/date/${date}`,
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching technician bookings for date:", error);
+      throw error;
     }
   }
 }

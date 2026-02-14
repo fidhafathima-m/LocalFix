@@ -180,13 +180,13 @@ const TechnicianProfile: React.FC = () => {
             ) {
               setSlotRules(slotRulesResponse.data.data.slotRules);
               const availability = generateWeeklyAvailability(
-                slotRulesResponse.data.data.slotRules
+                slotRulesResponse.data.data.slotRules,
               );
               setWeeklyAvailability(availability);
             } else {
               console.warn(
                 "No slot rules found or unexpected response structure:",
-                slotRulesResponse.data
+                slotRulesResponse.data,
               );
               setSlotRules([]);
               setWeeklyAvailability([]);
@@ -217,9 +217,8 @@ const TechnicianProfile: React.FC = () => {
     try {
       setReviewsLoading(true);
 
-      const statsResponse = await reviewService.getTechnicianReviewStats(
-        technicianId
-      );
+      const statsResponse =
+        await reviewService.getTechnicianReviewStats(technicianId);
       if (statsResponse.success && statsResponse.data) {
         setReviewStats(statsResponse.data);
       }
@@ -230,7 +229,7 @@ const TechnicianProfile: React.FC = () => {
         technicianId,
         1,
         10,
-        currentUserId // Pass current user ID
+        currentUserId, // Pass current user ID
       );
 
       if (reviewsResponse.success && reviewsResponse.data) {
@@ -260,7 +259,7 @@ const TechnicianProfile: React.FC = () => {
             } else if (typeof review.userId === "string") {
               // Fallback: Try to extract from stringified field (old method)
               const fullNameMatch = review.userId.match(
-                /fullName:\s*'([^']+)'/
+                /fullName:\s*'([^']+)'/,
               );
               if (fullNameMatch && fullNameMatch[1]) {
                 userName = fullNameMatch[1];
@@ -278,7 +277,7 @@ const TechnicianProfile: React.FC = () => {
             // Check if this review is reported by current user
             const userReportedFromAPI = review.userReported || false;
             const userReportedFromCache = cachedReportedReviews.includes(
-              review.id || review._id
+              review.id || review._id,
             );
 
             return {
@@ -314,7 +313,7 @@ const TechnicianProfile: React.FC = () => {
           ...review,
           userReported:
             review.userReported || cachedReportedReviews.includes(review._id),
-        }))
+        })),
       );
     }
   }, [reviews.length, user]);
@@ -361,15 +360,15 @@ const TechnicianProfile: React.FC = () => {
 
         if (response.success) {
           toast.success(
-            "Thank you for your report. Our team will review it shortly."
+            "Thank you for your report. Our team will review it shortly.",
           );
 
           setReviews((prevReviews) =>
             prevReviews.map((review) =>
               review._id === reviewId
                 ? { ...review, userReported: true }
-                : review
-            )
+                : review,
+            ),
           );
 
           const reportedReviews = getCachedReportedReviews();
@@ -377,7 +376,7 @@ const TechnicianProfile: React.FC = () => {
             reportedReviews.push(reviewId);
             localStorage.setItem(
               "reportedReviews",
-              JSON.stringify(reportedReviews)
+              JSON.stringify(reportedReviews),
             );
           }
         } else {
@@ -388,8 +387,8 @@ const TechnicianProfile: React.FC = () => {
               prevReviews.map((review) =>
                 review._id === reviewId
                   ? { ...review, userReported: true }
-                  : review
-              )
+                  : review,
+              ),
             );
 
             // Store in localStorage as fallback
@@ -398,7 +397,7 @@ const TechnicianProfile: React.FC = () => {
               reportedReviews.push(reviewId);
               localStorage.setItem(
                 "reportedReviews",
-                JSON.stringify(reportedReviews)
+                JSON.stringify(reportedReviews),
               );
             }
           } else {
@@ -418,8 +417,10 @@ const TechnicianProfile: React.FC = () => {
         // Update UI state even on error since we know it's already reported
         setReviews((prevReviews) =>
           prevReviews.map((review) =>
-            review._id === reviewId ? { ...review, userReported: true } : review
-          )
+            review._id === reviewId
+              ? { ...review, userReported: true }
+              : review,
+          ),
         );
 
         // Store in localStorage as fallback
@@ -428,7 +429,7 @@ const TechnicianProfile: React.FC = () => {
           reportedReviews.push(reviewId);
           localStorage.setItem(
             "reportedReviews",
-            JSON.stringify(reportedReviews)
+            JSON.stringify(reportedReviews),
           );
         }
       } else if (error?.response?.status === 401) {
@@ -453,7 +454,7 @@ const TechnicianProfile: React.FC = () => {
   };
 
   const generateWeeklyAvailability = (
-    rules: SlotRule[]
+    rules: SlotRule[],
   ): DailyAvailability[] => {
     const days: DailyAvailability[] = [];
     const today = new Date();
@@ -483,11 +484,12 @@ const TechnicianProfile: React.FC = () => {
 
   const getSlotsForDate = (
     rules: SlotRule[],
-    date: Date
+    date: Date,
   ): Array<{ start: string; end: string }> => {
     const slots: Array<{ start: string; end: string }> = [];
     const activeRules = rules.filter((rule) => rule.isActive);
 
+    // Process each rule
     activeRules.forEach((rule) => {
       try {
         // Parse the RRule and check if it occurs on this date
@@ -495,7 +497,7 @@ const TechnicianProfile: React.FC = () => {
         const occurrences = rrule.between(
           new Date(date.getFullYear(), date.getMonth(), date.getDate()),
           new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
-          true
+          true,
         );
 
         // If this rule applies to the current date, generate slots
@@ -503,22 +505,100 @@ const TechnicianProfile: React.FC = () => {
           const daySlots = generateTimeSlots(
             rule.startTime,
             rule.endTime,
-            rule.slotDurationMinutes
+            rule.slotDurationMinutes,
           );
-          slots.push(...daySlots);
+
+          // Add slots to the collection
+          daySlots.forEach((slot) => {
+            slots.push(slot);
+          });
         }
       } catch (error) {
         console.error("Error processing slot rule:", error);
       }
     });
 
-    return mergeConsecutiveSlots(slots);
+    // Remove duplicates and sort
+    const uniqueSlots = removeDuplicateSlots(slots);
+
+    // Consolidate slots into time ranges
+    return consolidateTimeRanges(uniqueSlots);
+  };
+
+  // Consolidate consecutive or overlapping time slots into ranges
+  const consolidateTimeRanges = (
+    slots: Array<{ start: string; end: string }>,
+  ): Array<{ start: string; end: string }> => {
+    if (slots.length === 0) return [];
+
+    // Sort slots by start time
+    const sortedSlots = [...slots].sort((a, b) =>
+      a.start.localeCompare(b.start),
+    );
+
+    const consolidatedRanges: Array<{ start: string; end: string }> = [];
+    let currentRange = { ...sortedSlots[0] };
+
+    for (let i = 1; i < sortedSlots.length; i++) {
+      const slot = sortedSlots[i];
+
+      // Check if slots overlap or are consecutive
+      // Convert to minutes for comparison
+      const currentEnd = timeToMinutes(currentRange.end);
+      const slotStart = timeToMinutes(slot.start);
+      const slotEnd = timeToMinutes(slot.end);
+
+      if (slotStart <= currentEnd || slotStart === currentEnd + 1) {
+        // Overlapping or consecutive, extend the range
+        if (slotEnd > currentEnd) {
+          currentRange.end = slot.end;
+        }
+      } else {
+        // Not overlapping, add current range and start new one
+        consolidatedRanges.push(currentRange);
+        currentRange = { ...slot };
+      }
+    }
+
+    // Add the last range
+    consolidatedRanges.push(currentRange);
+
+    return consolidatedRanges;
+  };
+
+  // Helper function to convert time string to minutes
+  const timeToMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(":").map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Remove duplicate time slots
+  const removeDuplicateSlots = (
+    slots: Array<{ start: string; end: string }>,
+  ): Array<{ start: string; end: string }> => {
+    if (slots.length === 0) return [];
+
+    // Create a Map to track unique slots
+    const slotMap = new Map<string, { start: string; end: string }>();
+
+    slots.forEach((slot) => {
+      const key = `${slot.start}-${slot.end}`;
+
+      // Keep the first occurrence of each slot
+      if (!slotMap.has(key)) {
+        slotMap.set(key, slot);
+      }
+    });
+
+    // Convert back to array and sort by start time
+    const uniqueSlots = Array.from(slotMap.values());
+    return uniqueSlots.sort((a, b) => a.start.localeCompare(b.start));
   };
 
   const generateTimeSlots = (
     startTime: string,
     endTime: string,
-    durationMinutes: number
+    durationMinutes: number,
   ): Array<{ start: string; end: string }> => {
     const slots: Array<{ start: string; end: string }> = [];
 
@@ -566,33 +646,6 @@ const TechnicianProfile: React.FC = () => {
     }
 
     return slots;
-  };
-
-  const mergeConsecutiveSlots = (
-    slots: Array<{ start: string; end: string }>
-  ): Array<{ start: string; end: string }> => {
-    if (slots.length === 0) return [];
-
-    const sortedSlots = [...slots].sort((a, b) =>
-      a.start.localeCompare(b.start)
-    );
-    const merged: Array<{ start: string; end: string }> = [];
-
-    let currentRange = { ...sortedSlots[0] };
-
-    for (let i = 1; i < sortedSlots.length; i++) {
-      const slot = sortedSlots[i];
-
-      if (slot.start === currentRange.end) {
-        currentRange.end = slot.end;
-      } else {
-        merged.push(currentRange);
-        currentRange = { ...slot };
-      }
-    }
-
-    merged.push(currentRange);
-    return merged;
   };
 
   // Get document type display name
@@ -667,7 +720,7 @@ const TechnicianProfile: React.FC = () => {
   // Format time range for display
   const formatTimeRange = (range: { start: string; end: string }): string => {
     return `${formatTimeTo12Hour(range.start)} - ${formatTimeTo12Hour(
-      range.end
+      range.end,
     )}`;
   };
 
@@ -692,12 +745,12 @@ const TechnicianProfile: React.FC = () => {
     };
   };
   const hasAvailability = weeklyAvailability.some(
-    (day) => day.slots.length > 0
+    (day) => day.slots.length > 0,
   );
 
   const handleBooking = (
     technicianId: string,
-    technicianName: string
+    technicianName: string,
   ): void => {
     // Get the service name from location state or use the first service
     const serviceName = location.state?.serviceName || technician?.services[0];
@@ -877,7 +930,7 @@ const TechnicianProfile: React.FC = () => {
             <p className="text-gray-600 mb-4">
               {technician.bio ||
                 `Experienced technician specializing in ${technician.services.join(
-                  ", "
+                  ", ",
                 )}. 
                 Committed to providing quality service with attention to detail and customer satisfaction.`}
             </p>
@@ -1029,7 +1082,7 @@ const TechnicianProfile: React.FC = () => {
                       <strong>
                         {
                           weeklyAvailability.filter(
-                            (day) => day.slots.length > 0
+                            (day) => day.slots.length > 0,
                           ).length
                         }{" "}
                         days

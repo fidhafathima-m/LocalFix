@@ -1,4 +1,5 @@
-import { IBooking } from "../../../models/BookingSchema";
+import { IBooking } from '../../../models/BookingSchema';
+import { ITechnicianAvailability } from '../../../models/technician/TechnicianAvailabilitySchema';
 
 export interface IBookingRepository {
   create(bookingData: Partial<IBooking>): Promise<IBooking>;
@@ -37,4 +38,18 @@ export interface IBookingRepository {
     longitude: number;
     lastUpdated: Date;
   } | null>;
+  findByTechnicianAndTimeSlot(
+    technicianId: string,
+    date: Date,
+    timeSlot: string
+  ): Promise<IBooking[]>;
+
+  getTechnicianAvailability(
+    technicianId: string,
+    date: Date
+  ): Promise<ITechnicianAvailability | null>;
+  findByTechnicianAndDate(
+    technicianId: string,
+    date: Date
+  ): Promise<IBooking[]>;
 }

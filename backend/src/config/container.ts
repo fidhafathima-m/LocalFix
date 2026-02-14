@@ -99,6 +99,7 @@ import { TechnicianManagementSubscriptionService } from '../services/TechnicianM
 import { TechnicianManagementSubscriptionController } from '../controllers/admin/technicianManagementSubscriptionController';
 import { PaymentManagementService } from '../services/PaymentMgmtService';
 import { RedisService } from './redis';
+import { CronService } from '../services/CronService';
 
 const loggerService = new LoggerService();
 
@@ -385,6 +386,7 @@ export const createSocketDependentServices = (server: any) => {
     technicianRepository,
     socketService,
     messageService,
+    walletService,
     loggerService
   );
   const orderController = new OrderController(orderService, loggerService);
@@ -447,6 +449,9 @@ export const createSocketDependentServices = (server: any) => {
     sparePartsRequestService,
     loggerService
   );
+
+  const cronService = new CronService(orderService, loggerService);
+
   return {
     socketService,
     technicianManagementService,
@@ -466,6 +471,7 @@ export const createSocketDependentServices = (server: any) => {
     sparePartsRequestRepositry,
     sparePartsRequestService,
     sparePartsRequestController,
+    cronService,
   };
 };
 
@@ -482,6 +488,7 @@ export {
   technicianDashboardService,
   authController,
   authService,
+  OrderService,
   categoryManagementRepository,
   categoryManagementService,
   categoryManagementController,

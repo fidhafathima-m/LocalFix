@@ -4,8 +4,8 @@ import {
   BookingListResponseDto,
   TrackingDetailsDto,
   TechnicianLocationDto,
-} from "../../dtos/bookingDtos";
-import { ApiResponse } from "../../../utils/responseHelper";
+} from '../../dtos/bookingDtos';
+import { ApiResponse } from '../../../utils/responseHelper';
 
 export interface IBookingService {
   createBooking(
@@ -49,4 +49,22 @@ export interface IBookingService {
   getTechnicianLocation(
     bookingId: string
   ): Promise<ApiResponse<TechnicianLocationDto>>;
+  checkTechnicianAvailability(
+    technicianId: string,
+    scheduledAt: Date,
+    timeSlot: string
+  ): Promise<ApiResponse<{ available: boolean; message?: string }>>;
+  getTechnicianBookingsForDate(
+    technicianId: string,
+    date: Date
+  ): Promise<
+    ApiResponse<{
+      bookings: Array<{
+        _id: string;
+        scheduledAt: string;
+        timeSlot: string;
+        status: string;
+      }>;
+    }>
+  >;
 }

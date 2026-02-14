@@ -36,7 +36,7 @@ const OrdersTab: React.FC<TabProps> = ({
   const handleCancelOrder = async (
     orderId: string,
     orderCode: string,
-    serviceName: string
+    serviceName: string,
   ) => {
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -112,7 +112,7 @@ const OrdersTab: React.FC<TabProps> = ({
   const handleDeclineOrder = async (
     orderId: string,
     orderCode: string,
-    serviceName: string
+    serviceName: string,
   ) => {
     const result = await Swal.fire({
       title: "Decline Order?",
@@ -145,7 +145,7 @@ const OrdersTab: React.FC<TabProps> = ({
         await onUpdateOrderStatus(
           orderId,
           "cancelled",
-          "Technician unavailable"
+          "Technician unavailable",
         );
 
         toast.success("The order has been declined successfully.");
@@ -156,11 +156,21 @@ const OrdersTab: React.FC<TabProps> = ({
     }
   };
 
+  const isOrderExpired = (scheduledAt: string): boolean => {
+    if (!scheduledAt) return false;
+    const scheduledDate = new Date(scheduledAt);
+    const now = new Date();
+    const oneHourAfterScheduled = new Date(
+      scheduledDate.getTime() + 60 * 60 * 1000,
+    );
+    return now > oneHourAfterScheduled;
+  };
+
   const handleStatusUpdate = async (
     orderId: string,
     newStatus: string,
     orderCode: string,
-    serviceName: string
+    serviceName: string,
   ) => {
     const statusMessages: {
       [key: string]: {
@@ -213,17 +223,39 @@ const OrdersTab: React.FC<TabProps> = ({
 
       if (result.isConfirmed) {
         try {
-          // If status is "on_the_way", ask for location sharing
           if (newStatus === "on_the_way") {
             await handleOnTheWayStatus(orderId);
           } else {
-            await onUpdateOrderStatus(orderId, newStatus);
+            // Capture the response from the API call
+            const response = await onUpdateOrderStatus(orderId, newStatus);
+
+            // Check if the response contains an error message from backend
+            if (response && response.success === false) {
+              toast.error(response.message || "Failed to update order status");
+              return;
+            }
+
             toast.success(
-              `Order status updated to ${newStatus.replace("_", " ")}.`
+              `Order status updated to ${newStatus.replace("_", " ")}.`,
             );
           }
-        } catch (error) {
-          toast.error("Failed to update order status. Please try again.");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+          // Handle validation errors from backend
+          if (error.response?.data?.message) {
+            toast.error(error.response.data.message);
+
+            // Show detailed error in SweetAlert for better UX
+            Swal.fire({
+              title: "Cannot Update Status",
+              text: error.response.data.message,
+              icon: "error",
+              confirmButtonColor: "#3085d6",
+              confirmButtonText: "Got it",
+            });
+          } else {
+            toast.error("Failed to update order status. Please try again.");
+          }
           console.error(error);
         }
       }
@@ -231,6 +263,50 @@ const OrdersTab: React.FC<TabProps> = ({
       // Direct status update without confirmation for other statuses
       await onUpdateOrderStatus(orderId, newStatus);
     }
+  };
+
+  // Add this helper function
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getCompletionWaitTime = (order: any): string => {
+    if (order.status !== "in_progress") return "";
+
+    const inProgressHistory = order.history?.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (h: any) => h.status === "in_progress",
+    );
+
+    if (inProgressHistory) {
+      const inProgressTime = new Date(inProgressHistory.timestamp);
+      const now = new Date();
+      const timeSinceStart = now.getTime() - inProgressTime.getTime();
+      const thirtyMinutes = 30 * 60 * 1000;
+
+      if (timeSinceStart < thirtyMinutes) {
+        const remainingMs = thirtyMinutes - timeSinceStart;
+        const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
+        return ` (${remainingMinutes} min remaining)`;
+      }
+    }
+
+    return "";
+  };
+
+  // Add this to check if order can be accepted/confirmed
+  const canModifyOrder = (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    order: any,
+  ): { allowed: boolean; reason: string } => {
+    const scheduledAt = order.scheduledAt;
+
+    if (isOrderExpired(scheduledAt)) {
+      return {
+        allowed: false,
+        reason:
+          "This order's scheduled date/time has passed and can no longer be modified.",
+      };
+    }
+
+    return { allowed: true, reason: "" };
   };
 
   const handleOnTheWayStatus = async (orderId: string) => {
@@ -370,7 +446,7 @@ const OrdersTab: React.FC<TabProps> = ({
             enableHighAccuracy: true,
             timeout: 15000,
             maximumAge: 30000,
-          }
+          },
         );
 
         // Store watchId to stop later
@@ -412,7 +488,7 @@ const OrdersTab: React.FC<TabProps> = ({
         enableHighAccuracy: true,
         timeout: 15000,
         maximumAge: 60000,
-      }
+      },
     );
   };
 
@@ -444,7 +520,7 @@ const OrdersTab: React.FC<TabProps> = ({
       try {
         await startLocationSharing(orderId);
         toast.success(
-          "Location sharing restarted! Customer can now track you again."
+          "Location sharing restarted! Customer can now track you again.",
         );
       } catch (error) {
         toast.error("Failed to restart location sharing. Please try again.");
@@ -560,9 +636,15 @@ const OrdersTab: React.FC<TabProps> = ({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {isOrderExpired(order.scheduledAt) &&
+                    order.status === "pending" && (
+                      <span className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+                        Expired - Auto-cancelling
+                      </span>
+                    )}
                   <span
                     className={`px-3 py-1 text-sm rounded-full flex items-center gap-1 ${getStatusColor(
-                      order.status
+                      order.status,
                     )}`}
                   >
                     {getStatusIcon(order.status)}
@@ -671,63 +753,107 @@ const OrdersTab: React.FC<TabProps> = ({
                   {/* Pending -> Accept/Decline */}
                   {order.status === "pending" && (
                     <>
-                      <button
-                        onClick={() =>
-                          handleStatusUpdate(
-                            order._id,
-                            "accepted",
-                            order.orderCode || order._id,
-                            order.serviceName || "Service"
-                          )
-                        }
-                        className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        Accept Order
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeclineOrder(
-                            order._id,
-                            order.orderCode || order._id,
-                            order.serviceName || "Service"
-                          )
-                        }
-                        className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700 transition-colors"
-                      >
-                        Decline
-                      </button>
+                      {(() => {
+                        const modification = canModifyOrder(order);
+                        return (
+                          <button
+                            onClick={() =>
+                              handleStatusUpdate(
+                                order._id,
+                                "accepted",
+                                order.orderCode || order._id,
+                                order.serviceName || "Service",
+                              )
+                            }
+                            disabled={!modification.allowed}
+                            className={`${
+                              modification.allowed
+                                ? "bg-blue-600 hover:bg-blue-700"
+                                : "bg-gray-400 cursor-not-allowed"
+                            } text-white px-4 py-2 rounded text-sm font-medium transition-colors`}
+                            title={modification.reason}
+                          >
+                            Accept Order
+                          </button>
+                        );
+                      })()}
+                      {(() => {
+                        const modification = canModifyOrder(order);
+                        return (
+                          <button
+                            onClick={() =>
+                              handleDeclineOrder(
+                                order._id,
+                                order.orderCode || order._id,
+                                order.serviceName || "Service",
+                              )
+                            }
+                            disabled={!modification.allowed}
+                            className={`${
+                              modification.allowed
+                                ? "bg-red-600 hover:bg-red-700"
+                                : "bg-gray-400 cursor-not-allowed"
+                            } text-white px-4 py-2 rounded text-sm font-medium transition-colors`}
+                            title={modification.reason}
+                          >
+                            Decline
+                          </button>
+                        );
+                      })()}
                     </>
                   )}
 
                   {/* Accepted -> Confirm/Start Journey */}
                   {order.status === "accepted" && (
                     <>
-                      <button
-                        onClick={() =>
-                          handleStatusUpdate(
-                            order._id,
-                            "confirmed",
-                            order.orderCode || order._id,
-                            order.serviceName || "Service"
-                          )
-                        }
-                        className="bg-green-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-700 transition-colors"
-                      >
-                        Confirm Service
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleStatusUpdate(
-                            order._id,
-                            "on_the_way",
-                            order.orderCode || order._id,
-                            order.serviceName || "Service"
-                          )
-                        }
-                        className="bg-orange-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-orange-700 transition-colors"
-                      >
-                        Start Journey
-                      </button>
+                      {(() => {
+                        const acceptance = canModifyOrder(order);
+                        return (
+                          <button
+                            onClick={() =>
+                              handleStatusUpdate(
+                                order._id,
+                                "confirmed",
+                                order.orderCode || order._id,
+                                order.serviceName || "Service",
+                              )
+                            }
+                            disabled={!acceptance.allowed}
+                            className={`${
+                              acceptance.allowed
+                                ? "bg-green-600 hover:bg-green-700"
+                                : "bg-gray-400 cursor-not-allowed"
+                            } text-white px-4 py-2 rounded text-sm font-medium transition-colors`}
+                            title={acceptance.reason}
+                          >
+                            Confirm Service
+                          </button>
+                        );
+                      })()}
+                      {(() => {
+                        const acceptance = canModifyOrder(order);
+                        return (
+                          <button
+                            onClick={() =>
+                              handleStatusUpdate(
+                                order._id,
+                                "on_the_way",
+                                order.orderCode || order._id,
+                                order.serviceName || "Service",
+                              )
+                            }
+                            disabled={!acceptance.allowed}
+                            className={`${
+                              acceptance.allowed
+                                ? "bg-orange-600 hover:bg-orange-700"
+                                : "bg-gray-400 cursor-not-allowed"
+                            } text-white px-4 py-2 rounded text-sm font-medium transition-colors`}
+                            title={acceptance.reason}
+                          >
+                            Start Journey
+                          </button>
+                        );
+                      })()}
                     </>
                   )}
 
@@ -739,7 +865,7 @@ const OrdersTab: React.FC<TabProps> = ({
                           order._id,
                           "on_the_way",
                           order.orderCode || order._id,
-                          order.serviceName || "Service"
+                          order.serviceName || "Service",
                         )
                       }
                       className="bg-orange-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-orange-700 transition-colors"
@@ -756,7 +882,7 @@ const OrdersTab: React.FC<TabProps> = ({
                           order._id,
                           "in_progress",
                           order.orderCode || order._id,
-                          order.serviceName || "Service"
+                          order.serviceName || "Service",
                         )
                       }
                       className="bg-purple-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-purple-700 transition-colors"
@@ -773,31 +899,41 @@ const OrdersTab: React.FC<TabProps> = ({
                           order._id,
                           "completed",
                           order.orderCode || order._id,
-                          order.serviceName || "Service"
+                          order.serviceName || "Service",
                         )
                       }
                       className="bg-gray-800 text-white px-4 py-2 rounded text-sm font-medium hover:bg-gray-900 transition-colors"
                     >
-                      Mark Complete
+                      Mark Complete{getCompletionWaitTime(order)}
                     </button>
                   )}
 
                   {/* Cancellation button for most statuses except completed and cancelled */}
                   {order.status &&
-                    !["completed", "cancelled"].includes(order.status) && (
-                      <button
-                        onClick={() =>
-                          handleCancelOrder(
-                            order._id,
-                            order.orderCode || order._id,
-                            order.serviceName || "Service"
-                          )
-                        }
-                        className="bg-red-500 text-white px-3 py-2 rounded text-sm font-medium hover:bg-red-600 transition-colors"
-                      >
-                        Cancel Order
-                      </button>
-                    )}
+                    !["completed", "cancelled"].includes(order.status) &&
+                    (() => {
+                      const modification = canModifyOrder(order);
+                      return (
+                        <button
+                          onClick={() =>
+                            handleCancelOrder(
+                              order._id,
+                              order.orderCode || order._id,
+                              order.serviceName || "Service",
+                            )
+                          }
+                          disabled={!modification.allowed}
+                          className={`${
+                            modification.allowed
+                              ? "bg-red-500 hover:bg-red-600"
+                              : "bg-gray-400 cursor-not-allowed"
+                          } text-white px-3 py-2 rounded text-sm font-medium transition-colors`}
+                          title={modification.reason}
+                        >
+                          Cancel Order
+                        </button>
+                      );
+                    })()}
                 </div>
                 <button
                   onClick={() => navigate(`/technician/order/${order._id}`)}
