@@ -7,7 +7,7 @@ Welcome to **LocalFix**, an on-demand home services platform that connects custo
 ### **Live Link**
 [**LocalFix**](https://localfix.store)
 
-[**new link**](https://github.com/fidhafathima-m/LocalFix)
+[**new link**](https://localfix-services.vercel.app/)
 
 ## **Features**
 
